@@ -29,6 +29,9 @@ export function Navbar() {
               {link.label}
             </a>
           ))}
+          <a className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:p-0" href="/admin/login" onClick={() => setIsMenuOpen(false)}>
+            Admin portal
+          </a>
           <a className="mt-1 inline-flex items-center justify-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:hidden" href="/cart" onClick={() => setIsMenuOpen(false)}>
             <BagIcon size={18} />
             <span>Cart{totalQuantity > 0 ? ` · ${totalQuantity}` : ''}</span>

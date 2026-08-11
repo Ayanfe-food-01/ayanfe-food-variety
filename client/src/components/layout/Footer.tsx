@@ -12,11 +12,8 @@ export function Footer() {
     <footer className="bg-green-dark py-14 text-cream">
       <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_0.7fr_0.7fr_1fr]">
         <div>
-          <a className="inline-flex items-center gap-3" href="#home">
-            <span className="grid size-10 place-items-center rounded-full bg-orange font-display text-lg font-bold text-cream">A</span>
-            <span className="text-[13px] tracking-[0.01em]">
-            {settings?.businessName ?? 'Store'}
-            </span>
+          <a className="inline-flex items-center" href="#home" aria-label="Ayanfe Food Variety home">
+            <img className="h-28 w-28 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
           </a>
           <p className="mt-5 max-w-[270px] text-sm leading-6 text-cream/60">
              {settings?.description || 'Quality foodstuff and everyday essentials, carefully sourced and brought closer to your kitchen.'}
@@ -50,7 +47,7 @@ export function Footer() {
         </div>
       </div>
       <div className="container mt-12 flex flex-wrap justify-between gap-3 border-t border-cream/15 pt-6 text-xs text-cream/45">
-        <span>© {new Date().getFullYear()} {settings?.businessName || 'Store'}</span>
+        <span>© {new Date().getFullYear()}</span>
         <span>Good food starts here.</span>
       </div>
     </footer>

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { BagIcon, CloseIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
-import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 
 const links = [
@@ -14,18 +13,13 @@ const links = [
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { totalQuantity } = useCart()
-  const { settings } = useStoreSettings()
   const { user, logout } = useCustomerAuth()
-  const businessName = settings?.businessName || 'Store'
 
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-cream/90 backdrop-blur-xl">
       <nav className="container flex min-h-[68px] items-center justify-between gap-8 md:min-h-[78px]" aria-label="Main navigation">
-        <a className="inline-flex items-center gap-3" href="#home" aria-label={`${businessName} home`}>
-          <span className="grid size-10 place-items-center rounded-full bg-green font-display text-lg font-bold text-cream">A</span>
-          <span className="text-[13px] tracking-[0.01em]">
-            {businessName}
-          </span>
+        <a className="inline-flex items-center" href="#home" aria-label="Ayanfe Food Variety home">
+          <img className="h-16 w-16 object-contain md:h-[74px] md:w-[74px]" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
         </a>
 
         <div className={`absolute left-4 right-4 top-[76px] ${isMenuOpen ? 'flex' : 'hidden'} flex-col items-stretch gap-0 rounded-[18px] border border-line bg-cream p-2 text-sm font-medium text-muted shadow-[0_18px_40px_rgba(32,60,36,0.12)] md:static md:flex md:flex-row md:items-center md:gap-8 md:border-0 md:bg-transparent md:p-0 md:shadow-none ${isMenuOpen ? 'md:flex' : ''}`}>

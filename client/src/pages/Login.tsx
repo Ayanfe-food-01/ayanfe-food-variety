@@ -58,11 +58,10 @@ export function Login() {
     <main className="grid min-h-screen place-items-center bg-cream px-5 py-10">
       <section className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-sm sm:p-9">
         <div className="flex items-center gap-3">
-          <a href="/" className="grid size-11 place-items-center rounded-full bg-green font-display text-lg font-bold text-cream" aria-label="Return to storefront">A</a>
-          <div>
-            <p className="m-0 text-sm font-bold text-green-dark">Ayanfe Food Variety</p>
-            <p className="m-0 mt-0.5 text-xs text-muted">One secure account for shopping and store management</p>
-          </div>
+          <a href="/" aria-label="Return to storefront">
+            <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+          </a>
+          <p className="m-0 text-xs text-muted">One secure account for shopping and store management</p>
         </div>
         <div className="mt-10">
           <div className="flex items-center gap-2 text-orange"><ShieldIcon size={18} /><span className="text-xs font-bold uppercase tracking-[0.16em]">Secure sign in</span></div>

@@ -31,11 +31,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         }`}
       >
         <div className="flex items-center gap-3 px-2">
-          <span className="grid size-10 place-items-center rounded-full bg-orange font-display text-lg font-bold text-cream">A</span>
-          <div>
-            <p className="m-0 text-sm font-bold">Ayanfe Food Variety</p>
-            <p className="m-0 mt-0.5 text-xs text-cream/55">Admin portal</p>
-          </div>
+          <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+          <p className="m-0 text-xs text-cream/55">Admin portal</p>
         </div>
 
         <nav className="mt-10 space-y-1" aria-label="Admin navigation">

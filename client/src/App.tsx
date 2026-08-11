@@ -13,6 +13,9 @@ import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Settings } from './pages/Admin/Settings'
 import { Login } from './pages/Admin/Login'
+import { Products } from './pages/Admin/Products'
+import { ProductForm } from './pages/Admin/ProductForm'
+import { ProductView } from './pages/Admin/ProductView'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 
 function App() {
@@ -31,6 +34,10 @@ function App() {
         <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
         <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
         <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
+        <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />
+        <Route path="/admin/products/new" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
+        <Route path="/admin/products/:id" element={<RequireAdmin><ProductView /></RequireAdmin>} />
+        <Route path="/admin/products/:id/edit" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
         <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
       </Routes>

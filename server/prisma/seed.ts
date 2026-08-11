@@ -39,6 +39,7 @@ const products = [
     price: '18500.00',
     unit: '5 kg bag',
     image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=720&q=85',
+    stockQuantity: 50,
   },
   {
     categorySlug: 'beans',
@@ -48,6 +49,7 @@ const products = [
     price: '7200.00',
     unit: '2 kg bag',
     image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=720&q=85',
+    stockQuantity: 40,
   },
   {
     categorySlug: 'oil',
@@ -57,6 +59,7 @@ const products = [
     price: '8500.00',
     unit: '2 litres',
     image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=720&q=85',
+    stockQuantity: 30,
   },
   {
     categorySlug: 'yam',
@@ -66,6 +69,7 @@ const products = [
     price: '4500.00',
     unit: '1 tuber',
     image: 'https://images.unsplash.com/photo-1596097557993-7c9d65f4c498?auto=format&fit=crop&w=720&q=85',
+    stockQuantity: 25,
   },
 ]
 
@@ -85,6 +89,7 @@ async function main() {
       where: { slug: product.slug },
       update: {
         ...productData,
+        stockQuantity: product.stockQuantity,
         category: { connect: { slug: categorySlug } },
       },
       create: {

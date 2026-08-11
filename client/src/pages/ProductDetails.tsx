@@ -76,6 +76,7 @@ export function ProductDetails() {
   }
 
   const handleAddToCart = () => {
+    if (!product?.isAvailable) return
     if (!user) {
       openAuth(() => addToCart(product!, quantity))
       return
@@ -124,7 +125,7 @@ export function ProductDetails() {
             <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted">
               Please try again. If the problem continues, explore the rest of our collection.
             </p>
-            <button
+                     <button
               className="mt-7 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
               type="button"
               onClick={retryProduct}
@@ -236,19 +237,21 @@ export function ProductDetails() {
                       className="grid size-11 place-items-center text-xl text-muted transition-colors hover:text-green"
                       type="button"
                       aria-label="Increase quantity"
-                      onClick={() => setQuantity((current) => current + 1)}
+                       disabled={!product.isAvailable || quantity >= product.stockQuantity}
+                       onClick={() => setQuantity((current) => Math.min(product.stockQuantity, current + 1))}
                     >
                       +
                     </button>
                   </div>
                 </div>
                 <button
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green px-6 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark"
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green px-6 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50"
                   type="button"
                   onClick={handleAddToCart}
+                  disabled={!product.isAvailable}
                   aria-label={`Add ${quantity} ${product.name} to cart`}
                 >
-                  <BagIcon size={18} /> Add to cart
+                  <BagIcon size={18} /> {product.isAvailable ? 'Add to cart' : 'Out of stock'}
                 </button>
               </div>
               <p className="mt-3 text-xs text-muted">

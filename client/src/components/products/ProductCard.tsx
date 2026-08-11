@@ -37,9 +37,13 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
           <span>{product.unit}</span>
           <strong className="text-base text-green-dark">{formatPrice(product.price)}</strong>
         </div>
-        <button className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green/20 bg-transparent py-3 text-sm font-bold text-green transition-colors duration-200 hover:bg-green hover:text-cream" type="button" onClick={handleAddToCart} aria-label={`Add ${product.name} to cart`}>
-          <BagIcon size={16} /> Add to cart
-        </button>
+        {product.isAvailable ? (
+          <button className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green/20 bg-transparent py-3 text-sm font-bold text-green transition-colors duration-200 hover:bg-green hover:text-cream" type="button" onClick={handleAddToCart} aria-label={`Add ${product.name} to cart`}>
+            <BagIcon size={16} /> Add to cart
+          </button>
+        ) : (
+          <p className="mt-5 rounded-xl bg-sage/50 py-3 text-center text-sm font-bold text-muted">Out of stock</p>
+        )}
         {showDetails && (
           <Link className="mt-3 inline-flex w-full items-center justify-center text-sm font-bold text-muted transition-colors hover:text-green" to={`/product/${product.id}`}>
             View details

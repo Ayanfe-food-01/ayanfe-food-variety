@@ -104,6 +104,14 @@ export async function createOrder(input) {
                 subtotal,
             };
         });
+        for (const item of input.items) {
+            const result = await transaction.product.updateMany({
+                where: { id: item.productId, isActive: true, stockQuantity: { gte: item.quantity } },
+                data: { stockQuantity: { decrement: item.quantity } },
+            });
+            if (result.count !== 1)
+                throw new HttpError(409, 'One or more products do not have enough stock.');
+        }
         const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
         const orderNumber = await nextOrderNumber(transaction);
         const order = await transaction.order.create({
@@ -161,9 +169,9 @@ export async function checkoutCustomerCart(userId, input) {
         });
         if (!cart || cart.items.length === 0)
             throw new HttpError(400, 'Your cart is empty.');
-        const unavailable = cart.items.filter((item) => !item.product.isActive);
+        const unavailable = cart.items.filter((item) => !item.product.isActive || item.product.stockQuantity < item.quantity);
         if (unavailable.length > 0)
-            throw new HttpError(400, 'One or more cart products are no longer available.');
+            throw new HttpError(409, 'One or more cart products are no longer available or do not have enough stock.');
         const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000);
         if (invalidQuantity)
             throw new HttpError(400, 'One or more cart quantities are invalid.');
@@ -177,6 +185,14 @@ export async function checkoutCustomerCart(userId, input) {
                 subtotal,
             };
         });
+        for (const item of cart.items) {
+            const result = await transaction.product.updateMany({
+                where: { id: item.productId, isActive: true, stockQuantity: { gte: item.quantity } },
+                data: { stockQuantity: { decrement: item.quantity } },
+            });
+            if (result.count !== 1)
+                throw new HttpError(409, 'One or more products do not have enough stock.');
+        }
         const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
         const deliveryFee = new Prisma.Decimal(0);
         const order = await transaction.order.create({

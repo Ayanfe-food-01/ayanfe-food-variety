@@ -154,6 +154,13 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderRespons
         subtotal,
       }
     })
+    for (const item of input.items) {
+      const result = await transaction.product.updateMany({
+        where: { id: item.productId, isActive: true, stockQuantity: { gte: item.quantity } },
+        data: { stockQuantity: { decrement: item.quantity } },
+      })
+      if (result.count !== 1) throw new HttpError(409, 'One or more products do not have enough stock.')
+    }
     const subtotal = orderItems.reduce(
       (total, item) => total.add(item.subtotal),
       new Prisma.Decimal(0),
@@ -221,8 +228,8 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
     })
     if (!cart || cart.items.length === 0) throw new HttpError(400, 'Your cart is empty.')
 
-    const unavailable = cart.items.filter((item) => !item.product.isActive)
-    if (unavailable.length > 0) throw new HttpError(400, 'One or more cart products are no longer available.')
+    const unavailable = cart.items.filter((item) => !item.product.isActive || item.product.stockQuantity < item.quantity)
+    if (unavailable.length > 0) throw new HttpError(409, 'One or more cart products are no longer available or do not have enough stock.')
     const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000)
     if (invalidQuantity) throw new HttpError(400, 'One or more cart quantities are invalid.')
 
@@ -236,6 +243,13 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         subtotal,
       }
     })
+    for (const item of cart.items) {
+      const result = await transaction.product.updateMany({
+        where: { id: item.productId, isActive: true, stockQuantity: { gte: item.quantity } },
+        data: { stockQuantity: { decrement: item.quantity } },
+      })
+      if (result.count !== 1) throw new HttpError(409, 'One or more products do not have enough stock.')
+    }
     const subtotal = orderItems.reduce(
       (total, item) => total.add(item.subtotal),
       new Prisma.Decimal(0),

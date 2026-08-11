@@ -53,6 +53,7 @@ model Product {
   unit        String      @db.VarChar(80)
   image       String
   isActive    Boolean     @default(true) @map("is_active")
+  stockQuantity Int        @default(0) @map("stock_quantity")
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   category    Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: NoAction)

@@ -6,4 +6,10 @@ export interface Product {
   price: number
   image: string
   description: string
+  categoryId?: string
+  stockQuantity: number
+  isActive: boolean
+  isAvailable: boolean
+  createdAt?: string
+  updatedAt?: string
 }

@@ -12,10 +12,23 @@ import {
   updateAdminPaymentSettingsController,
   verifyAdminPaymentController,
 } from '../modules/admin/admin.controller.js'
+import {
+  createAdminProductController,
+  getAdminProductController,
+  listAdminProductsController,
+  productImageUpload,
+  updateAdminProductController,
+  updateAdminProductStatusController,
+} from '../modules/products/admin-product.controller.js'
 
 export const adminRoutes = Router()
 
 adminRoutes.use(...requireAdminAccess)
+adminRoutes.get('/products', listAdminProductsController)
+adminRoutes.get('/products/:id', getAdminProductController)
+adminRoutes.post('/products', productImageUpload, createAdminProductController)
+adminRoutes.patch('/products/:id', productImageUpload, updateAdminProductController)
+adminRoutes.patch('/products/:id/status', updateAdminProductStatusController)
 adminRoutes.get('/dashboard', getDashboardController)
 adminRoutes.get('/orders', listAdminOrdersController)
 adminRoutes.get('/orders/:orderNumber', getAdminOrderController)

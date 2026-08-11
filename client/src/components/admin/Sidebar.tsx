@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { ArrowRight, BagIcon, ShieldIcon } from '../../assets/icons'
+import { ArrowRight } from '../../assets/icons'
 
 interface SidebarProps {
   isOpen: boolean
@@ -55,17 +55,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="mt-auto rounded-2xl border border-cream/10 bg-cream/5 p-4">
-          <div className="flex items-start gap-3">
-            <ShieldIcon size={18} />
-            <div>
-              <p className="m-0 text-xs font-bold">Protected workspace</p>
-              <p className="mt-1 text-xs leading-5 text-cream/55">Only authorized administrators can access store operations.</p>
-            </div>
-          </div>
-          <a className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-orange" href="/">
-            <BagIcon size={15} /> View storefront
-          </a>
+        <div className="mt-auto">
+          <NavLink
+            className="flex w-full items-center justify-center rounded-xl bg-cream px-4 py-3 text-sm font-bold text-green-dark transition-colors hover:bg-white"
+            to="/login"
+            onClick={onClose}
+          >
+            Login
+          </NavLink>
         </div>
       </aside>
     </>

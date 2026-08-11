@@ -10,6 +10,7 @@ const links = [
   { label: 'Dashboard', to: '/admin' },
   { label: 'Orders', to: '/admin/orders' },
   { label: 'Products & inventory', to: '/admin/products' },
+  { label: 'Categories', to: '/admin/categories' },
   { label: 'Payments', to: '/admin/payments' },
   { label: 'Settings', to: '/admin/settings' },
 ]

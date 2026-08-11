@@ -47,6 +47,10 @@ export function ProductForm() {
     const stock = Number(form.stockQuantity)
     if (!Number.isInteger(stock) || stock < 0) { setError('Stock quantity must be a non-negative whole number.'); return }
     if (!isEditing && !form.image) { setError('Please select a product image.'); return }
+    if (categories.find((category) => category.id === form.categoryId)?.isActive !== true) {
+      setError('Select an active category before saving.')
+      return
+    }
     setIsSaving(true)
     try {
       if (id) await updateAdminProduct(id, form)
@@ -69,7 +73,7 @@ export function ProductForm() {
         {isLoading ? <p className="text-sm text-muted">Loading product…</p> : <form className="space-y-5" onSubmit={submit}>
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="text-sm font-bold text-green-dark sm:col-span-2">Product name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" value={form.name} onChange={(event) => update('name', event.target.value)} maxLength={180} required /></label>
-            <label className="text-sm font-bold text-green-dark">Category<select className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none focus:border-green" value={form.categoryId} onChange={(event) => update('categoryId', event.target.value)} required><option value="">Select category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+            <label className="text-sm font-bold text-green-dark">Category<select className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none focus:border-green" value={form.categoryId} onChange={(event) => update('categoryId', event.target.value)} required><option value="">Select category</option>{categories.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
             <label className="text-sm font-bold text-green-dark">Price (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" type="number" min="0" step="0.01" value={form.price} onChange={(event) => update('price', event.target.value)} required /></label>
             <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required /></label>
             <label className="text-sm font-bold text-green-dark">Stock quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" type="number" min="0" step="1" value={form.stockQuantity} onChange={(event) => update('stockQuantity', event.target.value)} required /></label>

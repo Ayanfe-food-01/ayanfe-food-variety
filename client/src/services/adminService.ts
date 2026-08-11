@@ -134,7 +134,7 @@ interface AdminProductResponse {
 }
 
 interface CategoriesResponse {
-  data: Category[]
+  data: Category[] | { categories: Category[] }
 }
 
 interface AdminProductApiResponse {
@@ -219,8 +219,37 @@ export async function getAdminProduct(id: string): Promise<Product> {
 }
 
 export async function getAdminCategories(): Promise<Category[]> {
-  const response = await request<CategoriesResponse>('/categories')
-  return response.data
+  const response = await request<CategoriesResponse>('/admin/categories')
+  return Array.isArray(response.data) ? response.data : response.data.categories
+}
+
+export interface CategoryInput {
+  name: string
+  description: string
+  isActive: boolean
+}
+
+interface CategoryResponse {
+  success: true
+  data: { category: Category }
+}
+
+export async function createAdminCategory(input: CategoryInput): Promise<Category> {
+  const response = await request<CategoryResponse>('/admin/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.category
+}
+
+export async function updateAdminCategoryStatus(id: string, isActive: boolean): Promise<Category> {
+  const response = await request<CategoryResponse>(`/admin/categories/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.category
 }
 
 export async function createAdminProduct(input: ProductFormInput): Promise<Product> {

@@ -16,6 +16,8 @@ import { Login } from './pages/Login'
 import { Products } from './pages/Admin/Products'
 import { ProductForm } from './pages/Admin/ProductForm'
 import { ProductView } from './pages/Admin/ProductView'
+import { Categories } from './pages/Admin/Categories'
+import { CategoryForm } from './pages/Admin/CategoryForm'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 
 function App() {
@@ -38,6 +40,8 @@ function App() {
         <Route path="/admin/products/new" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
         <Route path="/admin/products/:id" element={<RequireAdmin><ProductView /></RequireAdmin>} />
         <Route path="/admin/products/:id/edit" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
+        <Route path="/admin/categories" element={<RequireAdmin><Categories /></RequireAdmin>} />
+        <Route path="/admin/categories/new" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
         <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
     </Routes>

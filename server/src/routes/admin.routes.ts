@@ -26,10 +26,18 @@ import {
   updateAdminProductController,
   updateAdminProductStatusController,
 } from '../modules/products/admin-product.controller.js'
+import {
+  createAdminCategoryController,
+  listAdminCategoriesController,
+  updateAdminCategoryStatusController,
+} from '../modules/categories/category.controller.js'
 
 export const adminRoutes = Router()
 
 adminRoutes.use(...requireAdminAccess)
+adminRoutes.get('/categories', listAdminCategoriesController)
+adminRoutes.post('/categories', createAdminCategoryController)
+adminRoutes.patch('/categories/:id/status', updateAdminCategoryStatusController)
 adminRoutes.get('/products', listAdminProductsController)
 adminRoutes.get('/products/:id', getAdminProductController)
 adminRoutes.post('/products', productImageUpload, createAdminProductController)

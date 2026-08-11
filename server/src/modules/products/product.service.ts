@@ -39,7 +39,7 @@ const toPublicProduct = (product: ProductWithCategory): PublicProduct => {
 
 export async function getProducts(): Promise<PublicProduct[]> {
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where: { isActive: true, category: { isActive: true } },
     include: { category: true },
     orderBy: { createdAt: 'asc' },
   })
@@ -51,8 +51,8 @@ export async function getProductById(identifier: string): Promise<PublicProduct 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)
   const product = await prisma.product.findFirst({
     where: isUuid
-      ? { isActive: true, OR: [{ id: identifier }, { slug: identifier }] }
-      : { isActive: true, slug: identifier },
+      ? { isActive: true, category: { isActive: true }, OR: [{ id: identifier }, { slug: identifier }] }
+      : { isActive: true, category: { isActive: true }, slug: identifier },
     include: { category: true },
   })
 
@@ -83,8 +83,9 @@ const uniqueSlug = async (name: string, excludedId?: string): Promise<string> =>
 }
 
 const validateCategory = async (categoryId: string) => {
-  const category = await prisma.category.findUnique({ where: { id: categoryId }, select: { id: true } })
+  const category = await prisma.category.findUnique({ where: { id: categoryId }, select: { id: true, isActive: true } })
   if (!category) throw new HttpError(400, 'The selected category does not exist.')
+  if (!category.isActive) throw new HttpError(400, 'The selected category is inactive.')
 }
 
 const toAdminProduct = (product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): Product => toProduct(product)

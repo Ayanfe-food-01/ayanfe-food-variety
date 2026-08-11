@@ -6,6 +6,8 @@ interface CategoryApiResponse {
   name: string
   slug: string
   image: string
+  description: string
+  isActive: boolean
   createdAt: string
   updatedAt: string
 }
@@ -19,6 +21,8 @@ const toCategory = (category: CategoryApiResponse): Category => ({
   name: category.name,
   slug: category.slug,
   image: category.image,
+  description: category.description,
+  isActive: category.isActive,
 })
 
 export async function getCategories(): Promise<Category[]> {

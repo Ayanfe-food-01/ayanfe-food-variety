@@ -29,8 +29,8 @@ const priceValue = (value) => {
     if (typeof value !== 'string' && typeof value !== 'number')
         throw new HttpError(400, 'Price is required.');
     const normalized = String(value).trim();
-    if (!/^\d+(?:\.\d{1,2})?$/.test(normalized) || Number(normalized) < 0 || Number(normalized) > 1000000000) {
-        throw new HttpError(400, 'Price must be a valid non-negative amount.');
+    if (!/^\d+(?:\.\d{1,2})?$/.test(normalized) || Number(normalized) <= 0 || Number(normalized) > 1000000000) {
+        throw new HttpError(400, 'Price must be greater than zero and valid.');
     }
     return Number(normalized).toFixed(2);
 };

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BagIcon, CloseIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
+import { NavigationLinks, NavigationMenu, type NavigationItem } from './NavigationLinks'
 
-const links = [
+const links: NavigationItem[] = [
   { label: 'Home', href: '#home' },
   { label: 'Shop', href: '/shop' },
   { label: 'About', href: '#why-us' },
@@ -15,45 +16,51 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { totalQuantity } = useCart()
   const { user, logout } = useCustomerAuth()
+  const closeMenu = () => setIsMenuOpen(false)
+
+  useEffect(() => {
+    if (!isMenuOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isMenuOpen])
 
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-cream/90 backdrop-blur-xl">
-      <nav className="container flex min-h-[68px] items-center justify-between gap-8 md:min-h-[78px]" aria-label="Main navigation">
+      <nav className="container relative flex min-h-[68px] items-center justify-between gap-8 py-3 md:min-h-[78px] md:py-4" aria-label="Main navigation">
         <a className="inline-flex items-center" href="#home" aria-label="Ayanfe Food Variety home">
           <img className="h-16 w-16 object-contain md:h-[74px] md:w-[74px]" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
         </a>
 
-        <div className={`absolute left-4 right-4 top-[76px] ${isMenuOpen ? 'flex' : 'hidden'} flex-col items-stretch gap-0 rounded-[18px] border border-line bg-cream p-2 text-sm font-medium text-muted shadow-[0_18px_40px_rgba(32,60,36,0.12)] md:static md:flex md:flex-row md:items-center md:gap-8 md:border-0 md:bg-transparent md:p-0 md:shadow-none ${isMenuOpen ? 'md:flex' : ''}`}>
-          {links.map((link) => (
-            link.href.startsWith('/') ? (
-              <Link className="p-3 transition-colors duration-200 hover:text-green md:p-0" key={link.label} to={link.href} onClick={() => setIsMenuOpen(false)}>
-                {link.label}
-              </Link>
-            ) : (
-              <a className="p-3 transition-colors duration-200 hover:text-green md:p-0" key={link.label} href={link.href} onClick={() => setIsMenuOpen(false)}>
-                {link.label}
-              </a>
-            )
-          ))}
+        <NavigationMenu isOpen={isMenuOpen}>
+          <NavigationLinks
+            items={links}
+            className="p-3 transition-colors duration-200 hover:text-green md:p-0"
+            onNavigate={closeMenu}
+          />
           {user ? (
             <>
-              <Link className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" to="/orders" onClick={() => setIsMenuOpen(false)}>
+              <Link className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" to="/orders" onClick={closeMenu}>
                 {user.name || 'Account'}
               </Link>
-              <button className="p-3 text-left text-muted transition-colors hover:text-orange md:hidden" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>
+              <button className="p-3 text-left text-muted transition-colors hover:text-orange md:hidden" type="button" onClick={() => { closeMenu(); void logout() }}>
                 Log out
               </button>
             </>
           ) : (
-            <Link className="p-3 transition-colors duration-200 hover:text-green md:hidden" to="/login" onClick={() => setIsMenuOpen(false)}>
+            <Link className="p-3 transition-colors duration-200 hover:text-green md:hidden" to="/login" onClick={closeMenu}>
               Login
             </Link>
           )}
-          <Link className="mt-1 inline-flex items-center justify-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:hidden" to="/cart" onClick={() => setIsMenuOpen(false)}>
+          <Link className="mt-1 inline-flex items-center justify-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:hidden" to="/cart" onClick={closeMenu}>
             <BagIcon size={18} />
             <span>Cart{totalQuantity > 0 ? ` · ${totalQuantity}` : ''}</span>
           </Link>
-        </div>
+        </NavigationMenu>
 
         <Link className="hidden items-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:inline-flex" to="/cart" aria-label={`View cart${totalQuantity > 0 ? `, ${totalQuantity} items` : ''}`}>
           <BagIcon size={20} />

@@ -45,7 +45,7 @@ export function Navbar() {
               </button>
             </>
           ) : (
-            <Link className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" to="/login" onClick={() => setIsMenuOpen(false)}>
+            <Link className="p-3 transition-colors duration-200 hover:text-green md:hidden" to="/login" onClick={() => setIsMenuOpen(false)}>
               Login
             </Link>
           )}
@@ -72,7 +72,7 @@ export function Navbar() {
             </button>
           </div>
         ) : (
-          <Link className="hidden text-sm font-bold text-green transition-colors hover:text-orange md:block" to="/login">
+          <Link className="hidden text-sm text-muted transition-colors duration-200 hover:text-green md:block" to="/login">
             Login
           </Link>
         )}

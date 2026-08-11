@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { MoreHorizontalIcon } from '../../assets/icons'
 import { useToast } from '../../components/ui/Toast'
 import { ApiError } from '../../services/api'
 import {
@@ -15,6 +16,84 @@ const pageSize = 10
 const formatDate = (value?: string) => value
   ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(value))
   : '—'
+
+interface CategoryActionsProps {
+  category: Category
+  isBusy: boolean
+  onToggleStatus: () => void
+  onDelete: () => void
+}
+
+function CategoryActions({ category, isBusy, onToggleStatus, onDelete }: CategoryActionsProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isOpen])
+
+  const runAction = (action: () => void) => {
+    setIsOpen(false)
+    action()
+  }
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        className="grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50"
+        type="button"
+        aria-label={`Actions for ${category.name}`}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        disabled={isBusy}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <MoreHorizontalIcon size={20} />
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 top-11 z-30 min-w-40 overflow-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10" role="menu">
+          <Link
+            className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
+            role="menuitem"
+            to={`/admin/categories/${category.id}/edit`}
+            onClick={() => setIsOpen(false)}
+          >
+            Edit
+          </Link>
+          <button
+            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-orange transition-colors hover:bg-orange/10"
+            type="button"
+            role="menuitem"
+            onClick={() => runAction(onToggleStatus)}
+          >
+            {category.isActive ? 'Deactivate' : 'Activate'}
+          </button>
+          <button
+            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted transition-colors hover:bg-orange/10 hover:text-orange"
+            type="button"
+            role="menuitem"
+            onClick={() => runAction(onDelete)}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Categories() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -137,12 +216,56 @@ export function Categories() {
           <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/categories/new">Add category</Link>
         </div>
       ) : (
-        <div className="mt-8 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+        <div className="mt-8 rounded-2xl border border-line bg-white shadow-sm">
           <div className="mb-4 flex items-center justify-between px-5 pt-5 text-sm text-muted">
             <span>{result?.pagination.total ?? 0} {result?.pagination.total === 1 ? 'category' : 'categories'}</span>
             <span>Page {currentPage} of {totalPages}</span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="space-y-3 px-4 pb-4 md:hidden">
+            {categories.map((category) => (
+              <article className="relative rounded-2xl border border-line bg-cream/45 p-4" key={category.id}>
+                <div className="flex items-start gap-3">
+                  <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-sage">
+                    {category.imageUrl && <img className="size-full object-cover" src={category.imageUrl} alt="" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="pr-2 font-bold text-green-dark">{category.name}</p>
+                    <p className="mt-1 break-words text-xs text-muted">{category.description || 'No description'}</p>
+                    <p className="mt-1 truncate text-xs text-muted">{category.slug}</p>
+                  </div>
+                  <CategoryActions
+                    category={category}
+                    isBusy={busyId === category.id}
+                    onToggleStatus={() => void toggleStatus(category)}
+                    onDelete={() => void deleteCategory(category)}
+                  />
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
+                  <div>
+                    <dt className="uppercase tracking-[0.12em] text-muted">Products</dt>
+                    <dd className="mt-1 font-bold text-green-dark">{category.productCount ?? 0}</dd>
+                  </div>
+                  <div>
+                    <dt className="uppercase tracking-[0.12em] text-muted">Status</dt>
+                    <dd className="mt-1">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${category.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>
+                        {category.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="uppercase tracking-[0.12em] text-muted">Created</dt>
+                    <dd className="mt-1 text-muted">{formatDate(category.createdAt)}</dd>
+                  </div>
+                  <div>
+                    <dt className="uppercase tracking-[0.12em] text-muted">Updated</dt>
+                    <dd className="mt-1 text-muted">{formatDate(category.updatedAt)}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[1100px] text-left text-sm">
               <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
                 <tr><th className="px-5 py-4 font-bold">Category</th><th className="px-5 py-4 font-bold">Products</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Updated</th><th className="px-5 py-4 font-bold">Actions</th></tr>
@@ -155,7 +278,7 @@ export function Categories() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${category.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{category.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.createdAt)}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.updatedAt)}</td>
-                    <td className="px-5 py-4"><div className="flex flex-wrap gap-3 text-xs font-bold"><Link className="text-green hover:text-orange" to={`/admin/categories/${category.id}/edit`}>Edit</Link><button className="text-orange disabled:opacity-50" type="button" disabled={busyId === category.id} onClick={() => void toggleStatus(category)}>{category.isActive ? 'Deactivate' : 'Activate'}</button><button className="text-muted hover:text-orange disabled:opacity-50" type="button" disabled={busyId === category.id} title={(category.productCount ?? 0) > 0 ? 'This category has products; the server will recommend deactivation.' : 'Delete category'} onClick={() => void deleteCategory(category)}>Delete</button></div></td>
+                     <td className="px-5 py-4"><CategoryActions category={category} isBusy={busyId === category.id} onToggleStatus={() => void toggleStatus(category)} onDelete={() => void deleteCategory(category)} /></td>
                   </tr>
                 ))}
               </tbody>

@@ -50,6 +50,16 @@ export function MenuIcon({ size, strokeWidth }: IconProps) {
   )
 }
 
+export function MoreHorizontalIcon({ size, strokeWidth }: IconProps) {
+  return (
+    <svg {...iconProps({ size, strokeWidth })}>
+      <circle cx="5" cy="12" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.25" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function SearchIcon({ size, strokeWidth, className }: IconProps) {
   return (
     <svg {...iconProps({ size, strokeWidth, className })}>

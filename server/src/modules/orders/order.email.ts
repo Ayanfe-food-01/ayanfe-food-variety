@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js'
+import type { OrderStatus } from '@prisma/client'
 
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (character) => ({
@@ -48,4 +49,40 @@ export async function notifyOrderCreated(order: {
     }),
   })
   if (!response.ok) console.error('Order confirmation email provider returned an error', response.status)
+}
+
+export async function notifyOrderStatusChanged(order: {
+  orderNumber: string
+  customerName: string
+  customerEmail: string | null
+  orderStatus: OrderStatus
+}): Promise<void> {
+  if (!order.customerEmail) return
+  if (!env.email.resendApiKey || !env.email.from) {
+    console.warn('Order status email skipped: Resend is not configured.')
+    return
+  }
+
+  const statusCopy: Record<OrderStatus, string> = {
+    PENDING: 'Your order has been placed and is awaiting processing.',
+    PROCESSING: 'Your order is now being prepared.',
+    COMPLETED: 'Your order has been completed.',
+    CANCELLED: 'Your order has been cancelled.',
+  }
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.email.resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: env.email.from,
+      to: [order.customerEmail],
+      subject: `Order update — ${order.orderNumber}`,
+      html: `<p>Hi ${escapeHtml(order.customerName)},</p>
+        <p>${escapeHtml(statusCopy[order.orderStatus])}</p>
+        <p>Order: <strong>${escapeHtml(order.orderNumber)}</strong></p>`,
+    }),
+  })
+  if (!response.ok) console.error('Order status email provider returned an error', response.status)
 }

@@ -1,6 +1,7 @@
 import { OrderStatus, PaymentSubmissionStatus, PaymentStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
+import { notifyOrderStatusChanged } from '../orders/order.email.js';
 const toOrderListItem = (order) => ({
     id: order.id,
     customerName: order.customerName,
@@ -113,12 +114,29 @@ export async function getAdminOrder(id) {
     };
 }
 export async function updateAdminOrderStatus(id, input) {
-    const order = await prisma.order.updateMany({
+    const existing = await prisma.order.findUnique({
+        where: { id },
+        select: {
+            orderStatus: true,
+            orderNumber: true,
+            customerName: true,
+            email: true,
+        },
+    });
+    if (!existing)
+        throw new HttpError(404, 'Order not found.');
+    if (existing.orderStatus === input.orderStatus)
+        return getAdminOrder(id);
+    const updated = await prisma.order.update({
         where: { id },
         data: { orderStatus: input.orderStatus },
     });
-    if (order.count !== 1)
-        throw new HttpError(404, 'Order not found.');
+    void notifyOrderStatusChanged({
+        orderNumber: existing.orderNumber,
+        customerName: existing.customerName,
+        customerEmail: existing.email,
+        orderStatus: updated.orderStatus,
+    }).catch((error) => console.error('Order status email failed', error));
     return getAdminOrder(id);
 }
 export async function listAdminPayments(status) {

@@ -2,33 +2,54 @@ import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { notifyOrderCreated } from './order.email.js';
-const toOrderResponse = (order) => ({
-    id: order.id,
-    orderNumber: order.orderNumber,
-    customerName: order.customerName,
-    phone: order.phone,
-    whatsapp: order.whatsapp,
-    email: order.email,
-    deliveryAddress: order.deliveryAddress,
-    city: order.city,
-    note: order.note,
-    subtotal: order.subtotal.toString(),
-    deliveryFee: order.deliveryFee.toString(),
-    total: order.total.toString(),
-    paymentStatus: order.paymentStatus,
-    orderStatus: order.orderStatus,
-    createdAt: order.createdAt.toISOString(),
-    updatedAt: order.updatedAt.toISOString(),
-    orderItems: order.orderItems.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        productName: item.productName,
-        unitPrice: item.unitPrice.toString(),
-        quantity: item.quantity,
-        subtotal: item.subtotal.toString(),
-        product: item.product,
-    })),
+const toPaymentSubmissionResponse = (submission) => ({
+    id: submission.id,
+    senderName: submission.senderName,
+    transactionReference: submission.transactionReference,
+    amount: submission.amount.toString(),
+    transferredAt: submission.transferredAt.toISOString(),
+    status: submission.status,
+    reviewedAt: submission.reviewedAt?.toISOString() ?? null,
+    createdAt: submission.createdAt.toISOString(),
 });
+const toOrderResponse = (order) => {
+    const latestPayment = order.paymentSubmissions[0];
+    const paymentStatus = order.paymentStatus === PaymentStatus.PAID
+        ? 'PAID'
+        : latestPayment?.status === 'PENDING'
+            ? 'PENDING'
+            : order.paymentStatus === PaymentStatus.FAILED || latestPayment?.status === 'REJECTED'
+                ? 'REJECTED'
+                : 'PENDING';
+    return {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        phone: order.phone,
+        whatsapp: order.whatsapp,
+        email: order.email,
+        deliveryAddress: order.deliveryAddress,
+        city: order.city,
+        note: order.note,
+        subtotal: order.subtotal.toString(),
+        deliveryFee: order.deliveryFee.toString(),
+        total: order.total.toString(),
+        paymentStatus,
+        orderStatus: order.orderStatus,
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString(),
+        orderItems: order.orderItems.map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            productName: item.productName,
+            unitPrice: item.unitPrice.toString(),
+            quantity: item.quantity,
+            subtotal: item.subtotal.toString(),
+            product: item.product,
+        })),
+        paymentSubmissions: order.paymentSubmissions.map(toPaymentSubmissionResponse),
+    };
+};
 const orderInclude = {
     orderItems: {
         include: {
@@ -39,6 +60,19 @@ const orderInclude = {
                     image: true,
                 },
             },
+        },
+    },
+    paymentSubmissions: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+            id: true,
+            senderName: true,
+            transactionReference: true,
+            amount: true,
+            transferredAt: true,
+            status: true,
+            reviewedAt: true,
+            createdAt: true,
         },
     },
 };

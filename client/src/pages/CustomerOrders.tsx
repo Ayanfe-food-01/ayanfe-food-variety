@@ -16,7 +16,7 @@ const formatDate = (date: string) =>
 const statusClass = (status: string) =>
   status === 'PAID' || status === 'COMPLETED'
     ? 'bg-green/10 text-green'
-    : status === 'CANCELLED' || status === 'FAILED'
+    : status === 'CANCELLED' || status === 'FAILED' || status === 'REJECTED'
       ? 'bg-orange/10 text-orange'
       : 'bg-sage text-green-dark'
 
@@ -27,12 +27,8 @@ export function CustomerOrders() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isAuthLoading || !user) {
-      setIsLoading(false)
-      return
-    }
+    if (isAuthLoading || !user) return
     let active = true
-    setIsLoading(true)
     getCustomerOrders()
       .then((result) => {
         if (active) setOrders(result)
@@ -72,7 +68,7 @@ export function CustomerOrders() {
           ) : orders.length === 0 ? (
             <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
               <h2 className="text-3xl font-bold text-green-dark">No orders yet</h2>
-              <p className="mt-3 text-sm text-muted">Your completed orders will appear here.</p>
+               <p className="mt-3 text-sm text-muted">Your orders will appear here after checkout.</p>
               <Link className="mt-6 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/shop">
                 Browse the shop <ArrowRight size={16} />
               </Link>

@@ -50,9 +50,21 @@ export interface OrderResponse {
   subtotal: string
   deliveryFee: string
   total: string
-  paymentStatus: string
+  paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
   orderStatus: string
   createdAt: string
   updatedAt: string
   orderItems: OrderItemResponse[]
+  paymentSubmissions: CustomerPaymentSubmissionResponse[]
+}
+
+export interface CustomerPaymentSubmissionResponse {
+  id: string
+  senderName: string
+  transactionReference: string
+  amount: string
+  transferredAt: string
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED'
+  reviewedAt: string | null
+  createdAt: string
 }

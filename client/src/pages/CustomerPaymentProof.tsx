@@ -16,7 +16,7 @@ export function CustomerPaymentProof() {
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [bank, setBank] = useState<BankDetails | null>(null)
-  const [payment, setPayment] = useState<PaymentSubmission | null>(null)
+  const [payment, setPayment] = useState<PaymentSubmission | CreatedOrder['paymentSubmissions'][number] | null>(null)
   const [senderName, setSenderName] = useState('')
   const [transactionReference, setTransactionReference] = useState('')
   const [amount, setAmount] = useState('')
@@ -32,6 +32,8 @@ export function CustomerPaymentProof() {
         setOrder(loadedOrder)
         setSenderName(loadedOrder.customerName)
         setAmount(loadedOrder.total)
+        const latestSubmission = loadedOrder.paymentSubmissions[0]
+        if (latestSubmission?.status === 'PENDING') setPayment(latestSubmission)
       })
       .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Payment instructions could not be loaded.'))
     getBankDetails()
@@ -119,10 +121,15 @@ export function CustomerPaymentProof() {
                 </>
               ) : <p className="mt-4 text-sm text-muted">Bank details are loading…</p>}
             </div>
-            {payment ? (
+            {order.paymentStatus === 'PAID' ? (
               <div className="mt-6 rounded-2xl border border-green/25 bg-sage/25 p-6" role="status">
-                <h2 className="font-bold text-green-dark">Payment proof submitted</h2>
-                <p className="mt-2 text-sm leading-6 text-muted">Your transfer is awaiting admin verification. The order will only become paid after approval.</p>
+                <h2 className="font-bold text-green-dark">Payment confirmed</h2>
+                <p className="mt-2 text-sm leading-6 text-muted">This order has already been paid. No further payment proof is needed.</p>
+              </div>
+            ) : payment ? (
+              <div className="mt-6 rounded-2xl border border-green/25 bg-sage/25 p-6" role="status">
+                <h2 className="font-bold text-green-dark">Payment verification pending</h2>
+                <p className="mt-2 text-sm leading-6 text-muted">Your payment submission is awaiting review. The order will only become paid after approval.</p>
               </div>
             ) : (
               <form className="mt-6 space-y-4 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8" onSubmit={handleSubmit}>

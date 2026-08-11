@@ -38,10 +38,20 @@ export interface CreatedOrder {
     subtotal: string
     product: { id: string; slug: string; image: string }
   }>
-  paymentStatus: string
-  orderStatus: string
+  paymentStatus: CustomerPaymentStatus
+  orderStatus: OrderStatus
   createdAt: string
   updatedAt: string
+  paymentSubmissions: Array<{
+    id: string
+    senderName: string
+    transactionReference: string
+    amount: string
+    transferredAt: string
+    status: 'PENDING' | 'VERIFIED' | 'REJECTED'
+    reviewedAt: string | null
+    createdAt: string
+  }>
 }
 
 export interface CustomerOrderListItem {
@@ -49,7 +59,7 @@ export interface CustomerOrderListItem {
   orderNumber: string
   customerName: string
   total: string
-  paymentStatus: PaymentStatus
+  paymentStatus: CustomerPaymentStatus
   orderStatus: OrderStatus
   createdAt: string
 }
@@ -80,17 +90,18 @@ export async function checkoutCustomerCart(input: {
 }
 
 export async function getCustomerOrders(): Promise<CustomerOrderListItem[]> {
-  const response = await request<CustomerOrdersResponse>('/customer/orders')
+  const response = await request<CustomerOrdersResponse>('/orders')
   return response.data.orders
 }
 
 export async function getCustomerOrder(orderNumber: string): Promise<CreatedOrder> {
-  const response = await request<CustomerOrderResponse>(`/customer/orders/${encodeURIComponent(orderNumber)}`)
+  const response = await request<CustomerOrderResponse>(`/orders/${encodeURIComponent(orderNumber)}`)
   return response.data.order
 }
 
 export type OrderStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED'
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
+export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
 
 export interface AdminOrder {
   id: string

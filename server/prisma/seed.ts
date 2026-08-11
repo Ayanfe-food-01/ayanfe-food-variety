@@ -74,6 +74,20 @@ const products = [
 ]
 
 async function main() {
+  await prisma.storeSettings.upsert({
+    where: { singletonKey: 'default' },
+    update: {},
+    create: {
+      singletonKey: 'default',
+      businessName: 'Ayanfe Food Variety',
+      businessEmail: 'Ayanfefoodvariety@gmail.com',
+      businessPhone: '08125595879',
+      whatsappNumber: '08125595879',
+      address: '',
+      description: '',
+    },
+  })
+
   for (const category of categories) {
     await prisma.category.upsert({
       where: { slug: category.slug },

@@ -131,7 +131,7 @@ export function CustomerPaymentProof() {
                 <h2 className="font-bold text-green-dark">Payment verification pending</h2>
                 <p className="mt-2 text-sm leading-6 text-muted">Your payment submission is awaiting review. The order will only become paid after approval.</p>
               </div>
-            ) : (
+              ) : bank ? (
               <form className="mt-6 space-y-4 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8" onSubmit={handleSubmit}>
                 <label className="block text-sm font-bold text-green-dark">Sender name<input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-green" value={senderName} onChange={(event) => setSenderName(event.target.value)} required /></label>
                 <label className="block text-sm font-bold text-green-dark">Transaction reference<input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-green" value={transactionReference} onChange={(event) => setTransactionReference(event.target.value)} required /></label>
@@ -143,6 +143,11 @@ export function CustomerPaymentProof() {
                   {isSubmitting ? 'Submitting receipt…' : 'Submit payment proof'} {!isSubmitting && <ArrowRight size={17} />}
                 </button>
               </form>
+              ) : (
+                <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-6" role="alert">
+                  <h2 className="font-bold text-orange">Payment details are not configured yet</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted">Please contact the store before transferring funds. Payment proof submission is unavailable until valid bank details are available.</p>
+                </div>
             )}
           </div>
         )}

@@ -1,4 +1,4 @@
-import { request } from './api'
+import { ApiError, request } from './api'
 
 export interface BankDetails {
   bankName: string
@@ -24,7 +24,7 @@ export interface PaymentSubmission {
 
 interface BankDetailsResponse {
   success: true
-  data: { bank: BankDetails }
+  data: { store: unknown; payment: BankDetails | null }
 }
 
 interface PaymentSubmissionResponse {
@@ -39,8 +39,11 @@ export interface AdminPayment extends PaymentSubmission {
 }
 
 export async function getBankDetails(): Promise<BankDetails> {
-  const response = await request<BankDetailsResponse>('/payments/bank-details')
-  return response.data.bank
+  const response = await request<BankDetailsResponse>('/store/settings')
+  if (!response.data.payment) {
+    throw new ApiError('Payment details are not configured yet. Please contact the store before transferring funds.', 503)
+  }
+  return response.data.payment
 }
 
 export async function submitPaymentProof(input: {

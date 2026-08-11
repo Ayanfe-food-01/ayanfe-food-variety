@@ -1,6 +1,13 @@
 import { MailIcon, PhoneIcon } from '../../assets/icons'
+import { useStoreSettings } from '../../hooks/useStoreSettings'
 
 export function Footer() {
+  const { settings } = useStoreSettings()
+  const phone = settings?.businessPhone
+  const email = settings?.businessEmail
+  const whatsapp = settings?.whatsappNumber
+  const whatsappHref = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '').replace(/^0/, '234')}` : undefined
+
   return (
     <footer className="bg-green-dark py-14 text-cream">
       <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_0.7fr_0.7fr_1fr]">
@@ -8,12 +15,11 @@ export function Footer() {
           <a className="inline-flex items-center gap-3" href="#home">
             <span className="grid size-10 place-items-center rounded-full bg-orange font-display text-lg font-bold text-cream">A</span>
             <span className="text-[13px] tracking-[0.01em]">
-              Ayanfe <strong className="block text-sm font-bold">Food Variety</strong>
+            {settings?.businessName ?? 'Store'}
             </span>
           </a>
           <p className="mt-5 max-w-[270px] text-sm leading-6 text-cream/60">
-            Quality foodstuff and everyday essentials, carefully sourced and brought
-            closer to your kitchen.
+             {settings?.description || 'Quality foodstuff and everyday essentials, carefully sourced and brought closer to your kitchen.'}
           </p>
         </div>
         <div>
@@ -32,15 +38,15 @@ export function Footer() {
         </div>
         <div>
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-sage">Get in touch</h3>
-          <a className="mb-3 inline-flex items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href="tel:08125595879">
-            <span className="text-sage"><PhoneIcon size={16} /></span> 08125595879
-          </a>
-          <a className="mb-3 inline-flex items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href="mailto:Ayanfefoodvariety@gmail.com">
-            <span className="text-sage"><MailIcon size={16} /></span> Ayanfefoodvariety@gmail.com
-          </a>
-          <a className="mt-2 block font-bold text-orange transition-colors hover:text-cream" href="https://wa.me/2348125595879" target="_blank" rel="noreferrer">
+          {phone && <a className="mb-3 inline-flex items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href={`tel:${phone}`}>
+            <span className="text-sage"><PhoneIcon size={16} /></span> {phone}
+          </a>}
+          {email && <a className="mb-3 inline-flex items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href={`mailto:${email}`}>
+            <span className="text-sage"><MailIcon size={16} /></span> {email}
+          </a>}
+          {whatsappHref && <a className="mt-2 block font-bold text-orange transition-colors hover:text-cream" href={whatsappHref} target="_blank" rel="noreferrer">
             Chat on WhatsApp
-          </a>
+          </a>}
         </div>
       </div>
       <div className="container mt-12 flex flex-wrap justify-between gap-3 border-t border-cream/15 pt-6 text-xs text-cream/45">

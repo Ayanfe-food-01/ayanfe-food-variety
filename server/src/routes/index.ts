@@ -7,6 +7,7 @@ import { adminRoutes } from './admin.routes.js'
 import { authRoutes } from './auth.routes.js'
 import { customerRoutes } from './customer.routes.js'
 import { cartRoutes } from './cart.routes.js'
+import { storeRoutes } from './store.routes.js'
 
 export const apiRoutes = Router()
 
@@ -18,3 +19,4 @@ apiRoutes.use('/admin', adminRoutes)
 apiRoutes.use('/auth', authRoutes)
 apiRoutes.use('/customer', customerRoutes)
 apiRoutes.use('/cart', cartRoutes)
+apiRoutes.use('/store', storeRoutes)

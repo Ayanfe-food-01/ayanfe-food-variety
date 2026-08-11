@@ -61,10 +61,14 @@ export function validateAdminOrdersQuery(query: Record<string, unknown>): AdminO
 
 export function validatePaymentSettingsInput(body: unknown): UpdatePaymentSettingsInput {
   if (!isRecord(body)) throw new HttpError(400, 'Payment settings are required.')
+  const accountNumber = requiredText(body.accountNumber, 'Account number', 80)
+  if (!/^[0-9][0-9 -]{5,79}$/.test(accountNumber) || accountNumber.replace(/\D/g, '').length < 6) {
+    throw new HttpError(400, 'Account number must contain at least 6 digits.')
+  }
   return {
     bankName: requiredText(body.bankName, 'Bank name', 180),
     accountName: requiredText(body.accountName, 'Account name', 180),
-    accountNumber: requiredText(body.accountNumber, 'Account number', 80),
+    accountNumber,
     instructions: requiredText(body.instructions, 'Payment instructions', 2000),
   }
 }

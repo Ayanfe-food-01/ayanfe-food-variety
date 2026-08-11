@@ -20,6 +20,18 @@ export interface PaymentSettings {
   instructions: string
 }
 
+export interface StoreInformation {
+  businessName: string
+  address: string
+  description: string
+}
+
+export interface ContactInformation {
+  businessEmail: string
+  businessPhone: string
+  whatsappNumber: string
+}
+
 interface DashboardResponse {
   success: true
   data: { stats: DashboardStats }
@@ -28,6 +40,16 @@ interface DashboardResponse {
 interface SettingsResponse {
   success: true
   data: { settings: PaymentSettings | null }
+}
+
+interface StoreInformationResponse {
+  success: true
+  data: { settings: StoreInformation | null }
+}
+
+interface ContactInformationResponse {
+  success: true
+  data: { settings: ContactInformation | null }
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -47,6 +69,36 @@ export async function updatePaymentSettings(settings: PaymentSettings): Promise<
     body: JSON.stringify(settings),
   })
   if (!response.data.settings) throw new Error('Payment settings were not returned.')
+  return response.data.settings
+}
+
+export async function getStoreInformation(): Promise<StoreInformation | null> {
+  const response = await request<StoreInformationResponse>('/admin/settings/store')
+  return response.data.settings
+}
+
+export async function updateStoreInformation(settings: StoreInformation): Promise<StoreInformation> {
+  const response = await request<StoreInformationResponse>('/admin/settings/store', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  if (!response.data.settings) throw new Error('Store information was not returned.')
+  return response.data.settings
+}
+
+export async function getContactInformation(): Promise<ContactInformation | null> {
+  const response = await request<ContactInformationResponse>('/admin/settings/contact')
+  return response.data.settings
+}
+
+export async function updateContactInformation(settings: ContactInformation): Promise<ContactInformation> {
+  const response = await request<ContactInformationResponse>('/admin/settings/contact', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  if (!response.data.settings) throw new Error('Contact information was not returned.')
   return response.data.settings
 }
 

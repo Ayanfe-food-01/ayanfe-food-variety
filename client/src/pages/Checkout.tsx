@@ -244,7 +244,8 @@ function OrderConfirmation({ order }: { order: CreatedOrder }) {
               </div>
             </div>
 
-            <form className="mt-6 space-y-4 text-left" onSubmit={handlePaymentSubmit}>
+              {bank ? (
+              <form className="mt-6 space-y-4 text-left" onSubmit={handlePaymentSubmit}>
               <h2 className="text-xl font-bold text-green-dark">I have made the transfer</h2>
               <label className="block text-sm font-bold text-green-dark">
                 Sender name
@@ -279,6 +280,12 @@ function OrderConfirmation({ order }: { order: CreatedOrder }) {
                 Your payment receipt will be reviewed. Your order will only be confirmed after payment has been verified.
               </p>
             </form>
+              ) : (
+                <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-left" role="alert">
+                  <p className="text-sm font-bold text-orange">Payment details are not configured yet.</p>
+                  <p className="mt-2 text-sm leading-6 text-muted">Please contact the store before transferring funds. Payment proof submission is unavailable until the store publishes valid bank details.</p>
+                </div>
+              )}
           </>
         )}
 

@@ -143,6 +143,21 @@ model PaymentSettings {
   @@map("payment_settings")
 }
 
+model StoreSettings {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  singletonKey    String   @unique @default("default") @map("singleton_key") @db.VarChar(40)
+  businessName    String   @map("business_name") @db.VarChar(180)
+  businessEmail   String   @map("business_email") @db.VarChar(255)
+  businessPhone   String   @map("business_phone") @db.VarChar(40)
+  whatsappNumber  String   @map("whatsapp_number") @db.VarChar(40)
+  address         String   @db.VarChar(500)
+  description     String   @db.VarChar(500)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("store_settings")
+}
+
 model User {
   id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name         String         @db.VarChar(180)

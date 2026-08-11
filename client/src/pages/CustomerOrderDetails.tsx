@@ -154,11 +154,11 @@ export function CustomerOrderDetails() {
                         <div><dt className="text-muted">Account name</dt><dd className="mt-1 font-bold text-green-dark">{bank.accountName}</dd></div>
                         <div><dt className="text-muted">Account number</dt><dd className="mt-1 font-bold text-green-dark">{bank.accountNumber}</dd></div>
                       </dl>
-                    ) : <p className="mt-3 text-sm text-muted">Payment details are loading…</p>}
+                    ) : <p className="mt-3 text-sm text-orange">Payment details are not configured yet. Please contact the store before transferring funds.</p>}
                     {bank && <p className="mt-5 border-t border-line pt-4 text-sm leading-6 text-muted">{bank.instructions}</p>}
-                    <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof`}>
+                    {bank && <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof`}>
                       Submit Payment Proof <ArrowRight size={16} />
-                    </Link>
+                    </Link>}
                   </>
                 )}
               </div>

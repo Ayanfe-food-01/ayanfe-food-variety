@@ -13,6 +13,12 @@ import {
   verifyAdminPaymentController,
 } from '../modules/admin/admin.controller.js'
 import {
+  getAdminContactInformationController,
+  getAdminStoreInformationController,
+  updateAdminContactInformationController,
+  updateAdminStoreInformationController,
+} from '../modules/settings/settings.controller.js'
+import {
   createAdminProductController,
   getAdminProductController,
   listAdminProductsController,
@@ -39,3 +45,7 @@ adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController)
 adminRoutes.post('/payments/:id/reject', rejectAdminPaymentController)
 adminRoutes.get('/settings/payment', getAdminPaymentSettingsController)
 adminRoutes.put('/settings/payment', updateAdminPaymentSettingsController)
+adminRoutes.get('/settings/store', getAdminStoreInformationController)
+adminRoutes.put('/settings/store', updateAdminStoreInformationController)
+adminRoutes.get('/settings/contact', getAdminContactInformationController)
+adminRoutes.put('/settings/contact', updateAdminContactInformationController)

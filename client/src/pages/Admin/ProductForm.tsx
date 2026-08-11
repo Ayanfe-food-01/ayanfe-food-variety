@@ -1,6 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AdminLayout } from '../../components/admin/AdminLayout'
 import { ApiError } from '../../services/api'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
@@ -61,7 +60,7 @@ export function ProductForm() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit product' : 'Add product'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the product details and inventory level.' : 'Add a product customers can discover and purchase.'}</p></div>
         <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/products">Back to products</Link>
@@ -83,6 +82,6 @@ export function ProductForm() {
           <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-50" type="submit" disabled={isSaving}>{isSaving ? 'Saving product…' : isEditing ? 'Save changes' : 'Create product'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>
         </form>}
       </div>
-    </AdminLayout>
+    </>
   )
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AdminLayout } from '../../components/admin/AdminLayout'
 import { ApiError } from '../../services/api'
 import { getAdminProduct } from '../../services/adminService'
 import type { Product } from '../../types/product'
@@ -23,7 +22,7 @@ export function ProductView() {
   }, [id])
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Product details</h1></div>
         <div className="flex gap-4 text-sm font-bold text-green"><Link to="/admin/products">Back to products</Link>{product && <Link to={`/admin/products/${product.id}/edit`}>Edit product</Link>}</div>
@@ -45,6 +44,6 @@ export function ProductView() {
           </div>
         </section>
       )}
-    </AdminLayout>
+    </>
   )
 }

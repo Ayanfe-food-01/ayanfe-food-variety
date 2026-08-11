@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { AdminLayout } from '../../components/admin/AdminLayout'
 import { ApiError } from '../../services/api'
 import {
   getAdminCategories,
@@ -104,7 +103,7 @@ export function Products() {
   const totalPages = result?.pagination.totalPages ?? 1
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Store operations</p>
@@ -207,6 +206,6 @@ export function Products() {
           <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add product</Link>
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }

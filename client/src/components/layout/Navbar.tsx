@@ -6,12 +6,14 @@ import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { NavigationLinks, NavigationMenu, type NavigationItem } from './NavigationLinks'
 
 const links: NavigationItem[] = [
-  { label: 'Home', href: '#home' },
+  { label: 'Home', href: '/' },
   { label: 'Shop', href: '/shop' },
   { label: 'Orders', href: '/orders' },
   { label: 'About', href: '#why-us' },
   { label: 'Contact', href: '#contact' },
 ]
+
+const mobileNavRowClassName = 'border-b border-line/70 px-3 py-3 transition-colors duration-200 hover:text-green md:border-0 md:p-0'
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -58,17 +60,17 @@ export function Navbar() {
           </div>
           <NavigationLinks
             items={links}
-            className="border-b border-line/70 px-3 py-4 transition-colors duration-200 hover:text-green md:border-0 md:p-0"
+            className={mobileNavRowClassName}
             onNavigate={closeMenu}
           />
           {user ? (
             <>
-              <button className="border-b border-line/70 p-3 text-left text-muted transition-colors hover:text-orange md:hidden" type="button" onClick={() => { closeMenu(); void logout() }}>
+              <button className={`${mobileNavRowClassName} text-left text-muted hover:text-orange md:hidden`} type="button" onClick={() => { closeMenu(); void logout() }}>
                 Log out
               </button>
             </>
           ) : (
-            <Link className="border-b border-line/70 p-3 transition-colors duration-200 hover:text-green md:hidden" to="/login" onClick={closeMenu}>
+            <Link className={`${mobileNavRowClassName} md:hidden`} to="/login" onClick={closeMenu}>
               Login
             </Link>
           )}

@@ -40,15 +40,15 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-cream/90 backdrop-blur-xl">
       <nav className="container relative flex min-h-[68px] items-center justify-between gap-8 py-3 md:min-h-[78px] md:py-4" aria-label="Main navigation">
-        <a className="inline-flex items-center" href="#home" aria-label="Ayanfe Food Variety home">
+        <Link className="inline-flex items-center" to="/" aria-label="Ayanfe Food Variety home">
           <img className="h-16 w-16 object-contain md:h-[74px] md:w-[74px]" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
-        </a>
+        </Link>
 
         <NavigationMenu isOpen={isMenuOpen} onClose={closeMenu}>
           <div className="mb-8 flex items-center justify-between md:hidden">
-            <a className="inline-flex items-center" href="#home" onClick={closeMenu} aria-label="Ayanfe Food Variety home">
+            <Link className="inline-flex items-center" to="/" onClick={closeMenu} aria-label="Ayanfe Food Variety home">
               <img className="h-16 w-16 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
-            </a>
+            </Link>
             <button
               className="grid size-11 place-items-center rounded-full border border-line text-green transition-colors hover:bg-sage"
               type="button"

@@ -8,6 +8,7 @@ import { NavigationLinks, NavigationMenu, type NavigationItem } from './Navigati
 const links: NavigationItem[] = [
   { label: 'Home', href: '#home' },
   { label: 'Shop', href: '/shop' },
+  { label: 'Orders', href: '/orders' },
   { label: 'About', href: '#why-us' },
   { label: 'Contact', href: '#contact' },
 ]
@@ -62,9 +63,6 @@ export function Navbar() {
           />
           {user ? (
             <>
-              <Link className="border-b border-line/70 p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" to="/orders" onClick={closeMenu}>
-                {user.name || 'Account'}
-              </Link>
               <button className="border-b border-line/70 p-3 text-left text-muted transition-colors hover:text-orange md:hidden" type="button" onClick={() => { closeMenu(); void logout() }}>
                 Log out
               </button>
@@ -104,11 +102,11 @@ export function Navbar() {
         <button
           className="border-0 bg-transparent p-2 text-green md:hidden"
           type="button"
-          aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-label="Open navigation menu"
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen((open) => !open)}
         >
-          {isMenuOpen ? <CloseIcon size={24} /> : <MenuIcon size={24} />}
+          <MenuIcon size={24} />
         </button>
       </nav>
     </header>

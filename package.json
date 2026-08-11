@@ -1,0 +1,29 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "typecheck": "npm --prefix client run typecheck && npm --prefix server run typecheck",
+    "prisma:validate": "cd server && npx prisma validate",
+    "prisma:migrate:status": "cd server && npx prisma migrate status",
+    "test": "echo \"No automated tests configured\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.13.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "tsx": "^4.23.12",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.1"
+  }
+}

@@ -1,0 +1,24 @@
+import { Router } from 'express'
+import { createRateLimit } from '../middleware/rateLimit.js'
+import { requireAuthentication } from '../middleware/auth.middleware.js'
+import {
+  loginController,
+  logoutController,
+  meController,
+  customerLoginController,
+  customerLogoutController,
+  customerMeController,
+  customerProvidersController,
+  customerSignupController,
+} from '../modules/auth/auth.controller.js'
+
+export const authRoutes = Router()
+
+authRoutes.post('/login', createRateLimit(10, 15 * 60 * 1000), loginController)
+authRoutes.post('/logout', logoutController)
+authRoutes.get('/me', requireAuthentication, meController)
+authRoutes.get('/customer/providers', customerProvidersController)
+authRoutes.post('/customer/signup', createRateLimit(10, 15 * 60 * 1000), customerSignupController)
+authRoutes.post('/customer/login', createRateLimit(10, 15 * 60 * 1000), customerLoginController)
+authRoutes.post('/customer/logout', customerLogoutController)
+authRoutes.get('/customer/me', customerMeController)

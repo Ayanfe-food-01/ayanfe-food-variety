@@ -31,7 +31,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         }`}
       >
         <div className="flex items-center gap-3 px-2">
-          <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+          <img className="h-20 w-20 object-contain brightness-0 invert" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
           <p className="m-0 text-xs text-cream/55">Admin portal</p>
         </div>
 

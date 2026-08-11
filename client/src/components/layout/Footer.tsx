@@ -13,7 +13,7 @@ export function Footer() {
       <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_0.7fr_0.7fr_1fr]">
         <div>
           <a className="inline-flex items-center" href="#home" aria-label="Ayanfe Food Variety home">
-            <img className="h-28 w-28 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+            <img className="h-28 w-28 object-contain brightness-0 invert" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
           </a>
           <p className="mt-5 max-w-[270px] text-sm leading-6 text-cream/60">
              {settings?.description || 'Quality foodstuff and everyday essentials, carefully sourced and brought closer to your kitchen.'}

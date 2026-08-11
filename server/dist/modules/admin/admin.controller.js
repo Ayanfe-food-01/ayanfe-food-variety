@@ -3,23 +3,23 @@ import { HttpError } from '../../utils/http.js';
 import { reviewPayment } from '../payments/payment.service.js';
 import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../payments/payment.validator.js';
 import { getAdminOrder, getAdminPayment, getAdminPaymentSettings, getDashboardStats, listAdminOrders, listAdminPayments, updateAdminOrderStatus, updateAdminPaymentSettings, } from './admin.service.js';
-import { validateAdminId, validateOrderStatusInput, validatePaymentSettingsInput, } from './admin.validator.js';
+import { validateAdminOrdersQuery, validateOrderNumber, validateOrderStatusInput, validatePaymentSettingsInput, } from './admin.validator.js';
 export const getDashboardController = async (_request, response) => {
     response.json({ success: true, data: { stats: await getDashboardStats() } });
 };
-export const listAdminOrdersController = async (_request, response) => {
-    response.json({ success: true, data: { orders: await listAdminOrders() } });
+export const listAdminOrdersController = async (request, response) => {
+    response.json({ success: true, data: await listAdminOrders(validateAdminOrdersQuery(request.query)) });
 };
 export const getAdminOrderController = async (request, response) => {
-    const id = validateAdminId(request.params.id, 'Order ID');
-    response.json({ success: true, data: { order: await getAdminOrder(id) } });
+    const orderNumber = validateOrderNumber(request.params.orderNumber);
+    response.json({ success: true, data: { order: await getAdminOrder(orderNumber) } });
 };
 export const updateAdminOrderStatusController = async (request, response) => {
-    const id = validateAdminId(request.params.id, 'Order ID');
+    const orderNumber = validateOrderNumber(request.params.orderNumber);
     response.json({
         success: true,
         message: 'Order status updated.',
-        data: { order: await updateAdminOrderStatus(id, validateOrderStatusInput(request.body)) },
+        data: { order: await updateAdminOrderStatus(orderNumber, validateOrderStatusInput(request.body), request.authenticatedUser.id) },
     });
 };
 const parsePaymentStatus = (value) => {

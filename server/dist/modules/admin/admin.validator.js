@@ -1,4 +1,4 @@
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { HttpError } from '../../utils/http.js';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const requiredText = (value, field, maxLength) => {
@@ -8,9 +8,9 @@ const requiredText = (value, field, maxLength) => {
     return value.trim();
 };
 const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
-export const validateAdminId = (value, label) => {
-    if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
-        throw new HttpError(400, `${label} must be a valid ID.`);
+export const validateOrderNumber = (value) => {
+    if (typeof value !== 'string' || !/^AFV-\d{4}-\d{6}$/.test(value.trim())) {
+        throw new HttpError(400, 'Order number must be valid.');
     }
     return value.trim();
 };
@@ -21,7 +21,37 @@ export function validateOrderStatusInput(body) {
     if (!Object.values(OrderStatus).includes(body.orderStatus)) {
         throw new HttpError(400, 'orderStatus is invalid.');
     }
-    return { orderStatus: body.orderStatus };
+    if (body.note !== undefined && (typeof body.note !== 'string' || body.note.trim().length > 1000)) {
+        throw new HttpError(400, 'Status note must be 1,000 characters or fewer.');
+    }
+    return {
+        orderStatus: body.orderStatus,
+        note: typeof body.note === 'string' && body.note.trim() ? body.note.trim() : undefined,
+    };
+}
+const parseEnum = (value, values, field) => {
+    if (value === undefined || value === '')
+        return undefined;
+    if (typeof value !== 'string' || !values.includes(value))
+        throw new HttpError(400, `${field} is invalid.`);
+    return value;
+};
+export function validateAdminOrdersQuery(query) {
+    const page = Number(query.page ?? 1);
+    const pageSize = Number(query.pageSize ?? 20);
+    if (!Number.isInteger(page) || page < 1)
+        throw new HttpError(400, 'Page must be a positive integer.');
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50)
+        throw new HttpError(400, 'Page size must be between 1 and 50.');
+    const search = typeof query.search === 'string' ? query.search.trim().slice(0, 120) : undefined;
+    return {
+        search: search || undefined,
+        paymentStatus: parseEnum(query.paymentStatus, Object.values(PaymentStatus), 'Payment status'),
+        orderStatus: parseEnum(query.orderStatus, Object.values(OrderStatus), 'Order status'),
+        sort: query.sort === 'oldest' ? 'oldest' : 'newest',
+        page,
+        pageSize,
+    };
 }
 export function validatePaymentSettingsInput(body) {
     if (!isRecord(body))

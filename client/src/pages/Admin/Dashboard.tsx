@@ -29,9 +29,12 @@ export function Dashboard() {
       {error ? (
         <div className="mt-8 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Total orders" value={stats?.totalOrders ?? '—'} detail="All orders recorded" />
           <StatCard label="Pending orders" value={stats?.pendingOrders ?? '—'} detail="Awaiting fulfillment" accent="orange" />
+          <StatCard label="Processing orders" value={stats?.processingOrders ?? '—'} detail="Being prepared" />
+          <StatCard label="Completed orders" value={stats?.completedOrders ?? '—'} detail="Fulfillment complete" />
+          <StatCard label="Cancelled orders" value={stats?.cancelledOrders ?? '—'} detail="Cancelled orders" accent="orange" />
           <StatCard label="Payment review" value={stats?.pendingPaymentVerification ?? '—'} detail="Receipts awaiting review" accent="orange" />
           <StatCard label="Verified payments" value={stats?.verifiedPayments ?? '—'} detail="Approved payment proofs" />
           <StatCard label="Total sales" value={stats ? formatPrice(stats.totalSales) : '—'} detail="Verified payment orders" />

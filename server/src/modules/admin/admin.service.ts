@@ -3,6 +3,8 @@ import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
   AdminOrderListItem,
+  AdminOrdersPage,
+  AdminOrdersQuery,
   AdminPaymentListItem,
   AdminPaymentSettings,
   DashboardStats,
@@ -12,7 +14,7 @@ import type {
 import { notifyOrderStatusChanged } from '../orders/order.email.js'
 
 const toOrderListItem = (order: {
-  id: string
+  orderNumber: string
   customerName: string
   email: string | null
   phone: string
@@ -21,7 +23,7 @@ const toOrderListItem = (order: {
   orderStatus: OrderStatus
   createdAt: Date
 }): AdminOrderListItem => ({
-  id: order.id,
+  orderNumber: order.orderNumber,
   customerName: order.customerName,
   email: order.email,
   phone: order.phone,
@@ -61,10 +63,13 @@ const toPaymentListItem = (payment: {
 })
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const [totalOrders, pendingOrders, pendingPaymentVerification, verifiedPayments, sales] =
+  const [totalOrders, pendingOrders, processingOrders, completedOrders, cancelledOrders, pendingPaymentVerification, verifiedPayments, sales] =
     await Promise.all([
       prisma.order.count(),
       prisma.order.count({ where: { orderStatus: OrderStatus.PENDING } }),
+      prisma.order.count({ where: { orderStatus: OrderStatus.PROCESSING } }),
+      prisma.order.count({ where: { orderStatus: OrderStatus.COMPLETED } }),
+      prisma.order.count({ where: { orderStatus: OrderStatus.CANCELLED } }),
       prisma.paymentSubmission.count({ where: { status: PaymentSubmissionStatus.PENDING } }),
       prisma.paymentSubmission.count({ where: { status: PaymentSubmissionStatus.VERIFIED } }),
       prisma.order.aggregate({
@@ -76,17 +81,40 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return {
     totalOrders,
     pendingOrders,
+    processingOrders,
+    completedOrders,
+    cancelledOrders,
     pendingPaymentVerification,
     verifiedPayments,
     totalSales: sales._sum.total?.toString() ?? '0',
   }
 }
 
-export async function listAdminOrders(): Promise<AdminOrderListItem[]> {
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: 'desc' },
+export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrdersPage> {
+  const search = query.search
+    ? {
+        OR: [
+          { orderNumber: { contains: query.search, mode: 'insensitive' as const } },
+          { customerName: { contains: query.search, mode: 'insensitive' as const } },
+          { email: { contains: query.search, mode: 'insensitive' as const } },
+          { phone: { contains: query.search, mode: 'insensitive' as const } },
+        ],
+      }
+    : undefined
+  const where: Prisma.OrderWhereInput = {
+    ...(search ?? {}),
+    ...(query.paymentStatus ? { paymentStatus: query.paymentStatus } : {}),
+    ...(query.orderStatus ? { orderStatus: query.orderStatus } : {}),
+  }
+  const [total, orders] = await Promise.all([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      orderBy: { createdAt: query.sort === 'oldest' ? 'asc' : 'desc' },
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
     select: {
-      id: true,
+      orderNumber: true,
       customerName: true,
       email: true,
       phone: true,
@@ -95,8 +123,17 @@ export async function listAdminOrders(): Promise<AdminOrderListItem[]> {
       orderStatus: true,
       createdAt: true,
     },
-  })
-  return orders.map(toOrderListItem)
+    }),
+  ])
+  return {
+    orders: orders.map(toOrderListItem),
+    pagination: {
+      page: query.page,
+      pageSize: query.pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+    },
+  }
 }
 
 const orderDetailInclude = {
@@ -125,10 +162,14 @@ const orderDetailInclude = {
       createdAt: true,
     },
   },
+  statusHistory: {
+    orderBy: { createdAt: 'desc' as const },
+    include: { changedByUser: { select: { name: true, email: true } } },
+  },
 } satisfies Prisma.OrderInclude
 
-export async function getAdminOrder(id: string) {
-  const order = await prisma.order.findUnique({ where: { id }, include: orderDetailInclude })
+export async function getAdminOrder(orderNumber: string) {
+  const order = await prisma.order.findUnique({ where: { orderNumber }, include: orderDetailInclude })
   if (!order) throw new HttpError(404, 'Order not found.')
   return {
     ...order,
@@ -148,13 +189,29 @@ export async function getAdminOrder(id: string) {
       reviewedAt: payment.reviewedAt?.toISOString() ?? null,
       createdAt: payment.createdAt.toISOString(),
     })),
+    statusHistory: order.statusHistory.map((history) => ({
+      id: history.id,
+      previousStatus: history.previousStatus,
+      newStatus: history.newStatus,
+      changedBy: history.changedByUser,
+      note: history.note,
+      createdAt: history.createdAt.toISOString(),
+    })),
   }
 }
 
-export async function updateAdminOrderStatus(id: string, input: UpdateOrderStatusInput) {
+const allowedTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
+  [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+  [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+  [OrderStatus.COMPLETED]: [],
+  [OrderStatus.CANCELLED]: [],
+}
+
+export async function updateAdminOrderStatus(orderNumber: string, input: UpdateOrderStatusInput, adminId: string) {
   const existing = await prisma.order.findUnique({
-    where: { id },
+    where: { orderNumber },
     select: {
+      id: true,
       orderStatus: true,
       orderNumber: true,
       customerName: true,
@@ -162,11 +219,26 @@ export async function updateAdminOrderStatus(id: string, input: UpdateOrderStatu
     },
   })
   if (!existing) throw new HttpError(404, 'Order not found.')
-  if (existing.orderStatus === input.orderStatus) return getAdminOrder(id)
+  if (existing.orderStatus === input.orderStatus) return getAdminOrder(orderNumber)
+  if (!allowedTransitions[existing.orderStatus].includes(input.orderStatus)) {
+    throw new HttpError(409, `Order status cannot change from ${existing.orderStatus} to ${input.orderStatus}.`)
+  }
 
-  const updated = await prisma.order.update({
-    where: { id },
-    data: { orderStatus: input.orderStatus },
+  const updated = await prisma.$transaction(async (transaction) => {
+    const order = await transaction.order.update({
+      where: { id: existing.id },
+      data: { orderStatus: input.orderStatus },
+    })
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        previousStatus: existing.orderStatus,
+        newStatus: input.orderStatus,
+        changedBy: adminId,
+        note: input.note ?? null,
+      },
+    })
+    return order
   })
 
   void notifyOrderStatusChanged({
@@ -176,7 +248,7 @@ export async function updateAdminOrderStatus(id: string, input: UpdateOrderStatu
     orderStatus: updated.orderStatus,
   }).catch((error: unknown) => console.error('Order status email failed', error))
 
-  return getAdminOrder(id)
+  return getAdminOrder(orderNumber)
 }
 
 export async function listAdminPayments(status?: PaymentSubmissionStatus): Promise<AdminPaymentListItem[]> {

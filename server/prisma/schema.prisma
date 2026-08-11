@@ -84,6 +84,7 @@ model Order {
   updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   orderItems          OrderItem[]
   paymentSubmissions PaymentSubmission[]
+  statusHistory       OrderStatusHistory[]
   user                User?       @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([userId], map: "orders_user_id_idx")
@@ -108,6 +109,22 @@ model PaymentSubmission {
   @@index([orderId], map: "payment_submissions_order_id_idx")
   @@index([status], map: "payment_submissions_status_idx")
   @@map("payment_submissions")
+}
+
+model OrderStatusHistory {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId        String      @map("order_id") @db.Uuid
+  previousStatus OrderStatus? @map("previous_status")
+  newStatus      OrderStatus  @map("new_status")
+  changedBy      String      @map("changed_by") @db.Uuid
+  note           String?
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  changedByUser  User        @relation(fields: [changedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([orderId, createdAt], map: "order_status_history_order_created_idx")
+  @@index([changedBy], map: "order_status_history_changed_by_idx")
+  @@map("order_status_history")
 }
 
 model PaymentSettings {
@@ -138,6 +155,7 @@ model User {
   sessions     AdminSession[]
   customerSessions CustomerSession[]
   orders       Order[]
+  orderStatusChanges OrderStatusHistory[]
   cart         CustomerCart?
 
   @@map("users")

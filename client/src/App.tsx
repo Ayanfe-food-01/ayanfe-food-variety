@@ -9,6 +9,7 @@ import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
 import { Dashboard } from './pages/Admin/Dashboard'
 import { Orders } from './pages/Admin/Orders'
+import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Settings } from './pages/Admin/Settings'
 import { Login } from './pages/Admin/Login'
@@ -29,6 +30,7 @@ function App() {
         <Route path="/admin/login" element={<Login />} />
         <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
         <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
+        <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
         <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
       </Routes>

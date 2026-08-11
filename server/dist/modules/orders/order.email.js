@@ -52,6 +52,9 @@ export async function notifyOrderStatusChanged(order) {
         COMPLETED: 'Your order has been completed.',
         CANCELLED: 'Your order has been cancelled.',
     };
+    const orderLink = env.publicAppUrl
+        ? `<p><a href="${escapeHtml(`${env.publicAppUrl.replace(/\/+$/, '')}/orders/${encodeURIComponent(order.orderNumber)}`)}">View your order</a></p>`
+        : '';
     const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -64,7 +67,8 @@ export async function notifyOrderStatusChanged(order) {
             subject: `Order update — ${order.orderNumber}`,
             html: `<p>Hi ${escapeHtml(order.customerName)},</p>
         <p>${escapeHtml(statusCopy[order.orderStatus])}</p>
-        <p>Order: <strong>${escapeHtml(order.orderNumber)}</strong></p>`,
+        <p>Order: <strong>${escapeHtml(order.orderNumber)}</strong></p>
+        ${orderLink}`,
         }),
     });
     if (!response.ok)

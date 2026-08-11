@@ -14,7 +14,8 @@ import {
   updateAdminPaymentSettings,
 } from './admin.service.js'
 import {
-  validateAdminId,
+  validateAdminOrdersQuery,
+  validateOrderNumber,
   validateOrderStatusInput,
   validatePaymentSettingsInput,
 } from './admin.validator.js'
@@ -23,21 +24,21 @@ export const getDashboardController: RequestHandler = async (_request, response)
   response.json({ success: true, data: { stats: await getDashboardStats() } })
 }
 
-export const listAdminOrdersController: RequestHandler = async (_request, response) => {
-  response.json({ success: true, data: { orders: await listAdminOrders() } })
+export const listAdminOrdersController: RequestHandler = async (request, response) => {
+  response.json({ success: true, data: await listAdminOrders(validateAdminOrdersQuery(request.query as Record<string, unknown>)) })
 }
 
 export const getAdminOrderController: RequestHandler = async (request, response) => {
-  const id = validateAdminId(request.params.id, 'Order ID')
-  response.json({ success: true, data: { order: await getAdminOrder(id) } })
+  const orderNumber = validateOrderNumber(request.params.orderNumber)
+  response.json({ success: true, data: { order: await getAdminOrder(orderNumber) } })
 }
 
 export const updateAdminOrderStatusController: RequestHandler = async (request, response) => {
-  const id = validateAdminId(request.params.id, 'Order ID')
+  const orderNumber = validateOrderNumber(request.params.orderNumber)
   response.json({
     success: true,
     message: 'Order status updated.',
-    data: { order: await updateAdminOrderStatus(id, validateOrderStatusInput(request.body)) },
+    data: { order: await updateAdminOrderStatus(orderNumber, validateOrderStatusInput(request.body), request.authenticatedUser!.id) },
   })
 }
 

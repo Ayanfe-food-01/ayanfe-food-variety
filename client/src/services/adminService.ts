@@ -3,6 +3,9 @@ import { request } from './api'
 export interface DashboardStats {
   totalOrders: number
   pendingOrders: number
+  processingOrders: number
+  completedOrders: number
+  cancelledOrders: number
   pendingPaymentVerification: number
   verifiedPayments: number
   totalSales: string

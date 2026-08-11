@@ -32,6 +32,7 @@ export const env = {
     nodeEnv,
     sessionSecret,
     corsOrigins,
+    publicAppUrl: process.env.PUBLIC_APP_URL ?? process.env.CLIENT_URL,
     googleOAuth: {
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,

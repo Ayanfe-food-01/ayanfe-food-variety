@@ -104,6 +104,7 @@ export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
 
 export interface AdminOrder {
+  orderNumber: string
   id: string
   customerName: string
   phone: string
@@ -113,6 +114,7 @@ export interface AdminOrder {
   city: string
   note: string | null
   subtotal: string
+  deliveryFee: string
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
@@ -138,10 +140,18 @@ export interface AdminOrder {
     reviewedAt: string | null
     createdAt: string
   }>
+  statusHistory: Array<{
+    id: string
+    previousStatus: OrderStatus | null
+    newStatus: OrderStatus
+    changedBy: { name: string; email: string }
+    note: string | null
+    createdAt: string
+  }>
 }
 
 export interface AdminOrderListItem {
-  id: string
+  orderNumber: string
   customerName: string
   email: string | null
   phone: string
@@ -173,7 +183,10 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
 
 interface AdminOrdersResponse {
   success: true
-  data: { orders: AdminOrderListItem[] }
+  data: {
+    orders: AdminOrderListItem[]
+    pagination: { page: number; pageSize: number; total: number; totalPages: number }
+  }
 }
 
 interface AdminOrderResponse {
@@ -182,21 +195,39 @@ interface AdminOrderResponse {
   data: { order: AdminOrder }
 }
 
-export async function getAdminOrders(): Promise<AdminOrderListItem[]> {
-  const response = await request<AdminOrdersResponse>('/admin/orders')
-  return response.data.orders
+export interface AdminOrdersQuery {
+  search?: string
+  paymentStatus?: PaymentStatus
+  orderStatus?: OrderStatus
+  sort?: 'newest' | 'oldest'
+  page?: number
+  pageSize?: number
 }
 
-export async function getAdminOrder(id: string): Promise<AdminOrder> {
-  const response = await request<AdminOrderResponse>(`/admin/orders/${id}`)
+export interface AdminOrdersPage {
+  orders: AdminOrderListItem[]
+  pagination: { page: number; pageSize: number; total: number; totalPages: number }
+}
+
+export async function getAdminOrders(query: AdminOrdersQuery = {}): Promise<AdminOrdersPage> {
+  const params = new URLSearchParams()
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') params.set(key, String(value))
+  })
+  const response = await request<AdminOrdersResponse>(`/admin/orders${params.size ? `?${params.toString()}` : ''}`)
+  return response.data
+}
+
+export async function getAdminOrder(orderNumber: string): Promise<AdminOrder> {
+  const response = await request<AdminOrderResponse>(`/admin/orders/${encodeURIComponent(orderNumber)}`)
   return response.data.order
 }
 
-export async function updateAdminOrderStatus(id: string, orderStatus: OrderStatus): Promise<AdminOrder> {
-  const response = await request<AdminOrderResponse>(`/admin/orders/${id}/status`, {
+export async function updateAdminOrderStatus(orderNumber: string, orderStatus: OrderStatus, note?: string): Promise<AdminOrder> {
+  const response = await request<AdminOrderResponse>(`/admin/orders/${encodeURIComponent(orderNumber)}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ orderStatus }),
+    body: JSON.stringify({ orderStatus, note }),
   })
   return response.data.order
 }

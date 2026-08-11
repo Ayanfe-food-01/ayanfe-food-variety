@@ -6,18 +6,15 @@ import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../paym
 import {
   getAdminOrder,
   getAdminPayment,
-  getAdminPaymentSettings,
   getDashboardStats,
   listAdminOrders,
   listAdminPayments,
   updateAdminOrderStatus,
-  updateAdminPaymentSettings,
 } from './admin.service.js'
 import {
   validateAdminOrdersQuery,
   validateOrderNumber,
   validateOrderStatusInput,
-  validatePaymentSettingsInput,
 } from './admin.validator.js'
 
 export const getDashboardController: RequestHandler = async (_request, response) => {
@@ -74,17 +71,5 @@ export const rejectAdminPaymentController: RequestHandler = async (request, resp
     success: true,
     message: 'Payment rejected.',
     data: { payment: await reviewPayment(id, false, validateReviewPaymentInput(request.body, true)) },
-  })
-}
-
-export const getAdminPaymentSettingsController: RequestHandler = async (_request, response) => {
-  response.json({ success: true, data: { settings: await getAdminPaymentSettings() } })
-}
-
-export const updateAdminPaymentSettingsController: RequestHandler = async (request, response) => {
-  response.json({
-    success: true,
-    message: 'Payment settings updated.',
-    data: { settings: await updateAdminPaymentSettings(validatePaymentSettingsInput(request.body)) },
   })
 }

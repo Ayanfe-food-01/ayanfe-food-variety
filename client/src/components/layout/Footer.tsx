@@ -50,7 +50,7 @@ export function Footer() {
         </div>
       </div>
       <div className="container mt-12 flex flex-wrap justify-between gap-3 border-t border-cream/15 pt-6 text-xs text-cream/45">
-        <span>© 2026 Ayanfe Food Variety Limited</span>
+        <span>© {new Date().getFullYear()} {settings?.businessName || 'Store'}</span>
         <span>Good food starts here.</span>
       </div>
     </footer>

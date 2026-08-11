@@ -53,13 +53,3 @@ export function validateAdminOrdersQuery(query) {
         pageSize,
     };
 }
-export function validatePaymentSettingsInput(body) {
-    if (!isRecord(body))
-        throw new HttpError(400, 'Payment settings are required.');
-    return {
-        bankName: requiredText(body.bankName, 'Bank name', 180),
-        accountName: requiredText(body.accountName, 'Account name', 180),
-        accountNumber: requiredText(body.accountNumber, 'Account number', 80),
-        instructions: requiredText(body.instructions, 'Payment instructions', 2000),
-    };
-}

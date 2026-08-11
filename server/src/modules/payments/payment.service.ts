@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { notifyPaymentReviewed, notifyPaymentSubmitted } from './payment.email.js'
 import { deletePaymentProof, uploadPaymentProof } from './payment.storage.js'
+import { getPublicPaymentSettings } from '../settings/settings.service.js'
 import type {
   BankDetailsResponse,
   PaymentSubmissionResponse,
@@ -55,9 +56,7 @@ const toBankDetails = (settings: {
 })
 
 export async function getBankDetails(): Promise<BankDetailsResponse> {
-  const settings = await prisma.paymentSettings.findFirst({
-    where: { singletonKey: 'default', isActive: true },
-  })
+  const settings = await getPublicPaymentSettings()
   if (!settings) throw new HttpError(503, 'Payment settings are not configured yet.')
   return toBankDetails(settings)
 }

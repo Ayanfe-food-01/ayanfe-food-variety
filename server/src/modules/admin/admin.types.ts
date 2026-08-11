@@ -66,16 +66,7 @@ export interface AdminPaymentListItem {
   reviewedAt: string | null
 }
 
-export interface AdminPaymentSettings {
-  bankName: string
-  accountName: string
-  accountNumber: string
-  instructions: string
-}
-
 export interface UpdateOrderStatusInput {
   orderStatus: OrderStatus
   note?: string
 }
-
-export interface UpdatePaymentSettingsInput extends AdminPaymentSettings {}

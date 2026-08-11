@@ -1,5 +1,3 @@
-import type { AdminPaymentSettings } from '../admin/admin.types.js'
-
 export interface StoreSettings {
   businessName: string
   businessEmail: string
@@ -21,10 +19,18 @@ export interface ContactInformation {
   whatsappNumber: string
 }
 
+export interface PaymentSettings {
+  bankName: string
+  accountName: string
+  accountNumber: string
+  instructions: string
+}
+
 export interface PublicStoreSettings {
   store: StoreSettings | null
-  payment: AdminPaymentSettings | null
+  payment: PaymentSettings | null
 }
 
 export interface UpdateStoreInformationInput extends StoreInformation {}
 export interface UpdateContactInformationInput extends ContactInformation {}
+export interface UpdatePaymentSettingsInput extends PaymentSettings {}

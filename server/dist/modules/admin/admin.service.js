@@ -225,21 +225,3 @@ export async function getAdminPayment(id) {
         throw new HttpError(404, 'Payment submission not found.');
     return toPaymentListItem(payment);
 }
-const toSettings = (settings) => ({
-    bankName: settings.bankName,
-    accountName: settings.accountName,
-    accountNumber: settings.accountNumber,
-    instructions: settings.instructions,
-});
-export async function getAdminPaymentSettings() {
-    const settings = await prisma.paymentSettings.findUnique({ where: { singletonKey: 'default' } });
-    return settings ? toSettings(settings) : null;
-}
-export async function updateAdminPaymentSettings(input) {
-    const settings = await prisma.paymentSettings.upsert({
-        where: { singletonKey: 'default' },
-        create: { singletonKey: 'default', ...input, isActive: true },
-        update: { ...input, isActive: true },
-    });
-    return toSettings(settings);
-}

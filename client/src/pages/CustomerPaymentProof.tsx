@@ -16,6 +16,7 @@ export function CustomerPaymentProof() {
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [bank, setBank] = useState<BankDetails | null>(null)
+  const [bankError, setBankError] = useState<string | null>(null)
   const [payment, setPayment] = useState<PaymentSubmission | CreatedOrder['paymentSubmissions'][number] | null>(null)
   const [senderName, setSenderName] = useState('')
   const [transactionReference, setTransactionReference] = useState('')
@@ -38,8 +39,8 @@ export function CustomerPaymentProof() {
       .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Payment instructions could not be loaded.'))
     getBankDetails()
       .then(setBank)
-      .catch(() => {
-        // Payment proof can still be prepared if settings are temporarily unavailable.
+      .catch((reason: unknown) => {
+        setBankError(reason instanceof ApiError ? reason.message : 'Payment details could not be loaded.')
       })
   }, [isAuthLoading, orderNumber, user])
 
@@ -119,7 +120,7 @@ export function CustomerPaymentProof() {
                   </dl>
                   <p className="mt-5 border-t border-line pt-4 text-sm leading-6 text-muted">{bank.instructions}</p>
                 </>
-              ) : <p className="mt-4 text-sm text-muted">Bank details are loading…</p>}
+              ) : <p className="mt-4 text-sm text-orange" role="alert">{bankError ?? 'Bank details are loading…'}</p>}
             </div>
             {order.paymentStatus === 'PAID' ? (
               <div className="mt-6 rounded-2xl border border-green/25 bg-sage/25 p-6" role="status">

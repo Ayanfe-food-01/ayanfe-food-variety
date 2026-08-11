@@ -1,6 +1,6 @@
 import { OrderStatus, PaymentStatus } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
-import type { AdminOrdersQuery, UpdateOrderStatusInput, UpdatePaymentSettingsInput } from './admin.types.js'
+import type { AdminOrdersQuery, UpdateOrderStatusInput } from './admin.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -56,19 +56,5 @@ export function validateAdminOrdersQuery(query: Record<string, unknown>): AdminO
     sort: query.sort === 'oldest' ? 'oldest' : 'newest',
     page,
     pageSize,
-  }
-}
-
-export function validatePaymentSettingsInput(body: unknown): UpdatePaymentSettingsInput {
-  if (!isRecord(body)) throw new HttpError(400, 'Payment settings are required.')
-  const accountNumber = requiredText(body.accountNumber, 'Account number', 80)
-  if (!/^[0-9][0-9 -]{5,79}$/.test(accountNumber) || accountNumber.replace(/\D/g, '').length < 6) {
-    throw new HttpError(400, 'Account number must contain at least 6 digits.')
-  }
-  return {
-    bankName: requiredText(body.bankName, 'Bank name', 180),
-    accountName: requiredText(body.accountName, 'Account name', 180),
-    accountNumber,
-    instructions: requiredText(body.instructions, 'Payment instructions', 2000),
   }
 }

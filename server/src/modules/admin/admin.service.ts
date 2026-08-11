@@ -6,10 +6,8 @@ import type {
   AdminOrdersPage,
   AdminOrdersQuery,
   AdminPaymentListItem,
-  AdminPaymentSettings,
   DashboardStats,
   UpdateOrderStatusInput,
-  UpdatePaymentSettingsInput,
 } from './admin.types.js'
 import { notifyOrderStatusChanged } from '../orders/order.email.js'
 
@@ -267,30 +265,4 @@ export async function getAdminPayment(id: string): Promise<AdminPaymentListItem>
   })
   if (!payment) throw new HttpError(404, 'Payment submission not found.')
   return toPaymentListItem(payment)
-}
-
-const toSettings = (settings: {
-  bankName: string
-  accountName: string
-  accountNumber: string
-  instructions: string
-}): AdminPaymentSettings => ({
-  bankName: settings.bankName,
-  accountName: settings.accountName,
-  accountNumber: settings.accountNumber,
-  instructions: settings.instructions,
-})
-
-export async function getAdminPaymentSettings(): Promise<AdminPaymentSettings | null> {
-  const settings = await prisma.paymentSettings.findUnique({ where: { singletonKey: 'default' } })
-  return settings ? toSettings(settings) : null
-}
-
-export async function updateAdminPaymentSettings(input: UpdatePaymentSettingsInput): Promise<AdminPaymentSettings> {
-  const settings = await prisma.paymentSettings.upsert({
-    where: { singletonKey: 'default' },
-    create: { singletonKey: 'default', ...input, isActive: true },
-    update: { ...input, isActive: true },
-  })
-  return toSettings(settings)
 }

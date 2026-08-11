@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BagIcon, CloseIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
+import { useStoreSettings } from '../../hooks/useStoreSettings'
 
 const links = [
   { label: 'Home', href: '#home' },
@@ -12,14 +13,16 @@ const links = [
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { totalQuantity } = useCart()
+  const { settings } = useStoreSettings()
+  const businessName = settings?.businessName || 'Store'
 
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-cream/90 backdrop-blur-xl">
       <nav className="container flex min-h-[68px] items-center justify-between gap-8 md:min-h-[78px]" aria-label="Main navigation">
-        <a className="inline-flex items-center gap-3" href="#home" aria-label="Ayanfe Food Variety home">
+        <a className="inline-flex items-center gap-3" href="#home" aria-label={`${businessName} home`}>
           <span className="grid size-10 place-items-center rounded-full bg-green font-display text-lg font-bold text-cream">A</span>
           <span className="text-[13px] tracking-[0.01em]">
-            Ayanfe <strong className="block text-sm font-bold">Food Variety</strong>
+            {businessName}
           </span>
         </a>
 

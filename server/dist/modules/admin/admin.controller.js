@@ -2,8 +2,8 @@ import { PaymentSubmissionStatus } from '@prisma/client';
 import { HttpError } from '../../utils/http.js';
 import { reviewPayment } from '../payments/payment.service.js';
 import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../payments/payment.validator.js';
-import { getAdminOrder, getAdminPayment, getAdminPaymentSettings, getDashboardStats, listAdminOrders, listAdminPayments, updateAdminOrderStatus, updateAdminPaymentSettings, } from './admin.service.js';
-import { validateAdminOrdersQuery, validateOrderNumber, validateOrderStatusInput, validatePaymentSettingsInput, } from './admin.validator.js';
+import { getAdminOrder, getAdminPayment, getDashboardStats, listAdminOrders, listAdminPayments, updateAdminOrderStatus, } from './admin.service.js';
+import { validateAdminOrdersQuery, validateOrderNumber, validateOrderStatusInput, } from './admin.validator.js';
 export const getDashboardController = async (_request, response) => {
     response.json({ success: true, data: { stats: await getDashboardStats() } });
 };
@@ -51,15 +51,5 @@ export const rejectAdminPaymentController = async (request, response) => {
         success: true,
         message: 'Payment rejected.',
         data: { payment: await reviewPayment(id, false, validateReviewPaymentInput(request.body, true)) },
-    });
-};
-export const getAdminPaymentSettingsController = async (_request, response) => {
-    response.json({ success: true, data: { settings: await getAdminPaymentSettings() } });
-};
-export const updateAdminPaymentSettingsController = async (request, response) => {
-    response.json({
-        success: true,
-        message: 'Payment settings updated.',
-        data: { settings: await updateAdminPaymentSettings(validatePaymentSettingsInput(request.body)) },
     });
 };

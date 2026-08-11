@@ -1,6 +1,7 @@
 import { HttpError } from '../../utils/http.js'
 import type {
   UpdateContactInformationInput,
+  UpdatePaymentSettingsInput,
   UpdateStoreInformationInput,
 } from './settings.types.js'
 
@@ -47,5 +48,22 @@ export function validateContactInformationInput(body: unknown): UpdateContactInf
     businessEmail,
     businessPhone: validatePhone(body.businessPhone, 'Business phone'),
     whatsappNumber: validatePhone(body.whatsappNumber, 'WhatsApp number'),
+  }
+}
+
+export function validatePaymentSettingsInput(body: unknown): UpdatePaymentSettingsInput {
+  if (!isRecord(body)) throw new HttpError(400, 'Payment settings are required.')
+
+  const accountNumber = requiredText(body.accountNumber, 'Account number', 80)
+  const accountDigits = accountNumber.replace(/\D/g, '')
+  if (!/^[0-9][0-9 -]*[0-9]$/.test(accountNumber) || accountDigits.length < 6 || accountDigits.length > 34) {
+    throw new HttpError(400, 'Account number must contain between 6 and 34 digits.')
+  }
+
+  return {
+    bankName: requiredText(body.bankName, 'Bank name', 180),
+    accountName: requiredText(body.accountName, 'Account name', 180),
+    accountNumber,
+    instructions: requiredText(body.instructions, 'Payment instructions', 2000),
   }
 }

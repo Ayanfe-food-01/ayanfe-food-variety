@@ -3,8 +3,8 @@ name: Neon migration state
 description: Environment constraint for the configured Neon database and existing Prisma migrations.
 ---
 
-The configured Neon database can have the repository's existing Prisma migrations pending. In that state, the API starts but Prisma-backed catalog and order requests fail because project tables do not exist.
+The configured Neon database initially had the repository's existing Prisma migrations pending; they have now been applied in development and the catalog has been seeded.
 
 **Why:** Live runtime verification exposed missing tables while Prisma schema validation and production builds still passed.
 
-**How to apply:** Before testing or deploying database-backed flows in this environment, inspect migration status and apply the existing migrations through the normal Prisma deployment process after confirming the target database and authorization. Do not invent a replacement schema or silently migrate production.
+**How to apply:** Before testing future database-backed flows, check migration status and confirm the target environment. Apply existing migrations through the normal Prisma deployment process when needed, then seed only when the development catalog is empty. Do not invent a replacement schema or silently migrate production.

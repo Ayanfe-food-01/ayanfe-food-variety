@@ -1,2 +1,3 @@
 - [Neon migration state](neon-migrations.md) — the configured database may require the existing Prisma migrations before live API flows can query project tables.
 - [Unified authentication](unified-auth.md) — public auth is one `/login` experience; signup is customer-only while backend roles decide redirects and access.
+- [API workflow port detection](workflow-port-detection.md) — a healthy Express API can remain reachable while the managed console workflow is marked failed during port detection.

@@ -7,10 +7,12 @@ import {
   listAdminProducts,
   updateProduct,
   updateProductStatus,
+  validateProductCategory,
 } from './product.service.js'
 import {
   validateAdminProductId,
   validateAdminProductsQuery,
+  validateProductFields,
   validateProductInput,
   validateProductStatusInput,
 } from './product.validator.js'
@@ -21,7 +23,7 @@ const routeParam = (value: string | string[] | undefined): string | undefined =>
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 10, fieldSize: 1 * 1024 * 1024 },
   fileFilter: (_request, file, callback) => {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
       callback(new HttpError(400, 'Product image must be a JPG, PNG, or WEBP image.'))
@@ -34,7 +36,9 @@ const upload = multer({
 export const productImageUpload: RequestHandler = (request, response, next) => {
   upload.single('image')(request, response, (error: unknown) => {
     if (error instanceof multer.MulterError) {
-      next(new HttpError(400, 'Product images must be 5 MB or smaller.'))
+      next(new HttpError(400, error.code === 'LIMIT_FILE_SIZE'
+        ? 'Product images must be 5 MB or smaller.'
+        : 'The product image upload is invalid.'))
       return
     }
     next(error)
@@ -50,11 +54,14 @@ export const getAdminProductController: RequestHandler = async (request, respons
 }
 
 export const createAdminProductController: RequestHandler = async (request, response) => {
+  const fields = validateProductFields(request.body)
+  await validateProductCategory(fields.categoryId)
+  if (!request.file) throw new HttpError(400, 'A product image is required.')
   const image = request.file ? await uploadProductImage(request.file) : undefined
   response.status(201).json({
     success: true,
     message: 'Product created.',
-    data: { product: await createProduct(validateProductInput(request.body, image), request.authenticatedUser!.id) },
+    data: { product: await createProduct({ ...fields, image }, request.authenticatedUser!.id) },
   })
 }
 

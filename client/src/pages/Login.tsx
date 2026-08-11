@@ -57,17 +57,16 @@ export function Login() {
   return (
     <main className="grid min-h-screen place-items-center bg-cream px-5 py-10">
       <section className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-sm sm:p-9">
-        <div className="flex items-center gap-3">
+        <div className="flex justify-center">
           <Link to="/" aria-label="Return to storefront">
             <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
           </Link>
-          <p className="m-0 text-xs text-muted">One secure account for shopping and store management</p>
         </div>
         <div className="mt-10">
           <div className="flex items-center gap-2 text-orange"><ShieldIcon size={18} /><span className="text-xs font-bold uppercase tracking-[0.16em]">Secure sign in</span></div>
           <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
           <p className="mt-3 text-sm leading-6 text-muted">
-            {mode === 'login' ? 'Sign in to continue shopping. Administrators will be taken to the store portal automatically.' : 'Create a customer account to save your cart and keep track of orders.'}
+            {mode === 'login' ? 'Sign in to your account to continue.' : 'Create an account to get started.'}
           </p>
         </div>
         <form className="mt-8 space-y-5" onSubmit={submit}>

@@ -22,7 +22,7 @@ export function ProductForm() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'creating'>('idle')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'uploading' | 'saving'>('idle')
 
   useEffect(() => {
     let current = true
@@ -94,9 +94,10 @@ export function ProductForm() {
       return
     }
     setIsSaving(true)
-    setSaveStatus('creating')
+    setSaveStatus(form.image ? 'uploading' : 'saving')
     try {
       // The API performs the Cloudinary upload as part of this request.
+      if (form.image) setSaveStatus('uploading')
       if (id) await updateAdminProduct(id, form)
       else await createAdminProduct(form)
       navigate('/admin/products', { replace: true, state: { message: `Product ${isEditing ? 'updated' : 'created'} successfully.` } })
@@ -133,8 +134,8 @@ export function ProductForm() {
           {(imagePreview || currentImage) && <img className="size-28 rounded-2xl object-cover" src={imagePreview || currentImage || ''} alt="Product preview" />}
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-          {isSaving && <p className="text-sm font-semibold text-muted" role="status">{saveStatus === 'creating' ? 'Uploading image and saving product…' : 'Preparing product…'}</p>}
-          <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSaving || isCategoriesLoading}>{isSaving ? 'Uploading image and saving…' : isEditing ? 'Save changes' : 'Create product'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>
+          {isSaving && <p className="text-sm font-semibold text-muted" role="status">{saveStatus === 'uploading' ? 'Uploading image…' : 'Saving product…'}</p>}
+          <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSaving || isCategoriesLoading}>{isSaving ? saveStatus === 'uploading' ? 'Uploading image…' : 'Saving product…' : isEditing ? 'Save changes' : 'Create product'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>
         </form>}
       </div>
     </>

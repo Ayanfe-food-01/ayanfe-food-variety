@@ -13,10 +13,9 @@ import {
   validateAdminProductId,
   validateAdminProductsQuery,
   validateProductFields,
-  validateProductInput,
   validateProductStatusInput,
 } from './product.validator.js'
-import { uploadProductImage } from './product.storage.js'
+import { deleteProductImage, uploadProductImage } from './product.storage.js'
 
 const routeParam = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value
@@ -66,12 +65,26 @@ export const createAdminProductController: RequestHandler = async (request, resp
 }
 
 export const updateAdminProductController: RequestHandler = async (request, response) => {
-  const image = request.file ? await uploadProductImage(request.file) : undefined
-  response.json({
-    success: true,
-    message: 'Product updated.',
-    data: { product: await updateProduct(validateAdminProductId(routeParam(request.params.id)), validateProductInput(request.body, image, true), request.authenticatedUser!.id) },
-  })
+  const productId = validateAdminProductId(routeParam(request.params.id))
+  const fields = validateProductFields(request.body)
+  await validateProductCategory(fields.categoryId)
+  const existingProduct = await getAdminProduct(productId)
+  let image: string | undefined
+  try {
+    image = request.file ? await uploadProductImage(request.file) : undefined
+    const product = await updateProduct({ ...fields, image }, request.authenticatedUser!.id, productId)
+    if (image && existingProduct.image && existingProduct.image !== image) {
+      await deleteProductImage(existingProduct.image)
+    }
+    response.json({
+      success: true,
+      message: 'Product updated.',
+      data: { product },
+    })
+  } catch (error: unknown) {
+    if (image) await deleteProductImage(image)
+    throw error
+  }
 }
 
 export const updateAdminProductStatusController: RequestHandler = async (request, response) => {

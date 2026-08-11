@@ -172,44 +172,51 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
   }
 }
 
-export async function updateProduct(id: string, input: ProductInput, adminId: string): Promise<Product> {
+export async function updateProduct(input: ProductInput, adminId: string, id: string): Promise<Product> {
   await validateProductCategory(input.categoryId)
-  const product = await prisma.$transaction(async (transaction) => {
-    const currentRows = await transaction.$queryRaw<Array<{ id: string; stock_quantity: number }>>(
-      Prisma.sql`SELECT id, stock_quantity
-        FROM products
-        WHERE id = ${id}::uuid
-        FOR UPDATE`,
-    )
-    const current = currentRows[0]
-    if (!current) throw new HttpError(404, 'Product not found.')
-    const updated = await transaction.product.update({
-      where: { id },
-      data: {
-        categoryId: input.categoryId,
-        name: input.name,
-        slug: await uniqueSlug(input.name, id),
-        description: input.description,
-        price: input.price,
-        unit: input.unit,
-        ...(input.image ? { image: input.image } : {}),
-        isActive: input.isActive,
-        stockQuantity: input.stockQuantity,
-      },
-      include: productInclude,
-    })
-    if (updated.stockQuantity !== current.stock_quantity) {
-      await recordStockAdjustment(transaction, {
-        productId: id,
-        quantityDelta: updated.stockQuantity - current.stock_quantity,
-        previousQuantity: current.stock_quantity,
-        newQuantity: updated.stockQuantity,
-        reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
+  try {
+    const product = await prisma.$transaction(async (transaction) => {
+      const currentRows = await transaction.$queryRaw<Array<{ id: string; stock_quantity: number }>>(
+        Prisma.sql`SELECT id, stock_quantity
+          FROM products
+          WHERE id = ${id}::uuid
+          FOR UPDATE`,
+      )
+      const current = currentRows[0]
+      if (!current) throw new HttpError(404, 'Product not found.')
+      const updated = await transaction.product.update({
+        where: { id },
+        data: {
+          categoryId: input.categoryId,
+          name: input.name,
+          slug: await uniqueSlug(input.name, id),
+          description: input.description,
+          price: input.price,
+          unit: input.unit,
+          ...(input.image ? { image: input.image } : {}),
+          isActive: input.isActive,
+          stockQuantity: input.stockQuantity,
+        },
+        include: productInclude,
       })
+      if (updated.stockQuantity !== current.stock_quantity) {
+        await recordStockAdjustment(transaction, {
+          productId: id,
+          quantityDelta: updated.stockQuantity - current.stock_quantity,
+          previousQuantity: current.stock_quantity,
+          newQuantity: updated.stockQuantity,
+          reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
+        })
+      }
+      return updated
+    })
+    return toAdminProduct(product)
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new HttpError(409, 'A product with this information already exists.')
     }
-    return updated
-  })
-  return toAdminProduct(product)
+    throw error
+  }
 }
 
 export async function updateProductStatus(id: string, isActive: boolean): Promise<Product> {

@@ -70,11 +70,6 @@ export function validateProductFields(body: unknown): Omit<ProductInput, 'image'
   }
 }
 
-export function validateProductInput(body: unknown, image?: string, allowMissingImage = false): ProductInput {
-  if (!allowMissingImage && !image) throw new HttpError(400, 'A product image is required.')
-  return { ...validateProductFields(body), image }
-}
-
 export function validateProductStatusInput(body: unknown): boolean {
   if (!isRecord(body)) throw new HttpError(400, 'Availability is required.')
   return booleanValue(body.isActive, 'Availability', false)

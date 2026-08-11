@@ -4,6 +4,7 @@ import { ArrowRight } from '../../assets/icons'
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
+  onLogout: () => void
 }
 
 const links = [
@@ -15,7 +16,7 @@ const links = [
   { label: 'Settings', to: '/admin/settings' },
 ]
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
   return (
     <>
       {isOpen && (
@@ -56,13 +57,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="mt-auto">
-          <NavLink
+          <button
             className="flex w-full items-center justify-center rounded-xl bg-cream px-4 py-3 text-sm font-bold text-green-dark transition-colors hover:bg-white"
-            to="/login"
-            onClick={onClose}
+            type="button"
+            onClick={onLogout}
           >
-            Login
-          </NavLink>
+            Logout
+          </button>
         </div>
       </aside>
     </>

@@ -7,6 +7,7 @@ export interface Product {
   image: string
   description: string
   categoryId?: string
+  categorySlug?: string
   stockQuantity?: number
   isActive: boolean
   isAvailable: boolean

@@ -1,56 +1,136 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight } from '../assets/icons'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { SearchIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { getCategories } from '../services/categoryService'
-import { getProducts } from '../services/productService'
+import { ApiError } from '../services/api'
+import { getProducts, type ProductPage } from '../services/productService'
 import type { Category } from '../types/category'
-import type { Product } from '../types/product'
+
+const PAGE_SIZE = 20
+const SORT_OPTIONS = [
+  { value: 'relevance', label: 'Relevance' },
+  { value: 'price_asc', label: 'Price: low to high' },
+  { value: 'price_desc', label: 'Price: high to low' },
+  { value: 'newest', label: 'Newest' },
+] as const
+
+const readPage = (value: string | null) => {
+  const page = Number(value ?? 1)
+  return Number.isInteger(page) && page > 0 ? page : 1
+}
 
 export function Shop() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [activeCategory, setActiveCategory] = useState('All')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searchValue = searchParams.get('search') ?? ''
+  const categoryValue = searchParams.get('category') ?? ''
+  const sortValue = searchParams.get('sort') ?? 'relevance'
+  const pageValue = readPage(searchParams.get('page'))
+  const queryString = searchParams.toString()
 
-  const loadShopData = useCallback(async () => {
-    try {
-      const [loadedProducts, loadedCategories] = await Promise.all([getProducts(), getCategories()])
-      setProducts(loadedProducts)
-      setCategories(loadedCategories)
-      setError(false)
-    } catch {
-      setError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  const [searchInput, setSearchInput] = useState(searchValue)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [result, setResult] = useState<ProductPage | null>(null)
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true)
+  const [isProductsLoading, setIsProductsLoading] = useState(true)
+  const [categoriesError, setCategoriesError] = useState(false)
+  const [productsError, setProductsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setSearchInput(searchValue), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [searchValue])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      void loadShopData()
-    }, 0)
+      const nextParams = new URLSearchParams(window.location.search)
+      const trimmedSearch = searchInput.trim()
+      if ((nextParams.get('search') ?? '') === trimmedSearch) return
+      if (trimmedSearch) nextParams.set('search', trimmedSearch)
+      else nextParams.delete('search')
+      nextParams.delete('page')
+      if (nextParams.toString() !== queryString) setSearchParams(nextParams, { replace: true })
+    }, 350)
 
     return () => window.clearTimeout(timeoutId)
-  }, [loadShopData])
+  }, [queryString, searchInput, setSearchParams])
 
-  const retryShopData = () => {
-    setIsLoading(true)
-    void loadShopData()
+  const loadCategories = useCallback(() => {
+    setIsCategoriesLoading(true)
+    setCategoriesError(false)
+    void getCategories()
+      .then(setCategories)
+      .catch(() => setCategoriesError(true))
+      .finally(() => setIsCategoriesLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(loadCategories, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadCategories])
+
+  useEffect(() => {
+    let current = true
+    const timeoutId = window.setTimeout(() => {
+      setIsProductsLoading(true)
+      setProductsError(null)
+
+      void getProducts({
+        search: searchValue || undefined,
+        category: categoryValue || undefined,
+        sort: SORT_OPTIONS.some((option) => option.value === sortValue)
+          ? sortValue as typeof SORT_OPTIONS[number]['value']
+          : 'relevance',
+        page: pageValue,
+        limit: PAGE_SIZE,
+      })
+        .then((loadedResult) => {
+          if (current) setResult(loadedResult)
+        })
+        .catch((error: unknown) => {
+          if (current) setProductsError(error instanceof ApiError ? error.message : 'Products could not be loaded.')
+        })
+        .finally(() => {
+          if (current) setIsProductsLoading(false)
+        })
+    }, 0)
+
+    return () => {
+      current = false
+      window.clearTimeout(timeoutId)
+    }
+  }, [categoryValue, pageValue, searchValue, sortValue])
+
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.slug === categoryValue || category.id === categoryValue),
+    [categories, categoryValue],
+  )
+
+  const updateParams = (updates: Record<string, string | undefined>) => {
+    const nextParams = new URLSearchParams(searchParams)
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) nextParams.set(key, value)
+      else nextParams.delete(key)
+    })
+    setSearchParams(nextParams)
   }
 
-  const categoryOptions = ['All', ...categories.map(({ name }) => name)]
-  const filteredProducts = useMemo(
-    () =>
-      activeCategory === 'All'
-        ? products
-        : products.filter((product) => product.category === activeCategory),
-    [activeCategory, products],
-  )
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    updateParams({ search: searchInput.trim() || undefined, page: undefined })
+  }
+
+  const clearFilters = () => {
+    setSearchInput('')
+    setSearchParams({})
+  }
+
+  const products = result?.products ?? []
+  const pagination = result?.pagination
+  const hasActiveFilters = Boolean(searchValue || categoryValue || sortValue !== 'relevance')
 
   return (
     <>
@@ -64,9 +144,7 @@ export function Shop() {
                 <span className="inline-block size-2 rounded-full bg-orange" />
                 The full collection
               </p>
-              <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">
-                Shop
-              </h1>
+              <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">Shop</h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-muted sm:text-lg">
                 Good food starts with great ingredients. Find carefully sourced staples and everyday essentials, delivered with the same care we put into every order.
               </p>
@@ -79,101 +157,114 @@ export function Shop() {
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Browse our range</p>
               <h2 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
-                Shop by category
+                {selectedCategory?.name ?? 'Shop by category'}
               </h2>
             </div>
             <p className="text-sm text-muted">
-              {isLoading ? 'Loading products' : `${filteredProducts.length} ${filteredProducts.length === 1 ? 'product' : 'products'}`}
+              {isProductsLoading ? 'Loading products…' : `${pagination?.total ?? 0} ${(pagination?.total ?? 0) === 1 ? 'product' : 'products'}`}
             </p>
           </div>
 
-          {isLoading ? (
-            <div className="space-y-12" aria-label="Loading shop">
-              <div className="flex flex-wrap gap-2">
-                {Array.from({ length: 4 }, (_, index) => (
-                  <div className="h-11 w-24 animate-pulse rounded-full bg-sage" key={index} />
-                ))}
-              </div>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {Array.from({ length: 4 }, (_, index) => (
-                  <div className="h-[320px] animate-pulse rounded-2xl bg-sage" key={index} />
-                ))}
+          <div className="mb-10 grid gap-3 rounded-2xl border border-line bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
+            <form className="relative" onSubmit={submitSearch} role="search">
+              <label className="sr-only" htmlFor="product-search">Search products</label>
+              <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
+              <input
+                className="h-12 w-full rounded-xl border border-line bg-cream pl-11 pr-4 text-sm outline-none transition-colors placeholder:text-muted/80 focus:border-green"
+                id="product-search"
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search products or ingredients"
+              />
+            </form>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="flex min-w-0 items-center gap-2 text-sm text-muted">
+                <span className="shrink-0 font-semibold text-green-dark">Category</span>
+                <select
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 text-sm text-green-dark outline-none focus:border-green sm:w-44"
+                  value={categoryValue}
+                  onChange={(event) => updateParams({ category: event.target.value || undefined, page: undefined })}
+                  disabled={isCategoriesLoading}
+                >
+                  <option value="">{isCategoriesLoading ? 'Loading…' : 'All categories'}</option>
+                  {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
+                </select>
+              </label>
+              <label className="flex min-w-0 items-center gap-2 text-sm text-muted">
+                <span className="shrink-0 font-semibold text-green-dark">Sort</span>
+                <select
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 text-sm text-green-dark outline-none focus:border-green sm:w-44"
+                  value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
+                  onChange={(event) => updateParams({ sort: event.target.value === 'relevance' ? undefined : event.target.value, page: undefined })}
+                >
+                  {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {categoriesError && (
+            <div className="mb-6 rounded-2xl border border-orange/30 bg-orange/10 px-5 py-4 text-sm text-green-dark" role="alert">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>Categories are temporarily unavailable.</span>
+                <button className="font-bold text-green underline" type="button" onClick={loadCategories}>Try again</button>
               </div>
             </div>
-          ) : error ? (
-            <div className="rounded-3xl border border-line bg-sage/25 px-6 py-16 text-center sm:px-10">
-              <p className="m-0 text-sm text-muted">We couldn’t load the collection right now.</p>
-              <button
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
-                type="button"
-                onClick={retryShopData}
-              >
+          )}
+
+          {isProductsLoading ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" aria-label="Loading products">
+              {Array.from({ length: 8 }, (_, index) => <div className="h-[390px] animate-pulse rounded-2xl bg-sage" key={index} />)}
+            </div>
+          ) : productsError ? (
+            <div className="rounded-2xl border border-line bg-sage/30 px-6 py-14 text-center" role="alert">
+              <h3 className="m-0 text-xl font-bold text-green-dark">Products could not be loaded</h3>
+              <p className="mt-3 text-sm text-muted">{productsError}</p>
+              <button className="mt-5 rounded-full bg-green px-5 py-2.5 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={() => setSearchParams(new URLSearchParams(searchParams))}>
                 Try again
               </button>
             </div>
-          ) : (
+          ) : products.length > 0 ? (
             <>
-              <div className="mb-12 flex flex-wrap gap-2" role="group" aria-label="Filter products by category">
-                {categoryOptions.map((category) => {
-                  const isActive = category === activeCategory
-
-                  return (
-                    <button
-                      className={`rounded-full border px-5 py-2.5 text-sm font-bold transition-all duration-200 ${
-                        isActive
-                          ? 'border-green bg-green text-cream shadow-md shadow-green/10'
-                          : 'border-line bg-white text-muted hover:border-green/30 hover:text-green'
-                      }`}
-                      key={category}
-                      type="button"
-                      aria-pressed={isActive}
-                      onClick={() => setActiveCategory(category)}
-                    >
-                      {category}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {filteredProducts.length > 0 ? (
-            <ProductGrid products={filteredProducts} showDetails />
-              ) : (
-                <div className="rounded-3xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center sm:px-10">
-                  <div className="mx-auto max-w-md">
-                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-orange">Coming soon</p>
-                    <h3 className="m-0 text-2xl font-bold tracking-[-0.03em] text-green-dark">
-                      More {activeCategory.toLowerCase()} favourites are on the way.
-                    </h3>
-                    <p className="mt-3 text-sm leading-6 text-muted">
-                      We are carefully sourcing this collection. In the meantime, explore the rest of our everyday essentials.
-                    </p>
-                    <button
-                      className="mt-6 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
-                      type="button"
-                      onClick={() => setActiveCategory('All')}
-                    >
-                      View all products <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </div>
+              <ProductGrid products={products} showDetails />
+              {pagination && pagination.totalPages > 1 && (
+                <nav className="mt-12 flex items-center justify-center gap-4" aria-label="Product pages">
+                  <button
+                    className="rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-colors hover:bg-green hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
+                    type="button"
+                    disabled={pageValue <= 1}
+                    onClick={() => updateParams({ page: String(pageValue - 1) })}
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm font-semibold text-muted">Page {pageValue} of {pagination.totalPages}</span>
+                  <button
+                    className="rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-colors hover:bg-green hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
+                    type="button"
+                    disabled={pageValue >= pagination.totalPages}
+                    onClick={() => updateParams({ page: String(pageValue + 1) })}
+                  >
+                    Next
+                  </button>
+                </nav>
               )}
             </>
-          )}
-        </section>
-
-        <section className="border-t border-line bg-cream py-14 sm:py-18">
-          <div className="container flex flex-col justify-between gap-5 rounded-3xl bg-green-dark px-6 py-8 text-cream sm:flex-row sm:items-center sm:px-10">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Need a little help?</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em]">We’re happy to help you choose.</h2>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-14 text-center">
+              <h3 className="m-0 text-xl font-bold text-green-dark">
+                {searchValue ? 'No products match your search' : categoryValue ? 'No products in this category' : 'No products are available right now'}
+              </h3>
+              <p className="mt-3 text-sm text-muted">
+                {searchValue ? 'Try a different product name or description.' : 'Please check back soon for new additions to our collection.'}
+              </p>
+              {hasActiveFilters && (
+                <button className="mt-5 rounded-full bg-green px-5 py-2.5 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={clearFilters}>
+                  Clear filters
+                </button>
+              )}
             </div>
-            <Link
-              className="inline-flex w-fit items-center gap-2 rounded-full bg-orange px-5 py-3 text-sm font-bold text-cream transition-colors hover:bg-orange/85"
-              to="/#contact"
-            >
-              Talk to us <ArrowRight size={16} />
-            </Link>
-          </div>
+          )}
         </section>
       </main>
       <Footer />

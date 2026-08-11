@@ -1,6 +1,7 @@
 import type { Product } from '../../types/product'
 import { BagIcon, EyeIcon } from '../../assets/icons'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { Button } from '../ui/Button'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
@@ -15,13 +16,18 @@ const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(price)
 
 export function ProductCard({ product, showDetails = false }: ProductCardProps) {
+  const [imageError, setImageError] = useState(false)
   const { addToCart } = useCart()
   const { user, openAuth } = useCustomerAuth()
   const { showToast } = useToast()
 
-  const addProductToCart = () => {
-    addToCart(product)
-    showToast(`${product.name} added to your cart.`, 'success')
+  const addProductToCart = async () => {
+    try {
+      await addToCart(product)
+      showToast(`${product.name} added to your cart.`, 'success')
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'This product could not be added to your cart.', 'error')
+    }
   }
 
   const handleAddToCart = () => {
@@ -35,8 +41,18 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
   return (
     <article className="group overflow-hidden rounded-2xl border border-line bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green/10">
       <div className="relative aspect-[1.08] overflow-hidden bg-sage">
-        <img className="size-full object-cover transition-transform duration-500 group-hover:scale-105" src={product.image} alt={product.name} />
-        <span className="absolute left-3 top-3 rounded-full bg-orange px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cream">Popular</span>
+        {product.image && !imageError ? (
+          <img
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            src={product.image}
+            alt={product.name}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center px-6 text-center text-sm font-semibold text-muted" role="img" aria-label={`${product.name} image unavailable`}>
+            Image unavailable
+          </div>
+        )}
       </div>
       <div className="p-5">
         <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-orange">{product.category}</div>

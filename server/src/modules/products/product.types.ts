@@ -19,6 +19,26 @@ export interface Product {
 
 export type PublicProduct = Omit<Product, 'stockQuantity'>
 
+export type PublicProductSort = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
+
+export interface PublicProductQuery {
+  search?: string
+  category?: string
+  sort: PublicProductSort
+  page: number
+  limit: number
+}
+
+export interface PublicProductPage {
+  products: PublicProduct[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
 export interface AdminProductQuery {
   search?: string
   categoryId?: string

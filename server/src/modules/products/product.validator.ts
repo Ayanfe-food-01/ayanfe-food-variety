@@ -1,5 +1,5 @@
 import { HttpError } from '../../utils/http.js'
-import type { AdminProductQuery, ProductInput } from './product.types.js'
+import type { AdminProductQuery, ProductInput, PublicProductQuery, PublicProductSort } from './product.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -93,6 +93,30 @@ export function validateAdminProductsQuery(query: Record<string, unknown>): Admi
     categoryId,
     availability,
   }
+}
+
+export function validatePublicProductsQuery(query: Record<string, unknown>): PublicProductQuery {
+  const page = Number(query.page ?? 1)
+  const limit = Number(query.limit ?? 20)
+  if (!Number.isInteger(page) || page < 1) throw new HttpError(400, 'Page must be a positive integer.')
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new HttpError(400, 'Limit must be between 1 and 50.')
+
+  const sortValues: PublicProductSort[] = ['relevance', 'price_asc', 'price_desc', 'newest']
+  const sort = typeof query.sort === 'string' && sortValues.includes(query.sort as PublicProductSort)
+    ? query.sort as PublicProductSort
+    : query.sort === undefined
+      ? 'relevance'
+      : undefined
+  if (!sort) throw new HttpError(400, 'Sort must be one of relevance, price_asc, price_desc, or newest.')
+
+  const search = typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined
+  if (query.search !== undefined && typeof query.search !== 'string') throw new HttpError(400, 'Search must be text.')
+
+  const category = typeof query.category === 'string' ? query.category.trim() || undefined : undefined
+  if (query.category !== undefined && typeof query.category !== 'string') throw new HttpError(400, 'Category must be text.')
+  if (category && category.length > 120) throw new HttpError(400, 'Category is too long.')
+
+  return { page, limit, sort, search, category }
 }
 
 export function requireProductIdentifier(value: string | undefined): string {

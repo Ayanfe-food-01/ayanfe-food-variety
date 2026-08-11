@@ -1,12 +1,21 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
-import type { AdminProductQuery, Product, ProductInput, PublicProduct } from './product.types.js'
+import type {
+  AdminProductQuery,
+  Product,
+  ProductInput,
+  PublicProduct,
+  PublicProductPage,
+  PublicProductQuery,
+} from './product.types.js'
 import { recordStockAdjustment } from '../inventory/inventory.service.js'
 
 type ProductWithCategory = Prisma.ProductGetPayload<{
   include: { category: true }
 }>
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const toProduct = (product: ProductWithCategory): Product => ({
   id: product.id,
@@ -37,14 +46,53 @@ const toPublicProduct = (product: ProductWithCategory): PublicProduct => {
   return publicProduct
 }
 
-export async function getProducts(): Promise<PublicProduct[]> {
-  const products = await prisma.product.findMany({
-    where: { isActive: true, category: { isActive: true } },
-    include: { category: true },
-    orderBy: { createdAt: 'asc' },
-  })
+export async function getProducts(query: PublicProductQuery): Promise<PublicProductPage> {
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    category: { isActive: true },
+    ...(query.search
+      ? {
+          OR: [
+            { name: { contains: query.search, mode: 'insensitive' } },
+            { description: { contains: query.search, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  }
 
-  return products.map(toPublicProduct)
+  if (query.category) {
+    where.category = {
+      isActive: true,
+      ...(UUID_PATTERN.test(query.category) ? { id: query.category } : { slug: query.category }),
+    }
+  }
+
+  const orderBy: Prisma.ProductOrderByWithRelationInput[] = query.sort === 'price_asc'
+    ? [{ price: 'asc' }, { createdAt: 'desc' }]
+    : query.sort === 'price_desc'
+      ? [{ price: 'desc' }, { createdAt: 'desc' }]
+      : [{ createdAt: 'desc' }]
+
+  const [total, products] = await prisma.$transaction([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy,
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+    }),
+  ])
+
+  return {
+    products: products.map(toPublicProduct),
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.limit)),
+    },
+  }
 }
 
 export async function getProductById(identifier: string): Promise<PublicProduct | null> {

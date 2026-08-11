@@ -4,7 +4,16 @@ const cartInclude = {
     items: {
         include: {
             product: {
-                select: { id: true, name: true, unit: true, price: true, image: true, isActive: true, stockQuantity: true },
+                select: {
+                    id: true,
+                    name: true,
+                    unit: true,
+                    price: true,
+                    image: true,
+                    isActive: true,
+                    stockQuantity: true,
+                    category: { select: { isActive: true } },
+                },
             },
         },
         orderBy: { createdAt: 'asc' },
@@ -12,7 +21,7 @@ const cartInclude = {
 };
 function toCartItems(cart) {
     return cart.items
-        .filter((item) => item.product.isActive)
+        .filter((item) => item.product.isActive && item.product.category.isActive)
         .map((item) => ({
         id: item.id,
         productId: item.product.id,
@@ -26,7 +35,7 @@ function toCartItems(cart) {
 const assertProductCanFulfill = (product, quantity) => {
     if (!product)
         throw new HttpError(404, 'Product no longer exists or is unavailable.');
-    if (!product.isActive || product.stockQuantity === 0) {
+    if (!product.isActive || product.category?.isActive === false || product.stockQuantity === 0) {
         throw new HttpError(409, 'Product is unavailable.');
     }
     if (quantity > product.stockQuantity) {
@@ -51,7 +60,7 @@ export async function addCustomerCartItem(userId, item) {
     return prisma.$transaction(async (transaction) => {
         const product = await transaction.product.findUnique({
             where: { id: item.productId },
-            select: { id: true, isActive: true, stockQuantity: true },
+            select: { id: true, isActive: true, stockQuantity: true, category: { select: { isActive: true } } },
         });
         assertProductCanFulfill(product, item.quantity);
         const cart = await transaction.customerCart.upsert({
@@ -84,7 +93,7 @@ export async function updateCustomerCartItem(userId, cartItemId, quantity) {
     return prisma.$transaction(async (transaction) => {
         const item = await transaction.customerCartItem.findFirst({
             where: { id: cartItemId, cart: { userId } },
-            include: { product: { select: { isActive: true, stockQuantity: true } } },
+            include: { product: { select: { isActive: true, stockQuantity: true, category: { select: { isActive: true } } } } },
         });
         if (!item)
             throw new HttpError(404, 'Cart item not found.');
@@ -122,7 +131,7 @@ export async function mergeCustomerCart(userId, items) {
         for (const item of items) {
             const product = await transaction.product.findUnique({
                 where: { id: item.productId },
-                select: { id: true, isActive: true, stockQuantity: true },
+                select: { id: true, isActive: true, stockQuantity: true, category: { select: { isActive: true } } },
             });
             const existing = await transaction.customerCartItem.findUnique({
                 where: { cartId_productId: { cartId: cart.id, productId: item.productId } },
@@ -156,7 +165,7 @@ export async function replaceCustomerCart(userId, items) {
         for (const item of items) {
             const product = await transaction.product.findUnique({
                 where: { id: item.productId },
-                select: { id: true, isActive: true, stockQuantity: true },
+                select: { id: true, isActive: true, stockQuantity: true, category: { select: { isActive: true } } },
             });
             assertProductCanFulfill(product, item.quantity);
         }

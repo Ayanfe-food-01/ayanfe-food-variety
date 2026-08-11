@@ -20,11 +20,32 @@ interface ProductApiResponse {
 }
 
 interface ProductListResponse {
-  data: ProductApiResponse[]
+  data: {
+    products: ProductApiResponse[]
+    pagination: ProductPage['pagination']
+  }
 }
 
 interface ProductResponse {
   data: ProductApiResponse
+}
+
+export interface ProductQuery {
+  search?: string
+  category?: string
+  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest'
+  page?: number
+  limit?: number
+}
+
+export interface ProductPage {
+  products: Product[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
 }
 
 const toProduct = (product: ProductApiResponse): Product => {
@@ -37,6 +58,7 @@ const toProduct = (product: ProductApiResponse): Product => {
   return {
     id: product.id,
     categoryId: product.categoryId,
+    categorySlug: product.categorySlug,
     name: product.name,
     category: product.categoryName,
     unit: product.unit,
@@ -51,9 +73,19 @@ const toProduct = (product: ProductApiResponse): Product => {
   }
 }
 
-export async function getProducts(): Promise<Product[]> {
-  const response = await request<ProductListResponse>('/products')
-  return response.data.map(toProduct)
+export async function getProducts(query: ProductQuery = {}): Promise<ProductPage> {
+  const params = new URLSearchParams()
+  if (query.search) params.set('search', query.search)
+  if (query.category) params.set('category', query.category)
+  if (query.sort && query.sort !== 'relevance') params.set('sort', query.sort)
+  if (query.page && query.page > 1) params.set('page', String(query.page))
+  if (query.limit && query.limit !== 20) params.set('limit', String(query.limit))
+  const queryString = params.toString()
+  const response = await request<ProductListResponse>(`/products${queryString ? `?${queryString}` : ''}`)
+  return {
+    products: response.data.products.map(toProduct),
+    pagination: response.data.pagination,
+  }
 }
 
 export async function getProduct(id: string): Promise<Product> {

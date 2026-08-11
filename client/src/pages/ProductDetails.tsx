@@ -21,6 +21,7 @@ export function ProductDetails() {
   const [isLoading, setIsLoading] = useState(true)
   const [isNotFound, setIsNotFound] = useState(false)
   const [hasError, setHasError] = useState(false)
+  const [imageError, setImageError] = useState(false)
   const { addToCart } = useCart()
   const { user, openAuth } = useCustomerAuth()
   const { showToast } = useToast()
@@ -40,16 +41,17 @@ export function ProductDetails() {
     setIsNotFound(false)
     setProduct(null)
     setRelatedProducts([])
+    setImageError(false)
 
     try {
       const loadedProduct = await getProduct(id)
       setProduct(loadedProduct)
 
       try {
-        const allProducts = await getProducts()
+        const allProducts = (await getProducts({ category: loadedProduct.categorySlug, limit: 8 })).products
         setRelatedProducts(
           allProducts.filter(
-            (item) => item.category === loadedProduct.category && item.id !== loadedProduct.id,
+            (item) => item.id !== loadedProduct.id,
           ),
         )
       } catch {
@@ -79,9 +81,14 @@ export function ProductDetails() {
     void loadProduct()
   }
 
-  const addProductToCart = () => {
-    addToCart(product!, quantity)
-    showToast(`${product!.name} added to your cart.`, 'success')
+  const addProductToCart = async () => {
+    if (!product) return
+    try {
+      await addToCart(product, quantity)
+      showToast(`${product.name} added to your cart.`, 'success')
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'This product could not be added to your cart.', 'error')
+    }
   }
 
   const handleAddToCart = () => {
@@ -192,11 +199,18 @@ export function ProductDetails() {
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <figure className="m-0 overflow-hidden rounded-3xl border border-line bg-sage shadow-sm">
               <div className="aspect-square overflow-hidden">
-                <img
-                  className="size-full object-cover transition-transform duration-500 hover:scale-[1.02]"
-                  src={product.image}
-                  alt={`${product.name}, ${product.category}`}
-                />
+                {product.image && !imageError ? (
+                  <img
+                    className="size-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+                    src={product.image}
+                    alt={`${product.name}, ${product.category}`}
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="flex size-full items-center justify-center px-8 text-center text-sm font-semibold text-muted" role="img" aria-label={`${product.name} image unavailable`}>
+                    Image unavailable
+                  </div>
+                )}
               </div>
             </figure>
 

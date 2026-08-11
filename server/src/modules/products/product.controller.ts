@@ -1,11 +1,11 @@
 import type { RequestHandler } from 'express'
 import { HttpError } from '../../utils/http.js'
 import { getProductById, getProducts } from './product.service.js'
-import { requireProductIdentifier } from './product.validator.js'
+import { requireProductIdentifier, validatePublicProductsQuery } from './product.validator.js'
 
-export const getProductsController: RequestHandler = async (_request, response) => {
-  const products = await getProducts()
-  response.json({ data: products })
+export const getProductsController: RequestHandler = async (request, response) => {
+  const page = await getProducts(validatePublicProductsQuery(request.query as Record<string, unknown>))
+  response.json({ data: page })
 }
 
 export const getProductByIdController: RequestHandler = async (request, response) => {

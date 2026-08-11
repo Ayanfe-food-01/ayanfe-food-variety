@@ -31,6 +31,15 @@ export async function getCustomerCart(): Promise<CustomerCartItem[]> {
   return response.data.items
 }
 
+export async function addCustomerCartItem(productId: string, quantity: number): Promise<CustomerCartItem[]> {
+  const response = await request<CustomerCartResponse>('/cart/items', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ productId, quantity }),
+  })
+  return response.data.items
+}
+
 export async function replaceCustomerCart(
   items: Array<{ productId: string; quantity: number }>,
 ): Promise<CustomerCartItem[]> {

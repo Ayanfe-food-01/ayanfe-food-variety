@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { recordStockAdjustment } from '../inventory/inventory.service.js';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const toProduct = (product) => ({
     id: product.id,
     categoryId: product.categoryId,
@@ -29,13 +30,49 @@ const toPublicProduct = (product) => {
     const { stockQuantity: _stockQuantity, ...publicProduct } = response;
     return publicProduct;
 };
-export async function getProducts() {
-    const products = await prisma.product.findMany({
-        where: { isActive: true, category: { isActive: true } },
-        include: { category: true },
-        orderBy: { createdAt: 'asc' },
-    });
-    return products.map(toPublicProduct);
+export async function getProducts(query) {
+    const where = {
+        isActive: true,
+        category: { isActive: true },
+        ...(query.search
+            ? {
+                OR: [
+                    { name: { contains: query.search, mode: 'insensitive' } },
+                    { description: { contains: query.search, mode: 'insensitive' } },
+                ],
+            }
+            : {}),
+    };
+    if (query.category) {
+        where.category = {
+            isActive: true,
+            ...(UUID_PATTERN.test(query.category) ? { id: query.category } : { slug: query.category }),
+        };
+    }
+    const orderBy = query.sort === 'price_asc'
+        ? [{ price: 'asc' }, { createdAt: 'desc' }]
+        : query.sort === 'price_desc'
+            ? [{ price: 'desc' }, { createdAt: 'desc' }]
+            : [{ createdAt: 'desc' }];
+    const [total, products] = await prisma.$transaction([
+        prisma.product.count({ where }),
+        prisma.product.findMany({
+            where,
+            include: { category: true },
+            orderBy,
+            skip: (query.page - 1) * query.limit,
+            take: query.limit,
+        }),
+    ]);
+    return {
+        products: products.map(toPublicProduct),
+        pagination: {
+            page: query.page,
+            limit: query.limit,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / query.limit)),
+        },
+    };
 }
 export async function getProductById(identifier) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);

@@ -15,7 +15,7 @@ export interface CartContextValue {
   items: CartItem[]
   totalQuantity: number
   subtotal: number
-  addToCart: (product: Product, quantity?: number) => void
+  addToCart: (product: Product, quantity?: number) => Promise<void>
   increaseQuantity: (productId: string) => void
   decreaseQuantity: (productId: string) => void
   removeFromCart: (productId: string) => void

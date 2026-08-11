@@ -13,7 +13,7 @@ export function FeaturedProducts() {
 
   const loadProducts = useCallback(async () => {
     try {
-      setProducts(await getProducts())
+      setProducts((await getProducts({ limit: 4 })).products)
       setError(false)
     } catch {
       setError(true)

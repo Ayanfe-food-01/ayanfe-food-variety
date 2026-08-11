@@ -7,4 +7,4 @@ The configured Neon database is synchronized with the repository's existing Pris
 
 **Why:** Replit can provide a runtime-managed `DATABASE_URL` that points at a different PostgreSQL service; using it in preference to `NEON_DATABASE_URL` makes the API appear healthy while database-backed requests target the wrong database.
 
-**How to apply:** Before testing future database-backed flows, check migration status and confirm the target environment. Apply existing migrations through the normal Prisma deployment process when explicitly requested, then seed only when the development catalog is empty. Do not invent a replacement schema or silently migrate production.
+**How to apply:** Before testing future database-backed flows, check migration status and confirm the target environment. Apply existing migrations through the normal Prisma deployment process when explicitly requested, then seed only when the development catalog is empty. Restart stale API watchers after secret or database-target changes before testing auth. Do not invent a replacement schema or silently migrate production.

@@ -150,6 +150,7 @@ interface AdminProductApiResponse {
   image: string
   isActive: boolean
   stockQuantity: number
+  availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
   createdAt: string
   updatedAt: string
@@ -201,6 +202,7 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   description: product.description,
   stockQuantity: product.stockQuantity,
   isActive: product.isActive,
+  availabilityStatus: product.availabilityStatus,
   isAvailable: product.isAvailable,
   createdAt: product.createdAt,
   updatedAt: product.updatedAt,

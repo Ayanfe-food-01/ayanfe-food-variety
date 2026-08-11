@@ -23,6 +23,16 @@ function toCartItems(cart) {
         quantity: item.quantity,
     }));
 }
+const assertProductCanFulfill = (product, quantity) => {
+    if (!product)
+        throw new HttpError(404, 'Product no longer exists or is unavailable.');
+    if (!product.isActive || product.stockQuantity === 0) {
+        throw new HttpError(409, 'Product is unavailable.');
+    }
+    if (quantity > product.stockQuantity) {
+        throw new HttpError(409, `Insufficient stock. Only ${product.stockQuantity} unit(s) are currently available.`);
+    }
+};
 async function getCartForUser(userId) {
     return getOrCreateCart(userId);
 }
@@ -39,14 +49,11 @@ export async function getCustomerCart(userId) {
 }
 export async function addCustomerCartItem(userId, item) {
     return prisma.$transaction(async (transaction) => {
-        const product = await transaction.product.findFirst({
-            where: { id: item.productId, isActive: true },
-            select: { id: true, stockQuantity: true },
+        const product = await transaction.product.findUnique({
+            where: { id: item.productId },
+            select: { id: true, isActive: true, stockQuantity: true },
         });
-        if (!product)
-            throw new HttpError(400, 'This product is no longer available.');
-        if (product.stockQuantity < item.quantity)
-            throw new HttpError(400, 'There is not enough stock for this product.');
+        assertProductCanFulfill(product, item.quantity);
         const cart = await transaction.customerCart.upsert({
             where: { userId },
             create: { userId },
@@ -56,12 +63,13 @@ export async function addCustomerCartItem(userId, item) {
             where: { cartId_productId: { cartId: cart.id, productId: item.productId } },
         });
         if (existing) {
-            if (product.stockQuantity < existing.quantity + item.quantity) {
-                throw new HttpError(400, 'There is not enough stock for this product.');
-            }
+            const nextQuantity = existing.quantity + item.quantity;
+            if (nextQuantity > 1000)
+                throw new HttpError(400, 'Cart quantity cannot exceed 1000.');
+            assertProductCanFulfill(product, nextQuantity);
             await transaction.customerCartItem.update({
                 where: { id: existing.id },
-                data: { quantity: Math.min(1000, existing.quantity + item.quantity) },
+                data: { quantity: nextQuantity },
             });
         }
         else {
@@ -76,15 +84,11 @@ export async function updateCustomerCartItem(userId, cartItemId, quantity) {
     return prisma.$transaction(async (transaction) => {
         const item = await transaction.customerCartItem.findFirst({
             where: { id: cartItemId, cart: { userId } },
-            include: { product: { select: { isActive: true } } },
+            include: { product: { select: { isActive: true, stockQuantity: true } } },
         });
         if (!item)
             throw new HttpError(404, 'Cart item not found.');
-        if (!item.product.isActive)
-            throw new HttpError(400, 'This product is no longer available.');
-        const product = await transaction.product.findUnique({ where: { id: item.productId }, select: { stockQuantity: true } });
-        if (!product || product.stockQuantity < quantity)
-            throw new HttpError(400, 'There is not enough stock for this product.');
+        assertProductCanFulfill({ id: item.productId, ...item.product }, quantity);
         await transaction.customerCartItem.update({
             where: { id: item.id },
             data: { quantity },
@@ -109,12 +113,6 @@ export async function clearCustomerCart(userId) {
     await prisma.customerCartItem.deleteMany({ where: { cartId: cart.id } });
 }
 export async function mergeCustomerCart(userId, items) {
-    const productIds = items.map((item) => item.productId);
-    const products = await prisma.product.findMany({
-        where: { id: { in: productIds }, isActive: true },
-        select: { id: true, stockQuantity: true },
-    });
-    const validIds = new Set(products.map((product) => product.id));
     return prisma.$transaction(async (transaction) => {
         const cart = await transaction.customerCart.upsert({
             where: { userId },
@@ -122,16 +120,21 @@ export async function mergeCustomerCart(userId, items) {
             update: {},
         });
         for (const item of items) {
-            const product = products.find((candidate) => candidate.id === item.productId);
-            if (!product || product.stockQuantity < item.quantity)
-                continue;
+            const product = await transaction.product.findUnique({
+                where: { id: item.productId },
+                select: { id: true, isActive: true, stockQuantity: true },
+            });
             const existing = await transaction.customerCartItem.findUnique({
                 where: { cartId_productId: { cartId: cart.id, productId: item.productId } },
             });
+            const nextQuantity = (existing?.quantity ?? 0) + item.quantity;
+            assertProductCanFulfill(product, nextQuantity);
+            if (nextQuantity > 1000)
+                throw new HttpError(400, 'Cart quantity cannot exceed 1000.');
             if (existing) {
                 await transaction.customerCartItem.update({
                     where: { id: existing.id },
-                    data: { quantity: Math.min(1000, existing.quantity + item.quantity) },
+                    data: { quantity: nextQuantity },
                 });
             }
             else {
@@ -144,26 +147,23 @@ export async function mergeCustomerCart(userId, items) {
     }).then(toCartItems);
 }
 export async function replaceCustomerCart(userId, items) {
-    const productIds = items.map((item) => item.productId);
-    const products = await prisma.product.findMany({
-        where: { id: { in: productIds }, isActive: true },
-        select: { id: true, stockQuantity: true },
-    });
-    const validIds = new Set(products.map((product) => product.id));
     return prisma.$transaction(async (transaction) => {
         const cart = await transaction.customerCart.upsert({
             where: { userId },
             create: { userId },
             update: {},
         });
+        for (const item of items) {
+            const product = await transaction.product.findUnique({
+                where: { id: item.productId },
+                select: { id: true, isActive: true, stockQuantity: true },
+            });
+            assertProductCanFulfill(product, item.quantity);
+        }
         await transaction.customerCartItem.deleteMany({ where: { cartId: cart.id } });
-        const validItems = items.filter((item) => {
-            const product = products.find((candidate) => candidate.id === item.productId);
-            return Boolean(product && product.stockQuantity >= item.quantity);
-        });
-        if (validItems.length > 0) {
+        if (items.length > 0) {
             await transaction.customerCartItem.createMany({
-                data: validItems.map((item) => ({ cartId: cart.id, productId: item.productId, quantity: item.quantity })),
+                data: items.map((item) => ({ cartId: cart.id, productId: item.productId, quantity: item.quantity })),
             });
         }
         return transaction.customerCart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude });

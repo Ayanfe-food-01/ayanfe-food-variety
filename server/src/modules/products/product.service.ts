@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { AdminProductQuery, Product, ProductInput, PublicProduct } from './product.types.js'
+import { recordStockAdjustment } from '../inventory/inventory.service.js'
 
 type ProductWithCategory = Prisma.ProductGetPayload<{
   include: { category: true }
@@ -132,43 +133,73 @@ export async function getAdminProduct(id: string): Promise<Product> {
   return toAdminProduct(product)
 }
 
-export async function createProduct(input: ProductInput): Promise<Product> {
+export async function createProduct(input: ProductInput, adminId: string): Promise<Product> {
   await validateCategory(input.categoryId)
-  const product = await prisma.product.create({
-    data: {
-      categoryId: input.categoryId,
-      name: input.name,
-      slug: await uniqueSlug(input.name),
-      description: input.description,
-      price: input.price,
-      unit: input.unit,
-      image: input.image ?? '',
-      isActive: input.isActive,
-      stockQuantity: input.stockQuantity,
-    },
-    include: productInclude,
+  const product = await prisma.$transaction(async (transaction) => {
+    const created = await transaction.product.create({
+      data: {
+        categoryId: input.categoryId,
+        name: input.name,
+        slug: await uniqueSlug(input.name),
+        description: input.description,
+        price: input.price,
+        unit: input.unit,
+        image: input.image ?? '',
+        isActive: input.isActive,
+        stockQuantity: input.stockQuantity,
+      },
+      include: productInclude,
+    })
+    if (created.stockQuantity > 0) {
+      await recordStockAdjustment(transaction, {
+        productId: created.id,
+        quantityDelta: created.stockQuantity,
+        previousQuantity: 0,
+        newQuantity: created.stockQuantity,
+        reason: `Initial stock by admin ${adminId}`,
+      })
+    }
+    return created
   })
   return toAdminProduct(product)
 }
 
-export async function updateProduct(id: string, input: ProductInput): Promise<Product> {
+export async function updateProduct(id: string, input: ProductInput, adminId: string): Promise<Product> {
   await validateCategory(input.categoryId)
-  const current = await prisma.product.findUnique({ where: { id }, select: { id: true } })
-  if (!current) throw new HttpError(404, 'Product not found.')
-  const product = await prisma.product.update({
-    where: { id },
-    data: {
-      categoryId: input.categoryId,
-      name: input.name,
-      slug: await uniqueSlug(input.name, id),
-      description: input.description,
-      price: input.price,
-      unit: input.unit,
-      ...(input.image ? { image: input.image } : {}),
-      isActive: input.isActive,
-      stockQuantity: input.stockQuantity,
-    },
-    include: productInclude,
+  const product = await prisma.$transaction(async (transaction) => {
+    const currentRows = await transaction.$queryRaw<Array<{ id: string; stock_quantity: number }>>(
+      Prisma.sql`SELECT id, stock_quantity
+        FROM products
+        WHERE id = ${id}::uuid
+        FOR UPDATE`,
+    )
+    const current = currentRows[0]
+    if (!current) throw new HttpError(404, 'Product not found.')
+    const updated = await transaction.product.update({
+      where: { id },
+      data: {
+        categoryId: input.categoryId,
+        name: input.name,
+        slug: await uniqueSlug(input.name, id),
+        description: input.description,
+        price: input.price,
+        unit: input.unit,
+        ...(input.image ? { image: input.image } : {}),
+        isActive: input.isActive,
+        stockQuantity: input.stockQuantity,
+      },
+      include: productInclude,
+    })
+    if (updated.stockQuantity !== current.stock_quantity) {
+      await recordStockAdjustment(transaction, {
+        productId: id,
+        quantityDelta: updated.stockQuantity - current.stock_quantity,
+        previousQuantity: current.stock_quantity,
+        newQuantity: updated.stockQuantity,
+        reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
+      })
+    }
+    return updated
   })
   return toAdminProduct(product)
 }

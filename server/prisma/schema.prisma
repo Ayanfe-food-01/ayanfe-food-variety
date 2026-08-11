@@ -63,6 +63,7 @@ model Product {
 
   @@index([categoryId], map: "products_category_id_idx")
   @@index([isActive], map: "products_active_idx")
+  @@index([stockQuantity], map: "products_stock_quantity_idx")
   @@map("products")
 }
 

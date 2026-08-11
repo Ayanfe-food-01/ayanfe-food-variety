@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
+import { recordStockAdjustment } from '../inventory/inventory.service.js';
 const toProduct = (product) => ({
     id: product.id,
     categoryId: product.categoryId,
@@ -14,17 +15,27 @@ const toProduct = (product) => ({
     image: product.image,
     isActive: product.isActive,
     stockQuantity: product.stockQuantity,
+    availabilityStatus: product.stockQuantity === 0
+        ? 'OUT_OF_STOCK'
+        : product.stockQuantity <= 5
+            ? 'LOW_STOCK'
+            : 'IN_STOCK',
     isAvailable: product.isActive && product.stockQuantity > 0,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
 });
+const toPublicProduct = (product) => {
+    const response = toProduct(product);
+    const { stockQuantity: _stockQuantity, ...publicProduct } = response;
+    return publicProduct;
+};
 export async function getProducts() {
     const products = await prisma.product.findMany({
         where: { isActive: true },
         include: { category: true },
         orderBy: { createdAt: 'asc' },
     });
-    return products.map(toProduct);
+    return products.map(toPublicProduct);
 }
 export async function getProductById(identifier) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
@@ -34,7 +45,9 @@ export async function getProductById(identifier) {
             : { isActive: true, slug: identifier },
         include: { category: true },
     });
-    return product ? toProduct(product) : null;
+    if (!product)
+        return null;
+    return toPublicProduct(product);
 }
 const productInclude = { category: true };
 const slugify = (value) => {
@@ -105,43 +118,71 @@ export async function getAdminProduct(id) {
         throw new HttpError(404, 'Product not found.');
     return toAdminProduct(product);
 }
-export async function createProduct(input) {
+export async function createProduct(input, adminId) {
     await validateCategory(input.categoryId);
-    const product = await prisma.product.create({
-        data: {
-            categoryId: input.categoryId,
-            name: input.name,
-            slug: await uniqueSlug(input.name),
-            description: input.description,
-            price: input.price,
-            unit: input.unit,
-            image: input.image ?? '',
-            isActive: input.isActive,
-            stockQuantity: input.stockQuantity,
-        },
-        include: productInclude,
+    const product = await prisma.$transaction(async (transaction) => {
+        const created = await transaction.product.create({
+            data: {
+                categoryId: input.categoryId,
+                name: input.name,
+                slug: await uniqueSlug(input.name),
+                description: input.description,
+                price: input.price,
+                unit: input.unit,
+                image: input.image ?? '',
+                isActive: input.isActive,
+                stockQuantity: input.stockQuantity,
+            },
+            include: productInclude,
+        });
+        if (created.stockQuantity > 0) {
+            await recordStockAdjustment(transaction, {
+                productId: created.id,
+                quantityDelta: created.stockQuantity,
+                previousQuantity: 0,
+                newQuantity: created.stockQuantity,
+                reason: `Initial stock by admin ${adminId}`,
+            });
+        }
+        return created;
     });
     return toAdminProduct(product);
 }
-export async function updateProduct(id, input) {
+export async function updateProduct(id, input, adminId) {
     await validateCategory(input.categoryId);
-    const current = await prisma.product.findUnique({ where: { id }, select: { id: true } });
-    if (!current)
-        throw new HttpError(404, 'Product not found.');
-    const product = await prisma.product.update({
-        where: { id },
-        data: {
-            categoryId: input.categoryId,
-            name: input.name,
-            slug: await uniqueSlug(input.name, id),
-            description: input.description,
-            price: input.price,
-            unit: input.unit,
-            ...(input.image ? { image: input.image } : {}),
-            isActive: input.isActive,
-            stockQuantity: input.stockQuantity,
-        },
-        include: productInclude,
+    const product = await prisma.$transaction(async (transaction) => {
+        const currentRows = await transaction.$queryRaw(Prisma.sql `SELECT id, stock_quantity
+        FROM products
+        WHERE id = ${id}::uuid
+        FOR UPDATE`);
+        const current = currentRows[0];
+        if (!current)
+            throw new HttpError(404, 'Product not found.');
+        const updated = await transaction.product.update({
+            where: { id },
+            data: {
+                categoryId: input.categoryId,
+                name: input.name,
+                slug: await uniqueSlug(input.name, id),
+                description: input.description,
+                price: input.price,
+                unit: input.unit,
+                ...(input.image ? { image: input.image } : {}),
+                isActive: input.isActive,
+                stockQuantity: input.stockQuantity,
+            },
+            include: productInclude,
+        });
+        if (updated.stockQuantity !== current.stock_quantity) {
+            await recordStockAdjustment(transaction, {
+                productId: id,
+                quantityDelta: updated.stockQuantity - current.stock_quantity,
+                previousQuantity: current.stock_quantity,
+                newQuantity: updated.stockQuantity,
+                reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
+            });
+        }
+        return updated;
     });
     return toAdminProduct(product);
 }

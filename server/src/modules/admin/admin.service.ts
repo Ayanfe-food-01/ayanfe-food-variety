@@ -10,6 +10,7 @@ import type {
   UpdateOrderStatusInput,
 } from './admin.types.js'
 import { notifyOrderStatusChanged } from '../orders/order.email.js'
+import { restoreStock } from '../inventory/inventory.service.js'
 
 const toOrderListItem = (order: {
   orderNumber: string
@@ -206,27 +207,55 @@ const allowedTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
 }
 
 export async function updateAdminOrderStatus(orderNumber: string, input: UpdateOrderStatusInput, adminId: string) {
-  const existing = await prisma.order.findUnique({
-    where: { orderNumber },
-    select: {
-      id: true,
-      orderStatus: true,
-      orderNumber: true,
-      customerName: true,
-      email: true,
-    },
-  })
-  if (!existing) throw new HttpError(404, 'Order not found.')
-  if (existing.orderStatus === input.orderStatus) return getAdminOrder(orderNumber)
-  if (!allowedTransitions[existing.orderStatus].includes(input.orderStatus)) {
-    throw new HttpError(409, `Order status cannot change from ${existing.orderStatus} to ${input.orderStatus}.`)
-  }
-
   const updated = await prisma.$transaction(async (transaction) => {
-    const order = await transaction.order.update({
-      where: { id: existing.id },
-      data: { orderStatus: input.orderStatus },
+    const existing = await transaction.order.findUnique({
+      where: { orderNumber },
+      include: {
+        orderItems: { select: { productId: true, quantity: true } },
+      },
     })
+    if (!existing) throw new HttpError(404, 'Order not found.')
+    if (existing.orderStatus === input.orderStatus) {
+      if (
+        input.orderStatus === OrderStatus.CANCELLED &&
+        existing.stockDeductedAt &&
+        !existing.stockRestoredAt
+      ) {
+        const restoreClaim = await transaction.order.updateMany({
+          where: { id: existing.id, orderStatus: OrderStatus.CANCELLED, stockRestoredAt: null },
+          data: { stockRestoredAt: new Date() },
+        })
+        if (restoreClaim.count !== 1) return existing
+        for (const item of existing.orderItems) {
+          await restoreStock(transaction, {
+            productId: item.productId,
+            quantity: item.quantity,
+            orderId: existing.id,
+            orderNumber: existing.orderNumber,
+          })
+        }
+        return transaction.order.findUniqueOrThrow({ where: { id: existing.id } })
+      }
+      return existing
+    }
+    if (!allowedTransitions[existing.orderStatus].includes(input.orderStatus)) {
+      throw new HttpError(409, `Order status cannot change from ${existing.orderStatus} to ${input.orderStatus}.`)
+    }
+
+    const orderUpdate = await transaction.order.updateMany({
+      where: { id: existing.id, orderStatus: existing.orderStatus },
+      data: {
+        orderStatus: input.orderStatus,
+        ...(input.orderStatus === OrderStatus.CANCELLED && existing.stockDeductedAt && !existing.stockRestoredAt
+          ? { stockRestoredAt: new Date() }
+          : {}),
+      },
+    })
+    if (orderUpdate.count !== 1) {
+      throw new HttpError(409, 'The order changed while it was being updated. Please try again.')
+    }
+
+    const order = await transaction.order.findUniqueOrThrow({ where: { id: existing.id } })
     await transaction.orderStatusHistory.create({
       data: {
         orderId: order.id,
@@ -236,13 +265,29 @@ export async function updateAdminOrderStatus(orderNumber: string, input: UpdateO
         note: input.note ?? null,
       },
     })
-    return order
+
+    if (input.orderStatus === OrderStatus.CANCELLED && existing.stockDeductedAt && !existing.stockRestoredAt) {
+      for (const item of existing.orderItems) {
+        await restoreStock(transaction, {
+          productId: item.productId,
+          quantity: item.quantity,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+        })
+      }
+    }
+
+    return {
+      ...order,
+      customerName: existing.customerName,
+      email: existing.email,
+    }
   })
 
   void notifyOrderStatusChanged({
-    orderNumber: existing.orderNumber,
-    customerName: existing.customerName,
-    customerEmail: existing.email,
+    orderNumber: updated.orderNumber,
+    customerName: updated.customerName,
+    customerEmail: updated.email,
     orderStatus: updated.orderStatus,
   }).catch((error: unknown) => console.error('Order status email failed', error))
 

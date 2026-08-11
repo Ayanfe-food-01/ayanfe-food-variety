@@ -13,6 +13,7 @@ export const products: Product[] = [
     stockQuantity: 50,
     isActive: true,
     isAvailable: true,
+    availabilityStatus: 'IN_STOCK',
   },
   {
     id: 'honey-beans',
@@ -26,6 +27,7 @@ export const products: Product[] = [
     stockQuantity: 40,
     isActive: true,
     isAvailable: true,
+    availabilityStatus: 'IN_STOCK',
   },
   {
     id: 'vegetable-oil',
@@ -39,6 +41,7 @@ export const products: Product[] = [
     stockQuantity: 30,
     isActive: true,
     isAvailable: true,
+    availabilityStatus: 'IN_STOCK',
   },
   {
     id: 'white-yam',
@@ -52,5 +55,6 @@ export const products: Product[] = [
     stockQuantity: 25,
     isActive: true,
     isAvailable: true,
+    availabilityStatus: 'IN_STOCK',
   },
 ]

@@ -54,7 +54,7 @@ export const createAdminProductController: RequestHandler = async (request, resp
   response.status(201).json({
     success: true,
     message: 'Product created.',
-    data: { product: await createProduct(validateProductInput(request.body, image)) },
+    data: { product: await createProduct(validateProductInput(request.body, image), request.authenticatedUser!.id) },
   })
 }
 
@@ -63,7 +63,7 @@ export const updateAdminProductController: RequestHandler = async (request, resp
   response.json({
     success: true,
     message: 'Product updated.',
-    data: { product: await updateProduct(validateAdminProductId(routeParam(request.params.id)), validateProductInput(request.body, image, true)) },
+    data: { product: await updateProduct(validateAdminProductId(routeParam(request.params.id)), validateProductInput(request.body, image, true), request.authenticatedUser!.id) },
   })
 }
 

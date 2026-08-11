@@ -1,5 +1,5 @@
 import type { Product } from '../../types/product'
-import { BagIcon } from '../../assets/icons'
+import { BagIcon, EyeIcon } from '../../assets/icons'
 import { Link } from 'react-router-dom'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
@@ -40,18 +40,25 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
         <p className="mt-3 text-xs font-semibold text-muted">
           {product.availabilityStatus === 'LOW_STOCK' ? 'Low stock' : product.availabilityStatus === 'IN_STOCK' ? 'In stock' : 'Out of stock'}
         </p>
-        {product.isAvailable ? (
-          <button className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green/20 bg-transparent py-3 text-sm font-bold text-green transition-colors duration-200 hover:bg-green hover:text-cream" type="button" onClick={handleAddToCart} aria-label={`Add ${product.name} to cart`}>
-            <BagIcon size={16} /> Add to cart
-          </button>
-        ) : (
-          <p className="mt-5 rounded-xl bg-sage/50 py-3 text-center text-sm font-bold text-muted">Out of stock</p>
-        )}
-        {showDetails && (
-          <Link className="mt-3 inline-flex w-full items-center justify-center text-sm font-bold text-muted transition-colors hover:text-green" to={`/product/${product.id}`}>
-            View details
-          </Link>
-        )}
+        <div className={`mt-5 flex items-center gap-2 ${showDetails ? '' : 'w-full'}`}>
+          {product.isAvailable ? (
+            <button className={`${showDetails ? 'flex-1' : 'w-full'} inline-flex items-center justify-center gap-2 rounded-xl border border-green/20 bg-transparent py-3 text-sm font-bold text-green transition-colors duration-200 hover:bg-green hover:text-cream`} type="button" onClick={handleAddToCart} aria-label={`Add ${product.name} to cart`}>
+              <BagIcon size={16} /> Add to cart
+            </button>
+          ) : (
+            <p className={`${showDetails ? 'flex-1' : 'w-full'} rounded-xl bg-sage/50 py-3 text-center text-sm font-bold text-muted`}>Out of stock</p>
+          )}
+          {showDetails && (
+            <Link
+              className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-green/20 text-green transition-colors duration-200 hover:bg-green hover:text-cream"
+              to={`/product/${product.id}`}
+              aria-label={`View details for ${product.name}`}
+              title="View details"
+            >
+              <EyeIcon size={18} />
+            </Link>
+          )}
+        </div>
       </div>
     </article>
   )

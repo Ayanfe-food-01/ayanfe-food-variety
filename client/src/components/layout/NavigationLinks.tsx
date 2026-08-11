@@ -53,8 +53,8 @@ export function NavigationMenu({
   return (
     <>
       <button
-        className={`fixed inset-0 z-50 bg-green-dark/25 backdrop-blur-[2px] transition-opacity duration-300 md:hidden ${
-          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        className={`sidebar-backdrop fixed inset-0 z-50 bg-green-dark/25 backdrop-blur-[2px] md:hidden ${
+          isOpen ? 'sidebar-backdrop-open pointer-events-auto opacity-100' : 'sidebar-backdrop-closed pointer-events-none opacity-0'
         }`}
         type="button"
         aria-label="Close navigation menu"
@@ -62,9 +62,9 @@ export function NavigationMenu({
         onClick={onClose}
       />
       <div
-        className={`fixed inset-y-0 left-0 z-[60] flex w-screen flex-col overflow-y-auto border-r border-line bg-cream p-6 text-sm font-medium text-muted shadow-[18px_0_50px_rgba(32,60,36,0.16)] transition-[transform,visibility] duration-300 ease-out ${
-          isOpen ? 'visible translate-x-0' : 'invisible -translate-x-full md:visible md:translate-x-0'
-        } md:static md:z-auto md:w-auto md:translate-x-0 md:flex-row md:items-center md:gap-8 md:overflow-visible md:border-0 md:bg-transparent md:p-0 md:shadow-none md:transition-none`}
+        className={`sidebar-drawer fixed inset-y-0 left-0 z-[60] flex w-screen flex-col overflow-y-auto border-r border-line bg-cream p-6 text-sm font-medium text-muted shadow-[18px_0_50px_rgba(32,60,36,0.16)] ${
+          isOpen ? 'sidebar-drawer-open translate-x-0' : 'sidebar-drawer-closed -translate-x-full md:visible md:translate-x-0'
+        } md:static md:z-auto md:w-auto md:flex-row md:items-center md:gap-8 md:overflow-visible md:border-0 md:bg-transparent md:shadow-none`}
       >
         {children}
       </div>

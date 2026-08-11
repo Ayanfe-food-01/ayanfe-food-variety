@@ -44,6 +44,37 @@
 }
 
 @layer components {
+  .sidebar-backdrop {
+    transition:
+      opacity 280ms ease,
+      visibility 0s linear 280ms;
+  }
+
+  .sidebar-backdrop-open {
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  .sidebar-backdrop-closed {
+    visibility: hidden;
+  }
+
+  .sidebar-drawer {
+    will-change: transform;
+    transition:
+      transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 320ms;
+  }
+
+  .sidebar-drawer-open {
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  .sidebar-drawer-closed {
+    visibility: hidden;
+  }
+
   .home-fade-up {
     animation: home-fade-up 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
@@ -56,16 +87,35 @@
     animation-delay: 180ms;
   }
 
-  .home-section-reveal {
-    animation: home-fade-up 700ms ease-out both;
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 700ms ease-out,
+      transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+
+  .scroll-reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .home-fade-up,
     .home-fade-up-delay-1,
     .home-fade-up-delay-2,
-    .home-section-reveal {
+    .sidebar-backdrop,
+    .sidebar-drawer {
       animation: none;
+      transition: none;
+    }
+
+    .scroll-reveal,
+    .scroll-reveal-visible {
+      opacity: 1;
+      transform: none;
+      transition: none;
     }
   }
 }

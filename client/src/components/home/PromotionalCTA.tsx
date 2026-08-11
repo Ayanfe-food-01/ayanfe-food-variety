@@ -1,8 +1,10 @@
 import { ArrowUpRight } from '../../assets/icons'
+import { RevealOnScroll } from '../ui/RevealOnScroll'
 
 export function PromotionalCTA() {
   return (
-    <section className="home-section-reveal bg-sage py-16 lg:py-20">
+    <RevealOnScroll>
+      <section className="bg-sage py-16 lg:py-20">
       <div className="relative mx-auto grid w-[calc(100%-32px)] max-w-[1160px] items-center gap-10 overflow-hidden rounded-[28px] bg-cream px-6 py-8 sm:w-[calc(100%-48px)] sm:p-12 lg:grid-cols-[0.85fr_1.15fr] lg:p-16">
         <div className="relative z-10">
           <div className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange"><span className="inline-block size-2 rounded-full bg-orange" /> Your pantry called</div>
@@ -16,6 +18,7 @@ export function PromotionalCTA() {
           <img className="relative z-10 ml-auto size-full max-w-[390px] rounded-[24px] object-cover shadow-2xl shadow-green/15" src="https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=90" alt="" />
         </div>
       </div>
-    </section>
+      </section>
+    </RevealOnScroll>
   )
 }

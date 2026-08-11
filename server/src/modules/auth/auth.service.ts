@@ -82,10 +82,19 @@ const readCookie = (cookieHeader: string | undefined, name: string): string | nu
 export const getSessionToken = (cookieHeader: string | undefined) =>
   readCookie(cookieHeader, SESSION_COOKIE_NAME)
 
-export async function login(input: LoginInput): Promise<{ user: AuthenticatedUser; token: string }> {
+export async function login(input: LoginInput): Promise<{
+  user: AuthenticatedUser
+  token: string
+  sessionType: 'admin' | 'customer'
+}> {
   const user = await prisma.user.findUnique({ where: { email: input.email } })
-  if (!user || user.role !== UserRole.ADMIN || !user.passwordHash || !(await verifyPassword(input.password, user.passwordHash))) {
+  if (!user || !user.passwordHash || !(await verifyPassword(input.password, user.passwordHash))) {
     throw new HttpError(401, 'Invalid email or password.')
+  }
+
+  if (user.role === UserRole.CUSTOMER) {
+    const customerSession = await createCustomerSession(user)
+    return { ...customerSession, sessionType: 'customer' }
   }
 
   const token = randomBytes(32).toString('base64url')
@@ -103,7 +112,7 @@ export async function login(input: LoginInput): Promise<{ user: AuthenticatedUse
     }),
   ])
 
-  return { user: toUser(user), token }
+  return { user: toUser(user), token, sessionType: 'admin' }
 }
 
 async function createCustomerSession(user: {

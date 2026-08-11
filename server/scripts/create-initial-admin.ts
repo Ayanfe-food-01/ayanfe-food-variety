@@ -1,9 +1,9 @@
 import 'dotenv/config'
 import { createInitialAdmin } from '../src/modules/auth/auth.service.js'
 
-const name = process.env.ADMIN_INITIAL_NAME?.trim()
-const email = process.env.ADMIN_INITIAL_EMAIL?.trim().toLowerCase()
-const password = process.env.ADMIN_INITIAL_PASSWORD
+const name = (process.env.ADMIN_INITIAL_NAME ?? 'Ayanfe Food Variety Admin').trim()
+const email = (process.env.ADMIN_EMAIL ?? process.env.ADMIN_INITIAL_EMAIL)?.trim().toLowerCase()
+const password = process.env.ADMIN_PASSWORD ?? process.env.ADMIN_INITIAL_PASSWORD
 const forceReset = process.env.ADMIN_INITIAL_FORCE_RESET === 'true'
 
 if (!name || !email || !password) {

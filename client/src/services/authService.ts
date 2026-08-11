@@ -12,7 +12,7 @@ interface AuthResponse {
   data: { user: AuthenticatedUser }
 }
 
-export async function loginAdmin(email: string, password: string): Promise<AuthenticatedUser> {
+export async function login(email: string, password: string): Promise<AuthenticatedUser> {
   const response = await request<AuthResponse>('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -21,14 +21,19 @@ export async function loginAdmin(email: string, password: string): Promise<Authe
   return response.data.user
 }
 
-export async function getCurrentAdmin(): Promise<AuthenticatedUser> {
+export async function getCurrentUser(): Promise<AuthenticatedUser> {
   const response = await request<AuthResponse>('/auth/me')
   return response.data.user
 }
 
+export const loginAdmin = login
+export const getCurrentAdmin = getCurrentUser
+
 export async function logoutAdmin(): Promise<void> {
   await request<void>('/auth/logout', { method: 'POST' })
 }
+
+export const logout = logoutAdmin
 
 export interface CustomerUser {
   id: string

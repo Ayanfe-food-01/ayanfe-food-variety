@@ -17,21 +17,27 @@ import { validateCustomerSignupInput, validateLoginInput } from './auth.validato
 
 export const loginController: RequestHandler = async (request, response) => {
   const result = await login(validateLoginInput(request.body))
-  response.cookie(authCookie.name, result.token, {
-    ...authCookie.options,
-    maxAge: authCookie.maxAge,
+  const cookie = result.sessionType === 'admin' ? authCookie : customerAuthCookie
+  const otherCookie = result.sessionType === 'admin' ? customerAuthCookie : authCookie
+  response.clearCookie(otherCookie.name, otherCookie.options)
+  response.cookie(cookie.name, result.token, {
+    ...cookie.options,
+    maxAge: cookie.maxAge,
   })
   response.json({ success: true, data: { user: result.user } })
 }
 
 export const logoutController: RequestHandler = async (request, response) => {
   await revokeSession(getSessionToken(request.headers.cookie))
+  await revokeCustomerSession(getCustomerSessionToken(request.headers.cookie))
   response.clearCookie(authCookie.name, authCookie.options)
+  response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
   response.status(204).send()
 }
 
 export const meController: RequestHandler = async (request, response) => {
   const user = await getAuthenticatedUser(getSessionToken(request.headers.cookie))
+    ?? await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (!user) {
     response.status(401).json({ error: { message: 'Authentication is required.', statusCode: 401 } })
     return

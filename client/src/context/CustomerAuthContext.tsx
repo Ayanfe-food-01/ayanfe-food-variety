@@ -1,28 +1,29 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../services/api'
 import {
-  getCurrentCustomer,
-  logoutCustomer,
-  type CustomerUser,
+  getCurrentUser,
+  logout as logoutUser,
+  type AuthenticatedUser,
 } from '../services/authService'
 import { CustomerAuthContext, type AuthAction, type CustomerAuthContextValue } from './customerAuthContext'
-import { CustomerAuthModal } from '../components/customer/CustomerAuthModal'
 
 interface CustomerAuthProviderProps {
   children: ReactNode
 }
 
 export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
-  const [user, setUser] = useState<CustomerUser | null>(null)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [afterAuth, setAfterAuth] = useState<AuthAction | undefined>()
+  const afterAuthRef = useRef<AuthAction | undefined>(undefined)
 
   useEffect(() => {
     let isCurrent = true
-    getCurrentCustomer()
+    getCurrentUser()
       .then((currentUser) => {
-        if (isCurrent) setUser(currentUser)
+        if (isCurrent) setUser(currentUser.role === 'CUSTOMER' ? currentUser : null)
       })
       .catch((error: unknown) => {
         if (isCurrent && !(error instanceof ApiError && error.status === 401)) setUser(null)
@@ -37,26 +38,20 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
   }, [])
 
   const openAuth = useCallback((action?: AuthAction) => {
-    setAfterAuth(() => action)
-    setIsModalOpen(true)
-  }, [])
+    afterAuthRef.current = action
+    navigate('/login', { state: { from: location.pathname } })
+  }, [location.pathname, navigate])
 
-  const closeAuth = useCallback(() => {
-    setIsModalOpen(false)
-    setAfterAuth(undefined)
-  }, [])
-
-  const handleAuthenticated = useCallback((authenticatedUser: CustomerUser) => {
-    setUser(authenticatedUser)
-    setIsModalOpen(false)
-    const action = afterAuth
-    setAfterAuth(undefined)
+  const completeAuthentication = useCallback((authenticatedUser: AuthenticatedUser) => {
+    setUser(authenticatedUser.role === 'CUSTOMER' ? authenticatedUser : null)
+    const action = afterAuthRef.current
+    afterAuthRef.current = undefined
     action?.()
-  }, [afterAuth])
+  }, [])
 
   const logout = useCallback(async () => {
     try {
-      await logoutCustomer()
+      await logoutUser()
     } finally {
       setUser(null)
     }
@@ -65,9 +60,8 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
   const value: CustomerAuthContextValue = {
     user,
     isLoading,
-    isModalOpen,
     openAuth,
-    closeAuth,
+    completeAuthentication,
     setUser,
     logout,
   }
@@ -75,12 +69,6 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
   return (
     <CustomerAuthContext.Provider value={value}>
       {children}
-      {isModalOpen && (
-        <CustomerAuthModal
-          onClose={closeAuth}
-          onAuthenticated={handleAuthenticated}
-        />
-      )}
     </CustomerAuthContext.Provider>
   )
 }

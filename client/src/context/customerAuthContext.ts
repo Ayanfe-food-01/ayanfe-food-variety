@@ -1,15 +1,14 @@
 import { createContext } from 'react'
-import type { CustomerUser } from '../services/authService'
+import type { AuthenticatedUser } from '../services/authService'
 
 export type AuthAction = () => void
 
 export interface CustomerAuthContextValue {
-  user: CustomerUser | null
+  user: AuthenticatedUser | null
   isLoading: boolean
-  isModalOpen: boolean
   openAuth: (afterAuth?: AuthAction) => void
-  closeAuth: () => void
-  setUser: (user: CustomerUser | null) => void
+  completeAuthentication: (user: AuthenticatedUser) => void
+  setUser: (user: AuthenticatedUser | null) => void
   logout: () => Promise<void>
 }
 

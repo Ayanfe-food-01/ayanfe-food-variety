@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { Shop } from './pages/Shop'
 import { ProductDetails } from './pages/ProductDetails'
@@ -12,7 +12,7 @@ import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Settings } from './pages/Admin/Settings'
-import { Login } from './pages/Admin/Login'
+import { Login } from './pages/Login'
 import { Products } from './pages/Admin/Products'
 import { ProductForm } from './pages/Admin/ProductForm'
 import { ProductView } from './pages/Admin/ProductView'
@@ -20,8 +20,7 @@ import { RequireAdmin } from './components/admin/RequireAdmin'
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/product/:id" element={<ProductDetails />} />
@@ -30,7 +29,8 @@ function App() {
         <Route path="/orders" element={<CustomerOrders />} />
         <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
         <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
-        <Route path="/admin/login" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/admin/login" element={<Navigate replace to="/login" />} />
         <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
         <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
         <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
@@ -40,8 +40,7 @@ function App() {
         <Route path="/admin/products/:id/edit" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
         <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
-      </Routes>
-    </BrowserRouter>
+    </Routes>
   )
 }
 

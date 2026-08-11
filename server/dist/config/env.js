@@ -7,9 +7,10 @@ const parsePort = (value) => {
     return port;
 };
 const nodeEnv = process.env.NODE_ENV ?? 'development';
-const databaseUrl = nodeEnv === 'production'
-    ? process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL
-    : process.env.DATABASE_URL ?? process.env.NEON_DATABASE_URL;
+// Prefer the explicitly configured Neon database whenever it is available.
+// Replit may inject a runtime-managed DATABASE_URL for its own PostgreSQL
+// service; that must not silently override the user's selected Neon database.
+const databaseUrl = process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL;
 if (!databaseUrl) {
     throw new Error('A database connection is required to start the server');
 }

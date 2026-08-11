@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BagIcon, CloseIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
+import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 
 const links = [
   { label: 'Home', href: '#home' },
@@ -14,6 +15,7 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { totalQuantity } = useCart()
   const { settings } = useStoreSettings()
+  const { user, logout } = useCustomerAuth()
   const businessName = settings?.businessName || 'Store'
 
   return (
@@ -32,9 +34,20 @@ export function Navbar() {
               {link.label}
             </a>
           ))}
-          <a className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:p-0" href="/admin/login" onClick={() => setIsMenuOpen(false)}>
-            Admin portal
-          </a>
+          {user ? (
+            <>
+              <a className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" href="/orders" onClick={() => setIsMenuOpen(false)}>
+                {user.name || 'Account'}
+              </a>
+              <button className="p-3 text-left text-muted transition-colors hover:text-orange md:hidden" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <a className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" href="/login" onClick={() => setIsMenuOpen(false)}>
+              Login
+            </a>
+          )}
           <a className="mt-1 inline-flex items-center justify-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:hidden" href="/cart" onClick={() => setIsMenuOpen(false)}>
             <BagIcon size={18} />
             <span>Cart{totalQuantity > 0 ? ` · ${totalQuantity}` : ''}</span>
@@ -48,6 +61,20 @@ export function Navbar() {
             {totalQuantity}
           </span>
         </a>
+        {user ? (
+          <div className="hidden items-center gap-3 md:flex">
+            <a className="text-sm font-bold text-green transition-colors hover:text-orange" href="/orders" aria-label="Open your account">
+              {user.name || 'Account'}
+            </a>
+            <button className="text-xs font-semibold text-muted transition-colors hover:text-orange" type="button" onClick={() => void logout()}>
+              Log out
+            </button>
+          </div>
+        ) : (
+          <a className="hidden text-sm font-bold text-green transition-colors hover:text-orange md:block" href="/login">
+            Login
+          </a>
+        )}
         <button
           className="border-0 bg-transparent p-2 text-green md:hidden"
           type="button"

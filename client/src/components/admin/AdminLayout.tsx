@@ -18,7 +18,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     } catch {
       // Redirect even if the API is unavailable; the session is not retained in the client.
     } finally {
-      navigate('/admin/login', { replace: true })
+      navigate('/login', { replace: true })
     }
   }
 
@@ -37,7 +37,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </button>
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-xs text-muted sm:inline">Store operations</span>
-            <button className="rounded-full border border-line bg-sage px-3 py-2 text-xs font-bold text-green-dark hover:bg-white" type="button" onClick={() => void logout}>Log out</button>
+            <button className="rounded-full border border-line bg-sage px-3 py-2 text-xs font-bold text-green-dark hover:bg-white" type="button" onClick={() => void logout()}>Log out</button>
           </div>
         </header>
         <main className="px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">

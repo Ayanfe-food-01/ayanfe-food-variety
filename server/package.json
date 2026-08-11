@@ -12,6 +12,7 @@
     "prisma:migrate": "DATABASE_URL=\"${NEON_DATABASE_URL:-$DATABASE_URL}\" prisma migrate deploy",
     "prisma:seed": "DATABASE_URL=\"${NEON_DATABASE_URL:-$DATABASE_URL}\" tsx prisma/seed.ts",
     "admin:create": "tsx scripts/create-initial-admin.ts",
+    "doctor": "tsx scripts/doctor.ts",
     "test:inventory": "tsx scripts/inventory-safety-smoke.ts"
   },
   "dependencies": {

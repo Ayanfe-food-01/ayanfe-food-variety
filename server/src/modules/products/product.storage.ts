@@ -66,13 +66,23 @@ export async function uploadProductImage(file: Express.Multer.File): Promise<str
     response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(env.cloudinary.cloudName)}/image/upload`, {
       method: 'POST',
       body,
+      signal: AbortSignal.timeout(30_000),
     })
-  } catch {
+  } catch (error: unknown) {
+    console.error('Cloudinary product image upload failed', error instanceof Error ? error.message : 'unknown error')
     throw new HttpError(502, 'Product image storage is temporarily unavailable.')
   }
-  const result = (await response.json().catch(() => null)) as { secure_url?: unknown } | null
+  const result = (await response.json().catch(() => null)) as {
+    secure_url?: unknown
+    error?: { message?: unknown }
+  } | null
   if (!response.ok || typeof result?.secure_url !== 'string') {
-    throw new HttpError(502, 'The product image could not be stored.')
+    const providerMessage = typeof result?.error?.message === 'string' ? result.error.message : ''
+    console.error('Cloudinary rejected product image upload', {
+      status: response.status,
+      message: providerMessage || 'unknown provider error',
+    })
+    throw new HttpError(502, 'The product image could not be stored. Check the Cloudinary configuration and try again.')
   }
   return result.secure_url
 }

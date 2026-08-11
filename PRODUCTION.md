@@ -95,6 +95,48 @@ After both services are deployed and the two public URLs have been entered:
 Never paste production secrets into source files, commits, or chat. Use the
 Vercel and Render secret/environment-variable settings.
 
+## Local/Replit connection commands
+
+Run these commands from the repository root. Replit Secrets should contain
+`NEON_DATABASE_URL`, `SESSION_SECRET`, and the three `CLOUDINARY_*` values.
+Never put those values in a committed `.env` file.
+
+```bash
+# Install dependencies once
+npm ci
+npm --prefix client ci
+npm --prefix server ci
+
+# Generate Prisma Client and apply all committed migrations
+npm --prefix server run prisma:generate
+npm --prefix server run prisma:migrate
+
+# Verify database reachability and required server configuration
+npm --prefix server run doctor
+
+# Create or update the first admin account using ADMIN_EMAIL and ADMIN_PASSWORD
+npm --prefix server run admin:create
+
+# Start the API (terminal 1)
+npm --prefix server run dev
+
+# Start the Vite storefront (terminal 2)
+npm --prefix client run dev -- --host 0.0.0.0 --port 5000
+```
+
+Check the running services with:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/ready
+```
+
+`/health` confirms that the process is alive. `/ready` confirms that the API
+can reach PostgreSQL and reports whether Cloudinary credentials are configured.
+If product creation still fails, run `npm --prefix server run doctor` and check
+the API workflow logs; do not retry uploads repeatedly until the configuration
+error is fixed.
+
 ## Values to enter at deployment time
 
 The code is ready without knowing the final provider URLs. Before the first

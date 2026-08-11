@@ -68,7 +68,7 @@ const uniqueSlug = async (name, excludedId) => {
     }
     return slug;
 };
-const validateCategory = async (categoryId) => {
+export const validateProductCategory = async (categoryId) => {
     const category = await prisma.category.findUnique({ where: { id: categoryId }, select: { id: true, isActive: true } });
     if (!category)
         throw new HttpError(400, 'The selected category does not exist.');
@@ -121,72 +121,88 @@ export async function getAdminProduct(id) {
     return toAdminProduct(product);
 }
 export async function createProduct(input, adminId) {
-    await validateCategory(input.categoryId);
-    const product = await prisma.$transaction(async (transaction) => {
-        const created = await transaction.product.create({
-            data: {
-                categoryId: input.categoryId,
-                name: input.name,
-                slug: await uniqueSlug(input.name),
-                description: input.description,
-                price: input.price,
-                unit: input.unit,
-                image: input.image ?? '',
-                isActive: input.isActive,
-                stockQuantity: input.stockQuantity,
-            },
-            include: productInclude,
-        });
-        if (created.stockQuantity > 0) {
-            await recordStockAdjustment(transaction, {
-                productId: created.id,
-                quantityDelta: created.stockQuantity,
-                previousQuantity: 0,
-                newQuantity: created.stockQuantity,
-                reason: `Initial stock by admin ${adminId}`,
+    await validateProductCategory(input.categoryId);
+    try {
+        const product = await prisma.$transaction(async (transaction) => {
+            const created = await transaction.product.create({
+                data: {
+                    categoryId: input.categoryId,
+                    name: input.name,
+                    slug: await uniqueSlug(input.name),
+                    description: input.description,
+                    price: input.price,
+                    unit: input.unit,
+                    image: input.image ?? '',
+                    isActive: input.isActive,
+                    stockQuantity: input.stockQuantity,
+                },
+                include: productInclude,
             });
+            if (created.stockQuantity > 0) {
+                await recordStockAdjustment(transaction, {
+                    productId: created.id,
+                    quantityDelta: created.stockQuantity,
+                    previousQuantity: 0,
+                    newQuantity: created.stockQuantity,
+                    reason: `Initial stock by admin ${adminId}`,
+                });
+            }
+            return created;
+        });
+        return toAdminProduct(product);
+    }
+    catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            throw new HttpError(409, 'A product with this information already exists.');
         }
-        return created;
-    });
-    return toAdminProduct(product);
+        throw error;
+    }
 }
-export async function updateProduct(id, input, adminId) {
-    await validateCategory(input.categoryId);
-    const product = await prisma.$transaction(async (transaction) => {
-        const currentRows = await transaction.$queryRaw(Prisma.sql `SELECT id, stock_quantity
-        FROM products
-        WHERE id = ${id}::uuid
-        FOR UPDATE`);
-        const current = currentRows[0];
-        if (!current)
-            throw new HttpError(404, 'Product not found.');
-        const updated = await transaction.product.update({
-            where: { id },
-            data: {
-                categoryId: input.categoryId,
-                name: input.name,
-                slug: await uniqueSlug(input.name, id),
-                description: input.description,
-                price: input.price,
-                unit: input.unit,
-                ...(input.image ? { image: input.image } : {}),
-                isActive: input.isActive,
-                stockQuantity: input.stockQuantity,
-            },
-            include: productInclude,
-        });
-        if (updated.stockQuantity !== current.stock_quantity) {
-            await recordStockAdjustment(transaction, {
-                productId: id,
-                quantityDelta: updated.stockQuantity - current.stock_quantity,
-                previousQuantity: current.stock_quantity,
-                newQuantity: updated.stockQuantity,
-                reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
+export async function updateProduct(input, adminId, id) {
+    await validateProductCategory(input.categoryId);
+    try {
+        const product = await prisma.$transaction(async (transaction) => {
+            const currentRows = await transaction.$queryRaw(Prisma.sql `SELECT id, stock_quantity
+          FROM products
+          WHERE id = ${id}::uuid
+          FOR UPDATE`);
+            const current = currentRows[0];
+            if (!current)
+                throw new HttpError(404, 'Product not found.');
+            const updated = await transaction.product.update({
+                where: { id },
+                data: {
+                    categoryId: input.categoryId,
+                    name: input.name,
+                    slug: await uniqueSlug(input.name, id),
+                    description: input.description,
+                    price: input.price,
+                    unit: input.unit,
+                    ...(input.image ? { image: input.image } : {}),
+                    isActive: input.isActive,
+                    stockQuantity: input.stockQuantity,
+                },
+                include: productInclude,
             });
+            if (updated.stockQuantity !== current.stock_quantity) {
+                await recordStockAdjustment(transaction, {
+                    productId: id,
+                    quantityDelta: updated.stockQuantity - current.stock_quantity,
+                    previousQuantity: current.stock_quantity,
+                    newQuantity: updated.stockQuantity,
+                    reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
+                });
+            }
+            return updated;
+        });
+        return toAdminProduct(product);
+    }
+    catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            throw new HttpError(409, 'A product with this information already exists.');
         }
-        return updated;
-    });
-    return toAdminProduct(product);
+        throw error;
+    }
 }
 export async function updateProductStatus(id, isActive) {
     const product = await prisma.product.update({

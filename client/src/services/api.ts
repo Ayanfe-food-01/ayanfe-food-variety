@@ -28,7 +28,10 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
       },
     })
   } catch {
-    throw new ApiError('The service is currently unavailable.', 0)
+    throw new ApiError(
+      'The API server cannot be reached. Start the API service or check the configured API URL.',
+      0,
+    )
   }
 
   let body: unknown

@@ -20,6 +20,24 @@ const sha1Signature = (parameters) => {
         .join('&');
     return crypto.createHash('sha1').update(`${payload}${env.cloudinary.apiSecret}`).digest('hex');
 };
+const publicIdFromProductImageUrl = (imageUrl) => {
+    try {
+        const pathname = new URL(imageUrl).pathname;
+        const uploadMarker = '/image/upload/';
+        const uploadIndex = pathname.indexOf(uploadMarker);
+        if (uploadIndex < 0)
+            return null;
+        const segments = pathname.slice(uploadIndex + uploadMarker.length).split('/').filter(Boolean);
+        const versionIndex = segments.findIndex((segment) => /^v\d+$/.test(segment));
+        const publicIdWithExtension = (versionIndex >= 0 ? segments.slice(versionIndex + 1) : segments).join('/');
+        if (!publicIdWithExtension.startsWith('product-images/'))
+            return null;
+        return publicIdWithExtension.replace(/\.(?:jpe?g|png|webp)$/i, '');
+    }
+    catch {
+        return null;
+    }
+};
 export async function uploadProductImage(file) {
     if (file.size > MAX_PRODUCT_IMAGE_BYTES)
         throw new HttpError(400, 'Product images must be 5 MB or smaller.');
@@ -46,14 +64,48 @@ export async function uploadProductImage(file) {
         response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(env.cloudinary.cloudName)}/image/upload`, {
             method: 'POST',
             body,
+            signal: AbortSignal.timeout(30_000),
         });
     }
-    catch {
+    catch (error) {
+        console.error('Cloudinary product image upload failed', error instanceof Error ? error.message : 'unknown error');
         throw new HttpError(502, 'Product image storage is temporarily unavailable.');
     }
     const result = (await response.json().catch(() => null));
     if (!response.ok || typeof result?.secure_url !== 'string') {
-        throw new HttpError(502, 'The product image could not be stored.');
+        const providerMessage = typeof result?.error?.message === 'string' ? result.error.message : '';
+        console.error('Cloudinary rejected product image upload', {
+            status: response.status,
+            message: providerMessage || 'unknown provider error',
+        });
+        throw new HttpError(502, 'The product image could not be stored. Check the Cloudinary configuration and try again.');
     }
     return result.secure_url;
+}
+/**
+ * Product image cleanup is best effort. Product updates must not fail after
+ * the database has been updated just because a remote cleanup request failed.
+ */
+export async function deleteProductImage(imageUrl) {
+    const publicId = publicIdFromProductImageUrl(imageUrl);
+    if (!publicId || !env.cloudinary.cloudName || !env.cloudinary.apiKey || !env.cloudinary.apiSecret)
+        return false;
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = sha1Signature({ public_id: publicId, timestamp });
+    const body = new FormData();
+    body.append('public_id', publicId);
+    body.append('api_key', env.cloudinary.apiKey);
+    body.append('timestamp', timestamp);
+    body.append('signature', signature);
+    try {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(env.cloudinary.cloudName)}/image/destroy`, {
+            method: 'POST',
+            body,
+        });
+        const result = (await response.json().catch(() => null));
+        return response.ok && (result?.result === 'ok' || result?.result === 'not found');
+    }
+    catch {
+        return false;
+    }
 }

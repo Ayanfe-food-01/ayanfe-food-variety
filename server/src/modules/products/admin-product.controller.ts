@@ -56,12 +56,21 @@ export const createAdminProductController: RequestHandler = async (request, resp
   const fields = validateProductFields(request.body)
   await validateProductCategory(fields.categoryId)
   if (!request.file) throw new HttpError(400, 'A product image is required.')
-  const image = request.file ? await uploadProductImage(request.file) : undefined
-  response.status(201).json({
-    success: true,
-    message: 'Product created.',
-    data: { product: await createProduct({ ...fields, image }, request.authenticatedUser!.id) },
-  })
+  let image: string | undefined
+  try {
+    image = await uploadProductImage(request.file)
+    response.status(201).json({
+      success: true,
+      message: 'Product created.',
+      data: { product: await createProduct({ ...fields, image }, request.authenticatedUser!.id) },
+    })
+  } catch (error: unknown) {
+    // The image is uploaded before the transaction so the database never
+    // contains a product that points at a failed upload. If persistence fails,
+    // remove the newly uploaded asset to avoid orphaned Cloudinary files.
+    if (image) await deleteProductImage(image)
+    throw error
+  }
 }
 
 export const updateAdminProductController: RequestHandler = async (request, response) => {

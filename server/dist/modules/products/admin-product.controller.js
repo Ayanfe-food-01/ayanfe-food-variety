@@ -1,12 +1,12 @@
 import multer from 'multer';
 import { HttpError } from '../../utils/http.js';
-import { createProduct, getAdminProduct, listAdminProducts, updateProduct, updateProductStatus, } from './product.service.js';
-import { validateAdminProductId, validateAdminProductsQuery, validateProductInput, validateProductStatusInput, } from './product.validator.js';
-import { uploadProductImage } from './product.storage.js';
+import { createProduct, getAdminProduct, listAdminProducts, updateProduct, updateProductStatus, validateProductCategory, } from './product.service.js';
+import { validateAdminProductId, validateAdminProductsQuery, validateProductFields, validateProductStatusInput, } from './product.validator.js';
+import { deleteProductImage, uploadProductImage } from './product.storage.js';
 const routeParam = (value) => Array.isArray(value) ? value[0] : value;
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 10, fieldSize: 1 * 1024 * 1024 },
     fileFilter: (_request, file, callback) => {
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
             callback(new HttpError(400, 'Product image must be a JPG, PNG, or WEBP image.'));
@@ -18,7 +18,9 @@ const upload = multer({
 export const productImageUpload = (request, response, next) => {
     upload.single('image')(request, response, (error) => {
         if (error instanceof multer.MulterError) {
-            next(new HttpError(400, 'Product images must be 5 MB or smaller.'));
+            next(new HttpError(400, error.code === 'LIMIT_FILE_SIZE'
+                ? 'Product images must be 5 MB or smaller.'
+                : 'The product image upload is invalid.'));
             return;
         }
         next(error);
@@ -31,20 +33,51 @@ export const getAdminProductController = async (request, response) => {
     response.json({ success: true, data: { product: await getAdminProduct(validateAdminProductId(routeParam(request.params.id))) } });
 };
 export const createAdminProductController = async (request, response) => {
-    const image = request.file ? await uploadProductImage(request.file) : undefined;
-    response.status(201).json({
-        success: true,
-        message: 'Product created.',
-        data: { product: await createProduct(validateProductInput(request.body, image), request.authenticatedUser.id) },
-    });
+    const fields = validateProductFields(request.body);
+    await validateProductCategory(fields.categoryId);
+    if (!request.file)
+        throw new HttpError(400, 'A product image is required.');
+    let image;
+    try {
+        image = await uploadProductImage(request.file);
+        response.status(201).json({
+            success: true,
+            message: 'Product created.',
+            data: { product: await createProduct({ ...fields, image }, request.authenticatedUser.id) },
+        });
+    }
+    catch (error) {
+        // The image is uploaded before the transaction so the database never
+        // contains a product that points at a failed upload. If persistence fails,
+        // remove the newly uploaded asset to avoid orphaned Cloudinary files.
+        if (image)
+            await deleteProductImage(image);
+        throw error;
+    }
 };
 export const updateAdminProductController = async (request, response) => {
-    const image = request.file ? await uploadProductImage(request.file) : undefined;
-    response.json({
-        success: true,
-        message: 'Product updated.',
-        data: { product: await updateProduct(validateAdminProductId(routeParam(request.params.id)), validateProductInput(request.body, image, true), request.authenticatedUser.id) },
-    });
+    const productId = validateAdminProductId(routeParam(request.params.id));
+    const fields = validateProductFields(request.body);
+    await validateProductCategory(fields.categoryId);
+    const existingProduct = await getAdminProduct(productId);
+    let image;
+    try {
+        image = request.file ? await uploadProductImage(request.file) : undefined;
+        const product = await updateProduct({ ...fields, image }, request.authenticatedUser.id, productId);
+        if (image && existingProduct.image && existingProduct.image !== image) {
+            await deleteProductImage(existingProduct.image);
+        }
+        response.json({
+            success: true,
+            message: 'Product updated.',
+            data: { product },
+        });
+    }
+    catch (error) {
+        if (image)
+            await deleteProductImage(image);
+        throw error;
+    }
 };
 export const updateAdminProductStatusController = async (request, response) => {
     response.json({

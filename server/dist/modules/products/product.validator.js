@@ -1,8 +1,8 @@
 import { HttpError } from '../../utils/http.js';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
-const requiredText = (value, field, maxLength) => {
-    if (typeof value !== 'string' || !value.trim() || value.trim().length > maxLength) {
+const requiredText = (value, field, minLength, maxLength) => {
+    if (typeof value !== 'string' || value.trim().length < minLength || value.trim().length > maxLength) {
         throw new HttpError(400, `${field} is required and must be valid.`);
     }
     return value.trim();
@@ -29,34 +29,41 @@ const priceValue = (value) => {
     if (typeof value !== 'string' && typeof value !== 'number')
         throw new HttpError(400, 'Price is required.');
     const normalized = String(value).trim();
-    if (!/^\d+(?:\.\d{1,2})?$/.test(normalized) || Number(normalized) <= 0 || Number(normalized) > 1000000000) {
+    const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(normalized);
+    if (!match) {
         throw new HttpError(400, 'Price must be greater than zero and valid.');
     }
-    return Number(normalized).toFixed(2);
+    const wholePart = match[1].replace(/^0+(?=\d)/, '');
+    const fractionalPart = (match[2] ?? '').padEnd(2, '0');
+    if (wholePart === '0' && fractionalPart === '00') {
+        throw new HttpError(400, 'Price must be greater than zero and valid.');
+    }
+    if (wholePart.length > 10
+        || (wholePart.length === 10 && wholePart > '1000000000')
+        || (wholePart === '1000000000' && fractionalPart !== '00')) {
+        throw new HttpError(400, 'Price must be greater than zero and valid.');
+    }
+    return `${wholePart}.${fractionalPart}`;
 };
 export function validateAdminProductId(value) {
     if (!value || !UUID_PATTERN.test(value.trim()))
         throw new HttpError(400, 'Product ID is invalid.');
     return value.trim();
 }
-export function validateProductInput(body, image, allowMissingImage = false) {
+export function validateProductFields(body) {
     if (!isRecord(body))
         throw new HttpError(400, 'Product data is required.');
-    const categoryId = requiredText(body.categoryId, 'Category', 40);
+    const categoryId = requiredText(body.categoryId, 'Category', 1, 40);
     if (!UUID_PATTERN.test(categoryId))
         throw new HttpError(400, 'Category is invalid.');
-    const suppliedImage = typeof body.image === 'string' ? body.image.trim() : undefined;
-    if (!allowMissingImage && !image && !suppliedImage)
-        throw new HttpError(400, 'A product image is required.');
     return {
-        name: requiredText(body.name, 'Product name', 180),
+        name: requiredText(body.name, 'Product name', 2, 180),
         categoryId,
         price: priceValue(body.price),
-        unit: requiredText(body.unit, 'Unit', 80),
-        description: requiredText(body.description, 'Description', 4000),
+        unit: requiredText(body.unit, 'Unit', 1, 80),
+        description: requiredText(body.description, 'Description', 10, 4000),
         isActive: booleanValue(body.isActive, 'Availability', true),
         stockQuantity: integerValue(body.stockQuantity, 'Stock quantity'),
-        image: image ?? suppliedImage,
     };
 }
 export function validateProductStatusInput(body) {

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { getAdminOrder, updateAdminOrderStatus, type AdminOrder, type OrderStatus } from '../../services/orderService'
 import { orderStatuses } from '../../components/admin/orderStatuses'
+import { useToast } from '../../components/ui/Toast'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -23,7 +24,7 @@ export function OrderDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   useEffect(() => {
     if (!orderNumber) return
@@ -41,13 +42,12 @@ export function OrderDetail() {
     if (status === 'CANCELLED' && !window.confirm(`Cancel ${order.orderNumber}? This cannot be undone.`)) return
     setIsSaving(true)
     setError(null)
-    setFeedback(null)
     try {
       setOrder(await updateAdminOrderStatus(orderNumber, status, note))
       setNote('')
-      setFeedback('Order status updated. The customer notification was queued when email is configured.')
+      showToast('Order status updated. The customer notification was queued when email is configured.', 'success')
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Order status could not be updated.')
+      showToast(caught instanceof ApiError ? caught.message : 'Order status could not be updated.', 'error')
     } finally {
       setIsSaving(false)
     }
@@ -64,8 +64,6 @@ export function OrderDetail() {
       </div>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      {feedback && <div className="mt-6 rounded-2xl border border-green/20 bg-green/5 p-4 text-sm text-green" role="status">{feedback}</div>}
-
       <div className="mt-8 grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
         <div className="space-y-5">
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">

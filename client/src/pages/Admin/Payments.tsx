@@ -3,12 +3,14 @@ import { ApiError } from '../../services/api'
 import { getAdminPayments, rejectAdminPayment, verifyAdminPayment, type AdminPayment } from '../../services/paymentService'
 import { PaymentReview } from '../../components/admin/PaymentReview'
 import { PaymentTable } from '../../components/admin/PaymentTable'
+import { useToast } from '../../components/ui/Toast'
 
 export function Payments() {
   const [payments, setPayments] = useState<AdminPayment[]>([])
   const [selected, setSelected] = useState<AdminPayment | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   const loadPayments = () => getAdminPayments().then(setPayments).catch((caught) => setError(caught instanceof ApiError ? caught.message : 'Payments could not be loaded.'))
   useEffect(() => { void loadPayments() }, [])
@@ -21,8 +23,9 @@ export function Payments() {
       else await rejectAdminPayment(selected.id, note)
       setSelected(null)
       await loadPayments()
+      showToast(`Payment ${action === 'verify' ? 'verified' : 'rejected'} successfully.`, 'success')
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Payment review could not be saved.')
+      showToast(caught instanceof ApiError ? caught.message : 'Payment review could not be saved.', 'error')
     } finally { setIsSaving(false) }
   }
 

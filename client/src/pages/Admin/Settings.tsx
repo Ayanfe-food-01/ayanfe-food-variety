@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { ApiError } from '../../services/api'
+import { useToast } from '../../components/ui/Toast'
 import {
   getContactInformation,
   getPaymentSettings,
@@ -70,8 +71,8 @@ export function Settings() {
   const [payment, setPayment] = useState(emptyPayment)
   const [isLoading, setIsLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   useEffect(() => {
     Promise.all([getStoreInformation(), getContactInformation(), getPaymentSettings()])
@@ -87,13 +88,12 @@ export function Settings() {
   const save = async <T,>(section: string, action: () => Promise<T>, onSuccess: (value: T) => void, successMessage: string) => {
     setSaving(section)
     setError(null)
-    setMessage(null)
     try {
       const value = await action()
       onSuccess(value)
-      setMessage(successMessage)
+      showToast(successMessage, 'success')
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Settings could not be saved.')
+      showToast(caught instanceof ApiError ? caught.message : 'Settings could not be saved.', 'error')
     } finally {
       setSaving(null)
     }
@@ -118,7 +118,6 @@ export function Settings() {
       <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Settings</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Manage the store information and payment instructions customers see. Changes are stored in the database and take effect without a redeployment.</p>
       {error && <p className="mt-5 rounded-xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</p>}
-      {message && <p className="mt-5 rounded-xl border border-green/25 bg-sage/40 p-4 text-sm font-semibold text-green" role="status">{message}</p>}
       {isLoading ? <p className="mt-8 text-sm text-muted">Loading settings…</p> : (
         <div className="mt-8 space-y-6">
           <SettingsSection eyebrow="Store information" title="Store Information" description="Keep the public business identity and description current. Address and description may be left blank until they are ready to publish.">

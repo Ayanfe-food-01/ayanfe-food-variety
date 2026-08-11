@@ -42,7 +42,10 @@ export function CategoryForm() {
       const input = { ...form, name, description }
       if (id) await updateAdminCategory(id, input)
       else await createAdminCategory(input)
-      navigate('/admin/categories', { replace: true, state: { message: `Category ${isEditing ? 'updated' : 'created'} successfully.` } })
+      navigate('/admin/categories', {
+        replace: true,
+        state: { toast: { message: `Category ${isEditing ? 'updated' : 'created'} successfully.`, type: 'success' } },
+      })
     } catch (caught: unknown) {
       setError(caught instanceof ApiError ? caught.message : `Category could not be ${isEditing ? 'updated' : 'created'}.`)
     } finally {

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useToast } from '../../components/ui/Toast'
 import { ApiError } from '../../services/api'
 import {
   getAdminCategories,
@@ -20,7 +21,7 @@ const formatDate = (value: string) =>
 
 export function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const location = useLocation()
+  const { showToast } = useToast()
   const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
   const [categories, setCategories] = useState<Category[]>([])
   const [result, setResult] = useState<AdminProductsPage | null>(null)
@@ -33,12 +34,6 @@ export function Products() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(() => {
-    const state = location.state
-    return state && typeof state === 'object' && 'message' in state && typeof state.message === 'string'
-      ? state.message
-      : null
-  })
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -86,14 +81,13 @@ export function Products() {
     const action = isActive ? 'deactivate' : 'activate'
     if (!window.confirm(`Are you sure you want to ${action} this product?`)) return
     setUpdatingId(id)
-    setMessage(null)
     setError(null)
     try {
       await updateAdminProductStatus(id, !isActive)
-      setMessage(`Product ${isActive ? 'deactivated' : 'activated'} successfully.`)
+      showToast(`Product ${isActive ? 'deactivated' : 'activated'} successfully.`, 'success')
       setQuery((current) => ({ ...current }))
     } catch (caught: unknown) {
-      setError(caught instanceof ApiError ? caught.message : 'Product availability could not be updated.')
+      showToast(caught instanceof ApiError ? caught.message : 'Product availability could not be updated.', 'error')
     } finally {
       setUpdatingId(null)
     }
@@ -142,8 +136,6 @@ export function Products() {
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      {message && <div className="mt-6 rounded-2xl border border-green/25 bg-sage/40 p-4 text-sm font-semibold text-green" role="status">{message}</div>}
-
       {isLoading ? (
         <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading products…</div>
       ) : result?.products.length ? (

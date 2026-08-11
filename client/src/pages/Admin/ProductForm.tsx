@@ -100,7 +100,10 @@ export function ProductForm() {
       if (form.image) setSaveStatus('uploading')
       if (id) await updateAdminProduct(id, form)
       else await createAdminProduct(form)
-      navigate('/admin/products', { replace: true, state: { message: `Product ${isEditing ? 'updated' : 'created'} successfully.` } })
+      navigate('/admin/products', {
+        replace: true,
+        state: { toast: { message: `Product ${isEditing ? 'updated' : 'created'} successfully.`, type: 'success' } },
+      })
     } catch (caught: unknown) {
       setError(caught instanceof ApiError ? caught.message : 'Product could not be saved.')
     } finally {

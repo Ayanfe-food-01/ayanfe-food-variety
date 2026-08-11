@@ -4,6 +4,7 @@ import { ArrowRight, BagIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
@@ -171,13 +172,11 @@ export function ProductDetails() {
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-8 sm:py-12">
-            <nav className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted" aria-label="Breadcrumb">
-              <Link className="transition-colors hover:text-green" to="/">Home</Link>
-              <span aria-hidden="true">/</span>
-              <Link className="transition-colors hover:text-green" to="/shop">Shop</Link>
-              <span aria-hidden="true">/</span>
-              <span className="max-w-[220px] truncate font-semibold text-green-dark" aria-current="page">{product.name}</span>
-            </nav>
+            <Breadcrumb items={[
+              { label: 'Home', href: '/' },
+              { label: 'Shop', href: '/shop' },
+              { label: product.name },
+            ]} />
           </div>
         </section>
 

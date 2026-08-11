@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useToast } from '../../components/ui/Toast'
 import { ApiError } from '../../services/api'
 import {
   deleteAdminCategory,
@@ -17,7 +18,7 @@ const formatDate = (value?: string) => value
 
 export function Categories() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const location = useLocation()
+  const { showToast } = useToast()
   const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
   const [result, setResult] = useState<AdminCategoriesPage | null>(null)
   const [query, setQuery] = useState<AdminCategoriesQuery>({
@@ -28,12 +29,6 @@ export function Categories() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(() => {
-    const state = location.state
-    return state && typeof state === 'object' && 'message' in state && typeof state.message === 'string'
-      ? state.message
-      : null
-  })
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -72,14 +67,13 @@ export function Categories() {
     const action = category.isActive ? 'deactivate' : 'activate'
     if (!window.confirm(`Are you sure you want to ${action} “${category.name}”? Existing products will remain unchanged.`)) return
     setBusyId(category.id)
-    setMessage(null)
     setError(null)
     try {
       const updated = await updateAdminCategoryStatus(category.id, !category.isActive)
-      setMessage(`Category ${updated.isActive ? 'activated' : 'deactivated'} successfully.`)
+      showToast(`Category ${updated.isActive ? 'activated' : 'deactivated'} successfully.`, 'success')
       setQuery((current) => ({ ...current }))
     } catch (caught: unknown) {
-      setError(caught instanceof ApiError ? caught.message : 'Category status could not be updated.')
+      showToast(caught instanceof ApiError ? caught.message : 'Category status could not be updated.', 'error')
     } finally {
       setBusyId(null)
     }
@@ -88,14 +82,13 @@ export function Categories() {
   const deleteCategory = async (category: Category) => {
     if (!window.confirm(`Delete “${category.name}”? This is only allowed when the category has no products.`)) return
     setBusyId(category.id)
-    setMessage(null)
     setError(null)
     try {
       await deleteAdminCategory(category.id)
-      setMessage('Category deleted successfully.')
+      showToast('Category deleted successfully.', 'success')
       setQuery((current) => ({ ...current, page: Math.min(current.page, result?.pagination.totalPages ?? 1) }))
     } catch (caught: unknown) {
-      setError(caught instanceof ApiError ? caught.message : 'Category could not be deleted.')
+      showToast(caught instanceof ApiError ? caught.message : 'Category could not be deleted.', 'error')
     } finally {
       setBusyId(null)
     }
@@ -135,8 +128,6 @@ export function Categories() {
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      {message && <div className="mt-6 rounded-2xl border border-green/25 bg-sage/40 p-4 text-sm font-semibold text-green" role="status">{message}</div>}
-
       {isLoading ? (
         <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading categories…</div>
       ) : categories.length === 0 ? (

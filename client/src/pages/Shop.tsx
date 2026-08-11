@@ -4,6 +4,7 @@ import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { getCategories } from '../services/categoryService'
 import { getProducts } from '../services/productService'
 import type { Category } from '../types/category'
@@ -57,11 +58,7 @@ export function Shop() {
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-14 sm:py-20 lg:py-24">
-            <nav className="mb-8 flex items-center gap-2 text-xs font-medium text-muted" aria-label="Breadcrumb">
-              <Link className="transition-colors hover:text-green" to="/">Home</Link>
-              <span aria-hidden="true">/</span>
-              <span className="font-semibold text-green-dark" aria-current="page">Shop</span>
-            </nav>
+            <Breadcrumb className="mb-8" items={[{ label: 'Home', href: '/' }, { label: 'Shop' }]} />
             <div className="max-w-2xl">
               <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
                 <span className="inline-block size-2 rounded-full bg-orange" />

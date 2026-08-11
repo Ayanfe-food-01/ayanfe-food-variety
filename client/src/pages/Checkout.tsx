@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, BagIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
@@ -415,13 +416,14 @@ export function Checkout() {
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-10 sm:py-14">
-            <nav className="mb-7 flex items-center gap-2 text-xs font-medium text-muted" aria-label="Breadcrumb">
-              <Link className="transition-colors hover:text-green" to="/">Home</Link>
-              <span aria-hidden="true">/</span>
-              <Link className="transition-colors hover:text-green" to="/cart">Cart</Link>
-              <span aria-hidden="true">/</span>
-              <span className="font-semibold text-green-dark" aria-current="page">Checkout</span>
-            </nav>
+            <Breadcrumb
+              className="mb-7"
+              items={[
+                { label: 'Home', href: '/' },
+                { label: 'Cart', href: '/cart' },
+                { label: 'Checkout' },
+              ]}
+            />
             <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
               <span className="inline-block size-2 rounded-full bg-orange" />
               Almost there

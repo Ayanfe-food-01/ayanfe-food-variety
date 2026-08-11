@@ -20,6 +20,7 @@ import { ProductView } from './pages/Admin/ProductView'
 import { Categories } from './pages/Admin/Categories'
 import { CategoryForm } from './pages/Admin/CategoryForm'
 import { RequireAdmin } from './components/admin/RequireAdmin'
+import { useRouteToast } from './hooks/useRouteToast'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -31,10 +32,16 @@ function ScrollToTop() {
   return null
 }
 
+function RouteToastBridge() {
+  useRouteToast()
+  return null
+}
+
 function App() {
   return (
     <>
       <ScrollToTop />
+      <RouteToastBridge />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />

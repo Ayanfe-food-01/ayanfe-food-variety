@@ -2,23 +2,26 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { AdminCategoryQuery, Category, CategoryInput } from './category.types.js'
+import type { StoredCategoryImage } from './category.storage.js'
 
 const toCategory = (category: {
   id: string
   name: string
   slug: string
   description: string
-  image: string
+  imageUrl: string
+  imagePublicId: string | null
   isActive: boolean
   createdAt: Date
   updatedAt: Date
   _count?: { products: number }
-}): Category => ({
+}, includeStorage = false): Category => ({
   id: category.id,
   name: category.name,
   slug: category.slug,
   description: category.description,
-  image: category.image,
+  imageUrl: category.imageUrl,
+  ...(includeStorage ? { imagePublicId: category.imagePublicId } : {}),
   isActive: category.isActive,
   createdAt: category.createdAt.toISOString(),
   updatedAt: category.updatedAt.toISOString(),
@@ -31,7 +34,7 @@ export async function getCategories(includeInactive = false): Promise<Category[]
     orderBy: { name: 'asc' },
   })
 
-  return categories.map(toCategory)
+  return categories.map((category) => toCategory(category))
 }
 
 const slugify = (value: string): string =>
@@ -44,7 +47,7 @@ const duplicateCategoryError = (field: 'name' | 'slug') =>
     ? 'A category with this name already exists.'
     : 'A category with this slug already exists.')
 
-export async function createCategory(input: CategoryInput): Promise<Category> {
+export async function createCategory(input: CategoryInput, image?: StoredCategoryImage): Promise<Category> {
   const duplicateName = await prisma.category.findFirst({
     where: { name: { equals: input.name, mode: 'insensitive' } },
     select: { id: true },
@@ -59,9 +62,16 @@ export async function createCategory(input: CategoryInput): Promise<Category> {
 
   try {
     const category = await prisma.category.create({
-      data: { name: input.name, slug, description: input.description, isActive: input.isActive },
+      data: {
+        name: input.name,
+        slug,
+        description: input.description,
+        imageUrl: image?.url ?? '',
+        imagePublicId: image?.publicId,
+        isActive: input.isActive,
+      },
     })
-    return toCategory(category)
+    return toCategory(category, true)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw new HttpError(409, 'A category with this name or slug already exists.')
@@ -96,7 +106,7 @@ export async function listAdminCategories(query: AdminCategoryQuery) {
   ])
 
   return {
-    categories: categories.map(toCategory),
+    categories: categories.map((category) => toCategory(category, true)),
     pagination: {
       page: query.page,
       pageSize: query.pageSize,
@@ -112,10 +122,10 @@ export async function getAdminCategory(id: string): Promise<Category> {
     include: { _count: { select: { products: true } } },
   })
   if (!category) throw new HttpError(404, 'Category not found.')
-  return toCategory(category)
+  return toCategory(category, true)
 }
 
-export async function updateCategory(id: string, input: CategoryInput): Promise<Category> {
+export async function updateCategory(id: string, input: CategoryInput, image?: StoredCategoryImage): Promise<Category> {
   await getAdminCategory(id)
   const duplicateName = await prisma.category.findFirst({
     where: { name: { equals: input.name, mode: 'insensitive' }, NOT: { id } },
@@ -132,10 +142,16 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
   try {
     const category = await prisma.category.update({
       where: { id },
-      data: { name: input.name, slug, description: input.description, isActive: input.isActive },
+      data: {
+        name: input.name,
+        slug,
+        description: input.description,
+        ...(image ? { imageUrl: image.url, imagePublicId: image.publicId } : {}),
+        isActive: input.isActive,
+      },
       include: { _count: { select: { products: true } } },
     })
-    return toCategory(category)
+    return toCategory(category, true)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw duplicateCategoryError('slug')
@@ -154,7 +170,7 @@ export async function updateCategoryStatus(id: string, isActive: boolean): Promi
       data: { isActive },
       include: { _count: { select: { products: true } } },
     })
-    return toCategory(category)
+    return toCategory(category, true)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new HttpError(404, 'Category not found.')
@@ -163,7 +179,7 @@ export async function updateCategoryStatus(id: string, isActive: boolean): Promi
   }
 }
 
-export async function deleteCategory(id: string): Promise<void> {
+export async function deleteCategory(id: string): Promise<string | null> {
   const category = await prisma.category.findUnique({
     where: { id },
     include: { _count: { select: { products: true } } },
@@ -175,6 +191,7 @@ export async function deleteCategory(id: string): Promise<void> {
 
   try {
     await prisma.category.delete({ where: { id } })
+    return category.imagePublicId
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2003' || error.code === 'P2025')) {
       throw new HttpError(409, 'This category is currently in use. Deactivate it instead of deleting it.')

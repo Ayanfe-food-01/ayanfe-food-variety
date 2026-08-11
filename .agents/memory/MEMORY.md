@@ -2,3 +2,4 @@
 - [Unified authentication](unified-auth.md) — public auth is one `/login` experience; signup is customer-only while backend roles decide redirects and access.
 - [API workflow port detection](workflow-port-detection.md) — a healthy Express API can remain reachable while the managed console workflow is marked failed during port detection.
 - [Product image replacement](product-image-replacement.md) — upload new assets before persistence, delete old assets afterward, and clean up replacements on failed updates.
+- [Neon migration advisory locks](neon-migrations.md) — close pooled diagnostic sessions before retrying Prisma deploy when Neon reports a migration advisory-lock timeout.

@@ -1,12 +1,13 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
-const toCategory = (category) => ({
+const toCategory = (category, includeStorage = false) => ({
     id: category.id,
     name: category.name,
     slug: category.slug,
     description: category.description,
-    image: category.image,
+    imageUrl: category.imageUrl,
+    ...(includeStorage ? { imagePublicId: category.imagePublicId } : {}),
     isActive: category.isActive,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
@@ -17,14 +18,14 @@ export async function getCategories(includeInactive = false) {
         where: includeInactive ? undefined : { isActive: true },
         orderBy: { name: 'asc' },
     });
-    return categories.map(toCategory);
+    return categories.map((category) => toCategory(category));
 }
 const slugify = (value) => (value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120).replace(/-+$/, '') || 'category');
 const generatedSlug = (name) => slugify(name);
 const duplicateCategoryError = (field) => new HttpError(409, field === 'name'
     ? 'A category with this name already exists.'
     : 'A category with this slug already exists.');
-export async function createCategory(input) {
+export async function createCategory(input, image) {
     const duplicateName = await prisma.category.findFirst({
         where: { name: { equals: input.name, mode: 'insensitive' } },
         select: { id: true },
@@ -40,9 +41,16 @@ export async function createCategory(input) {
         throw duplicateCategoryError('slug');
     try {
         const category = await prisma.category.create({
-            data: { name: input.name, slug, description: input.description, isActive: input.isActive },
+            data: {
+                name: input.name,
+                slug,
+                description: input.description,
+                imageUrl: image?.url ?? '',
+                imagePublicId: image?.publicId,
+                isActive: input.isActive,
+            },
         });
-        return toCategory(category);
+        return toCategory(category, true);
     }
     catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -75,7 +83,7 @@ export async function listAdminCategories(query) {
         }),
     ]);
     return {
-        categories: categories.map(toCategory),
+        categories: categories.map((category) => toCategory(category, true)),
         pagination: {
             page: query.page,
             pageSize: query.pageSize,
@@ -91,9 +99,9 @@ export async function getAdminCategory(id) {
     });
     if (!category)
         throw new HttpError(404, 'Category not found.');
-    return toCategory(category);
+    return toCategory(category, true);
 }
-export async function updateCategory(id, input) {
+export async function updateCategory(id, input, image) {
     await getAdminCategory(id);
     const duplicateName = await prisma.category.findFirst({
         where: { name: { equals: input.name, mode: 'insensitive' }, NOT: { id } },
@@ -111,10 +119,16 @@ export async function updateCategory(id, input) {
     try {
         const category = await prisma.category.update({
             where: { id },
-            data: { name: input.name, slug, description: input.description, isActive: input.isActive },
+            data: {
+                name: input.name,
+                slug,
+                description: input.description,
+                ...(image ? { imageUrl: image.url, imagePublicId: image.publicId } : {}),
+                isActive: input.isActive,
+            },
             include: { _count: { select: { products: true } } },
         });
-        return toCategory(category);
+        return toCategory(category, true);
     }
     catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -133,7 +147,7 @@ export async function updateCategoryStatus(id, isActive) {
             data: { isActive },
             include: { _count: { select: { products: true } } },
         });
-        return toCategory(category);
+        return toCategory(category, true);
     }
     catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -154,6 +168,7 @@ export async function deleteCategory(id) {
     }
     try {
         await prisma.category.delete({ where: { id } });
+        return category.imagePublicId;
     }
     catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2003' || error.code === 'P2025')) {

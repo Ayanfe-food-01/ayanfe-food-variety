@@ -66,40 +66,31 @@ export async function login(input) {
         throw new HttpError(401, 'Invalid email or password.');
     }
     if (user.role === UserRole.CUSTOMER) {
-        const customerSession = await createCustomerSession(user);
+        const customerSession = await createSession(user, 'customer');
         return { ...customerSession, sessionType: 'customer' };
     }
-    const token = randomBytes(32).toString('base64url');
-    await prisma.$transaction([
-        prisma.adminSession.create({
-            data: {
-                userId: user.id,
-                tokenHash: hashSessionToken(token),
-                expiresAt: new Date(Date.now() + SESSION_TTL_MS),
-            },
-        }),
-        prisma.user.update({
-            where: { id: user.id },
-            data: { lastLoginAt: new Date() },
-        }),
-    ]);
-    return { user: toUser(user), token, sessionType: 'admin' };
+    const adminSession = await createSession(user, 'admin');
+    return { ...adminSession, sessionType: 'admin' };
 }
-async function createCustomerSession(user) {
+async function createSession(user, kind) {
     const token = randomBytes(32).toString('base64url');
-    await prisma.$transaction([
-        prisma.customerSession.create({
-            data: {
-                userId: user.id,
-                tokenHash: hashSessionToken(token),
-                expiresAt: new Date(Date.now() + SESSION_TTL_MS),
-            },
-        }),
-        prisma.user.update({
+    const sessionData = {
+        userId: user.id,
+        tokenHash: hashSessionToken(token),
+        expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+    };
+    await prisma.$transaction(async (transaction) => {
+        if (kind === 'admin') {
+            await transaction.adminSession.create({ data: sessionData });
+        }
+        else {
+            await transaction.customerSession.create({ data: sessionData });
+        }
+        await transaction.user.update({
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
-        }),
-    ]);
+        });
+    });
     return { user: toUser(user), token };
 }
 export async function signupCustomer(input) {
@@ -114,14 +105,14 @@ export async function signupCustomer(input) {
             role: UserRole.CUSTOMER,
         },
     });
-    return createCustomerSession(user);
+    return createSession(user, 'customer');
 }
 export async function loginCustomer(input) {
     const user = await prisma.user.findUnique({ where: { email: input.email } });
     if (!user || user.role !== UserRole.CUSTOMER || !user.passwordHash || !(await verifyPassword(input.password, user.passwordHash))) {
         throw new HttpError(401, 'Invalid email or password.');
     }
-    return createCustomerSession(user);
+    return createSession(user, 'customer');
 }
 export async function getAuthenticatedUser(token) {
     if (!token)

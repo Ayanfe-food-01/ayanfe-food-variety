@@ -3,7 +3,8 @@ export interface Category {
   name: string
   slug: string
   description: string
-  image: string
+  imageUrl: string
+  imagePublicId?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string

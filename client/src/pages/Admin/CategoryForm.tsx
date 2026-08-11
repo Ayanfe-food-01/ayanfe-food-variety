@@ -1,9 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { createAdminCategory, getAdminCategory, updateAdminCategory, type CategoryInput } from '../../services/adminService'
 
 const initialForm: CategoryInput = { name: '', description: '', isActive: true }
+const acceptedImageTypes = ['image/jpeg', 'image/png', 'image/webp']
+const maxImageSize = 5 * 1024 * 1024
 
 export function CategoryForm() {
   const { id } = useParams<{ id: string }>()
@@ -14,14 +16,37 @@ export function CategoryForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldError, setFieldError] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [currentImage, setCurrentImage] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'uploading' | 'saving'>('idle')
 
   useEffect(() => {
     if (!id) return
     getAdminCategory(id)
-      .then((category) => setForm({ name: category.name, description: category.description, isActive: category.isActive }))
+      .then((category) => {
+        setForm({ name: category.name, description: category.description, isActive: category.isActive })
+        setCurrentImage(category.imageUrl || null)
+      })
       .catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Category could not be loaded.'))
       .finally(() => setIsLoading(false))
   }, [id])
+
+  const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!acceptedImageTypes.includes(file.type)) {
+      setImageError('Choose a JPG, PNG, or WEBP image.')
+      return
+    }
+    if (file.size > maxImageSize) {
+      setImageError('Category images must be 5 MB or smaller.')
+      return
+    }
+    setImageError(null)
+    setForm((current) => ({ ...current, image: file }))
+    setImagePreview(URL.createObjectURL(file))
+  }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -32,6 +57,7 @@ export function CategoryForm() {
       setFieldError('Category name is required.')
       return
     }
+    if (imageError) return
     if (name.length > 120) {
       setFieldError('Category name must be 120 characters or fewer.')
       return
@@ -40,6 +66,7 @@ export function CategoryForm() {
     setIsSaving(true)
     try {
       const input = { ...form, name, description }
+      setSaveStatus(form.image ? 'uploading' : 'saving')
       if (id) await updateAdminCategory(id, input)
       else await createAdminCategory(input)
       navigate('/admin/categories', {
@@ -50,6 +77,7 @@ export function CategoryForm() {
       setError(caught instanceof ApiError ? caught.message : `Category could not be ${isEditing ? 'updated' : 'created'}.`)
     } finally {
       setIsSaving(false)
+      setSaveStatus('idle')
     }
   }
 
@@ -62,10 +90,16 @@ export function CategoryForm() {
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <p className="text-sm text-muted">Loading category…</p> : <form className="space-y-5" onSubmit={submit}>
           <label className="block text-sm font-bold text-green-dark">Category name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" aria-invalid={Boolean(fieldError)} value={form.name} onChange={(event) => { setForm({ ...form, name: event.target.value }); setFieldError(null); setError(null) }} maxLength={120} required />{fieldError && <span className="mt-1 block text-xs font-normal text-orange" role="alert">{fieldError}</span>}</label>
-          <label className="block text-sm font-bold text-green-dark">Description <span className="font-normal text-muted">(optional)</span><textarea className="mt-2 min-h-28 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={form.description} onChange={(event) => { setForm({ ...form, description: event.target.value }); setError(null) }} maxLength={500} /><span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/500 characters</span></label>
+           <label className="block text-sm font-bold text-green-dark">Description <span className="font-normal text-muted">(optional)</span><textarea className="mt-2 min-h-28 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={form.description} onChange={(event) => { setForm({ ...form, description: event.target.value }); setError(null) }} maxLength={500} /><span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/500 characters</span></label>
+           <div>
+             <label className="block text-sm font-bold text-green-dark">Category image <span className="font-normal text-muted">(optional)</span><input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold" type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} /><span className="mt-1 block text-xs font-normal text-muted">JPG, PNG, or WEBP up to 5 MB. {isEditing && 'Leave empty to keep the current image.'}</span></label>
+             {imageError && <p className="mt-1 text-xs font-normal text-orange" role="alert">{imageError}</p>}
+             {(imagePreview || currentImage) && <img className="mt-3 size-32 rounded-2xl object-cover" src={imagePreview || currentImage || ''} alt="Category preview" />}
+           </div>
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />Active and available for products</label>
-          {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-          <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-50" type="submit" disabled={isSaving}>{isSaving ? `${isEditing ? 'Saving' : 'Creating'} category…` : isEditing ? 'Save changes' : 'Create category'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/categories">Cancel</Link></div>
+           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
+           {isSaving && <p className="text-sm font-semibold text-muted" role="status">{saveStatus === 'uploading' ? 'Uploading image…' : 'Saving category…'}</p>}
+           <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSaving}>{isSaving ? saveStatus === 'uploading' ? 'Uploading image…' : 'Saving category…' : isEditing ? 'Save changes' : 'Create category'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/categories">Cancel</Link></div>
         </form>}
       </div>
     </>

@@ -32,15 +32,16 @@ enum UserRole {
 }
 
 model Category {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String    @unique @db.VarChar(120)
-  slug        String    @unique @db.VarChar(120)
-  description String    @default("")
-  image       String    @default("")
-  isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  products    Product[]
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String    @unique @db.VarChar(120)
+  slug           String    @unique @db.VarChar(120)
+  description    String    @default("")
+  imageUrl       String    @default("") @map("image_url")
+  imagePublicId  String?   @map("image_public_id") @db.VarChar(255)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  products       Product[]
 
   @@map("categories")
 }

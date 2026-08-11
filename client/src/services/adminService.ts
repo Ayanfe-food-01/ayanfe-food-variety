@@ -167,6 +167,22 @@ interface AdminCategoryResponse {
   data: { category: Category & { createdAt: string; updatedAt: string; productCount: number } }
 }
 
+export interface CategoryInput {
+  name: string
+  description: string
+  isActive: boolean
+  image?: File
+}
+
+const categoryFormDataFor = (input: CategoryInput): FormData => {
+  const formData = new FormData()
+  formData.set('name', input.name)
+  formData.set('description', input.description)
+  formData.set('isActive', String(input.isActive))
+  if (input.image) formData.set('image', input.image)
+  return formData
+}
+
 const adminCategoriesQueryString = (query: AdminCategoriesQuery): string => {
   const params = new URLSearchParams({
     page: String(query.page),
@@ -199,8 +215,7 @@ export async function getAdminCategory(id: string): Promise<Category> {
 export async function createAdminCategory(input: CategoryInput): Promise<Category> {
   const response = await request<AdminCategoryResponse>('/admin/categories', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+    body: categoryFormDataFor(input),
   })
   return response.data.category
 }
@@ -208,8 +223,7 @@ export async function createAdminCategory(input: CategoryInput): Promise<Categor
 export async function updateAdminCategory(id: string, input: CategoryInput): Promise<Category> {
   const response = await request<AdminCategoryResponse>(`/admin/categories/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+    body: categoryFormDataFor(input),
   })
   return response.data.category
 }
@@ -306,12 +320,6 @@ export async function getAdminProducts(query: AdminProductsQuery): Promise<Admin
 export async function getAdminProduct(id: string): Promise<Product> {
   const response = await request<AdminProductResponse>(`/admin/products/${encodeURIComponent(id)}`)
   return toProduct(response.data.product)
-}
-
-export interface CategoryInput {
-  name: string
-  description: string
-  isActive: boolean
 }
 
 export async function createAdminProduct(input: ProductFormInput): Promise<Product> {

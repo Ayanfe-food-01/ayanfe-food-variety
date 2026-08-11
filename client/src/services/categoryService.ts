@@ -5,7 +5,7 @@ interface CategoryApiResponse {
   id: string
   name: string
   slug: string
-  image: string
+  imageUrl: string
   description: string
   isActive: boolean
   createdAt: string
@@ -20,7 +20,7 @@ const toCategory = (category: CategoryApiResponse): Category => ({
   id: category.id,
   name: category.name,
   slug: category.slug,
-  image: category.image,
+  imageUrl: category.imageUrl,
   description: category.description,
   isActive: category.isActive,
 })

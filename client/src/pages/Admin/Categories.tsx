@@ -150,7 +150,7 @@ export function Categories() {
               <tbody className="divide-y divide-line">
                 {categories.map((category) => (
                   <tr key={category.id}>
-                    <td className="px-5 py-4"><p className="font-bold text-green-dark">{category.name}</p><p className="mt-1 max-w-md truncate text-xs text-muted">{category.description || 'No description'}</p><p className="mt-1 text-xs text-muted">{category.slug}</p></td>
+                    <td className="px-5 py-4"><div className="flex min-w-[260px] items-center gap-3"><div className="size-14 shrink-0 overflow-hidden rounded-xl bg-sage">{category.imageUrl && <img className="size-full object-cover" src={category.imageUrl} alt="" />}</div><div className="min-w-0"><p className="font-bold text-green-dark">{category.name}</p><p className="mt-1 max-w-md truncate text-xs text-muted">{category.description || 'No description'}</p><p className="mt-1 text-xs text-muted">{category.slug}</p></div></div></td>
                     <td className="px-5 py-4 text-muted">{category.productCount ?? 0}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${category.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{category.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.createdAt)}</td>

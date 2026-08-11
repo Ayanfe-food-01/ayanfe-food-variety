@@ -33,16 +33,17 @@ import {
   listAdminCategoriesController,
   updateAdminCategoryController,
   updateAdminCategoryStatusController,
+  categoryImageUpload,
 } from '../modules/categories/category.controller.js'
 
 export const adminRoutes = Router()
 
 adminRoutes.use(...requireAdminAccess)
 adminRoutes.get('/categories', listAdminCategoriesController)
-adminRoutes.post('/categories', createAdminCategoryController)
+adminRoutes.post('/categories', categoryImageUpload, createAdminCategoryController)
 adminRoutes.get('/categories/:id', getAdminCategoryController)
 adminRoutes.patch('/categories/:id/status', updateAdminCategoryStatusController)
-adminRoutes.patch('/categories/:id', updateAdminCategoryController)
+adminRoutes.patch('/categories/:id', categoryImageUpload, updateAdminCategoryController)
 adminRoutes.delete('/categories/:id', deleteAdminCategoryController)
 adminRoutes.get('/products', listAdminProductsController)
 adminRoutes.get('/products/:id', getAdminProductController)

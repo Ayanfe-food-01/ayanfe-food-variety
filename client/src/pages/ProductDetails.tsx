@@ -191,10 +191,6 @@ export function ProductDetails() {
                   alt={`${product.name}, ${product.category}`}
                 />
               </div>
-              <figcaption className="flex items-center justify-between gap-4 border-t border-line/70 bg-white px-5 py-4 text-xs text-muted sm:px-6">
-                <span>Carefully sourced for your kitchen</span>
-                <span className="font-bold uppercase tracking-[0.12em] text-orange">{product.category}</span>
-              </figcaption>
             </figure>
 
             <article>

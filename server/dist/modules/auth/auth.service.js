@@ -12,6 +12,7 @@ const toUser = (user) => ({
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone ?? null,
     role: user.role,
 });
 export const authCookie = {

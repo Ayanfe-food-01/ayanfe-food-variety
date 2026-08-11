@@ -1,26 +1,10 @@
-export interface CreateOrderItemInput {
-  productId: string
-  quantity: number
-}
-
-export interface CreateOrderInput {
-  userId?: string
-  customerName: string
-  phone: string
-  whatsapp?: string
-  email?: string
-  deliveryAddress: string
-  city: string
-  note?: string
-  items: CreateOrderItemInput[]
-}
-
 export interface CheckoutInput {
+  checkoutKey: string
   customerName: string
   phone: string
   deliveryAddress: string
   city: string
-  note?: string
+  deliveryInstructions?: string
 }
 
 export interface OrderItemResponse {

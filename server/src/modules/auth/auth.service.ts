@@ -22,10 +22,12 @@ const toUser = (user: {
   name: string
   email: string
   role: UserRole
+  phone?: string | null
 }): AuthenticatedUser => ({
   id: user.id,
   name: user.name,
   email: user.email,
+  phone: user.phone ?? null,
   role: user.role,
 })
 

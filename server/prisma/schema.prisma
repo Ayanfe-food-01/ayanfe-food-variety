@@ -73,6 +73,7 @@ model Product {
 model Order {
   id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderNumber      String      @unique @map("order_number") @db.VarChar(32)
+  checkoutKey      String?     @unique @map("checkout_key") @db.Uuid
   userId           String?     @map("user_id") @db.Uuid
   customerName     String      @map("customer_name") @db.VarChar(180)
   phone            String      @db.VarChar(40)

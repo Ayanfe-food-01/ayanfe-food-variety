@@ -26,6 +26,7 @@ function toCartResponse(cart) {
     const items = cart.items.map((item) => {
         const itemSubtotal = item.product.price.mul(item.quantity);
         const isProductActive = item.product.isActive && item.product.category.isActive;
+        const canUpdateQuantity = isProductActive && item.product.stockQuantity > 0;
         const isAvailable = isProductActive && item.product.stockQuantity >= item.quantity && item.product.stockQuantity > 0;
         const availabilityMessage = !isProductActive
             ? 'This product is no longer available.'
@@ -46,6 +47,8 @@ function toCartResponse(cart) {
             quantity: item.quantity,
             itemSubtotal: itemSubtotal.toString(),
             isAvailable,
+            availableQuantity: item.product.stockQuantity,
+            canUpdateQuantity,
             availabilityMessage,
         };
     });
@@ -53,7 +56,10 @@ function toCartResponse(cart) {
         items,
         subtotal: subtotal.toString(),
         totalQuantity,
-        canCheckout: items.length > 0 && items.every((item) => item.isAvailable),
+        canCheckout: items.length > 0 && items.every((item) => item.isAvailable
+            && Number.isInteger(item.quantity)
+            && item.quantity >= 1
+            && item.quantity <= 1000),
     };
 }
 const assertProductCanFulfill = (product, quantity) => {

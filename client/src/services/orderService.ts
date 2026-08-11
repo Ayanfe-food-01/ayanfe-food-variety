@@ -1,21 +1,5 @@
 import { request } from './api'
 
-export interface CreateOrderItemInput {
-  productId: string
-  quantity: number
-}
-
-export interface CreateOrderInput {
-  customerName: string
-  phone: string
-  whatsapp?: string
-  email?: string
-  deliveryAddress: string
-  city: string
-  note?: string
-  items: CreateOrderItemInput[]
-}
-
 export interface CreatedOrder {
   id: string
   orderNumber: string
@@ -75,15 +59,19 @@ interface CustomerOrderResponse {
 }
 
 export async function checkoutCustomerCart(input: {
+  checkoutKey: string
   customerName: string
   phone: string
   deliveryAddress: string
   city: string
-  note?: string
+  deliveryInstructions?: string
 }): Promise<CreatedOrder> {
-  const response = await request<CustomerOrderResponse>('/orders/checkout', {
+  const response = await request<CustomerOrderResponse>('/orders', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Checkout-Request': '1',
+    },
     body: JSON.stringify(input),
   })
   return response.data.order
@@ -159,26 +147,6 @@ export interface AdminOrderListItem {
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
   createdAt: string
-}
-
-interface CreateOrderResponse {
-  success: true
-  message: string
-  data: {
-    order: CreatedOrder
-  }
-}
-
-export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
-  const response = await request<CreateOrderResponse>('/orders', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  return response.data.order
 }
 
 interface AdminOrdersResponse {

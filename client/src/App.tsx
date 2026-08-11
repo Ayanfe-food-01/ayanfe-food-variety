@@ -5,6 +5,7 @@ import { Shop } from './pages/Shop'
 import { ProductDetails } from './pages/ProductDetails'
 import { Cart } from './pages/Cart'
 import { Checkout } from './pages/Checkout'
+import { OrderConfirmation } from './pages/OrderConfirmation'
 import { CustomerOrders } from './pages/CustomerOrders'
 import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
@@ -48,6 +49,7 @@ function App() {
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
+         <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
         <Route path="/orders" element={<CustomerOrders />} />
         <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
         <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />

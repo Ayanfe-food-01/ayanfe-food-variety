@@ -1,5 +1,5 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, BagIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
@@ -7,8 +7,7 @@ import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart, type CreatedOrder } from '../services/orderService'
-import { getBankDetails, submitPaymentProof, type BankDetails, type PaymentSubmission } from '../services/paymentService'
+import { checkoutCustomerCart } from '../services/orderService'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -20,11 +19,10 @@ const formatPrice = (price: number) =>
 interface CheckoutFormData {
   fullName: string
   phone: string
-  whatsapp: string
   email: string
   address: string
   city: string
-  note: string
+  deliveryInstructions: string
 }
 
 type CheckoutField = keyof CheckoutFormData
@@ -33,11 +31,10 @@ type FormErrors = Partial<Record<CheckoutField, string>>
 const initialForm: CheckoutFormData = {
   fullName: '',
   phone: '',
-  whatsapp: '',
   email: '',
   address: '',
   city: '',
-  note: '',
+  deliveryInstructions: '',
 }
 
 const inputClassName = (hasError: boolean) =>
@@ -54,24 +51,13 @@ function validateForm(form: CheckoutFormData): FormErrors {
   } else if (form.phone.replace(/\D/g, '').length < 7) {
     errors.phone = 'Please enter a valid phone number.'
   }
-  if (form.whatsapp.trim() && form.whatsapp.replace(/\D/g, '').length < 7) {
-    errors.whatsapp = 'Please enter a valid WhatsApp number.'
-  }
-  if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    errors.email = 'Please enter a valid email address.'
-  }
   if (!form.address.trim()) errors.address = 'Please enter your delivery address.'
   if (!form.city.trim()) errors.city = 'Please enter your city or location.'
 
   return errors
 }
 
-interface FieldErrorProps {
-  id: CheckoutField
-  message?: string
-}
-
-function FieldError({ id, message }: FieldErrorProps) {
+function FieldError({ id, message }: { id: CheckoutField; message?: string }) {
   return message ? (
     <p className="mt-1.5 text-xs font-medium text-orange" id={`${id}-error`} role="alert">
       {message}
@@ -102,205 +88,6 @@ function EmptyCheckout() {
   )
 }
 
-function OrderConfirmation({ order }: { order: CreatedOrder }) {
-  const [bank, setBank] = useState<BankDetails | null>(null)
-  const [bankError, setBankError] = useState<string | null>(null)
-  const [senderName, setSenderName] = useState(order.customerName)
-  const [transactionReference, setTransactionReference] = useState('')
-  const [amount, setAmount] = useState(order.total)
-  const [transferredAt, setTransferredAt] = useState('')
-  const [proof, setProof] = useState<File | null>(null)
-  const [proofError, setProofError] = useState<string | null>(null)
-  const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false)
-  const [payment, setPayment] = useState<PaymentSubmission | null>(null)
-
-  useEffect(() => {
-    getBankDetails()
-      .then(setBank)
-      .catch((error: unknown) => {
-        setBankError(error instanceof ApiError ? error.message : 'Bank details could not be loaded.')
-      })
-  }, [])
-
-  const handleProofChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0] ?? null
-    setProofError(null)
-    setPaymentError(null)
-    if (!selectedFile) {
-      setProof(null)
-      return
-    }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile.type)) {
-      setProof(null)
-      setProofError('Please select a JPG, PNG, or WEBP image.')
-      return
-    }
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      setProof(null)
-      setProofError('Receipt images must be 5 MB or smaller.')
-      return
-    }
-    setProof(selectedFile)
-  }
-
-  const handlePaymentSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setPaymentError(null)
-    if (!proof) {
-      setProofError('A payment receipt is required.')
-      return
-    }
-    if (!senderName.trim() || !transactionReference.trim() || !transferredAt) {
-      setPaymentError('Please complete all payment details.')
-      return
-    }
-
-    setIsSubmittingPayment(true)
-    try {
-      const submission = await submitPaymentProof({
-        orderId: order.id,
-        senderName: senderName.trim(),
-        transactionReference: transactionReference.trim(),
-        amount,
-        transferredAt,
-        proof,
-      })
-      setPayment(submission)
-    } catch (error) {
-      setPaymentError(error instanceof ApiError ? error.message : 'We couldn’t submit your payment proof. Please try again.')
-    } finally {
-      setIsSubmittingPayment(false)
-    }
-  }
-
-  return (
-    <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
-      <div className="w-full max-w-2xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
-        <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
-          <span className="text-2xl font-bold" aria-hidden="true">✓</span>
-        </div>
-        <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Order received</p>
-        <h1 className="mt-3 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">
-          Thank you for your order
-        </h1>
-        <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted">
-          Your order has been created. Transfer the exact amount below, then submit your receipt for review.
-        </p>
-
-        <div className="mt-8 grid gap-3 text-left sm:grid-cols-2">
-          <div className="rounded-2xl bg-sage/40 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-orange">Order number</p>
-            <p className="mt-2 break-all text-sm font-bold text-green-dark">{order.orderNumber}</p>
-          </div>
-          <div className="rounded-2xl bg-sage/40 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-orange">Order total</p>
-            <p className="mt-2 text-lg font-bold text-green-dark">{formatPrice(Number(order.total))}</p>
-          </div>
-          <div className="rounded-2xl bg-sage/40 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-orange">Customer</p>
-            <p className="mt-2 text-sm font-bold text-green-dark">{order.customerName}</p>
-            <p className="mt-1 text-xs leading-5 text-muted">{order.phone}</p>
-          </div>
-          <div className="rounded-2xl bg-sage/40 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-orange">Delivering to</p>
-            <p className="mt-2 text-sm font-bold text-green-dark">{order.city}</p>
-            <p className="mt-1 text-xs leading-5 text-muted">{order.deliveryAddress}</p>
-          </div>
-          <div className="rounded-2xl bg-sage/40 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-orange">Payment status</p>
-            <p className="mt-2 text-sm font-bold text-green-dark">{payment ? 'Awaiting verification' : 'Payment pending'}</p>
-            <p className="mt-1 text-xs leading-5 text-muted">
-              {payment ? 'Your receipt is being reviewed.' : 'Payment is not confirmed yet.'}
-            </p>
-          </div>
-        </div>
-
-        {payment ? (
-          <div className="mt-8 rounded-2xl border border-green/25 bg-sage/25 p-5 text-left">
-            <p className="text-sm font-bold text-green-dark">Payment submitted successfully.</p>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Your payment is currently awaiting verification. Your order will only be confirmed after payment has been verified.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="mt-8 rounded-2xl border border-line bg-cream/60 p-5 text-left">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Bank transfer payment</p>
-              {bank ? (
-                <>
-                  <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                    <div><dt className="text-muted">Bank name</dt><dd className="mt-1 font-bold text-green-dark">{bank.bankName}</dd></div>
-                    <div><dt className="text-muted">Account name</dt><dd className="mt-1 font-bold text-green-dark">{bank.accountName}</dd></div>
-                    <div><dt className="text-muted">Account number</dt><dd className="mt-1 font-bold text-green-dark">{bank.accountNumber}</dd></div>
-                  </dl>
-                  <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted">{bank.instructions}</p>
-                </>
-              ) : (
-                <p className="mt-3 text-sm text-muted">{bankError ?? 'Loading bank details…'}</p>
-              )}
-              <div className="mt-4 flex items-center justify-between border-t border-line pt-4 text-sm">
-                <span className="text-muted">Transfer exactly</span>
-                <strong className="text-xl text-green-dark">{formatPrice(Number(order.total))}</strong>
-              </div>
-            </div>
-
-              {bank ? (
-              <form className="mt-6 space-y-4 text-left" onSubmit={handlePaymentSubmit}>
-              <h2 className="text-xl font-bold text-green-dark">I have made the transfer</h2>
-              <label className="block text-sm font-bold text-green-dark">
-                Sender name
-                <input className={inputClassName(false)} value={senderName} onChange={(event) => setSenderName(event.target.value)} />
-              </label>
-              <label className="block text-sm font-bold text-green-dark">
-                Transaction reference
-                <input className={inputClassName(false)} value={transactionReference} onChange={(event) => setTransactionReference(event.target.value)} required />
-              </label>
-              <label className="block text-sm font-bold text-green-dark">
-                Amount transferred
-                <input className={inputClassName(false)} type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required />
-              </label>
-              <label className="block text-sm font-bold text-green-dark">
-                Transfer date and time
-                <input className={inputClassName(false)} type="datetime-local" value={transferredAt} onChange={(event) => setTransferredAt(event.target.value)} required />
-              </label>
-              <label className="block text-sm font-bold text-green-dark">
-                Payment receipt or screenshot <span className="text-orange">*</span>
-                <input className={`${inputClassName(Boolean(proofError))} file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold`} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleProofChange} required />
-                <span className="mt-1 block text-xs font-normal text-muted">JPG, PNG, or WEBP up to 5 MB.</span>
-              </label>
-              {(proofError || paymentError) && <p className="text-sm font-medium text-orange" role="alert">{proofError ?? paymentError}</p>}
-              <button
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-3.5 text-sm font-bold text-cream transition-colors hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50"
-                type="submit"
-                disabled={!proof || isSubmittingPayment}
-              >
-                {isSubmittingPayment ? 'Submitting receipt…' : 'Submit payment proof'} {!isSubmittingPayment && <ArrowRight size={17} />}
-              </button>
-              <p className="text-center text-xs leading-5 text-muted">
-                Your payment receipt will be reviewed. Your order will only be confirmed after payment has been verified.
-              </p>
-            </form>
-              ) : (
-                <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-left" role="alert">
-                  <p className="text-sm font-bold text-orange">Payment details are not configured yet.</p>
-                  <p className="mt-2 text-sm leading-6 text-muted">Please contact the store before transferring funds. Payment proof submission is unavailable until the store publishes valid bank details.</p>
-                </div>
-              )}
-          </>
-        )}
-
-        <Link
-          className="mt-8 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
-          to="/shop"
-        >
-          Continue shopping <ArrowRight size={16} />
-        </Link>
-      </div>
-    </section>
-  )
-}
-
 export function Checkout() {
   const {
     items,
@@ -310,20 +97,25 @@ export function Checkout() {
     isLoading: isCartLoading,
     error: cartError,
     getItemSubtotal,
-    clearCart,
+    refreshCart,
   } = useCart()
   const { user, isLoading: isCustomerAuthLoading, openAuth } = useCustomerAuth()
+  const navigate = useNavigate()
   const [form, setForm] = useState<CheckoutFormData>(initialForm)
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [needsCartReview, setNeedsCartReview] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null)
+  const [checkoutKey] = useState(() => crypto.randomUUID())
 
   useEffect(() => {
     if (!user) return
+    // This effect intentionally hydrates editable local fields from the session profile.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((currentForm) => ({
       ...currentForm,
       fullName: currentForm.fullName || user.name,
+      phone: currentForm.phone || user.phone || '',
       email: user.email,
     }))
   }, [user])
@@ -334,6 +126,7 @@ export function Checkout() {
       setErrors((currentErrors) => ({ ...currentErrors, [field]: undefined }))
     }
     setSubmitError(null)
+    setNeedsCartReview(false)
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -341,9 +134,12 @@ export function Checkout() {
     const nextErrors = validateForm(form)
     setErrors(nextErrors)
     setSubmitError(null)
+    setNeedsCartReview(false)
+
     if (Object.keys(nextErrors).length > 0 || items.length === 0 || isCartLoading || !canCheckout) {
-      if (!canCheckout && items.length > 0) {
-        setSubmitError('One or more cart items are unavailable. Return to your cart to update them before checkout.')
+      if (items.length === 0 || !canCheckout) {
+        setSubmitError('One or more cart items need attention before checkout.')
+        setNeedsCartReview(true)
       }
       return
     }
@@ -351,35 +147,32 @@ export function Checkout() {
     setIsSubmitting(true)
     try {
       const order = await checkoutCustomerCart({
+        checkoutKey,
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
         deliveryAddress: form.address.trim(),
         city: form.city.trim(),
-        note: form.note.trim() || undefined,
+        deliveryInstructions: form.deliveryInstructions.trim() || undefined,
       })
-      clearCart()
-      setCreatedOrder(order)
+
+      // The API removes only the purchased cart rows. Refreshing keeps the
+      // cart badge correct without clearing items added in another tab.
+      await refreshCart()
+      navigate(`/order-confirmation/${encodeURIComponent(order.orderNumber)}`, { replace: true })
     } catch (error) {
-      setSubmitError(
-        error instanceof ApiError
-          ? error.message
-          : 'We couldn’t submit your order. Please try again.',
-      )
+      const message = error instanceof ApiError
+        ? error.message
+        : 'We couldn’t submit your order. Please try again.'
+      setSubmitError(message)
+      if (error instanceof ApiError && (error.status === 400 || error.status === 409)) {
+        setNeedsCartReview(true)
+        void refreshCart().catch(() => {
+          // Keep the API validation message visible if the refresh also fails.
+        })
+      }
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  if (createdOrder) {
-    return (
-      <>
-        <Navbar />
-        <main>
-          <OrderConfirmation order={createdOrder} />
-        </main>
-        <Footer />
-      </>
-    )
   }
 
   if (!isCustomerAuthLoading && !user) {
@@ -412,7 +205,7 @@ export function Checkout() {
     )
   }
 
-  if (isCartLoading) {
+  if (isCustomerAuthLoading || isCartLoading) {
     return (
       <>
         <Navbar />
@@ -431,9 +224,7 @@ export function Checkout() {
     return (
       <>
         <Navbar />
-        <main>
-          <EmptyCheckout />
-        </main>
+        <main><EmptyCheckout /></main>
         <Footer />
       </>
     )
@@ -459,7 +250,7 @@ export function Checkout() {
             </p>
             <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Checkout</h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-              Tell us where to deliver your order and we’ll take care of the next step.
+              Confirm your delivery details and place your order securely.
             </p>
           </div>
         </section>
@@ -467,35 +258,29 @@ export function Checkout() {
         <section className="container py-12 sm:py-16 lg:py-24">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
             <form className="space-y-8" onSubmit={handleSubmit} noValidate>
-              {!canCheckout && (
+              {cartError && (
+                <div className="rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
+                  {cartError}
+                </div>
+              )}
+              {needsCartReview && (
                 <div className="rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
                   <p className="m-0 font-bold">Your cart needs attention before checkout.</p>
-                  <p className="mt-1">{cartError ?? 'One or more items are no longer available in the requested quantity.'}</p>
+                  <p className="mt-1">{submitError ?? 'Refresh your cart and update unavailable items.'}</p>
                   <Link className="mt-3 inline-flex font-bold underline" to="/cart">Return to cart</Link>
                 </div>
               )}
+
               <fieldset className="m-0 border-0 p-0">
                 <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Delivery information</legend>
-                <p className="mt-2 text-sm leading-6 text-muted">We’ll use these details to coordinate your delivery.</p>
+                <p className="mt-2 text-sm leading-6 text-muted">These details are saved with this order as a delivery snapshot.</p>
 
                 <div className="mt-7 grid gap-5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <label className="text-sm font-bold text-green-dark" htmlFor="fullName">
                       Full name <span className="text-orange" aria-hidden="true">*</span>
                     </label>
-                    <input
-                      className={inputClassName(Boolean(errors.fullName))}
-                      id="fullName"
-                      name="fullName"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="e.g. Ayanfe Johnson"
-                      value={form.fullName}
-                      onChange={(event) => updateField('fullName', event.target.value)}
-                      aria-invalid={Boolean(errors.fullName)}
-                      aria-describedby={errors.fullName ? 'fullName-error' : undefined}
-                      required
-                    />
+                    <input className={inputClassName(Boolean(errors.fullName))} id="fullName" name="fullName" type="text" autoComplete="name" value={form.fullName} onChange={(event) => updateField('fullName', event.target.value)} aria-invalid={Boolean(errors.fullName)} aria-describedby={errors.fullName ? 'fullName-error' : undefined} required />
                     <FieldError id="fullName" message={errors.fullName} />
                   </div>
 
@@ -503,55 +288,13 @@ export function Checkout() {
                     <label className="text-sm font-bold text-green-dark" htmlFor="phone">
                       Phone number <span className="text-orange" aria-hidden="true">*</span>
                     </label>
-                    <input
-                      className={inputClassName(Boolean(errors.phone))}
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      autoComplete="tel"
-                      placeholder="e.g. 0812 555 95879"
-                      value={form.phone}
-                      onChange={(event) => updateField('phone', event.target.value)}
-                      aria-invalid={Boolean(errors.phone)}
-                      aria-describedby={errors.phone ? 'phone-error' : undefined}
-                      required
-                    />
+                    <input className={inputClassName(Boolean(errors.phone))} id="phone" name="phone" type="tel" autoComplete="tel" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'phone-error' : undefined} required />
                     <FieldError id="phone" message={errors.phone} />
                   </div>
 
                   <div>
-                    <label className="text-sm font-bold text-green-dark" htmlFor="whatsapp">
-                      WhatsApp number <span className="font-normal text-muted">(optional)</span>
-                    </label>
-                    <input
-                      className={inputClassName(Boolean(errors.whatsapp))}
-                      id="whatsapp"
-                      name="whatsapp"
-                      type="tel"
-                      autoComplete="tel"
-                      placeholder="If different from phone"
-                      value={form.whatsapp}
-                      onChange={(event) => updateField('whatsapp', event.target.value)}
-                      aria-invalid={Boolean(errors.whatsapp)}
-                      aria-describedby={errors.whatsapp ? 'whatsapp-error' : undefined}
-                    />
-                    <FieldError id="whatsapp" message={errors.whatsapp} />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="email">
-                      Account email
-                    </label>
-                    <input
-                      className={inputClassName(Boolean(errors.email))}
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      readOnly
-                      value={form.email}
-                      aria-describedby="email-help"
-                    />
+                    <label className="text-sm font-bold text-green-dark" htmlFor="email">Account email</label>
+                    <input className={inputClassName(false)} id="email" name="email" type="email" readOnly value={form.email} aria-describedby="email-help" />
                     <p className="mt-1.5 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
                   </div>
 
@@ -559,18 +302,7 @@ export function Checkout() {
                     <label className="text-sm font-bold text-green-dark" htmlFor="address">
                       Delivery address <span className="text-orange" aria-hidden="true">*</span>
                     </label>
-                    <textarea
-                      className={`${inputClassName(Boolean(errors.address))} min-h-28 resize-y`}
-                      id="address"
-                      name="address"
-                      autoComplete="street-address"
-                      placeholder="House number, street name, landmark"
-                      value={form.address}
-                      onChange={(event) => updateField('address', event.target.value)}
-                      aria-invalid={Boolean(errors.address)}
-                      aria-describedby={errors.address ? 'address-error' : undefined}
-                      required
-                    />
+                    <textarea className={`${inputClassName(Boolean(errors.address))} min-h-28 resize-y`} id="address" name="address" autoComplete="street-address" placeholder="House number, street name, landmark" value={form.address} onChange={(event) => updateField('address', event.target.value)} aria-invalid={Boolean(errors.address)} aria-describedby={errors.address ? 'address-error' : undefined} required />
                     <FieldError id="address" message={errors.address} />
                   </div>
 
@@ -578,65 +310,43 @@ export function Checkout() {
                     <label className="text-sm font-bold text-green-dark" htmlFor="city">
                       City or location <span className="text-orange" aria-hidden="true">*</span>
                     </label>
-                    <input
-                      className={inputClassName(Boolean(errors.city))}
-                      id="city"
-                      name="city"
-                      type="text"
-                      autoComplete="address-level2"
-                      placeholder="e.g. Ibadan"
-                      value={form.city}
-                      onChange={(event) => updateField('city', event.target.value)}
-                      aria-invalid={Boolean(errors.city)}
-                      aria-describedby={errors.city ? 'city-error' : undefined}
-                      required
-                    />
+                    <input className={inputClassName(Boolean(errors.city))} id="city" name="city" type="text" autoComplete="address-level2" placeholder="e.g. Ibadan" value={form.city} onChange={(event) => updateField('city', event.target.value)} aria-invalid={Boolean(errors.city)} aria-describedby={errors.city ? 'city-error' : undefined} required />
                     <FieldError id="city" message={errors.city} />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="note">
-                      Additional order note <span className="font-normal text-muted">(optional)</span>
+                    <label className="text-sm font-bold text-green-dark" htmlFor="deliveryInstructions">
+                      Delivery instructions <span className="font-normal text-muted">(optional)</span>
                     </label>
-                    <textarea
-                      className={`${inputClassName(false)} min-h-24 resize-y`}
-                      id="note"
-                      name="note"
-                      placeholder="Anything we should know about your delivery?"
-                      value={form.note}
-                      onChange={(event) => updateField('note', event.target.value)}
-                    />
+                    <textarea className={`${inputClassName(false)} min-h-24 resize-y`} id="deliveryInstructions" name="deliveryInstructions" placeholder="Landmark, preferred delivery time, or other helpful details" value={form.deliveryInstructions} onChange={(event) => updateField('deliveryInstructions', event.target.value)} />
                   </div>
                 </div>
               </fieldset>
 
               <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment</legend>
-                 <p className="mt-2 text-sm leading-6 text-muted">You’ll receive bank-transfer instructions after your order is created.</p>
+                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment status</legend>
                 <div className="mt-5 flex items-start gap-3 rounded-2xl border border-green/25 bg-sage/25 p-4">
                   <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-4 border-green bg-cream" aria-hidden="true" />
                   <div>
-                    <p className="m-0 text-sm font-bold text-green-dark">Manual bank transfer</p>
-                    <p className="mt-1 text-xs leading-5 text-muted">Your order stays pending until a receipt is reviewed.</p>
+                    <p className="m-0 text-sm font-bold text-green-dark">Pending after order creation</p>
+                    <p className="mt-1 text-xs leading-5 text-muted">Payment is handled separately and is not confirmed by placing this order.</p>
                   </div>
                 </div>
               </fieldset>
 
               <div className="mt-5">
-                 <button
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-4 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark focus:outline-none focus:ring-2 focus:ring-green focus:ring-offset-2"
+                <button
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-4 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark focus:outline-none focus:ring-2 focus:ring-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   type="submit"
-                   disabled={isSubmitting || !canCheckout}
+                  disabled={isSubmitting || !canCheckout}
                 >
-                    {isSubmitting ? 'Creating order…' : 'Create order & view bank details'} {!isSubmitting && <ArrowRight size={17} />}
+                  {isSubmitting ? 'Processing order…' : 'Place order'} {!isSubmitting && <ArrowRight size={17} />}
                 </button>
-                 {submitError && (
-                   <p className="mt-3 text-center text-sm font-medium text-orange" role="alert">
-                     {submitError}
-                   </p>
+                {submitError && !needsCartReview && (
+                  <p className="mt-3 text-center text-sm font-medium text-orange" role="alert">{submitError}</p>
                 )}
                 <p className="mt-3 text-center text-xs text-muted">
-                    Your cart will clear after the order is created; payment can be submitted and reviewed afterward.
+                  Prices and totals are confirmed by the server when you place the order.
                 </p>
               </div>
             </form>
@@ -650,10 +360,12 @@ export function Checkout() {
                 {items.map((item) => (
                   <div className="flex gap-3" key={item.id}>
                     <div className="relative shrink-0">
-                      <img className="size-16 rounded-xl object-cover" src={item.image} alt={item.name} />
-                      <span className="absolute -right-2 -top-2 grid min-w-5 place-items-center rounded-full bg-orange px-1.5 py-0.5 text-[10px] font-bold text-cream">
-                        {item.quantity}
-                      </span>
+                      {item.image ? (
+                        <img className="size-16 rounded-xl object-cover" src={item.image} alt={item.name} />
+                      ) : (
+                        <div className="grid size-16 place-items-center rounded-xl bg-sage text-center text-[10px] text-muted">No image</div>
+                      )}
+                      <span className="absolute -right-2 -top-2 grid min-w-5 place-items-center rounded-full bg-orange px-1.5 py-0.5 text-[10px] font-bold text-cream">{item.quantity}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="m-0 truncate text-sm font-bold text-green-dark">{item.name}</p>
@@ -664,14 +376,8 @@ export function Checkout() {
                 ))}
               </div>
               <div className="my-6 space-y-3 border-y border-line py-5 text-sm">
-                <div className="flex justify-between gap-4 text-muted">
-                  <span>Items</span>
-                  <span>{totalQuantity}</span>
-                </div>
-                <div className="flex justify-between gap-4 text-muted">
-                  <span>Subtotal</span>
-                  <span className="font-bold text-green-dark">{formatPrice(subtotal)}</span>
-                </div>
+                <div className="flex justify-between gap-4 text-muted"><span>Items</span><span>{totalQuantity}</span></div>
+                <div className="flex justify-between gap-4 text-muted"><span>Subtotal</span><span className="font-bold text-green-dark">{formatPrice(subtotal)}</span></div>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>

@@ -1,20 +1,8 @@
 import { HttpError } from '../../utils/http.js';
-import { checkoutCustomerCart, createOrder, getOrderById } from './order.service.js';
-import { validateCheckoutInput, validateCreateOrderInput, validateOrderId } from './order.validator.js';
+import { checkoutCustomerCart, getOrderById } from './order.service.js';
+import { validateCheckoutInput, validateOrderId } from './order.validator.js';
 export const checkoutController = async (request, response) => {
     const order = await checkoutCustomerCart(request.authenticatedUser.id, validateCheckoutInput(request.body));
-    response.status(201).json({
-        success: true,
-        message: 'Order created successfully',
-        data: { order },
-    });
-};
-export const createOrderController = async (request, response) => {
-    const input = validateCreateOrderInput(request.body);
-    const order = await createOrder({
-        ...input,
-        userId: request.authenticatedUser?.role === 'CUSTOMER' ? request.authenticatedUser.id : undefined,
-    });
     response.status(201).json({
         success: true,
         message: 'Order created successfully',

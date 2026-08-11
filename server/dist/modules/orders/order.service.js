@@ -77,177 +77,172 @@ const orderInclude = {
         },
     },
 };
-export async function createOrder(input) {
-    return prisma.$transaction(async (transaction) => {
-        const productIds = input.items.map((item) => item.productId);
-        const products = await transaction.product.findMany({
-            where: {
-                id: { in: productIds },
-                isActive: true,
-                category: { isActive: true },
-            },
-        });
-        const productsById = new Map(products.map((product) => [product.id, product]));
-        const unavailableProductIds = productIds.filter((productId) => !productsById.has(productId));
-        if (unavailableProductIds.length > 0) {
-            throw new HttpError(400, 'One or more products are unavailable');
-        }
-        const orderItems = input.items.map((item) => {
-            const product = productsById.get(item.productId);
-            if (!product) {
-                throw new Error('Product lookup failed');
-            }
-            const subtotal = product.price.mul(item.quantity);
-            return {
-                productId: product.id,
-                productName: product.name,
-                unitPrice: product.price,
-                quantity: item.quantity,
-                subtotal,
-            };
-        });
-        const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
-        const orderNumber = await nextOrderNumber(transaction);
-        const order = await transaction.order.create({
-            data: {
-                orderNumber,
-                userId: input.userId,
-                customerName: input.customerName,
-                phone: input.phone,
-                whatsapp: input.whatsapp,
-                email: input.email,
-                deliveryAddress: input.deliveryAddress,
-                city: input.city,
-                note: input.note,
-                subtotal,
-                deliveryFee: new Prisma.Decimal(0),
-                total: subtotal,
-                paymentStatus: PaymentStatus.PENDING,
-                orderStatus: OrderStatus.PENDING,
-                orderItems: {
-                    create: orderItems,
-                },
-            },
-            include: orderInclude,
-        });
-        for (const item of [...input.items].sort((left, right) => left.productId.localeCompare(right.productId))) {
-            await deductStock(transaction, {
-                productId: item.productId,
-                quantity: item.quantity,
-                orderId: order.id,
-                orderNumber,
-            });
-        }
-        await transaction.order.update({
-            where: { id: order.id },
-            data: { stockDeductedAt: new Date() },
-        });
-        if (input.userId) {
-            await transaction.user.update({
-                where: { id: input.userId },
-                data: { phone: input.phone },
-            });
-        }
-        return toOrderResponse(order);
-    });
-}
 const nextOrderNumber = async (transaction) => {
     const result = await transaction.$queryRaw(Prisma.sql `SELECT nextval('orders_order_number_seq')`);
     const sequence = Number(result[0]?.nextval);
     return `AFV-${new Date().getUTCFullYear()}-${String(sequence).padStart(6, '0')}`;
 };
 export async function checkoutCustomerCart(userId, input) {
-    const result = await prisma.$transaction(async (transaction) => {
-        const user = await transaction.user.findUnique({
-            where: { id: userId },
-            select: { id: true, email: true, role: true },
-        });
-        if (!user || user.role !== 'CUSTOMER')
-            throw new HttpError(403, 'Customer access is required.');
-        const cart = await transaction.customerCart.findUnique({
-            where: { userId },
-            include: {
-                items: {
-                    include: { product: { include: { category: true } } },
-                    orderBy: { createdAt: 'asc' },
+    let result;
+    try {
+        result = await prisma.$transaction(async (transaction) => {
+            const existingOrder = await transaction.order.findUnique({
+                where: { checkoutKey: input.checkoutKey },
+                include: orderInclude,
+            });
+            if (existingOrder) {
+                if (existingOrder.userId !== userId) {
+                    throw new HttpError(409, 'This checkout request cannot be reused.');
+                }
+                return { order: existingOrder, created: false };
+            }
+            const user = await transaction.user.findUnique({
+                where: { id: userId },
+                select: { id: true, email: true, role: true },
+            });
+            if (!user || user.role !== 'CUSTOMER')
+                throw new HttpError(403, 'Customer access is required.');
+            const cartReference = await transaction.customerCart.findUnique({
+                where: { userId: user.id },
+                select: { id: true },
+            });
+            if (!cartReference)
+                throw new HttpError(400, 'Your cart is empty.');
+            // Serialize checkout against cart changes and then read the cart again.
+            await transaction.$queryRaw(Prisma.sql `SELECT id FROM customer_carts WHERE id = ${cartReference.id}::uuid FOR UPDATE`);
+            const cart = await transaction.customerCart.findUnique({
+                where: { id: cartReference.id },
+                include: {
+                    items: {
+                        select: { id: true, productId: true, quantity: true, createdAt: true },
+                        orderBy: { createdAt: 'asc' },
+                    },
                 },
-            },
+            });
+            if (!cart || cart.items.length === 0)
+                throw new HttpError(400, 'Your cart is empty.');
+            const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000);
+            if (invalidQuantity)
+                throw new HttpError(400, 'One or more cart quantities are invalid.');
+            // Cart prices and product metadata are never used as order authorities.
+            const products = await transaction.product.findMany({
+                where: { id: { in: cart.items.map((item) => item.productId) } },
+                select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    isActive: true,
+                    stockQuantity: true,
+                    category: { select: { isActive: true } },
+                },
+            });
+            const productsById = new Map(products.map((product) => [product.id, product]));
+            const unavailableMessages = cart.items.flatMap((item) => {
+                const product = productsById.get(item.productId);
+                if (!product)
+                    return [`Product ${item.productId} no longer exists.`];
+                if (!product.isActive || !product.category.isActive)
+                    return [`${product.name} is no longer available.`];
+                if (product.stockQuantity < item.quantity) {
+                    return [`${product.name}: only ${product.stockQuantity} unit(s) currently available.`];
+                }
+                return [];
+            });
+            if (unavailableMessages.length > 0) {
+                throw new HttpError(409, unavailableMessages.join(' '));
+            }
+            const orderItems = cart.items.map((item) => {
+                const product = productsById.get(item.productId);
+                if (!product)
+                    throw new HttpError(409, 'One or more products are no longer available.');
+                const subtotal = product.price.mul(item.quantity);
+                return {
+                    productId: product.id,
+                    productName: product.name,
+                    unitPrice: product.price,
+                    quantity: item.quantity,
+                    subtotal,
+                };
+            });
+            const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
+            const deliveryFee = new Prisma.Decimal(0);
+            const order = await transaction.order.create({
+                data: {
+                    checkoutKey: input.checkoutKey,
+                    orderNumber: await nextOrderNumber(transaction),
+                    userId: user.id,
+                    customerName: input.customerName,
+                    phone: input.phone,
+                    email: user.email,
+                    deliveryAddress: input.deliveryAddress,
+                    city: input.city,
+                    note: input.deliveryInstructions,
+                    subtotal,
+                    deliveryFee,
+                    total: subtotal.add(deliveryFee),
+                    paymentStatus: PaymentStatus.PENDING,
+                    orderStatus: OrderStatus.PENDING,
+                    orderItems: { create: orderItems },
+                },
+                include: orderInclude,
+            });
+            for (const item of [...cart.items].sort((left, right) => left.productId.localeCompare(right.productId))) {
+                const product = productsById.get(item.productId);
+                try {
+                    await deductStock(transaction, {
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        orderId: order.id,
+                        orderNumber: order.orderNumber,
+                    });
+                }
+                catch (error) {
+                    if (error instanceof HttpError && (error.statusCode === 404 || error.statusCode === 409)) {
+                        throw new HttpError(error.statusCode, product ? `${product.name}: ${error.message}` : error.message);
+                    }
+                    throw error;
+                }
+            }
+            await transaction.order.update({
+                where: { id: order.id },
+                data: { stockDeductedAt: new Date() },
+            });
+            await transaction.customerCartItem.deleteMany({
+                where: { id: { in: cart.items.map((item) => item.id) }, cartId: cart.id },
+            });
+            return { order, created: true };
         });
-        if (!cart || cart.items.length === 0)
-            throw new HttpError(400, 'Your cart is empty.');
-        const unavailable = cart.items.filter((item) => !item.product.isActive
-            || !item.product.category.isActive
-            || item.product.stockQuantity === 0
-            || item.product.stockQuantity < item.quantity);
-        if (unavailable.length > 0)
-            throw new HttpError(409, 'One or more cart products are no longer available or do not have enough stock.');
-        const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000);
-        if (invalidQuantity)
-            throw new HttpError(400, 'One or more cart quantities are invalid.');
-        const orderItems = cart.items.map((item) => {
-            const subtotal = item.product.price.mul(item.quantity);
-            return {
-                productId: item.product.id,
-                productName: item.product.name,
-                unitPrice: item.product.price,
-                quantity: item.quantity,
-                subtotal,
-            };
-        });
-        const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
-        const deliveryFee = new Prisma.Decimal(0);
-        const order = await transaction.order.create({
-            data: {
-                orderNumber: await nextOrderNumber(transaction),
-                userId: user.id,
-                customerName: input.customerName,
-                phone: input.phone,
-                email: user.email,
-                deliveryAddress: input.deliveryAddress,
-                city: input.city,
-                note: input.note,
-                subtotal,
-                deliveryFee,
-                total: subtotal.add(deliveryFee),
-                paymentStatus: PaymentStatus.PENDING,
-                orderStatus: OrderStatus.PENDING,
-                orderItems: { create: orderItems },
-            },
+    }
+    catch (error) {
+        const isCheckoutKeyConflict = error instanceof Prisma.PrismaClientKnownRequestError
+            && error.code === 'P2002'
+            && String(error.meta?.target ?? '').includes('checkout_key');
+        if (!isCheckoutKeyConflict)
+            throw error;
+        const existingOrder = await prisma.order.findUnique({
+            where: { checkoutKey: input.checkoutKey },
             include: orderInclude,
         });
-        for (const item of [...cart.items].sort((left, right) => left.productId.localeCompare(right.productId))) {
-            await deductStock(transaction, {
-                productId: item.productId,
-                quantity: item.quantity,
-                orderId: order.id,
-                orderNumber: order.orderNumber,
-            });
+        if (!existingOrder || existingOrder.userId !== userId) {
+            throw new HttpError(409, 'This checkout request cannot be reused.');
         }
-        await transaction.order.update({
-            where: { id: order.id },
-            data: { stockDeductedAt: new Date() },
-        });
-        await transaction.user.update({ where: { id: user.id }, data: { phone: input.phone } });
-        await transaction.customerCartItem.deleteMany({ where: { cartId: cart.id } });
-        return order;
-    });
-    const bank = await prisma.paymentSettings.findFirst({
-        where: { singletonKey: 'default', isActive: true },
-        select: { bankName: true, accountName: true, accountNumber: true, instructions: true },
-    });
-    void notifyOrderCreated({
-        orderNumber: result.orderNumber,
-        customerName: result.customerName,
-        customerEmail: result.email,
-        total: result.total.toString(),
-        items: result.orderItems.map((item) => ({
-            name: item.productName,
-            quantity: item.quantity,
-            subtotal: item.subtotal.toString(),
-        })),
-        bank,
-    }).catch((error) => console.error('Order confirmation email failed', error));
-    return toOrderResponse(result);
+        return toOrderResponse(existingOrder);
+    }
+    if (result.created) {
+        void notifyOrderCreated({
+            orderNumber: result.order.orderNumber,
+            customerName: result.order.customerName,
+            customerEmail: result.order.email,
+            total: result.order.total.toString(),
+            items: result.order.orderItems.map((item) => ({
+                name: item.productName,
+                quantity: item.quantity,
+                subtotal: item.subtotal.toString(),
+            })),
+            bank: null,
+        }).catch((error) => console.error('Order confirmation email failed', error));
+    }
+    return toOrderResponse(result.order);
 }
 export async function listCustomerOrders(userId) {
     const orders = await prisma.order.findMany({

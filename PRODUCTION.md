@@ -10,7 +10,7 @@ This project is split into two services:
 ## 1. Neon
 
 Create a production Neon PostgreSQL database and copy its pooled or direct
-connection string into Render as `DATABASE_URL`. Keep `sslmode=require`.
+connection string into Render as `NEON_DATABASE_URL`. Keep `sslmode=require`.
 
 The Render blueprint runs `npm run prisma:migrate` before each deploy. This
 applies the committed Prisma migrations to the production database. Seed the
@@ -50,7 +50,7 @@ enter these settings manually:
 Required Render values:
 
 - `NODE_ENV=production`
-- `DATABASE_URL`
+- `NEON_DATABASE_URL`
 - `SESSION_SECRET` (at least 32 characters)
 - `CORS_ORIGIN` set to the exact Vercel origin
 - `PUBLIC_APP_URL` set to the Vercel origin

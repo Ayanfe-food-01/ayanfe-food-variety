@@ -17,7 +17,7 @@ const formatPrice = (price: number) =>
 
 export function ProductCard({ product, showDetails = false }: ProductCardProps) {
   const [imageError, setImageError] = useState(false)
-  const { addToCart } = useCart()
+  const { addToCart, pendingItemIds } = useCart()
   const { user, openAuth } = useCustomerAuth()
   const { showToast } = useToast()
 
@@ -37,6 +37,8 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
     }
     addProductToCart()
   }
+
+  const isAdding = pendingItemIds.includes(product.id)
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-line bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green/10">
@@ -71,9 +73,10 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
               fullWidth={!showDetails}
               variant="outline"
               onClick={handleAddToCart}
+              disabled={isAdding}
               aria-label={`Add ${product.name} to cart`}
             >
-              <BagIcon size={16} /> Add to cart
+              <BagIcon size={16} /> {isAdding ? 'Adding…' : 'Add to cart'}
             </Button>
           ) : (
             <p className={`${showDetails ? 'flex-1' : 'w-full'} rounded-xl bg-sage/50 py-3 text-center text-sm font-bold text-muted`}>Out of stock</p>

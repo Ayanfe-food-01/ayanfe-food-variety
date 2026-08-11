@@ -22,7 +22,7 @@ export function ProductDetails() {
   const [isNotFound, setIsNotFound] = useState(false)
   const [hasError, setHasError] = useState(false)
   const [imageError, setImageError] = useState(false)
-  const { addToCart } = useCart()
+  const { addToCart, pendingItemIds } = useCart()
   const { user, openAuth } = useCustomerAuth()
   const { showToast } = useToast()
 
@@ -99,6 +99,8 @@ export function ProductDetails() {
     }
     addProductToCart()
   }
+
+  const isAdding = product ? pendingItemIds.includes(product.id) : false
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -265,10 +267,10 @@ export function ProductDetails() {
                   className="h-12 flex-1 px-6 shadow-lg shadow-green/15 hover:-translate-y-0.5"
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={!product.isAvailable}
+                  disabled={!product.isAvailable || isAdding}
                   aria-label={`Add ${quantity} ${product.name} to cart`}
                 >
-                  <BagIcon size={18} /> {product.isAvailable ? 'Add to cart' : 'Out of stock'}
+                  <BagIcon size={18} /> {isAdding ? 'Adding…' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
                 </Button>
               </div>
               <p className="mt-3 text-xs text-muted">

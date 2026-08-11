@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
-import type { CartItemInput, CustomerCartItemResponse } from './cart.types.js'
+import type { CartItemInput, CustomerCartResponse } from './cart.types.js'
 
 const cartInclude = {
   items: {
@@ -23,10 +23,27 @@ const cartInclude = {
   },
 } satisfies Prisma.CustomerCartInclude
 
-function toCartItems(cart: Prisma.CustomerCartGetPayload<{ include: typeof cartInclude }>): CustomerCartItemResponse[] {
-  return cart.items
-    .filter((item) => item.product.isActive && item.product.category.isActive)
-    .map((item) => ({
+function toCartResponse(cart: Prisma.CustomerCartGetPayload<{ include: typeof cartInclude }>): CustomerCartResponse {
+  let subtotal = new Prisma.Decimal(0)
+  let totalQuantity = 0
+
+  const items = cart.items.map((item) => {
+    const itemSubtotal = item.product.price.mul(item.quantity)
+    const isProductActive = item.product.isActive && item.product.category.isActive
+    const canUpdateQuantity = isProductActive && item.product.stockQuantity > 0
+    const isAvailable = isProductActive && item.product.stockQuantity >= item.quantity && item.product.stockQuantity > 0
+    const availabilityMessage = !isProductActive
+      ? 'This product is no longer available.'
+      : item.product.stockQuantity === 0
+        ? 'This product is out of stock.'
+        : item.product.stockQuantity < item.quantity
+          ? `Only ${item.product.stockQuantity} unit(s) are currently available.`
+          : null
+
+    subtotal = subtotal.add(itemSubtotal)
+    totalQuantity += item.quantity
+
+    return {
       id: item.id,
       productId: item.product.id,
       name: item.product.name,
@@ -34,7 +51,25 @@ function toCartItems(cart: Prisma.CustomerCartGetPayload<{ include: typeof cartI
       price: item.product.price.toString(),
       image: item.product.image,
       quantity: item.quantity,
-    }))
+      itemSubtotal: itemSubtotal.toString(),
+      isAvailable,
+      availableQuantity: item.product.stockQuantity,
+      canUpdateQuantity,
+      availabilityMessage,
+    }
+  })
+
+  return {
+    items,
+    subtotal: subtotal.toString(),
+    totalQuantity,
+    canCheckout: items.length > 0 && items.every((item) =>
+      item.isAvailable
+      && Number.isInteger(item.quantity)
+      && item.quantity >= 1
+      && item.quantity <= 1000,
+    ),
+  }
 }
 
 const assertProductCanFulfill = (
@@ -63,14 +98,14 @@ async function getOrCreateCart(userId: string) {
   })
 }
 
-export async function getCustomerCart(userId: string): Promise<CustomerCartItemResponse[]> {
-  return toCartItems(await getCartForUser(userId))
+export async function getCustomerCart(userId: string): Promise<CustomerCartResponse> {
+  return toCartResponse(await getCartForUser(userId))
 }
 
 export async function addCustomerCartItem(
   userId: string,
   item: CartItemInput,
-): Promise<CustomerCartItemResponse[]> {
+): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
     const product = await transaction.product.findUnique({
       where: { id: item.productId },
@@ -102,14 +137,14 @@ export async function addCustomerCartItem(
     }
 
     return transaction.customerCart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude })
-  }).then(toCartItems)
+  }).then(toCartResponse)
 }
 
 export async function updateCustomerCartItem(
   userId: string,
   cartItemId: string,
   quantity: number,
-): Promise<CustomerCartItemResponse[]> {
+): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
     const item = await transaction.customerCartItem.findFirst({
       where: { id: cartItemId, cart: { userId } },
@@ -126,23 +161,36 @@ export async function updateCustomerCartItem(
       where: { id: item.cartId },
       include: cartInclude,
     })
-  }).then(toCartItems)
+  }).then(toCartResponse)
 }
 
-export async function removeCustomerCartItem(userId: string, cartItemId: string): Promise<void> {
-  const result = await prisma.customerCartItem.deleteMany({
-    where: { id: cartItemId, cart: { userId } },
+export async function removeCustomerCartItem(userId: string, cartItemId: string): Promise<CustomerCartResponse> {
+  return prisma.$transaction(async (transaction) => {
+    const result = await transaction.customerCartItem.deleteMany({
+      where: { id: cartItemId, cart: { userId } },
+    })
+    if (result.count !== 1) throw new HttpError(404, 'Cart item not found.')
+    return transaction.customerCart.findUniqueOrThrow({
+      where: { userId },
+      include: cartInclude,
+    })
+  }).then(toCartResponse)
+}
+
+export async function clearCustomerCart(userId: string): Promise<CustomerCartResponse> {
+  const cart = await prisma.customerCart.upsert({
+    where: { userId },
+    create: { userId },
+    update: {},
+    include: cartInclude,
   })
-  if (result.count !== 1) throw new HttpError(404, 'Cart item not found.')
-}
+  if (cart.items.length === 0) return toCartResponse(cart)
 
-export async function clearCustomerCart(userId: string): Promise<void> {
-  const cart = await prisma.customerCart.findUnique({ where: { userId }, select: { id: true } })
-  if (!cart) return
   await prisma.customerCartItem.deleteMany({ where: { cartId: cart.id } })
+  return toCartResponse(await getCartForUser(userId))
 }
 
-export async function mergeCustomerCart(userId: string, items: CartItemInput[]): Promise<CustomerCartItemResponse[]> {
+export async function mergeCustomerCart(userId: string, items: CartItemInput[]): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
     const cart = await transaction.customerCart.upsert({
       where: { userId },
@@ -172,10 +220,10 @@ export async function mergeCustomerCart(userId: string, items: CartItemInput[]):
       }
     }
     return transaction.customerCart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude })
-  }).then(toCartItems)
+  }).then(toCartResponse)
 }
 
-export async function replaceCustomerCart(userId: string, items: CartItemInput[]): Promise<CustomerCartItemResponse[]> {
+export async function replaceCustomerCart(userId: string, items: CartItemInput[]): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
     const cart = await transaction.customerCart.upsert({
       where: { userId },
@@ -196,5 +244,5 @@ export async function replaceCustomerCart(userId: string, items: CartItemInput[]
       })
     }
     return transaction.customerCart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude })
-  }).then(toCartItems)
+  }).then(toCartResponse)
 }

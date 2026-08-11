@@ -131,6 +131,7 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderRespons
       where: {
         id: { in: productIds },
         isActive: true,
+        category: { isActive: true },
       },
     })
     const productsById = new Map(products.map((product) => [product.id, product]))
@@ -228,14 +229,19 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       where: { userId },
       include: {
         items: {
-          include: { product: true },
+          include: { product: { include: { category: true } } },
           orderBy: { createdAt: 'asc' },
         },
       },
     })
     if (!cart || cart.items.length === 0) throw new HttpError(400, 'Your cart is empty.')
 
-    const unavailable = cart.items.filter((item) => !item.product.isActive || item.product.stockQuantity === 0 || item.product.stockQuantity < item.quantity)
+    const unavailable = cart.items.filter((item) =>
+      !item.product.isActive
+      || !item.product.category.isActive
+      || item.product.stockQuantity === 0
+      || item.product.stockQuantity < item.quantity,
+    )
     if (unavailable.length > 0) throw new HttpError(409, 'One or more cart products are no longer available or do not have enough stock.')
     const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000)
     if (invalidQuantity) throw new HttpError(400, 'One or more cart quantities are invalid.')

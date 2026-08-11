@@ -302,7 +302,16 @@ function OrderConfirmation({ order }: { order: CreatedOrder }) {
 }
 
 export function Checkout() {
-  const { items, subtotal, totalQuantity, getItemSubtotal, clearCart } = useCart()
+  const {
+    items,
+    subtotal,
+    totalQuantity,
+    canCheckout,
+    isLoading: isCartLoading,
+    error: cartError,
+    getItemSubtotal,
+    clearCart,
+  } = useCart()
   const { user, isLoading: isCustomerAuthLoading, openAuth } = useCustomerAuth()
   const [form, setForm] = useState<CheckoutFormData>(initialForm)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -332,7 +341,12 @@ export function Checkout() {
     const nextErrors = validateForm(form)
     setErrors(nextErrors)
     setSubmitError(null)
-    if (Object.keys(nextErrors).length > 0 || items.length === 0) return
+    if (Object.keys(nextErrors).length > 0 || items.length === 0 || isCartLoading || !canCheckout) {
+      if (!canCheckout && items.length > 0) {
+        setSubmitError('One or more cart items are unavailable. Return to your cart to update them before checkout.')
+      }
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -398,6 +412,21 @@ export function Checkout() {
     )
   }
 
+  if (isCartLoading) {
+    return (
+      <>
+        <Navbar />
+        <main className="container py-16 sm:py-24" aria-label="Loading checkout">
+          <div className="animate-pulse">
+            <div className="h-12 w-48 rounded bg-sage" />
+            <div className="mt-10 h-64 rounded-2xl bg-sage" />
+          </div>
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
   if (items.length === 0) {
     return (
       <>
@@ -438,6 +467,13 @@ export function Checkout() {
         <section className="container py-12 sm:py-16 lg:py-24">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
             <form className="space-y-8" onSubmit={handleSubmit} noValidate>
+              {!canCheckout && (
+                <div className="rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
+                  <p className="m-0 font-bold">Your cart needs attention before checkout.</p>
+                  <p className="mt-1">{cartError ?? 'One or more items are no longer available in the requested quantity.'}</p>
+                  <Link className="mt-3 inline-flex font-bold underline" to="/cart">Return to cart</Link>
+                </div>
+              )}
               <fieldset className="m-0 border-0 p-0">
                 <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Delivery information</legend>
                 <p className="mt-2 text-sm leading-6 text-muted">We’ll use these details to coordinate your delivery.</p>
@@ -590,7 +626,7 @@ export function Checkout() {
                  <button
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-4 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark focus:outline-none focus:ring-2 focus:ring-green focus:ring-offset-2"
                   type="submit"
-                   disabled={isSubmitting}
+                   disabled={isSubmitting || !canCheckout}
                 >
                     {isSubmitting ? 'Creating order…' : 'Create order & view bank details'} {!isSubmitting && <ArrowRight size={17} />}
                 </button>

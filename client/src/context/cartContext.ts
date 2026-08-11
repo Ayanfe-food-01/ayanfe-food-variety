@@ -9,17 +9,28 @@ export interface CartItem {
   price: Product['price']
   image: Product['image']
   quantity: number
+  itemSubtotal: number
+  isAvailable: boolean
+  availableQuantity?: number
+  canUpdateQuantity?: boolean
+  availabilityMessage: string | null
 }
 
 export interface CartContextValue {
   items: CartItem[]
   totalQuantity: number
   subtotal: number
+  canCheckout: boolean
+  isLoading: boolean
+  error: string | null
+  pendingItemIds: string[]
+  isClearing: boolean
   addToCart: (product: Product, quantity?: number) => Promise<void>
-  increaseQuantity: (productId: string) => void
-  decreaseQuantity: (productId: string) => void
-  removeFromCart: (productId: string) => void
-  clearCart: () => void
+  increaseQuantity: (productId: string) => Promise<void>
+  decreaseQuantity: (productId: string) => Promise<void>
+  removeFromCart: (productId: string) => Promise<void>
+  clearCart: () => Promise<void>
+  refreshCart: () => Promise<void>
   getItemSubtotal: (item: CartItem) => number
 }
 

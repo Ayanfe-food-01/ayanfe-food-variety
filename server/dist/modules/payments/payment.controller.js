@@ -28,7 +28,7 @@ export const getBankDetailsController = async (_request, response) => {
 };
 export const submitPaymentController = async (request, response) => {
     const input = validateSubmitPaymentInput(request.body);
-    const submission = await submitPayment(input, request.file);
+    const submission = await submitPayment(input, request.file, request.authenticatedUser?.id);
     response.status(201).json({
         success: true,
         message: 'Payment proof submitted and awaiting verification.',

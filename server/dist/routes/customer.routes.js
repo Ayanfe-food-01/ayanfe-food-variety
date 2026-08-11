@@ -8,4 +8,4 @@ customerRoutes.get('/cart', getCustomerCartController);
 customerRoutes.post('/cart/sync', syncCustomerCartController);
 customerRoutes.put('/cart', replaceCustomerCartController);
 customerRoutes.get('/orders', listCustomerOrdersController);
-customerRoutes.get('/orders/:id', getCustomerOrderController);
+customerRoutes.get('/orders/:orderNumber', getCustomerOrderController);

@@ -169,6 +169,8 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
 
     const unavailable = cart.items.filter((item) => !item.product.isActive)
     if (unavailable.length > 0) throw new HttpError(400, 'One or more cart products are no longer available.')
+    const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000)
+    if (invalidQuantity) throw new HttpError(400, 'One or more cart quantities are invalid.')
 
     const orderItems = cart.items.map((item) => {
       const subtotal = item.product.price.mul(item.quantity)

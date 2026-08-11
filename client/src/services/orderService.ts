@@ -18,6 +18,7 @@ export interface CreateOrderInput {
 
 export interface CreatedOrder {
   id: string
+  orderNumber: string
   customerName: string
   phone: string
   whatsapp: string | null
@@ -26,11 +27,66 @@ export interface CreatedOrder {
   city: string
   note: string | null
   subtotal: string
+  deliveryFee: string
   total: string
+  orderItems: Array<{
+    id: string
+    productId: string
+    productName: string
+    unitPrice: string
+    quantity: number
+    subtotal: string
+    product: { id: string; slug: string; image: string }
+  }>
   paymentStatus: string
   orderStatus: string
   createdAt: string
   updatedAt: string
+}
+
+export interface CustomerOrderListItem {
+  id: string
+  orderNumber: string
+  customerName: string
+  total: string
+  paymentStatus: PaymentStatus
+  orderStatus: OrderStatus
+  createdAt: string
+}
+
+interface CustomerOrdersResponse {
+  success: true
+  data: { orders: CustomerOrderListItem[] }
+}
+
+interface CustomerOrderResponse {
+  success: true
+  data: { order: CreatedOrder }
+}
+
+export async function checkoutCustomerCart(input: {
+  customerName: string
+  phone: string
+  deliveryAddress: string
+  city: string
+  note?: string
+}): Promise<CreatedOrder> {
+  const response = await request<CustomerOrderResponse>('/orders/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.order
+}
+
+export async function getCustomerOrders(): Promise<CustomerOrderListItem[]> {
+  const response = await request<CustomerOrdersResponse>('/customer/orders')
+  return response.data.orders
+}
+
+export async function getCustomerOrder(orderNumber: string): Promise<CreatedOrder> {
+  const response = await request<CustomerOrderResponse>(`/customer/orders/${encodeURIComponent(orderNumber)}`)
+  return response.data.order
 }
 
 export type OrderStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED'

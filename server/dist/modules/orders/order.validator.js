@@ -83,3 +83,20 @@ export function validateOrderId(value) {
     }
     return value.trim();
 }
+export function validateCheckoutInput(body) {
+    if (!isRecord(body))
+        throw new HttpError(400, 'Checkout details are required.');
+    return {
+        customerName: requiredText(body.customerName, 'customerName', 180),
+        phone: requiredText(body.phone, 'phone', 40),
+        deliveryAddress: requiredText(body.deliveryAddress, 'deliveryAddress', 2000),
+        city: requiredText(body.city, 'city', 120),
+        note: optionalText(body.note, 'note', 2000),
+    };
+}
+export function validateOrderNumber(value) {
+    if (!value || !/^AFV-\d{4}-\d{6}$/.test(value.trim())) {
+        throw new HttpError(400, 'Order number is invalid.');
+    }
+    return value.trim();
+}

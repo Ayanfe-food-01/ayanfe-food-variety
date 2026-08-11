@@ -1,6 +1,7 @@
 import { request } from './api'
 
 export interface CustomerCartItem {
+  id: string
   productId: string
   name: string
   unit: string
@@ -26,7 +27,7 @@ export async function syncCustomerCart(
 }
 
 export async function getCustomerCart(): Promise<CustomerCartItem[]> {
-  const response = await request<CustomerCartResponse>('/customer/cart')
+  const response = await request<CustomerCartResponse>('/cart')
   return response.data.items
 }
 

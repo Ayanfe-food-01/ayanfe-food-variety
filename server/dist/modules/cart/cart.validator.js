@@ -21,3 +21,22 @@ export function validateCartItems(body) {
         return { productId: value.productId, quantity: value.quantity };
     });
 }
+export function validateCartItemInput(body) {
+    if (!isRecord(body))
+        throw new HttpError(400, 'A cart item is required.');
+    if (typeof body.productId !== 'string' || !UUID_PATTERN.test(body.productId.trim())) {
+        throw new HttpError(400, 'productId must be valid.');
+    }
+    return { productId: body.productId.trim(), quantity: validateQuantity(body.quantity) };
+}
+export function validateQuantity(value) {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 1000) {
+        throw new HttpError(400, 'Quantity must be a positive integer up to 1000.');
+    }
+    return value;
+}
+export function validateCartItemId(value) {
+    if (!value || !UUID_PATTERN.test(value.trim()))
+        throw new HttpError(400, 'Cart item ID is invalid.');
+    return value.trim();
+}

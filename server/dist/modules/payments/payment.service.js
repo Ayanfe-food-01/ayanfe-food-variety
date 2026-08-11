@@ -35,12 +35,15 @@ export async function getBankDetails() {
         throw new HttpError(503, 'Payment settings are not configured yet.');
     return toBankDetails(settings);
 }
-export async function submitPayment(input, file) {
+export async function submitPayment(input, file, authenticatedUserId) {
     if (!file)
         throw new HttpError(400, 'A payment receipt image is required.');
     const order = await prisma.order.findUnique({ where: { id: input.orderId } });
     if (!order)
         throw new HttpError(404, 'Order not found.');
+    if (order.userId && order.userId !== authenticatedUserId) {
+        throw new HttpError(authenticatedUserId ? 403 : 401, 'You cannot submit payment proof for this order.');
+    }
     if (order.paymentStatus === PaymentStatus.PAID) {
         throw new HttpError(409, 'This order has already been paid.');
     }

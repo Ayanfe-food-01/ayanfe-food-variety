@@ -4,8 +4,9 @@ import { ArrowRight, BagIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCart } from '../hooks/useCart'
+import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { createOrder, type CreatedOrder } from '../services/orderService'
+import { checkoutCustomerCart, type CreatedOrder } from '../services/orderService'
 import { getBankDetails, submitPaymentProof, type BankDetails, type PaymentSubmission } from '../services/paymentService'
 
 const formatPrice = (price: number) =>
@@ -189,7 +190,7 @@ function OrderConfirmation({ order }: { order: CreatedOrder }) {
         <div className="mt-8 grid gap-3 text-left sm:grid-cols-2">
           <div className="rounded-2xl bg-sage/40 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-orange">Order number</p>
-            <p className="mt-2 break-all text-sm font-bold text-green-dark">{order.id}</p>
+            <p className="mt-2 break-all text-sm font-bold text-green-dark">{order.orderNumber}</p>
           </div>
           <div className="rounded-2xl bg-sage/40 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-orange">Order total</p>
@@ -294,11 +295,21 @@ function OrderConfirmation({ order }: { order: CreatedOrder }) {
 
 export function Checkout() {
   const { items, subtotal, totalQuantity, getItemSubtotal, clearCart } = useCart()
+  const { user, isLoading: isCustomerAuthLoading, openAuth } = useCustomerAuth()
   const [form, setForm] = useState<CheckoutFormData>(initialForm)
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null)
+
+  useEffect(() => {
+    if (!user) return
+    setForm((currentForm) => ({
+      ...currentForm,
+      fullName: currentForm.fullName || user.name,
+      email: user.email,
+    }))
+  }, [user])
 
   const updateField = (field: CheckoutField, value: string) => {
     setForm((currentForm) => ({ ...currentForm, [field]: value }))
@@ -317,18 +328,12 @@ export function Checkout() {
 
     setIsSubmitting(true)
     try {
-      const order = await createOrder({
+      const order = await checkoutCustomerCart({
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
-        whatsapp: form.whatsapp.trim() || undefined,
-        email: form.email.trim() || undefined,
         deliveryAddress: form.address.trim(),
         city: form.city.trim(),
         note: form.note.trim() || undefined,
-        items: items.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-        })),
       })
       clearCart()
       setCreatedOrder(order)
@@ -349,6 +354,36 @@ export function Checkout() {
         <Navbar />
         <main>
           <OrderConfirmation order={createdOrder} />
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
+  if (!isCustomerAuthLoading && !user) {
+    return (
+      <>
+        <Navbar />
+        <main>
+          <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+            <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
+              <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
+                <span className="text-2xl font-bold" aria-hidden="true">A</span>
+              </div>
+              <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Customer account required</p>
+              <h1 className="mt-3 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">Sign in to check out</h1>
+              <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted">
+                Your cart and orders are securely tied to your customer account.
+              </p>
+              <button
+                className="mt-7 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
+                type="button"
+                onClick={() => openAuth()}
+              >
+                Sign in or create an account <ArrowRight size={16} />
+              </button>
+            </div>
+          </section>
         </main>
         <Footer />
       </>
@@ -460,7 +495,7 @@ export function Checkout() {
 
                   <div className="sm:col-span-2">
                     <label className="text-sm font-bold text-green-dark" htmlFor="email">
-                      Email address <span className="font-normal text-muted">(optional)</span>
+                      Account email
                     </label>
                     <input
                       className={inputClassName(Boolean(errors.email))}
@@ -468,13 +503,11 @@ export function Checkout() {
                       name="email"
                       type="email"
                       autoComplete="email"
-                      placeholder="you@example.com"
+                      readOnly
                       value={form.email}
-                      onChange={(event) => updateField('email', event.target.value)}
-                      aria-invalid={Boolean(errors.email)}
-                      aria-describedby={errors.email ? 'email-error' : undefined}
+                      aria-describedby="email-help"
                     />
-                    <FieldError id="email" message={errors.email} />
+                    <p className="mt-1.5 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
                   </div>
 
                   <div className="sm:col-span-2">

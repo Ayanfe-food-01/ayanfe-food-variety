@@ -1,0 +1,41 @@
+import { env } from '../../config/env.js';
+const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
+})[character] ?? character);
+export async function notifyOrderCreated(order) {
+    if (!order.customerEmail || !env.email.resendApiKey || !env.email.from) {
+        if (!env.email.resendApiKey || !env.email.from)
+            console.warn('Order confirmation email skipped: Resend is not configured.');
+        return;
+    }
+    const items = order.items
+        .map((item) => `<li>${escapeHtml(item.name)} × ${item.quantity} — ₦${escapeHtml(item.subtotal)}</li>`)
+        .join('');
+    const bank = order.bank
+        ? `<p><strong>Bank:</strong> ${escapeHtml(order.bank.bankName)}<br>
+       <strong>Account name:</strong> ${escapeHtml(order.bank.accountName)}<br>
+       <strong>Account number:</strong> ${escapeHtml(order.bank.accountNumber)}</p>
+       <p>${escapeHtml(order.bank.instructions)}</p>`
+        : '<p>Payment instructions will be provided by the store.</p>';
+    const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${env.email.resendApiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            from: env.email.from,
+            to: [order.customerEmail],
+            subject: `Order received — ${order.orderNumber}`,
+            html: `<p>Hi ${escapeHtml(order.customerName)},</p>
+        <p>Your order <strong>${escapeHtml(order.orderNumber)}</strong> has been placed successfully.</p>
+        <ul>${items}</ul>
+        <p><strong>Total:</strong> ₦${escapeHtml(order.total)}<br>
+        <strong>Payment status:</strong> Pending</p>
+        ${bank}
+        <p>Payment is not confirmed until your transfer is reviewed by the store.</p>`,
+        }),
+    });
+    if (!response.ok)
+        console.error('Order confirmation email provider returned an error', response.status);
+}

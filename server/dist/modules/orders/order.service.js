@@ -1,8 +1,10 @@
 import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
+import { notifyOrderCreated } from './order.email.js';
 const toOrderResponse = (order) => ({
     id: order.id,
+    orderNumber: order.orderNumber,
     customerName: order.customerName,
     phone: order.phone,
     whatsapp: order.whatsapp,
@@ -11,6 +13,7 @@ const toOrderResponse = (order) => ({
     city: order.city,
     note: order.note,
     subtotal: order.subtotal.toString(),
+    deliveryFee: order.deliveryFee.toString(),
     total: order.total.toString(),
     paymentStatus: order.paymentStatus,
     orderStatus: order.orderStatus,
@@ -68,8 +71,10 @@ export async function createOrder(input) {
             };
         });
         const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
+        const orderNumber = await nextOrderNumber(transaction);
         const order = await transaction.order.create({
             data: {
+                orderNumber,
                 userId: input.userId,
                 customerName: input.customerName,
                 phone: input.phone,
@@ -79,6 +84,7 @@ export async function createOrder(input) {
                 city: input.city,
                 note: input.note,
                 subtotal,
+                deliveryFee: new Prisma.Decimal(0),
                 total: subtotal,
                 paymentStatus: PaymentStatus.PENDING,
                 orderStatus: OrderStatus.PENDING,
@@ -97,6 +103,89 @@ export async function createOrder(input) {
         return toOrderResponse(order);
     });
 }
+const nextOrderNumber = async (transaction) => {
+    const result = await transaction.$queryRaw(Prisma.sql `SELECT nextval('orders_order_number_seq')`);
+    const sequence = Number(result[0]?.nextval);
+    return `AFV-${new Date().getUTCFullYear()}-${String(sequence).padStart(6, '0')}`;
+};
+export async function checkoutCustomerCart(userId, input) {
+    const result = await prisma.$transaction(async (transaction) => {
+        const user = await transaction.user.findUnique({
+            where: { id: userId },
+            select: { id: true, email: true, role: true },
+        });
+        if (!user || user.role !== 'CUSTOMER')
+            throw new HttpError(403, 'Customer access is required.');
+        const cart = await transaction.customerCart.findUnique({
+            where: { userId },
+            include: {
+                items: {
+                    include: { product: true },
+                    orderBy: { createdAt: 'asc' },
+                },
+            },
+        });
+        if (!cart || cart.items.length === 0)
+            throw new HttpError(400, 'Your cart is empty.');
+        const unavailable = cart.items.filter((item) => !item.product.isActive);
+        if (unavailable.length > 0)
+            throw new HttpError(400, 'One or more cart products are no longer available.');
+        const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000);
+        if (invalidQuantity)
+            throw new HttpError(400, 'One or more cart quantities are invalid.');
+        const orderItems = cart.items.map((item) => {
+            const subtotal = item.product.price.mul(item.quantity);
+            return {
+                productId: item.product.id,
+                productName: item.product.name,
+                unitPrice: item.product.price,
+                quantity: item.quantity,
+                subtotal,
+            };
+        });
+        const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
+        const deliveryFee = new Prisma.Decimal(0);
+        const order = await transaction.order.create({
+            data: {
+                orderNumber: await nextOrderNumber(transaction),
+                userId: user.id,
+                customerName: input.customerName,
+                phone: input.phone,
+                email: user.email,
+                deliveryAddress: input.deliveryAddress,
+                city: input.city,
+                note: input.note,
+                subtotal,
+                deliveryFee,
+                total: subtotal.add(deliveryFee),
+                paymentStatus: PaymentStatus.PENDING,
+                orderStatus: OrderStatus.PENDING,
+                orderItems: { create: orderItems },
+            },
+            include: orderInclude,
+        });
+        await transaction.user.update({ where: { id: user.id }, data: { phone: input.phone } });
+        await transaction.customerCartItem.deleteMany({ where: { cartId: cart.id } });
+        return order;
+    });
+    const bank = await prisma.paymentSettings.findFirst({
+        where: { singletonKey: 'default', isActive: true },
+        select: { bankName: true, accountName: true, accountNumber: true, instructions: true },
+    });
+    void notifyOrderCreated({
+        orderNumber: result.orderNumber,
+        customerName: result.customerName,
+        customerEmail: result.email,
+        total: result.total.toString(),
+        items: result.orderItems.map((item) => ({
+            name: item.productName,
+            quantity: item.quantity,
+            subtotal: item.subtotal.toString(),
+        })),
+        bank,
+    }).catch((error) => console.error('Order confirmation email failed', error));
+    return toOrderResponse(result);
+}
 export async function listCustomerOrders(userId) {
     const orders = await prisma.order.findMany({
         where: { userId },
@@ -108,6 +197,13 @@ export async function listCustomerOrders(userId) {
 export async function getCustomerOrder(userId, id) {
     const order = await prisma.order.findFirst({
         where: { id, userId },
+        include: orderInclude,
+    });
+    return order ? toOrderResponse(order) : null;
+}
+export async function getCustomerOrderByNumber(userId, orderNumber) {
+    const order = await prisma.order.findFirst({
+        where: { orderNumber, userId },
         include: orderInclude,
     });
     return order ? toOrderResponse(order) : null;

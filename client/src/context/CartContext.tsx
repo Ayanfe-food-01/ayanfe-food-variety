@@ -101,6 +101,7 @@ export function CartProvider({ children }: CartProviderProps) {
         if (!isCurrent) return
         setItems(
           serverItems.map((item): CartItem => ({
+            cartItemId: item.id,
             id: item.productId,
             name: item.name,
             unit: item.unit,

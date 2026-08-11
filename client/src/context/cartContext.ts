@@ -3,6 +3,7 @@ import type { Product } from '../types/product'
 
 export interface CartItem {
   id: Product['id']
+  cartItemId?: string
   name: Product['name']
   unit: Product['unit']
   price: Product['price']

@@ -22,5 +22,6 @@ CREATE UNIQUE INDEX "orders_order_number_key" ON "orders"("order_number");
 CREATE SEQUENCE "orders_order_number_seq";
 SELECT setval(
   'orders_order_number_seq',
-  COALESCE((SELECT COUNT(*) FROM "orders"), 0)
+  GREATEST(COALESCE((SELECT COUNT(*) FROM "orders"), 0), 1),
+  COALESCE((SELECT COUNT(*) FROM "orders"), 0) > 0
 );

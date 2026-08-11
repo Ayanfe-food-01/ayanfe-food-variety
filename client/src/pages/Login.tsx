@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, ShieldIcon } from '../assets/icons'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
@@ -58,9 +58,9 @@ export function Login() {
     <main className="grid min-h-screen place-items-center bg-cream px-5 py-10">
       <section className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-sm sm:p-9">
         <div className="flex items-center gap-3">
-          <a href="/" aria-label="Return to storefront">
+          <Link to="/" aria-label="Return to storefront">
             <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
-          </a>
+          </Link>
           <p className="m-0 text-xs text-muted">One secure account for shopping and store management</p>
         </div>
         <div className="mt-10">
@@ -84,7 +84,7 @@ export function Login() {
         <button className="mt-7 w-full text-center text-xs font-bold text-green hover:text-orange" type="button" onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}>
           {mode === 'login' ? 'Don’t have an account? Sign up' : 'Already have an account? Login'}
         </button>
-        <a className="mt-4 block text-center text-xs font-bold text-muted hover:text-green" href="/">Return to storefront</a>
+        <Link className="mt-4 block text-center text-xs font-bold text-muted hover:text-green" to="/">Return to storefront</Link>
       </section>
     </main>
   )

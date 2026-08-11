@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowUpRight } from '../../assets/icons'
 import { CategoryCard } from './CategoryCard'
 import { getCategories } from '../../services/categoryService'
@@ -41,7 +42,7 @@ export function CategorySection() {
             <div className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange"><span className="inline-block size-2 rounded-full bg-orange" /> Browse the essentials</div>
             <h2 className="m-0 text-4xl font-bold leading-tight tracking-[-0.04em] text-green-dark sm:text-5xl">Shop by category</h2>
           </div>
-          <a className="inline-flex items-center gap-1 text-sm font-bold text-green transition-all duration-200 hover:gap-2" href="/shop">View all products <ArrowUpRight size={16} /></a>
+          <Link className="inline-flex items-center gap-1 text-sm font-bold text-green transition-all duration-200 hover:gap-2" to="/shop">View all products <ArrowUpRight size={16} /></Link>
         </div>
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-label="Loading categories">

@@ -35,10 +35,10 @@ export function Footer() {
         </div>
         <div>
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-sage">Get in touch</h3>
-          {phone && <a className="mb-3 inline-flex items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href={`tel:${phone}`}>
+          {phone && <a className="mb-3 flex w-fit items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href={`tel:${phone}`}>
             <span className="text-sage"><PhoneIcon size={16} /></span> {phone}
           </a>}
-          {email && <a className="mb-3 inline-flex items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href={`mailto:${email}`}>
+          {email && <a className="mb-3 flex w-fit items-center gap-2 text-sm text-cream/65 transition-colors hover:text-cream" href={`mailto:${email}`}>
             <span className="text-sage"><MailIcon size={16} /></span> {email}
           </a>}
           {whatsappHref && <a className="mt-2 block font-bold text-orange transition-colors hover:text-cream" href={whatsappHref} target="_blank" rel="noreferrer">

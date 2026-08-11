@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowUpRight } from '../../assets/icons'
 import { ProductGrid } from '../products/ProductGrid'
 import { getProducts } from '../../services/productService'
@@ -41,7 +42,7 @@ export function FeaturedProducts() {
             <div className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange"><span className="inline-block size-2 rounded-full bg-orange" /> Customer favourites</div>
             <h2 className="m-0 text-4xl font-bold leading-tight tracking-[-0.04em] text-green-dark sm:text-5xl">Popular products</h2>
           </div>
-          <a className="inline-flex items-center gap-1 text-sm font-bold text-green transition-all duration-200 hover:gap-2" href="/shop">See the full collection <ArrowUpRight size={16} /></a>
+          <Link className="inline-flex items-center gap-1 text-sm font-bold text-green transition-all duration-200 hover:gap-2" to="/shop">See the full collection <ArrowUpRight size={16} /></Link>
         </div>
         {isLoading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" aria-label="Loading products">

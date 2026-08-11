@@ -1,4 +1,5 @@
 import type { AdminOrderListItem } from '../../services/orderService'
+import { Link } from 'react-router-dom'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -50,7 +51,7 @@ export function OrderTable({ orders }: OrderTableProps) {
                 <td className="whitespace-nowrap px-5 py-4 font-semibold text-green-dark">{formatPrice(order.total)}</td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{order.orderStatus}</span></td>
-                <td className="px-5 py-4 text-right"><a className="font-bold text-green hover:text-orange" href={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View</a></td>
+                <td className="px-5 py-4 text-right"><Link className="font-bold text-green hover:text-orange" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View</Link></td>
               </tr>
             ))}
           </tbody>

@@ -1,11 +1,20 @@
-import { createCategory, getCategories, updateCategoryStatus } from './category.service.js';
-import { validateCategoryId, validateCategoryInput, validateCategoryStatusInput } from './category.validator.js';
+import { createCategory, deleteCategory, getAdminCategory, getCategories, listAdminCategories, updateCategory, updateCategoryStatus, } from './category.service.js';
+import { validateAdminCategoriesQuery, validateCategoryId, validateCategoryInput, validateCategoryStatusInput, } from './category.validator.js';
 export const getCategoriesController = async (_request, response) => {
     const categories = await getCategories();
     response.json({ data: categories });
 };
-export const listAdminCategoriesController = async (_request, response) => {
-    response.json({ success: true, data: { categories: await getCategories(true) } });
+export const listAdminCategoriesController = async (request, response) => {
+    response.json({
+        success: true,
+        data: await listAdminCategories(validateAdminCategoriesQuery(request.query)),
+    });
+};
+export const getAdminCategoryController = async (request, response) => {
+    response.json({
+        success: true,
+        data: { category: await getAdminCategory(validateCategoryId(request.params.id)) },
+    });
 };
 export const createAdminCategoryController = async (request, response) => {
     response.status(201).json({
@@ -22,4 +31,17 @@ export const updateAdminCategoryStatusController = async (request, response) => 
             category: await updateCategoryStatus(validateCategoryId(request.params.id), validateCategoryStatusInput(request.body)),
         },
     });
+};
+export const updateAdminCategoryController = async (request, response) => {
+    response.json({
+        success: true,
+        message: 'Category updated.',
+        data: {
+            category: await updateCategory(validateCategoryId(request.params.id), validateCategoryInput(request.body)),
+        },
+    });
+};
+export const deleteAdminCategoryController = async (request, response) => {
+    await deleteCategory(validateCategoryId(request.params.id));
+    response.json({ success: true, message: 'Category deleted.' });
 };

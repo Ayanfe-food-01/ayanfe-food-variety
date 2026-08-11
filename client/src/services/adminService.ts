@@ -137,6 +137,96 @@ interface CategoriesResponse {
   data: Category[] | { categories: Category[] }
 }
 
+export interface AdminCategoriesQuery {
+  page: number
+  pageSize: number
+  search?: string
+  status?: 'active' | 'inactive'
+}
+
+export interface AdminCategoriesPage {
+  categories: Category[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+interface AdminCategoriesResponse {
+  success: true
+  data: {
+    categories: Array<Category & { createdAt: string; updatedAt: string; productCount: number }>
+    pagination: AdminCategoriesPage['pagination']
+  }
+}
+
+interface AdminCategoryResponse {
+  success: true
+  data: { category: Category & { createdAt: string; updatedAt: string; productCount: number } }
+}
+
+const adminCategoriesQueryString = (query: AdminCategoriesQuery): string => {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  })
+  if (query.search) params.set('search', query.search)
+  if (query.status) params.set('status', query.status)
+  return params.toString()
+}
+
+export function getAdminCategories(): Promise<Category[]>
+export function getAdminCategories(query: AdminCategoriesQuery): Promise<AdminCategoriesPage>
+export async function getAdminCategories(query?: AdminCategoriesQuery): Promise<Category[] | AdminCategoriesPage> {
+  if (!query) {
+    const response = await request<CategoriesResponse>('/admin/categories')
+    return Array.isArray(response.data) ? response.data : response.data.categories
+  }
+  const response = await request<AdminCategoriesResponse>(`/admin/categories?${adminCategoriesQueryString(query)}`)
+  return {
+    categories: response.data.categories,
+    pagination: response.data.pagination,
+  }
+}
+
+export async function getAdminCategory(id: string): Promise<Category> {
+  const response = await request<AdminCategoryResponse>(`/admin/categories/${encodeURIComponent(id)}`)
+  return response.data.category
+}
+
+export async function createAdminCategory(input: CategoryInput): Promise<Category> {
+  const response = await request<AdminCategoryResponse>('/admin/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.category
+}
+
+export async function updateAdminCategory(id: string, input: CategoryInput): Promise<Category> {
+  const response = await request<AdminCategoryResponse>(`/admin/categories/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.category
+}
+
+export async function deleteAdminCategory(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/categories/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function updateAdminCategoryStatus(id: string, isActive: boolean): Promise<Category> {
+  const response = await request<AdminCategoryResponse>(`/admin/categories/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.category
+}
+
 interface AdminProductApiResponse {
   id: string
   categoryId: string
@@ -218,38 +308,10 @@ export async function getAdminProduct(id: string): Promise<Product> {
   return toProduct(response.data.product)
 }
 
-export async function getAdminCategories(): Promise<Category[]> {
-  const response = await request<CategoriesResponse>('/admin/categories')
-  return Array.isArray(response.data) ? response.data : response.data.categories
-}
-
 export interface CategoryInput {
   name: string
   description: string
   isActive: boolean
-}
-
-interface CategoryResponse {
-  success: true
-  data: { category: Category }
-}
-
-export async function createAdminCategory(input: CategoryInput): Promise<Category> {
-  const response = await request<CategoryResponse>('/admin/categories', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  return response.data.category
-}
-
-export async function updateAdminCategoryStatus(id: string, isActive: boolean): Promise<Category> {
-  const response = await request<CategoryResponse>(`/admin/categories/${encodeURIComponent(id)}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ isActive }),
-  })
-  return response.data.category
 }
 
 export async function createAdminProduct(input: ProductFormInput): Promise<Product> {

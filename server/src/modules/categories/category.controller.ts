@@ -1,14 +1,37 @@
 import type { RequestHandler } from 'express'
-import { createCategory, getCategories, updateCategoryStatus } from './category.service.js'
-import { validateCategoryId, validateCategoryInput, validateCategoryStatusInput } from './category.validator.js'
+import {
+  createCategory,
+  deleteCategory,
+  getAdminCategory,
+  getCategories,
+  listAdminCategories,
+  updateCategory,
+  updateCategoryStatus,
+} from './category.service.js'
+import {
+  validateAdminCategoriesQuery,
+  validateCategoryId,
+  validateCategoryInput,
+  validateCategoryStatusInput,
+} from './category.validator.js'
 
 export const getCategoriesController: RequestHandler = async (_request, response) => {
   const categories = await getCategories()
   response.json({ data: categories })
 }
 
-export const listAdminCategoriesController: RequestHandler = async (_request, response) => {
-  response.json({ success: true, data: { categories: await getCategories(true) } })
+export const listAdminCategoriesController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    data: await listAdminCategories(validateAdminCategoriesQuery(request.query as Record<string, unknown>)),
+  })
+}
+
+export const getAdminCategoryController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    data: { category: await getAdminCategory(validateCategoryId(request.params.id)) },
+  })
 }
 
 export const createAdminCategoryController: RequestHandler = async (request, response) => {
@@ -30,4 +53,22 @@ export const updateAdminCategoryStatusController: RequestHandler = async (reques
       ),
     },
   })
+}
+
+export const updateAdminCategoryController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'Category updated.',
+    data: {
+      category: await updateCategory(
+        validateCategoryId(request.params.id),
+        validateCategoryInput(request.body),
+      ),
+    },
+  })
+}
+
+export const deleteAdminCategoryController: RequestHandler = async (request, response) => {
+  await deleteCategory(validateCategoryId(request.params.id))
+  response.json({ success: true, message: 'Category deleted.' })
 }

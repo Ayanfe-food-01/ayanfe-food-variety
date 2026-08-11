@@ -42,6 +42,7 @@ function App() {
         <Route path="/admin/products/:id/edit" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
         <Route path="/admin/categories" element={<RequireAdmin><Categories /></RequireAdmin>} />
         <Route path="/admin/categories/new" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
+        <Route path="/admin/categories/:id/edit" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
         <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
     </Routes>

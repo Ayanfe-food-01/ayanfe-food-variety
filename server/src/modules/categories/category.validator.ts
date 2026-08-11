@@ -7,8 +7,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const requiredText = (value: unknown, field: string, maxLength: number): string => {
-  if (typeof value !== 'string' || !value.trim() || value.trim().length > maxLength) {
-    throw new HttpError(400, `${field} is required and must be valid.`)
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new HttpError(400, `${field} is required.`)
+  }
+  if (value.trim().length > maxLength) {
+    throw new HttpError(400, `${field} must be ${maxLength} characters or fewer.`)
   }
   return value.trim()
 }
@@ -46,5 +49,29 @@ export function validateCategoryId(value: string | string[] | undefined): string
 
 export function validateCategoryStatusInput(body: unknown): boolean {
   if (!isRecord(body)) throw new HttpError(400, 'Category status is required.')
+  if (typeof body.isActive !== 'boolean' && body.isActive !== 'true' && body.isActive !== 'false') {
+    throw new HttpError(400, 'Category status must be true or false.')
+  }
   return booleanValue(body.isActive, 'Category status', false)
+}
+
+export function validateAdminCategoriesQuery(query: Record<string, unknown>) {
+  const page = Number(query.page ?? 1)
+  const pageSize = Number(query.pageSize ?? 10)
+  if (!Number.isInteger(page) || page < 1) throw new HttpError(400, 'Page must be a positive integer.')
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+    throw new HttpError(400, 'Page size must be between 1 and 50.')
+  }
+
+  const status = query.status === 'active' || query.status === 'inactive'
+    ? query.status
+    : undefined
+  if (query.status && !status) throw new HttpError(400, 'Category status filter is invalid.')
+
+  return {
+    page,
+    pageSize,
+    search: typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined,
+    status,
+  } as const
 }

@@ -5,4 +5,7 @@ export interface Category {
   image: string
   description: string
   isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+  productCount?: number
 }

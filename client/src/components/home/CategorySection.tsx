@@ -35,7 +35,7 @@ export function CategorySection() {
   }
 
   return (
-    <section className="bg-white py-20 lg:py-24" id="categories">
+    <section className="home-section-reveal bg-white py-20 lg:py-24" id="categories">
       <div className="mx-auto w-[calc(100%-32px)] max-w-[1160px] md:w-[calc(100%-48px)]">
         <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:gap-6">
           <div>

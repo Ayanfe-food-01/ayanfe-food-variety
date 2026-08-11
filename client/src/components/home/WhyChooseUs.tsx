@@ -9,7 +9,7 @@ const benefits = [
 
 export function WhyChooseUs() {
   return (
-    <section className="bg-green py-20 text-cream lg:py-24" id="why-us">
+    <section className="home-section-reveal bg-green py-20 text-cream lg:py-24" id="why-us">
       <div className="mx-auto w-[calc(100%-32px)] max-w-[1160px] md:w-[calc(100%-48px)]">
         <div className="mb-12 max-w-[600px]">
           <div className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-sage"><span className="inline-block size-2 rounded-full bg-sage" /> The Ayanfe difference</div>

@@ -44,17 +44,30 @@ export function NavigationLinks({ items, className, onNavigate }: NavigationLink
 export function NavigationMenu({
   children,
   isOpen,
+  onClose,
 }: {
   children: ReactNode
   isOpen: boolean
+  onClose: () => void
 }) {
   return (
-    <div
-      className={`fixed inset-x-0 bottom-0 top-[88px] z-40 w-screen ${
-        isOpen ? 'flex' : 'hidden'
-      } flex-col items-stretch gap-0 overflow-y-auto border-y border-line bg-cream p-4 text-sm font-medium text-muted shadow-[0_18px_40px_rgba(32,60,36,0.12)] md:static md:inset-auto md:z-auto md:flex md:w-auto md:overflow-visible md:flex-row md:items-center md:gap-8 md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
-    >
-      {children}
-    </div>
+    <>
+      <button
+        className={`fixed inset-0 z-50 bg-green-dark/25 backdrop-blur-[2px] transition-opacity duration-300 md:hidden ${
+          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        type="button"
+        aria-label="Close navigation menu"
+        tabIndex={isOpen ? 0 : -1}
+        onClick={onClose}
+      />
+      <div
+        className={`fixed inset-y-0 left-0 z-[60] flex w-[min(88vw,360px)] flex-col overflow-y-auto border-r border-line bg-cream p-6 text-sm font-medium text-muted shadow-[18px_0_50px_rgba(32,60,36,0.16)] transition-[transform,visibility] duration-300 ease-out ${
+          isOpen ? 'visible translate-x-0' : 'invisible -translate-x-full md:visible md:translate-x-0'
+        } md:static md:z-auto md:w-auto md:translate-x-0 md:flex-row md:items-center md:gap-8 md:overflow-visible md:border-0 md:bg-transparent md:p-0 md:shadow-none md:transition-none`}
+      >
+        {children}
+      </div>
+    </>
   )
 }

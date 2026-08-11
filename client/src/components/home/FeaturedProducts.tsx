@@ -35,7 +35,7 @@ export function FeaturedProducts() {
   }
 
   return (
-    <section className="bg-cream py-20 lg:py-24" id="products">
+    <section className="home-section-reveal bg-cream py-20 lg:py-24" id="products">
       <div className="mx-auto w-[calc(100%-32px)] max-w-[1160px] md:w-[calc(100%-48px)]">
         <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:gap-6">
           <div>

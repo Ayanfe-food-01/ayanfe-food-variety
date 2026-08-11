@@ -23,9 +23,14 @@ export function Navbar() {
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMenu()
+    }
+    window.addEventListener('keydown', handleKeyDown)
 
     return () => {
       document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isMenuOpen])
 
@@ -36,27 +41,40 @@ export function Navbar() {
           <img className="h-16 w-16 object-contain md:h-[74px] md:w-[74px]" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
         </a>
 
-        <NavigationMenu isOpen={isMenuOpen}>
+        <NavigationMenu isOpen={isMenuOpen} onClose={closeMenu}>
+          <div className="mb-8 flex items-center justify-between md:hidden">
+            <a className="inline-flex items-center" href="#home" onClick={closeMenu} aria-label="Ayanfe Food Variety home">
+              <img className="h-16 w-16 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+            </a>
+            <button
+              className="grid size-11 place-items-center rounded-full border border-line text-green transition-colors hover:bg-sage"
+              type="button"
+              aria-label="Close menu"
+              onClick={closeMenu}
+            >
+              <CloseIcon size={22} />
+            </button>
+          </div>
           <NavigationLinks
             items={links}
-            className="p-3 transition-colors duration-200 hover:text-green md:p-0"
+            className="border-b border-line/70 px-3 py-4 transition-colors duration-200 hover:text-green md:border-0 md:p-0"
             onNavigate={closeMenu}
           />
           {user ? (
             <>
-              <Link className="p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" to="/orders" onClick={closeMenu}>
+              <Link className="border-b border-line/70 p-3 font-bold text-green transition-colors duration-200 hover:text-orange md:hidden" to="/orders" onClick={closeMenu}>
                 {user.name || 'Account'}
               </Link>
-              <button className="p-3 text-left text-muted transition-colors hover:text-orange md:hidden" type="button" onClick={() => { closeMenu(); void logout() }}>
+              <button className="border-b border-line/70 p-3 text-left text-muted transition-colors hover:text-orange md:hidden" type="button" onClick={() => { closeMenu(); void logout() }}>
                 Log out
               </button>
             </>
           ) : (
-            <Link className="p-3 transition-colors duration-200 hover:text-green md:hidden" to="/login" onClick={closeMenu}>
+            <Link className="border-b border-line/70 p-3 transition-colors duration-200 hover:text-green md:hidden" to="/login" onClick={closeMenu}>
               Login
             </Link>
           )}
-          <Link className="mt-1 inline-flex items-center justify-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:hidden" to="/cart" onClick={closeMenu}>
+          <Link className="mt-6 inline-flex items-center justify-center gap-2 rounded-full border border-green/20 px-4 py-3 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:hidden" to="/cart" onClick={closeMenu}>
             <BagIcon size={18} />
             <span>Cart{totalQuantity > 0 ? ` · ${totalQuantity}` : ''}</span>
           </Link>

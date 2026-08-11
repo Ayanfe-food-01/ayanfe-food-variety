@@ -9,7 +9,7 @@ export function ContactSection() {
   const whatsappHref = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '').replace(/^0/, '234')}` : undefined
 
   return (
-    <section className="bg-cream py-20" id="contact">
+    <section className="home-section-reveal bg-cream py-20" id="contact">
       <div className="mx-auto grid w-[calc(100%-32px)] max-w-[1160px] items-end gap-10 md:w-[calc(100%-48px)] lg:grid-cols-[1fr_auto]">
         <div>
           <div className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange"><span className="inline-block size-2 rounded-full bg-orange" /> Need a hand?</div>

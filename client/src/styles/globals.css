@@ -39,3 +39,15 @@
     @apply mx-auto;
   }
 }
+
+@layer components {
+  .admin-dark {
+    --color-ink: #eef3e9;
+    --color-muted: #aebbad;
+    --color-green: #8ebd84;
+    --color-green-dark: #17321e;
+    --color-sage: #2d4733;
+    --color-cream: #18261b;
+    --color-line: #3d5542;
+  }
+}

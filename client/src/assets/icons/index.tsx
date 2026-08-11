@@ -1,9 +1,10 @@
 interface IconProps {
   size?: number
   strokeWidth?: number
+  className?: string
 }
 
-const iconProps = ({ size = 24, strokeWidth = 1.8 }: IconProps) => ({
+const iconProps = ({ size = 24, strokeWidth = 1.8, className }: IconProps) => ({
   width: size,
   height: size,
   viewBox: '0 0 24 24',
@@ -13,6 +14,7 @@ const iconProps = ({ size = 24, strokeWidth = 1.8 }: IconProps) => ({
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
   'aria-hidden': true,
+  className,
 })
 
 export function ArrowUpRight({ size, strokeWidth }: IconProps) {
@@ -44,6 +46,40 @@ export function MenuIcon({ size, strokeWidth }: IconProps) {
   return (
     <svg {...iconProps({ size, strokeWidth })}>
       <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  )
+}
+
+export function SearchIcon({ size, strokeWidth, className }: IconProps) {
+  return (
+    <svg {...iconProps({ size, strokeWidth, className })}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4.5 4.5" />
+    </svg>
+  )
+}
+
+export function MoonIcon({ size, strokeWidth }: IconProps) {
+  return (
+    <svg {...iconProps({ size, strokeWidth })}>
+      <path d="M20 15.2A8 8 0 0 1 8.8 4 8.2 8.2 0 1 0 20 15.2Z" />
+    </svg>
+  )
+}
+
+export function BellIcon({ size, strokeWidth }: IconProps) {
+  return (
+    <svg {...iconProps({ size, strokeWidth })}>
+      <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" />
+    </svg>
+  )
+}
+
+export function GlobeIcon({ size, strokeWidth }: IconProps) {
+  return (
+    <svg {...iconProps({ size, strokeWidth })}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.8 9h16.4M3.8 15h16.4M12 3.5c2.2 2.3 3.3 5.1 3.3 8.5s-1.1 6.2-3.3 8.5c-2.2-2.3-3.3-5.1-3.3-8.5S9.8 5.8 12 3.5Z" />
     </svg>
   )
 }

@@ -1,8 +1,10 @@
 import type { Product } from '../../types/product'
 import { BagIcon, EyeIcon } from '../../assets/icons'
 import { Link } from 'react-router-dom'
+import { Button } from '../ui/Button'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
+import { useToast } from '../ui/Toast'
 
 interface ProductCardProps {
   product: Product
@@ -15,13 +17,19 @@ const formatPrice = (price: number) =>
 export function ProductCard({ product, showDetails = false }: ProductCardProps) {
   const { addToCart } = useCart()
   const { user, openAuth } = useCustomerAuth()
+  const { showToast } = useToast()
+
+  const addProductToCart = () => {
+    addToCart(product)
+    showToast(`${product.name} added to your cart.`, 'success')
+  }
 
   const handleAddToCart = () => {
     if (!user) {
-      openAuth(() => addToCart(product))
+      openAuth(addProductToCart)
       return
     }
-    addToCart(product)
+    addProductToCart()
   }
 
   return (
@@ -42,9 +50,15 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
         </p>
         <div className={`mt-5 flex items-center gap-2 ${showDetails ? '' : 'w-full'}`}>
           {product.isAvailable ? (
-            <button className={`${showDetails ? 'flex-1' : 'w-full'} inline-flex items-center justify-center gap-2 rounded-xl border border-green/20 bg-transparent py-3 text-sm font-bold text-green transition-colors duration-200 hover:bg-green hover:text-cream`} type="button" onClick={handleAddToCart} aria-label={`Add ${product.name} to cart`}>
+            <Button
+              className={showDetails ? 'flex-1' : ''}
+              fullWidth={!showDetails}
+              variant="outline"
+              onClick={handleAddToCart}
+              aria-label={`Add ${product.name} to cart`}
+            >
               <BagIcon size={16} /> Add to cart
-            </button>
+            </Button>
           ) : (
             <p className={`${showDetails ? 'flex-1' : 'w-full'} rounded-xl bg-sage/50 py-3 text-center text-sm font-bold text-muted`}>Out of stock</p>
           )}

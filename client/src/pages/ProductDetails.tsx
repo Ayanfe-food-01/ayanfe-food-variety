@@ -5,6 +5,8 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
+import { Button } from '../components/ui/Button'
+import { useToast } from '../components/ui/Toast'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
@@ -21,6 +23,7 @@ export function ProductDetails() {
   const [hasError, setHasError] = useState(false)
   const { addToCart } = useCart()
   const { user, openAuth } = useCustomerAuth()
+  const { showToast } = useToast()
 
   const loadProduct = useCallback(async () => {
     await Promise.resolve()
@@ -76,13 +79,18 @@ export function ProductDetails() {
     void loadProduct()
   }
 
+  const addProductToCart = () => {
+    addToCart(product!, quantity)
+    showToast(`${product!.name} added to your cart.`, 'success')
+  }
+
   const handleAddToCart = () => {
     if (!product?.isAvailable) return
     if (!user) {
-      openAuth(() => addToCart(product!, quantity))
+      openAuth(addProductToCart)
       return
     }
-    addToCart(product!, quantity)
+    addProductToCart()
   }
 
   const formatPrice = (price: number) =>
@@ -239,15 +247,15 @@ export function ProductDetails() {
                     </button>
                   </div>
                 </div>
-                <button
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green px-6 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+                <Button
+                  className="h-12 flex-1 px-6 shadow-lg shadow-green/15 hover:-translate-y-0.5"
                   type="button"
                   onClick={handleAddToCart}
                   disabled={!product.isAvailable}
                   aria-label={`Add ${quantity} ${product.name} to cart`}
                 >
                   <BagIcon size={18} /> {product.isAvailable ? 'Add to cart' : 'Out of stock'}
-                </button>
+                </Button>
               </div>
               <p className="mt-3 text-xs text-muted">
                 {quantity} {quantity === 1 ? 'unit' : 'units'} selected

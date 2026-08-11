@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowRight, ShieldIcon } from '../assets/icons'
+import { ArrowRight } from '../assets/icons'
+import { Button } from '../components/ui/Button'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { login, signupCustomer, getCurrentUser, type AuthenticatedUser } from '../services/authService'
@@ -63,8 +64,7 @@ export function Login() {
           </Link>
         </div>
         <div className="mt-10">
-          <div className="flex items-center gap-2 text-orange"><ShieldIcon size={18} /><span className="text-xs font-bold uppercase tracking-[0.16em]">Secure sign in</span></div>
-          <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+          <h1 className="text-4xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
           <p className="mt-3 text-sm leading-6 text-muted">
             {mode === 'login' ? 'Sign in to your account to continue.' : 'Create an account to get started.'}
           </p>
@@ -76,13 +76,19 @@ export function Login() {
           <label className="block text-sm font-bold text-green-dark">Email<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
           <label className="block text-sm font-bold text-green-dark">Password<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={12} required /><span className="mt-1 block text-xs font-normal text-muted">At least 12 characters.</span></label>
           {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
-          <button className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-3.5 text-sm font-bold text-cream transition-colors hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSubmitting}>
+          <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
-          </button>
+          </Button>
         </form>
-        <button className="mt-7 w-full text-center text-xs font-bold text-green hover:text-orange" type="button" onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}>
+        <Button
+          className="mt-7 w-full text-center"
+          variant="text"
+          size="sm"
+          type="button"
+          onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}
+        >
           {mode === 'login' ? 'Don’t have an account? Sign up' : 'Already have an account? Login'}
-        </button>
+        </Button>
         <Link className="mt-4 block text-center text-xs font-bold text-muted hover:text-green" to="/">Return to storefront</Link>
       </section>
     </main>

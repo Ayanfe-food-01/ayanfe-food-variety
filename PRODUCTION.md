@@ -11,6 +11,10 @@ This project is split into two services:
 
 Create a production Neon PostgreSQL database and copy its pooled or direct
 connection string into Render as `NEON_DATABASE_URL`. Keep `sslmode=require`.
+The application passes this value to Prisma at runtime and the migration
+script maps it to Prisma's standard `DATABASE_URL` variable automatically.
+For safety, local development prefers `DATABASE_URL`; `NEON_DATABASE_URL` is
+selected automatically only when `NODE_ENV=production`.
 
 The Render blueprint runs `npm run prisma:migrate` before each deploy. This
 applies the committed Prisma migrations to the production database. Seed the
@@ -77,7 +81,7 @@ including `https://` and excluding a trailing slash.
 
 ## 5. Production smoke test
 
-After both services are deployed:
+After both services are deployed and the two public URLs have been entered:
 
 1. Open `https://your-render-service.onrender.com/health` and confirm
    `{ "data": { "status": "ok" } }`.
@@ -90,3 +94,24 @@ After both services are deployed:
 
 Never paste production secrets into source files, commits, or chat. Use the
 Vercel and Render secret/environment-variable settings.
+
+## Values to enter at deployment time
+
+The code is ready without knowing the final provider URLs. Before the first
+production test, enter:
+
+### Vercel
+
+```text
+VITE_API_URL=https://<your-render-service>.onrender.com/api/v1
+```
+
+### Render
+
+```text
+CORS_ORIGIN=https://<your-vercel-project>.vercel.app
+PUBLIC_APP_URL=https://<your-vercel-project>.vercel.app
+```
+
+If a custom domain is added later, replace these values with the exact custom
+frontend origin and redeploy the API. Do not include a trailing slash.

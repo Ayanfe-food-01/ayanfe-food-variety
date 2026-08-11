@@ -49,3 +49,9 @@ externalPort = 80
 [[ports]]
 localPort = 8000
 externalPort = 8000
+
+[userenv]
+
+[userenv.shared]
+ADMIN_INITIAL_NAME = "Ayanfe-food-variety"
+ADMIN_INITIAL_EMAIL = "ayanfefoodvariety01@gmail.com"

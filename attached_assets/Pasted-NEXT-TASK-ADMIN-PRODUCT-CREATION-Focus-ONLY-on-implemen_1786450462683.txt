@@ -1,0 +1,256 @@
+NEXT TASK — ADMIN PRODUCT CREATION
+
+Focus ONLY on implementing a complete and production-ready product creation feature.
+
+IMPORTANT:
+- Do not work on unrelated features.
+- Do not redesign the customer website.
+- Do not modify authentication.
+- Do not modify orders or payments unless required for product creation compatibility.
+- Use the existing React + TypeScript + Express + Prisma + Neon architecture.
+- Reuse existing Product and Category models if they already exist.
+- Do not create duplicate models.
+- Keep the implementation modular and maintainable.
+
+ADMIN PAGE:
+
+Create/complete:
+
+/admin/products/new
+
+Create a professional product creation form.
+
+PRODUCT FIELDS:
+
+- Product name
+- Category
+- Price
+- Stock quantity
+- Unit
+- Description
+- Product image
+- Active/available status
+
+Use appropriate form controls for each field.
+
+VALIDATION:
+
+Frontend validation:
+- Required fields
+- Valid price
+- Valid stock quantity
+- Valid name length
+- Valid description length
+- Valid category
+- Valid image
+
+Backend validation MUST also be performed.
+
+Never rely on frontend validation.
+
+PRICE:
+
+Store prices safely using the existing Prisma/database approach.
+
+Do not use floating-point arithmetic for monetary values if the current architecture provides a safer approach.
+
+The backend must validate that the price is greater than zero.
+
+STOCK:
+
+- Must be an integer.
+- Cannot be negative.
+- Default to 0 where appropriate.
+- Do not allow invalid stock values.
+
+CATEGORY:
+
+Use categories from the database.
+
+Do not allow the frontend to create arbitrary category IDs without backend validation.
+
+Verify that the selected category exists.
+
+IMAGE:
+
+Use the existing configured image storage solution.
+
+If Cloudinary is already configured, use it.
+
+Do NOT store image binaries inside Neon/PostgreSQL.
+
+Validate:
+
+- File type
+- File size
+- Upload result
+
+Store the resulting image URL/public identifier in the Product record.
+
+Keep storage credentials server-side.
+
+API:
+
+Use the existing architecture:
+
+Route
+→ Controller
+→ Service
+→ Prisma
+
+Create/complete:
+
+POST /api/v1/admin/products
+
+Only authenticated ADMIN users may access this endpoint.
+
+The backend should:
+
+1. Validate request.
+2. Validate category.
+3. Validate product information.
+4. Upload/process image.
+5. Create product through Prisma.
+6. Return the created product.
+
+Do not put Prisma queries in the controller.
+
+DO NOT TRUST FRONTEND DATA:
+
+The backend must determine/validate:
+
+- Price
+- Category
+- Stock
+- Active status
+- Product data
+
+Do not allow a customer to access the admin product-creation endpoint.
+
+ERROR HANDLING:
+
+Handle:
+
+- Missing fields
+- Invalid price
+- Negative stock
+- Invalid category
+- Invalid image
+- Image upload failure
+- Duplicate/invalid product data
+- Database errors
+
+Return clean API errors.
+
+Do not expose stack traces or database internals to the client.
+
+FRONTEND UX:
+
+Include:
+
+- Loading state
+- Submit state
+- Validation messages
+- Upload progress/state where practical
+- Success message
+- Error message
+
+Prevent duplicate submissions by disabling the submit button while creating.
+
+After successful creation:
+
+→ Show success feedback
+→ Redirect to /admin/products
+
+Do not silently fail.
+
+PRODUCT LIST:
+
+After creation, the new product should appear in:
+
+/admin/products
+
+using real database data.
+
+Do not use fake/static product data for the admin product list.
+
+CUSTOMER SHOP:
+
+If the existing customer product API is already connected to the database, verify that the newly created active product appears in the shop.
+
+Do not redesign the shop.
+
+DATABASE:
+
+Before modifying Prisma:
+
+1. Inspect the existing schema.
+2. Reuse existing Product/Category fields.
+3. Only add missing fields if genuinely required.
+4. Generate the appropriate Prisma migration.
+5. Verify Prisma client generation.
+
+Do not create duplicate Product or Category models.
+
+SECURITY:
+
+Ensure:
+
+- Only ADMIN can create products.
+- CUSTOMER receives 403.
+- Unauthenticated users receive 401.
+- Product creation cannot modify another resource.
+- Storage credentials never reach the frontend.
+- Secrets are never committed to Git.
+
+PRODUCTION:
+
+Ensure this works with:
+
+Frontend → Vercel
+Backend → Render
+Database → Neon
+Image storage → existing configured provider
+
+Do not use localhost URLs in production.
+
+Run:
+
+- Prisma validation
+- TypeScript checks
+- Frontend production build
+- Backend production build
+
+TEST:
+
+Test:
+
+1. Admin opens product creation page.
+2. Admin creates valid product.
+3. Product is saved in Neon.
+4. Product image uploads successfully.
+5. Invalid image is rejected.
+6. Missing required fields are rejected.
+7. Negative stock is rejected.
+8. Invalid price is rejected.
+9. Invalid category is rejected.
+10. Customer cannot create a product.
+11. Unauthenticated user cannot create a product.
+12. Duplicate submissions are prevented.
+13. Newly created product appears in admin products.
+14. Active product appears in customer shop.
+15. Production build succeeds.
+
+At the end show:
+
+1. Product creation architecture.
+2. Prisma changes.
+3. API endpoint.
+4. Image upload flow.
+5. Validation rules.
+6. Security checks.
+7. Test/build results.
+
+Then STOP.
+
+Do not implement product editing, deletion, category management, or inventory management in this task.

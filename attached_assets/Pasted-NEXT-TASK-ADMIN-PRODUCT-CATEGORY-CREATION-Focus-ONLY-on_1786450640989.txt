@@ -1,0 +1,329 @@
+NEXT TASK — ADMIN PRODUCT & CATEGORY CREATION
+
+Focus ONLY on implementing production-ready product creation and database-driven category management.
+
+IMPORTANT:
+- Do not hardcode categories.
+- Categories MUST come from the database.
+- Admin must be able to create new categories.
+- Do not redesign the customer website.
+- Do not modify authentication.
+- Do not work on unrelated features.
+- Use React + TypeScript + Express + Prisma + Neon.
+- Reuse existing Product/Category models if available.
+- Do not create duplicate models.
+- Keep the implementation modular and scalable.
+
+1. CATEGORY MODEL
+
+Inspect the existing Prisma schema first.
+
+If a Category model already exists, reuse it.
+
+Otherwise create an appropriate Category model containing fields such as:
+
+- id
+- name
+- slug
+- description (optional)
+- image (optional, only if genuinely needed)
+- isActive
+- createdAt
+- updatedAt
+
+Category name and slug should be unique.
+
+Do not hardcode categories anywhere in the application.
+
+2. CATEGORY MANAGEMENT
+
+Create an admin category-management interface.
+
+Example:
+
+/admin/categories
+
+Admin should be able to:
+
+- View categories
+- Create category
+- Activate/deactivate category
+
+Do NOT implement category deletion yet if products may already reference the category.
+
+If a category is already used by products, deactivation should be preferred over deletion.
+
+3. CREATE CATEGORY
+
+Create:
+
+/admin/categories/new
+
+Allow the admin to enter:
+
+- Category name
+- Description (optional)
+- Active status
+
+Generate the slug safely from the category name on the backend.
+
+Do not trust a frontend-generated slug.
+
+Validate:
+
+- Required name
+- Reasonable length
+- Duplicate category name
+- Duplicate slug
+
+4. CATEGORY API
+
+Use:
+
+Route
+→ Controller
+→ Service
+→ Prisma
+
+Create/complete:
+
+GET /api/v1/admin/categories
+POST /api/v1/admin/categories
+PATCH /api/v1/admin/categories/:id/status
+
+Only ADMIN users can create or modify categories.
+
+5. PUBLIC CATEGORY API
+
+Create/complete a safe public endpoint such as:
+
+GET /api/v1/categories
+
+Only return active categories.
+
+Customers should never receive inactive categories through the normal public endpoint.
+
+6. PRODUCT CREATION
+
+Create/complete:
+
+/admin/products/new
+
+Product fields:
+
+- Product name
+- Category
+- Price
+- Stock quantity
+- Unit
+- Description
+- Product image
+- Active/available status
+
+7. CATEGORY SELECTOR
+
+The product creation form MUST retrieve categories from:
+
+GET /api/v1/admin/categories
+
+Do NOT use:
+
+categories.ts
+
+or an array such as:
+
+["Rice", "Beans", "Oil", "Yam", "Spices"]
+
+The category dropdown must be populated from the database.
+
+Example:
+
+Database categories
+↓
+API
+↓
+React
+↓
+Category dropdown
+
+8. PRODUCT-CATEGORY RELATIONSHIP
+
+A Product should reference a Category through the appropriate Prisma relationship.
+
+Do not store the category name directly inside Product as the primary relationship.
+
+Use the Category ID/foreign key.
+
+When creating a product, the backend must verify that the selected category exists and is active.
+
+9. CATEGORY CHANGES
+
+The system must support future categories without code changes.
+
+Example:
+
+Admin creates:
+
+"Snacks"
+
+The new category should automatically become available in the product creation form.
+
+No redeployment should be required.
+
+10. IMAGE
+
+Use the existing configured image-storage provider.
+
+If Cloudinary is already configured, use it.
+
+Do NOT store image binaries in Neon.
+
+Validate:
+
+- File type
+- File size
+- Upload success
+
+Keep storage credentials server-side.
+
+11. PRODUCT VALIDATION
+
+Backend must validate:
+
+- Product name
+- Category ID
+- Price
+- Stock
+- Unit
+- Description
+- Image
+- Active status
+
+Do not trust frontend validation.
+
+Price must be greater than zero.
+
+Stock must be a non-negative integer.
+
+12. PRODUCT API
+
+Create/complete:
+
+POST /api/v1/admin/products
+
+Flow:
+
+Route
+→ Controller
+→ Service
+→ Prisma
+
+Only ADMIN users can access it.
+
+Do not put Prisma queries in controllers.
+
+13. PRODUCT LIST
+
+After creation:
+
+→ Product is saved to Neon
+→ Product appears in /admin/products
+
+Use real database data.
+
+Do not use static product data for admin management.
+
+14. CUSTOMER SHOP
+
+Active products should use their database category.
+
+The customer shop should be able to retrieve active categories and products from the backend.
+
+Do not redesign the shop.
+
+15. CATEGORY SAFETY
+
+Do not allow an admin to create two categories with the same name or slug.
+
+Do not allow products to reference inactive/nonexistent categories.
+
+Do not allow customers to create or modify categories.
+
+16. SECURITY
+
+Ensure:
+
+- Only ADMIN can create products.
+- Only ADMIN can create/modify categories.
+- Customers receive 403 for admin endpoints.
+- Unauthenticated users receive 401.
+- Storage credentials remain server-side.
+- Secrets are not committed to Git.
+
+17. DATABASE
+
+Before changing Prisma:
+
+1. Inspect the current schema.
+2. Reuse existing models.
+3. Add only genuinely missing fields/relations.
+4. Create the proper Prisma migration.
+5. Generate Prisma Client.
+6. Verify the database connection.
+
+Do not create duplicate Product or Category models.
+
+18. PRODUCTION
+
+Ensure compatibility with:
+
+Frontend → Vercel
+Backend → Render
+Database → Neon
+Image storage → existing provider
+
+Do not use localhost URLs in production.
+
+Run:
+
+- Prisma validation
+- TypeScript checks
+- Frontend production build
+- Backend production build
+
+19. TEST
+
+Test:
+
+1. Admin creates a category.
+2. Category is stored in Neon.
+3. New category immediately appears in product creation.
+4. Admin creates a product using the new category.
+5. Product correctly references the category.
+6. Duplicate category is rejected.
+7. Invalid category ID is rejected.
+8. Inactive category cannot be assigned to a new product.
+9. Product image uploads successfully.
+10. Invalid image is rejected.
+11. Invalid price is rejected.
+12. Negative stock is rejected.
+13. Customer cannot create categories.
+14. Customer cannot create products.
+15. Active categories appear in the customer store.
+16. Inactive categories are hidden from the customer store.
+17. Production build succeeds.
+
+At the end show:
+
+1. Final Product/Category architecture.
+2. Prisma schema changes.
+3. API endpoints.
+4. Category → Product relationship.
+5. Product creation flow.
+6. Image upload flow.
+7. Security measures.
+8. Test/build results.
+
+Then STOP.
+
+Do not implement product editing, category deletion, advanced inventory, or other unrelated features yet.

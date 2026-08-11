@@ -237,8 +237,8 @@ export function ProductDetails() {
                       className="grid size-11 place-items-center text-xl text-muted transition-colors hover:text-green"
                       type="button"
                       aria-label="Increase quantity"
-                       disabled={!product.isAvailable || quantity >= product.stockQuantity}
-                       onClick={() => setQuantity((current) => Math.min(product.stockQuantity, current + 1))}
+                       disabled={!product.isAvailable}
+                       onClick={() => setQuantity((current) => current + 1)}
                     >
                       +
                     </button>

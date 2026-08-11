@@ -22,7 +22,7 @@ export function ProductForm() {
     getAdminCategories().then(setCategories).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Categories could not be loaded.'))
     if (!id) return
     getAdminProduct(id).then((product) => {
-      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity), isActive: product.isActive })
+      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive })
       setCurrentImage(product.image)
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
   }, [id])

@@ -39,7 +39,7 @@ export function ProductView() {
             <p className="mt-4 text-2xl font-bold text-green-dark">{formatPrice(product.price)} <span className="text-sm font-normal text-muted">/ {product.unit}</span></p>
             <p className="mt-6 text-sm leading-7 text-muted">{product.description}</p>
             <dl className="mt-8 grid gap-4 border-t border-line pt-6 sm:grid-cols-2">
-              <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Stock quantity</dt><dd className="mt-1 text-lg font-bold text-green-dark">{product.stockQuantity}</dd></div>
+              <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Stock quantity</dt><dd className="mt-1 text-lg font-bold text-green-dark">{product.stockQuantity ?? 0}</dd></div>
               <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Product ID</dt><dd className="mt-1 break-all text-xs text-muted">{product.id}</dd></div>
             </dl>
           </div>

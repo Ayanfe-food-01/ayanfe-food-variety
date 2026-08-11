@@ -37,6 +37,9 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
           <span>{product.unit}</span>
           <strong className="text-base text-green-dark">{formatPrice(product.price)}</strong>
         </div>
+        <p className="mt-3 text-xs font-semibold text-muted">
+          {product.availabilityStatus === 'LOW_STOCK' ? 'Low stock' : product.availabilityStatus === 'IN_STOCK' ? 'In stock' : 'Out of stock'}
+        </p>
         {product.isAvailable ? (
           <button className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green/20 bg-transparent py-3 text-sm font-bold text-green transition-colors duration-200 hover:bg-green hover:text-cream" type="button" onClick={handleAddToCart} aria-label={`Add ${product.name} to cart`}>
             <BagIcon size={16} /> Add to cart

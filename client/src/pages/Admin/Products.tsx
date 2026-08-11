@@ -178,7 +178,7 @@ export function Products() {
                       </td>
                       <td className="px-4 py-4 text-muted">{product.category}</td>
                       <td className="px-4 py-4"><span className="font-bold text-green-dark">{formatPrice(product.price)}</span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
-                      <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity}</td>
+                      <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.isActive && product.isAvailable ? 'bg-sage text-green' : product.isActive ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
                           {!product.isActive ? 'Inactive' : product.isAvailable ? 'Available' : 'Out of stock'}

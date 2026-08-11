@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
-import type { AdminProductQuery, Product, ProductInput } from './product.types.js'
+import type { AdminProductQuery, Product, ProductInput, PublicProduct } from './product.types.js'
 
 type ProductWithCategory = Prisma.ProductGetPayload<{
   include: { category: true }
@@ -20,22 +20,33 @@ const toProduct = (product: ProductWithCategory): Product => ({
   image: product.image,
   isActive: product.isActive,
   stockQuantity: product.stockQuantity,
+  availabilityStatus: product.stockQuantity === 0
+    ? 'OUT_OF_STOCK'
+    : product.stockQuantity <= 5
+      ? 'LOW_STOCK'
+      : 'IN_STOCK',
   isAvailable: product.isActive && product.stockQuantity > 0,
   createdAt: product.createdAt.toISOString(),
   updatedAt: product.updatedAt.toISOString(),
 })
 
-export async function getProducts(): Promise<Product[]> {
+const toPublicProduct = (product: ProductWithCategory): PublicProduct => {
+  const response = toProduct(product)
+  const { stockQuantity: _stockQuantity, ...publicProduct } = response
+  return publicProduct
+}
+
+export async function getProducts(): Promise<PublicProduct[]> {
   const products = await prisma.product.findMany({
     where: { isActive: true },
     include: { category: true },
     orderBy: { createdAt: 'asc' },
   })
 
-  return products.map(toProduct)
+  return products.map(toPublicProduct)
 }
 
-export async function getProductById(identifier: string): Promise<Product | null> {
+export async function getProductById(identifier: string): Promise<PublicProduct | null> {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)
   const product = await prisma.product.findFirst({
     where: isUuid
@@ -44,7 +55,8 @@ export async function getProductById(identifier: string): Promise<Product | null
     include: { category: true },
   })
 
-  return product ? toProduct(product) : null
+  if (!product) return null
+  return toPublicProduct(product)
 }
 
 const productInclude = { category: true } satisfies Prisma.ProductInclude

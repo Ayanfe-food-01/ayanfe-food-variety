@@ -11,10 +11,13 @@ export interface Product {
   image: string
   isActive: boolean
   stockQuantity: number
+  availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
   createdAt: string
   updatedAt: string
 }
+
+export type PublicProduct = Omit<Product, 'stockQuantity'>
 
 export interface AdminProductQuery {
   search?: string

@@ -13,8 +13,8 @@ interface ProductApiResponse {
   unit: string
   image: string
   isActive: boolean
-  stockQuantity: number
   isAvailable: boolean
+  availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   createdAt: string
   updatedAt: string
 }
@@ -43,7 +43,7 @@ const toProduct = (product: ProductApiResponse): Product => {
     price,
     image: product.image,
     description: product.description,
-    stockQuantity: product.stockQuantity,
+    availabilityStatus: product.availabilityStatus,
     isActive: product.isActive,
     isAvailable: product.isAvailable,
     createdAt: product.createdAt,

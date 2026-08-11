@@ -7,9 +7,10 @@ export interface Product {
   image: string
   description: string
   categoryId?: string
-  stockQuantity: number
+  stockQuantity?: number
   isActive: boolean
   isAvailable: boolean
+  availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   createdAt?: string
   updatedAt?: string
 }

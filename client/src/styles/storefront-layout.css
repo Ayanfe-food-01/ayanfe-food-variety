@@ -58,7 +58,7 @@
 
 @media (max-width: 767px) {
   .header-utility { font-size: 10px; }
-  .store-nav { flex-wrap: wrap; min-height: 0; gap: 10px; padding: 7px 16px 12px; }
+  .store-nav { width: calc(100% - 24px); flex-wrap: wrap; min-height: 0; gap: 10px; padding: 7px 6px 12px; }
   .mobile-only { display: grid; flex: 0 0 auto; width: 36px; height: 36px; border: 0; }
   .brand-mark img { width: 57px; height: 47px; }
   .store-nav > .search-form { order: 3; position: static; flex: 0 0 100%; width: 100%; }

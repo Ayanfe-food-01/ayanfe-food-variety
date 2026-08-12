@@ -1,117 +1,74 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { BagIcon, CloseIcon, MenuIcon } from '../../assets/icons'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { BagIcon, CloseIcon, MenuIcon, SearchIcon, UserIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
-import { NavigationLinks, NavigationMenu, type NavigationItem } from './NavigationLinks'
 
-const links: NavigationItem[] = [
+const links = [
   { label: 'Home', href: '/' },
   { label: 'Shop', href: '/shop' },
-  { label: 'New Arrivals', href: '/new-arrivals' },
+  { label: 'New arrivals', href: '/new-arrivals' },
   { label: 'Orders', href: '/orders' },
-  { label: 'About', href: '#why-us' },
-  { label: 'Contact', href: '#contact' },
 ]
-
-const mobileNavRowClassName = 'whitespace-nowrap border-b border-line/70 px-3 py-3 transition-colors duration-200 hover:text-green md:border-0 md:p-0'
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [searchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') ?? '')
+  const navigate = useNavigate()
   const { totalQuantity } = useCart()
   const { user, logout } = useCustomerAuth()
-  const closeMenu = () => setIsMenuOpen(false)
 
   useEffect(() => {
-    if (!isMenuOpen) return
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMenu()
-    }
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-    }
+    document.body.style.overflow = isMenuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
   }, [isMenuOpen])
 
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault()
+    const value = search.trim()
+    navigate(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop')
+    setIsMenuOpen(false)
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b border-line/70 bg-cream/90 backdrop-blur-xl">
-      <nav className="container relative flex min-h-[68px] items-center justify-between gap-4 py-3 md:min-h-[78px] md:gap-6 md:py-4" aria-label="Main navigation">
-        <Link className="inline-flex shrink-0 items-center" to="/" aria-label="Ayanfe Food Variety home">
-          <img className="h-16 w-16 object-contain md:h-[74px] md:w-[74px]" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
-        </Link>
-
-        <NavigationMenu isOpen={isMenuOpen} onClose={closeMenu}>
-          <div className="mb-8 flex items-center justify-between md:hidden">
-            <Link className="inline-flex items-center" to="/" onClick={closeMenu} aria-label="Ayanfe Food Variety home">
-              <img className="h-16 w-16 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
-            </Link>
-            <button
-              className="grid size-11 place-items-center rounded-full border border-line text-green transition-colors hover:bg-sage"
-              type="button"
-              aria-label="Close menu"
-              onClick={closeMenu}
-            >
-              <CloseIcon size={22} />
-            </button>
-          </div>
-          <NavigationLinks
-            items={links}
-            className={mobileNavRowClassName}
-            onNavigate={closeMenu}
-          />
-          {user ? (
-            <>
-              <button className={`${mobileNavRowClassName} text-left text-muted hover:text-orange md:hidden`} type="button" onClick={() => { closeMenu(); void logout() }}>
-                Log out
-              </button>
-            </>
-          ) : (
-            <Link className={`${mobileNavRowClassName} md:hidden`} to="/login" onClick={closeMenu}>
-              Login
-            </Link>
-          )}
-          <Link className="mt-6 inline-flex items-center justify-center gap-2 rounded-full border border-green/20 px-4 py-3 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:hidden" to="/cart" onClick={closeMenu}>
-            <BagIcon size={18} />
-            <span>Cart{totalQuantity > 0 ? ` · ${totalQuantity}` : ''}</span>
-          </Link>
-        </NavigationMenu>
-
-        <Link className="hidden shrink-0 items-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:inline-flex" to="/cart" aria-label={`View cart${totalQuantity > 0 ? `, ${totalQuantity} items` : ''}`}>
-          <BagIcon size={20} />
-          <span>Cart</span>
-          <span className="grid min-w-5 place-items-center rounded-full bg-orange px-1.5 py-0.5 text-[10px] text-cream" aria-label={`${totalQuantity} items in cart`}>
-            {totalQuantity}
-          </span>
-        </Link>
-        {user ? (
-          <div className="hidden shrink-0 items-center gap-3 md:flex">
-            <Link className="text-sm font-bold text-green transition-colors hover:text-orange" to="/orders" aria-label="Open your account">
-              {user.name || 'Account'}
-            </Link>
-            <button className="text-xs font-semibold text-muted transition-colors hover:text-orange" type="button" onClick={() => void logout()}>
-              Log out
-            </button>
-          </div>
-        ) : (
-          <Link className="hidden shrink-0 text-sm text-muted transition-colors duration-200 hover:text-green md:block" to="/login">
-            Login
-          </Link>
-        )}
-        <button
-          className="border-0 bg-transparent p-2 text-green md:hidden"
-          type="button"
-          aria-label="Open navigation menu"
-          aria-expanded={isMenuOpen}
-          onClick={() => setIsMenuOpen((open) => !open)}
-        >
-          <MenuIcon size={24} />
+    <header className="store-header">
+      <div className="header-utility"><div className="container">Quality foodstuff, delivered with care</div></div>
+      <nav className="container store-nav" aria-label="Main navigation">
+        <button className="icon-button mobile-only" type="button" aria-label="Open navigation menu" onClick={() => setIsMenuOpen(true)}>
+          <MenuIcon size={22} />
         </button>
+        <Link className="brand-mark" to="/" aria-label="Ayanfe Food Variety home">
+          <img src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety" />
+        </Link>
+        <form className="search-form" onSubmit={submitSearch} role="search">
+          <SearchIcon size={19} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products, brands and categories" aria-label="Search products" />
+          <button type="submit">Search</button>
+        </form>
+        <div className="store-actions">
+          <Link className="account-link" to={user ? '/orders' : '/login'} aria-label={user ? 'Open your orders' : 'Sign in'}>
+            <UserIcon size={22} /><span className="desktop-only">{user ? 'Account' : 'Sign in'}</span>
+          </Link>
+          <Link className="cart-link" to="/cart" aria-label={`Cart with ${totalQuantity} items`}>
+            <BagIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
+          </Link>
+        </div>
       </nav>
+      <div className="desktop-nav container">
+        {links.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
+        <Link to="#why-us">Why Ayanfe</Link>
+        {user && <button type="button" onClick={() => void logout()}>Log out</button>}
+      </div>
+      <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} />
+      <aside className={`mobile-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen}>
+        <div className="mobile-menu-head"><strong>Shop Ayanfe</strong><button className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button></div>
+        <form className="search-form mobile-search" onSubmit={submitSearch} role="search">
+          <SearchIcon size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search the store" aria-label="Search the store" />
+        </form>
+        <div className="mobile-links">{links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}</div>
+        {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <Link className="logout-link" to="/login" onClick={() => setIsMenuOpen(false)}>Sign in</Link>}
+      </aside>
     </header>
   )
 }

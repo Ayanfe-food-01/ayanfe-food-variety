@@ -67,6 +67,7 @@
   .home-hero-copy > p:not(.eyebrow) { font-size: 13px; }
   .hero-card { display: none; }
   .home-section { padding: 25px 0; }
+  .category-rail, .product-rail { padding-bottom: 18px; scrollbar-gutter: stable; }
   .product-rail { grid-auto-columns: minmax(176px, 46vw); }
   .product-card-body { padding: 10px; }
   .trust-grid { grid-template-columns: 1fr; gap: 12px; }

@@ -8,10 +8,11 @@ const normalizeApiBaseUrl = (value: string | undefined): string => {
 
   try {
     const url = new URL(cleanedValue)
+    if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) return ''
     url.pathname = `${url.pathname.replace(/\/+$/, '')}/api/v1`
     return url.toString().replace(/\/+$/, '')
   } catch {
-    return cleanedValue
+    return ''
   }
 }
 

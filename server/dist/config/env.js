@@ -19,21 +19,32 @@ if (!sessionSecret || sessionSecret.length < 32) {
 }
 const publicAppUrl = process.env.PUBLIC_APP_URL?.trim();
 const corsOriginValue = process.env.CORS_ORIGINS?.trim();
-if (nodeEnv === 'production' && !corsOriginValue) {
-    throw new Error('CORS_ORIGINS is required in production');
+if (!corsOriginValue) {
+    throw new Error('CORS_ORIGINS is required and must contain complete frontend origins');
 }
-const normalizeOrigin = (origin) => {
+export const normalizeOrigin = (origin) => {
+    const trimmedOrigin = origin.trim();
+    if (!trimmedOrigin) {
+        throw new Error('CORS_ORIGINS contains an empty origin');
+    }
+    let parsedOrigin;
     try {
-        return new URL(origin.trim()).origin;
+        parsedOrigin = new URL(trimmedOrigin);
     }
     catch {
-        return origin.trim().replace(/\/+$/, '');
+        throw new Error(`CORS_ORIGINS entry "${trimmedOrigin}" must include its protocol, such as https://example.com`);
     }
+    if (!['http:', 'https:'].includes(parsedOrigin.protocol) || !parsedOrigin.hostname) {
+        throw new Error(`CORS_ORIGINS entry "${trimmedOrigin}" must be an http or https origin`);
+    }
+    if (parsedOrigin.pathname !== '/' || parsedOrigin.search || parsedOrigin.hash) {
+        throw new Error(`CORS_ORIGINS entry "${trimmedOrigin}" must contain only protocol, host, and optional port`);
+    }
+    return parsedOrigin.origin;
 };
-const corsOrigins = (corsOriginValue || 'http://localhost:5000')
+const corsOrigins = corsOriginValue
     .split(',')
-    .map(normalizeOrigin)
-    .filter(Boolean);
+    .map(normalizeOrigin);
 if (corsOrigins.length === 0) {
     throw new Error('CORS_ORIGINS must contain at least one origin');
 }

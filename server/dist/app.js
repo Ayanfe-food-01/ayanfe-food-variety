@@ -7,25 +7,29 @@ import { notFoundMiddleware } from './middleware/notFound.middleware.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { apiRoutes } from './routes/index.js';
 import { HttpError } from './utils/http.js';
-const normalizeOrigin = (origin) => {
+import { normalizeOrigin } from './config/env.js';
+const getAllowedOrigin = (origin) => {
+    if (!origin)
+        return undefined;
     try {
-        return new URL(origin.trim()).origin;
+        const normalizedOrigin = normalizeOrigin(origin);
+        return env.corsOrigins.includes(normalizedOrigin) ? normalizedOrigin : undefined;
     }
     catch {
-        return origin.trim().replace(/\/+$/, '');
+        return undefined;
     }
-};
-const isAllowedOrigin = (origin) => {
-    if (!origin)
-        return true;
-    return env.corsOrigins.includes(normalizeOrigin(origin));
 };
 export const app = express();
 app.set('trust proxy', 1);
 app.use(requestLogger);
 app.use(cors({
     origin: (origin, callback) => {
-        if (isAllowedOrigin(origin)) {
+        const allowedOrigin = getAllowedOrigin(origin);
+        if (allowedOrigin) {
+            callback(null, allowedOrigin);
+            return;
+        }
+        if (!origin) {
             callback(null, true);
             return;
         }
@@ -33,6 +37,7 @@ app.use(cors({
             event: 'cors_blocked',
             origin: origin ?? null,
             allowedOrigins: env.corsOrigins,
+            accepted: false,
         }));
         callback(new HttpError(403, 'The request origin is not allowed.'));
     },

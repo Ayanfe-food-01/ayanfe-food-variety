@@ -22,6 +22,7 @@ import { Categories } from './pages/Admin/Categories'
 import { CategoryForm } from './pages/Admin/CategoryForm'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 import { useRouteToast } from './hooks/useRouteToast'
+import { Seo } from './seo/Seo'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -38,11 +39,44 @@ function RouteToastBridge() {
   return null
 }
 
+function PrivateRouteSeo() {
+  const { pathname } = useLocation()
+  const isPrivateRoute =
+    pathname === '/login'
+    || pathname === '/cart'
+    || pathname === '/checkout'
+    || pathname.startsWith('/admin')
+    || pathname.startsWith('/orders')
+    || pathname.startsWith('/order-confirmation')
+
+  if (!isPrivateRoute) return null
+
+  const title = pathname === '/login'
+    ? 'Sign in | Ayanfe Food Variety'
+    : pathname.startsWith('/admin')
+      ? 'Admin area | Ayanfe Food Variety'
+      : pathname === '/cart'
+        ? 'Your cart | Ayanfe Food Variety'
+        : pathname === '/checkout'
+          ? 'Checkout | Ayanfe Food Variety'
+          : 'Your orders | Ayanfe Food Variety'
+
+  return (
+    <Seo
+      title={title}
+      description="This page is for your Ayanfe Food Variety account and order activity."
+      canonicalPath={pathname}
+      noIndex
+    />
+  )
+}
+
 function App() {
   return (
     <>
       <ScrollToTop />
       <RouteToastBridge />
+      <PrivateRouteSeo />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />

@@ -9,6 +9,7 @@ import { getCategories } from '../services/categoryService'
 import { ApiError } from '../services/api'
 import { getProducts, type ProductPage } from '../services/productService'
 import type { Category } from '../types/category'
+import { Seo } from '../seo/Seo'
 
 const PAGE_SIZE = 20
 const SORT_OPTIONS = [
@@ -134,6 +135,13 @@ export function Shop() {
 
   return (
     <>
+      <Seo
+        title={selectedCategory ? `${selectedCategory.name} products | Ayanfe Food Variety` : 'Shop Nigerian foodstuff and groceries | Ayanfe Food Variety'}
+        description={selectedCategory
+          ? `${selectedCategory.description || `Browse ${selectedCategory.name.toLowerCase()} from Ayanfe Food Variety.`} Shop our available collection.`
+          : 'Browse Nigerian foodstuff, pantry staples, and everyday groceries from Ayanfe Food Variety. Find carefully sourced essentials for your kitchen.'}
+        canonicalPath="/shop"
+      />
       <Navbar />
       <main>
         <section className="border-b border-line/70 bg-sage/35">

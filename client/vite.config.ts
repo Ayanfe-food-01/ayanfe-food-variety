@@ -5,9 +5,20 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), '')
+  const publicAppUrl = (environment.PUBLIC_APP_URL || '').trim().replace(/\/+$/, '')
 
   return {
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: 'replace-public-app-url-in-html',
+      transformIndexHtml: (html) => html.replaceAll('%PUBLIC_APP_URL%', publicAppUrl),
+    },
+  ],
+  define: {
+    'import.meta.env.PUBLIC_APP_URL': JSON.stringify(environment.PUBLIC_APP_URL || ''),
+  },
   server: {
     allowedHosts: true,
     proxy: {

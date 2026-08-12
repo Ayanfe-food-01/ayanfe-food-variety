@@ -82,6 +82,17 @@ Set this Vercel environment variable for Preview and Production:
 VITE_API_URL=https://your-render-service.onrender.com
 ```
 
+Also set the canonical storefront origin in Vercel using the same
+`PUBLIC_APP_URL` value configured on Render:
+
+```text
+PUBLIC_APP_URL=https://your-vercel-project.vercel.app
+```
+
+This value is embedded during the Vite build and is used for canonical URLs,
+social metadata, and the dynamic sitemap/robots endpoints. Keep it aligned
+with the origin in Render's `CORS_ORIGINS` and do not include a trailing slash.
+
 The value must not end with punctuation such as a period. After changing a
 Vercel environment variable, trigger a new deployment; environment variables
 are embedded into the static frontend during the build. If the Vercel project
@@ -174,6 +185,7 @@ production test, enter:
 
 ```text
 VITE_API_URL=https://<your-render-service>.onrender.com
+PUBLIC_APP_URL=https://<your-vercel-project>.vercel.app
 ```
 
 ### Render

@@ -30,6 +30,9 @@ export function Hero() {
               className="size-full object-cover"
               src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=90"
               alt="Fresh vegetables and produce arranged in a market basket"
+              width={1200}
+              height={900}
+              fetchPriority="high"
             />
           </div>
           <div className="absolute left-3 top-3 flex items-center gap-3 rounded-2xl bg-cream px-4 py-3 shadow-xl shadow-ink/10 md:-left-6 md:top-10">

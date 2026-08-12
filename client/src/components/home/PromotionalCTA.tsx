@@ -15,7 +15,7 @@ export function PromotionalCTA() {
         <div className="relative h-[220px] sm:h-[300px]" aria-hidden="true">
           <div className="absolute -right-8 -top-10 size-52 rounded-full bg-orange/20" />
           <div className="absolute -bottom-12 left-4 size-36 rounded-full bg-sage" />
-          <img className="relative z-10 ml-auto size-full max-w-[390px] rounded-[24px] object-cover shadow-2xl shadow-green/15" src="https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=90" alt="" />
+          <img className="relative z-10 ml-auto size-full max-w-[390px] rounded-[24px] object-cover shadow-2xl shadow-green/15" src="https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=90" alt="Fresh ingredients prepared for a home-cooked meal" width={800} height={600} loading="lazy" />
         </div>
       </div>
       </section>

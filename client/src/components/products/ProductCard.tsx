@@ -47,7 +47,10 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
           <img
             className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
             src={product.image}
-            alt={product.name}
+            alt={`${product.name} from Ayanfe Food Variety`}
+            width={720}
+            height={667}
+            loading="lazy"
             onError={() => setImageError(true)}
           />
         ) : (
@@ -84,7 +87,7 @@ export function ProductCard({ product, showDetails = false }: ProductCardProps) 
           {showDetails && (
             <Link
               className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-green/20 text-green transition-colors duration-200 hover:bg-green hover:text-cream"
-              to={`/product/${product.id}`}
+              to={`/product/${product.slug ?? product.id}`}
               aria-label={`View details for ${product.name}`}
               title="View details"
             >

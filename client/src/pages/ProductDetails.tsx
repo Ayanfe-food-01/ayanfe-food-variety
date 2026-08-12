@@ -12,6 +12,8 @@ import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getProduct, getProducts } from '../services/productService'
 import type { Product } from '../types/product'
+import { Seo } from '../seo/Seo'
+import { getAbsoluteUrl, getSiteUrl, SITE_NAME } from '../seo/config'
 
 export function ProductDetails() {
   const { id } = useParams<{ id: string }>()
@@ -101,6 +103,25 @@ export function ProductDetails() {
   }
 
   const isAdding = product ? pendingItemIds.includes(product.id) : false
+  const productPath = product ? `/product/${product.slug ?? product.id}` : `/product/${id ?? ''}`
+  const productDescription = product?.description || 'View product details from Ayanfe Food Variety.'
+  const productSchema = product ? {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    ...(product.image ? { image: [getAbsoluteUrl(product.image)] } : {}),
+    category: product.category,
+    offers: {
+      '@type': 'Offer',
+      url: getSiteUrl() ? new URL(productPath, `${getSiteUrl()}/`).toString() : productPath,
+      priceCurrency: 'NGN',
+      price: product.price.toFixed(2),
+      availability: product.isAvailable
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+    },
+  } : null
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -112,6 +133,11 @@ export function ProductDetails() {
   if (isLoading) {
     return (
       <>
+        <Seo
+          title={`Product details | ${SITE_NAME}`}
+          description="View product details, pricing, and availability from Ayanfe Food Variety."
+          canonicalPath={productPath}
+        />
         <Navbar />
         <main className="container py-16 sm:py-24" aria-label="Loading product details">
           <div className="grid animate-pulse items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -133,6 +159,12 @@ export function ProductDetails() {
   if (hasError) {
     return (
       <>
+        <Seo
+          title={`Product unavailable | ${SITE_NAME}`}
+          description="This product could not be loaded. Browse the Ayanfe Food Variety shop for available foodstuff and groceries."
+          canonicalPath={productPath}
+          noIndex
+        />
         <Navbar />
         <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
@@ -160,6 +192,12 @@ export function ProductDetails() {
   if (isNotFound || !product) {
     return (
       <>
+        <Seo
+          title={`Product not found | ${SITE_NAME}`}
+          description="This product is not available in the current Ayanfe Food Variety collection."
+          canonicalPath={productPath}
+          noIndex
+        />
         <Navbar />
         <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10" aria-labelledby="not-found-heading">
@@ -185,6 +223,14 @@ export function ProductDetails() {
 
   return (
     <>
+      <Seo
+        title={`${product.name} | Ayanfe Food Variety`}
+        description={productDescription}
+        canonicalPath={productPath}
+        image={product.image || undefined}
+        imageAlt={`${product.name} from Ayanfe Food Variety`}
+        jsonLd={productSchema}
+      />
       <Navbar />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
@@ -206,6 +252,9 @@ export function ProductDetails() {
                     className="size-full object-cover transition-transform duration-500 hover:scale-[1.02]"
                     src={product.image}
                     alt={`${product.name}, ${product.category}`}
+                    width={720}
+                    height={720}
+                    fetchPriority="high"
                     onError={() => setImageError(true)}
                   />
                 ) : (

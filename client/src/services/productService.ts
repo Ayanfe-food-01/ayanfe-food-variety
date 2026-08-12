@@ -60,6 +60,7 @@ const toProduct = (product: ProductApiResponse): Product => {
     categoryId: product.categoryId,
     categorySlug: product.categorySlug,
     name: product.name,
+    slug: product.slug,
     category: product.categoryName,
     unit: product.unit,
     price,

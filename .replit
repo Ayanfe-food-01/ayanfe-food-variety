@@ -60,7 +60,7 @@ externalPort = 8000
 [userenv.shared]
 ADMIN_INITIAL_NAME = "Ayanfe-food-variety"
 ADMIN_INITIAL_EMAIL = "ayanfefoodvariety01@gmail.com"
-PUBLIC_APP_URL = "https://ayanfe-food-variety.vercel.app"
+PUBLIC_APP_URL = "https://food-variety.vercel.app"
 CORS_ORIGINS = "http://localhost:5000,https://1dc9568c-53ca-4d9b-9a1d-6640fa54e776-00-3n10701efjmf9.spock.replit.dev"
 
 [userenv.development]

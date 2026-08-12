@@ -1,4 +1,4 @@
-import type { PaymentSettings as PrismaPaymentSettings, StoreSettings as PrismaStoreSettings } from '@prisma/client'
+import { PaymentMethod, type PaymentSettings as PrismaPaymentSettings, type StoreSettings as PrismaStoreSettings } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import type {
   ContactInformation,
@@ -43,14 +43,19 @@ const toContactInformation = (settings: PrismaStoreSettings): ContactInformation
 })
 
 const toPaymentSettings = (settings: PrismaPaymentSettings): PaymentSettings => ({
+  paymentMethod: settings.paymentMethod,
   bankName: settings.bankName,
   accountName: settings.accountName,
   accountNumber: settings.accountNumber,
   instructions: settings.instructions,
+  isActive: settings.isActive,
 })
 
 const getSettings = () => prisma.storeSettings.findUnique({ where: { singletonKey: SETTINGS_KEY } })
-const getPaymentSettings = () => prisma.paymentSettings.findUnique({ where: { singletonKey: SETTINGS_KEY } })
+const getPaymentSettings = (paymentMethod: PaymentMethod = PaymentMethod.BANK_TRANSFER) =>
+  prisma.paymentSettings.findUnique({
+    where: { singletonKey_paymentMethod: { singletonKey: SETTINGS_KEY, paymentMethod } },
+  })
 
 export async function getAdminStoreInformation(): Promise<StoreInformation | null> {
   const settings = await getSettings()
@@ -112,28 +117,37 @@ export async function getAdminPaymentSettings(): Promise<PaymentSettings | null>
 
 export async function updateAdminPaymentSettings(input: UpdatePaymentSettingsInput): Promise<PaymentSettings> {
   const settings = await prisma.paymentSettings.upsert({
-    where: { singletonKey: SETTINGS_KEY },
-    create: { singletonKey: SETTINGS_KEY, ...input, isActive: true },
-    update: { ...input, isActive: true },
+    where: {
+      singletonKey_paymentMethod: {
+        singletonKey: SETTINGS_KEY,
+        paymentMethod: input.paymentMethod,
+      },
+    },
+    create: { singletonKey: SETTINGS_KEY, ...input },
+    update: input,
   })
   return toPaymentSettings(settings)
 }
 
 export async function getPublicPaymentSettings(): Promise<PaymentSettings | null> {
   const settings = await prisma.paymentSettings.findFirst({
-    where: { singletonKey: SETTINGS_KEY, isActive: true },
-    select: { bankName: true, accountName: true, accountNumber: true, instructions: true },
+    where: { singletonKey: SETTINGS_KEY, paymentMethod: PaymentMethod.BANK_TRANSFER, isActive: true },
   })
-  return settings
+  return settings ? toPaymentSettings(settings) : null
 }
 
 export async function getPublicStoreSettings(): Promise<PublicStoreSettings> {
-  const [store, payment] = await Promise.all([
+  const [store, paymentMethods] = await Promise.all([
     getSettings(),
-    getPublicPaymentSettings(),
+    prisma.paymentSettings.findMany({
+      where: { singletonKey: SETTINGS_KEY, isActive: true },
+      orderBy: { createdAt: 'asc' },
+    }),
   ])
+  const publicPaymentMethods = paymentMethods.map(toPaymentSettings)
   return {
     store: store ? toStoreSettings(store) : DEFAULT_STORE_SETTINGS,
-    payment: payment ?? null,
+    payment: publicPaymentMethods.find((method) => method.paymentMethod === PaymentMethod.BANK_TRANSFER) ?? null,
+    paymentMethods: publicPaymentMethods,
   }
 }

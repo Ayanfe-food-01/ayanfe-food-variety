@@ -1,4 +1,5 @@
 import { HttpError } from '../../utils/http.js'
+import { PaymentMethod } from '@prisma/client'
 import type {
   UpdateContactInformationInput,
   UpdatePaymentSettingsInput,
@@ -54,6 +55,17 @@ export function validateContactInformationInput(body: unknown): UpdateContactInf
 export function validatePaymentSettingsInput(body: unknown): UpdatePaymentSettingsInput {
   if (!isRecord(body)) throw new HttpError(400, 'Payment settings are required.')
 
+  const paymentMethod = body.paymentMethod === undefined
+    ? PaymentMethod.BANK_TRANSFER
+    : body.paymentMethod
+  if (paymentMethod !== PaymentMethod.BANK_TRANSFER) {
+    throw new HttpError(400, 'Payment method is not supported.')
+  }
+
+  if (body.isActive !== undefined && typeof body.isActive !== 'boolean') {
+    throw new HttpError(400, 'Payment method availability must be true or false.')
+  }
+
   const accountNumber = requiredText(body.accountNumber, 'Account number', 80)
   const accountDigits = accountNumber.replace(/\D/g, '')
   if (!/^[0-9][0-9 -]*[0-9]$/.test(accountNumber) || accountDigits.length < 6 || accountDigits.length > 34) {
@@ -61,9 +73,11 @@ export function validatePaymentSettingsInput(body: unknown): UpdatePaymentSettin
   }
 
   return {
+    paymentMethod,
     bankName: requiredText(body.bankName, 'Bank name', 180),
     accountName: requiredText(body.accountName, 'Account name', 180),
     accountNumber,
     instructions: requiredText(body.instructions, 'Payment instructions', 2000),
+    isActive: body.isActive ?? true,
   }
 }

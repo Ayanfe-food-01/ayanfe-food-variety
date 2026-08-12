@@ -15,7 +15,14 @@ import {
 
 const emptyStore: StoreInformation = { businessName: '', address: '', description: '' }
 const emptyContact: ContactInformation = { businessEmail: '', businessPhone: '', whatsappNumber: '' }
-const emptyPayment: PaymentSettings = { bankName: '', accountName: '', accountNumber: '', instructions: '' }
+const emptyPayment: PaymentSettings = {
+  paymentMethod: 'BANK_TRANSFER',
+  bankName: '',
+  accountName: '',
+  accountNumber: '',
+  instructions: '',
+  isActive: true,
+}
 
 interface SettingsSectionProps {
   eyebrow: string
@@ -129,7 +136,7 @@ export function Settings() {
             </form>
           </SettingsSection>
 
-          <SettingsSection eyebrow="Payment settings" title="Payment Settings" description="These bank-transfer details are shown to customers after checkout and are read live from the database. Never enter card or gateway credentials here.">
+           <SettingsSection eyebrow="Payment settings" title="Payment Settings" description="These bank-transfer details are shown to customers after checkout and are read live from the database. Never enter card or gateway credentials here.">
             <form className="space-y-5" onSubmit={submitPayment}>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Bank name" value={payment.bankName} onChange={(event) => setPayment({ ...payment, bankName: event.target.value })} required maxLength={180} />
@@ -137,6 +144,18 @@ export function Settings() {
               </div>
               <Field label="Account number" value={payment.accountNumber} onChange={(event) => setPayment({ ...payment, accountNumber: event.target.value })} required maxLength={80} inputMode="numeric" />
               <TextArea label="Payment instructions" value={payment.instructions} onChange={(event) => setPayment({ ...payment, instructions: event.target.value })} required maxLength={2000} placeholder="Tell customers what reference to use and what to do after transfer." />
+               <label className="flex items-start gap-3 rounded-xl border border-line bg-cream/50 p-4 text-sm text-green-dark">
+                 <input
+                   className="mt-0.5 size-4 accent-green"
+                   type="checkbox"
+                   checked={payment.isActive}
+                   onChange={(event) => setPayment({ ...payment, isActive: event.target.checked })}
+                 />
+                 <span>
+                   <span className="block font-bold">Available at checkout</span>
+                   <span className="mt-1 block text-xs font-normal leading-5 text-muted">Turn this off to temporarily stop accepting this payment method without deleting its saved details.</span>
+                 </span>
+               </label>
               <SaveButton saving={saving === 'payment'} label="Save payment settings" />
             </form>
           </SettingsSection>

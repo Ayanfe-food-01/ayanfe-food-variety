@@ -1,4 +1,4 @@
-import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client'
+import { Prisma, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
@@ -36,6 +36,15 @@ type OrderWithItems = Prisma.OrderGetPayload<{
       }
       orderBy: {
         createdAt: 'desc'
+      }
+    }
+    paymentSnapshot: {
+      select: {
+        paymentMethod: true
+        bankName: true
+        accountName: true
+        accountNumber: true
+        instructions: true
       }
     }
   }
@@ -77,6 +86,7 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
     subtotal: order.subtotal.toString(),
     deliveryFee: order.deliveryFee.toString(),
     total: order.total.toString(),
+    paymentMethod: order.paymentMethod,
     paymentStatus,
     orderStatus: order.orderStatus,
     createdAt: order.createdAt.toISOString(),
@@ -93,6 +103,7 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
       }),
     ),
     paymentSubmissions: order.paymentSubmissions.map(toPaymentSubmissionResponse),
+    payment: order.paymentSnapshot,
   }
 }
 
@@ -119,6 +130,15 @@ const orderInclude = {
       status: true,
       reviewedAt: true,
       createdAt: true,
+    },
+  },
+  paymentSnapshot: {
+    select: {
+      paymentMethod: true,
+      bankName: true,
+      accountName: true,
+      accountNumber: true,
+      instructions: true,
     },
   },
 } satisfies Prisma.OrderInclude
@@ -172,6 +192,18 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       },
     })
     if (!cart || cart.items.length === 0) throw new HttpError(400, 'Your cart is empty.')
+
+    const paymentSettings = await transaction.paymentSettings.findUnique({
+      where: {
+        singletonKey_paymentMethod: {
+          singletonKey: 'default',
+          paymentMethod: input.paymentMethod,
+        },
+      },
+    })
+    if (!paymentSettings || !paymentSettings.isActive) {
+      throw new HttpError(400, 'The selected payment method is unavailable.')
+    }
 
     const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000)
     if (invalidQuantity) throw new HttpError(400, 'One or more cart quantities are invalid.')
@@ -233,9 +265,19 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         subtotal,
         deliveryFee,
         total: subtotal.add(deliveryFee),
+        paymentMethod: input.paymentMethod,
         paymentStatus: PaymentStatus.PENDING,
         orderStatus: OrderStatus.PENDING,
         orderItems: { create: orderItems },
+        paymentSnapshot: {
+          create: {
+            paymentMethod: paymentSettings.paymentMethod,
+            bankName: paymentSettings.bankName,
+            accountName: paymentSettings.accountName,
+            accountNumber: paymentSettings.accountNumber,
+            instructions: paymentSettings.instructions,
+          },
+        },
       },
       include: orderInclude,
     })
@@ -294,7 +336,14 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         quantity: item.quantity,
         subtotal: item.subtotal.toString(),
       })),
-      bank: null,
+       bank: result.order.paymentSnapshot
+         ? {
+             bankName: result.order.paymentSnapshot.bankName,
+             accountName: result.order.paymentSnapshot.accountName,
+             accountNumber: result.order.paymentSnapshot.accountNumber,
+             instructions: result.order.paymentSnapshot.instructions,
+           }
+         : null,
     }).catch((error: unknown) => console.error('Order confirmation email failed', error))
   }
 

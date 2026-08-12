@@ -1,3 +1,5 @@
+import type { PaymentMethod } from './orderService'
+
 import { request } from './api'
 
 export interface StoreSettings {
@@ -11,12 +13,17 @@ export interface StoreSettings {
 
 export interface PublicStoreSettings {
   store: StoreSettings | null
-  payment: {
-    bankName: string
-    accountName: string
-    accountNumber: string
-    instructions: string
-  } | null
+  payment: PaymentSettings | null
+  paymentMethods: PaymentSettings[]
+}
+
+export interface PaymentSettings {
+  paymentMethod: PaymentMethod
+  bankName: string
+  accountName: string
+  accountNumber: string
+  instructions: string
+  isActive: boolean
 }
 
 interface PublicStoreSettingsResponse {

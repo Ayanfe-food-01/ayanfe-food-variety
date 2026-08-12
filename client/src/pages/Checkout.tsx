@@ -7,7 +7,8 @@ import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart } from '../services/orderService'
+import { checkoutCustomerCart, type PaymentMethod } from '../services/orderService'
+import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -23,6 +24,7 @@ interface CheckoutFormData {
   address: string
   city: string
   deliveryInstructions: string
+  paymentMethod: PaymentMethod
 }
 
 type CheckoutField = keyof CheckoutFormData
@@ -35,6 +37,7 @@ const initialForm: CheckoutFormData = {
   address: '',
   city: '',
   deliveryInstructions: '',
+  paymentMethod: 'BANK_TRANSFER',
 }
 
 const inputClassName = (hasError: boolean) =>
@@ -106,7 +109,32 @@ export function Checkout() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [needsCartReview, setNeedsCartReview] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentSettings[]>([])
+  const [isPaymentLoading, setIsPaymentLoading] = useState(true)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
   const [checkoutKey] = useState(() => crypto.randomUUID())
+
+  useEffect(() => {
+    getPublicStoreSettings()
+      .then((settings) => {
+        const availableMethods = settings.paymentMethods.length > 0
+          ? settings.paymentMethods
+          : settings.payment
+            ? [settings.payment]
+            : []
+        setPaymentMethods(availableMethods)
+        setForm((currentForm) => ({
+          ...currentForm,
+          paymentMethod: availableMethods.some((method) => method.paymentMethod === currentForm.paymentMethod)
+            ? currentForm.paymentMethod
+            : (availableMethods[0]?.paymentMethod ?? currentForm.paymentMethod),
+        }))
+      })
+      .catch((reason: unknown) => {
+        setPaymentError(reason instanceof ApiError ? reason.message : 'Payment methods could not be loaded.')
+      })
+      .finally(() => setIsPaymentLoading(false))
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -136,10 +164,12 @@ export function Checkout() {
     setSubmitError(null)
     setNeedsCartReview(false)
 
-    if (Object.keys(nextErrors).length > 0 || items.length === 0 || isCartLoading || !canCheckout) {
+    if (Object.keys(nextErrors).length > 0 || items.length === 0 || isCartLoading || !canCheckout || !paymentSettings) {
       if (items.length === 0 || !canCheckout) {
         setSubmitError('One or more cart items need attention before checkout.')
         setNeedsCartReview(true)
+      } else if (!paymentSettings) {
+        setSubmitError(paymentError ?? 'Select an available payment method before placing your order.')
       }
       return
     }
@@ -153,6 +183,7 @@ export function Checkout() {
         deliveryAddress: form.address.trim(),
         city: form.city.trim(),
         deliveryInstructions: form.deliveryInstructions.trim() || undefined,
+        paymentMethod: form.paymentMethod,
       })
 
       // The API removes only the purchased cart rows. Refreshing keeps the
@@ -174,6 +205,8 @@ export function Checkout() {
       setIsSubmitting(false)
     }
   }
+
+  const paymentSettings = paymentMethods.find((method) => method.paymentMethod === form.paymentMethod) ?? null
 
   if (!isCustomerAuthLoading && !user) {
     return (
@@ -323,22 +356,62 @@ export function Checkout() {
                 </div>
               </fieldset>
 
-              <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment status</legend>
-                <div className="mt-5 flex items-start gap-3 rounded-2xl border border-green/25 bg-sage/25 p-4">
-                  <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-4 border-green bg-cream" aria-hidden="true" />
-                  <div>
-                    <p className="m-0 text-sm font-bold text-green-dark">Pending after order creation</p>
-                    <p className="mt-1 text-xs leading-5 text-muted">Payment is handled separately and is not confirmed by placing this order.</p>
-                  </div>
-                </div>
-              </fieldset>
+               <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
+                 <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment method</legend>
+                 <p className="mt-2 text-sm leading-6 text-muted">Choose how you will pay. Your payment will remain pending until the store confirms it.</p>
+                 {isPaymentLoading ? (
+                   <div className="mt-5 rounded-2xl border border-line bg-cream/60 p-4 text-sm text-muted">Loading available payment methods…</div>
+                 ) : paymentError ? (
+                   <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">{paymentError}</div>
+                 ) : paymentMethods.length === 0 ? (
+                   <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">No payment methods are currently available. Please contact the store.</div>
+                 ) : (
+                   <div className="mt-5 space-y-3">
+                     {paymentMethods.map((method) => (
+                       <label
+                         className={`block cursor-pointer rounded-2xl border p-4 transition-colors ${
+                           form.paymentMethod === method.paymentMethod
+                             ? 'border-green bg-sage/30'
+                             : 'border-line bg-white hover:border-green/40'
+                         }`}
+                         key={method.paymentMethod}
+                       >
+                         <span className="flex items-start gap-3">
+                           <input
+                             className="mt-1 size-4 accent-green"
+                             type="radio"
+                             name="paymentMethod"
+                             value={method.paymentMethod}
+                             checked={form.paymentMethod === method.paymentMethod}
+                             onChange={() => updateField('paymentMethod', method.paymentMethod)}
+                           />
+                           <span>
+                             <span className="block text-sm font-bold text-green-dark">{method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod}</span>
+                             <span className="mt-1 block text-xs leading-5 text-muted">Transfer the order total using the account details below.</span>
+                           </span>
+                         </span>
+                       </label>
+                     ))}
+                   </div>
+                 )}
+                 {paymentSettings?.paymentMethod === 'BANK_TRANSFER' && (
+                   <div className="mt-4 rounded-2xl border border-green/20 bg-sage/20 p-4">
+                     <p className="text-sm font-bold text-green-dark">Bank transfer instructions</p>
+                     <dl className="mt-3 space-y-2 text-sm">
+                       <div className="flex justify-between gap-4"><dt className="text-muted">Bank</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.bankName}</dd></div>
+                       <div className="flex justify-between gap-4"><dt className="text-muted">Account name</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.accountName}</dd></div>
+                       <div className="flex justify-between gap-4"><dt className="text-muted">Account number</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.accountNumber}</dd></div>
+                     </dl>
+                     <p className="mt-3 whitespace-pre-line text-xs leading-5 text-muted">{paymentSettings.instructions}</p>
+                   </div>
+                 )}
+               </fieldset>
 
               <div className="mt-5">
                 <button
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-4 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark focus:outline-none focus:ring-2 focus:ring-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   type="submit"
-                  disabled={isSubmitting || !canCheckout}
+                   disabled={isSubmitting || !canCheckout || isPaymentLoading || !paymentSettings}
                 >
                   {isSubmitting ? 'Processing order…' : 'Place order'} {!isSubmitting && <ArrowRight size={17} />}
                 </button>

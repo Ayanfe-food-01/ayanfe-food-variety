@@ -1,6 +1,7 @@
 import { request } from './api'
 import type { Product } from '../types/product'
 import type { Category } from '../types/category'
+import type { PaymentMethod } from './orderService'
 
 export interface DashboardStats {
   totalOrders: number
@@ -14,10 +15,12 @@ export interface DashboardStats {
 }
 
 export interface PaymentSettings {
+  paymentMethod: PaymentMethod
   bankName: string
   accountName: string
   accountNumber: string
   instructions: string
+  isActive: boolean
 }
 
 export interface StoreInformation {

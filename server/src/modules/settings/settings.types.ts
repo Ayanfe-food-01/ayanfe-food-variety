@@ -1,3 +1,5 @@
+import type { PaymentMethod } from '@prisma/client'
+
 export interface StoreSettings {
   businessName: string
   businessEmail: string
@@ -20,15 +22,18 @@ export interface ContactInformation {
 }
 
 export interface PaymentSettings {
+  paymentMethod: PaymentMethod
   bankName: string
   accountName: string
   accountNumber: string
   instructions: string
+  isActive: boolean
 }
 
 export interface PublicStoreSettings {
   store: StoreSettings | null
   payment: PaymentSettings | null
+  paymentMethods: PaymentSettings[]
 }
 
 export interface UpdateStoreInformationInput extends StoreInformation {}

@@ -165,6 +165,15 @@ const orderDetailInclude = {
     orderBy: { createdAt: 'desc' as const },
     include: { changedByUser: { select: { name: true, email: true } } },
   },
+  paymentSnapshot: {
+    select: {
+      paymentMethod: true,
+      bankName: true,
+      accountName: true,
+      accountNumber: true,
+      instructions: true,
+    },
+  },
 } satisfies Prisma.OrderInclude
 
 export async function getAdminOrder(orderNumber: string) {

@@ -13,6 +13,7 @@ export interface CreatedOrder {
   subtotal: string
   deliveryFee: string
   total: string
+  paymentMethod: PaymentMethod
   orderItems: Array<{
     id: string
     productId: string
@@ -36,6 +37,13 @@ export interface CreatedOrder {
     reviewedAt: string | null
     createdAt: string
   }>
+  payment: {
+    paymentMethod: PaymentMethod
+    bankName: string
+    accountName: string
+    accountNumber: string
+    instructions: string
+  } | null
 }
 
 export interface CustomerOrderListItem {
@@ -65,6 +73,7 @@ export async function checkoutCustomerCart(input: {
   deliveryAddress: string
   city: string
   deliveryInstructions?: string
+  paymentMethod: PaymentMethod
 }): Promise<CreatedOrder> {
   const response = await request<CustomerOrderResponse>('/orders', {
     method: 'POST',
@@ -90,6 +99,7 @@ export async function getCustomerOrder(orderNumber: string): Promise<CreatedOrde
 export type OrderStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED'
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
+export type PaymentMethod = 'BANK_TRANSFER'
 
 export interface AdminOrder {
   orderNumber: string
@@ -104,6 +114,7 @@ export interface AdminOrder {
   subtotal: string
   deliveryFee: string
   total: string
+  paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
   createdAt: string
@@ -128,6 +139,13 @@ export interface AdminOrder {
     reviewedAt: string | null
     createdAt: string
   }>
+  paymentSnapshot: {
+    paymentMethod: PaymentMethod
+    bankName: string
+    accountName: string
+    accountNumber: string
+    instructions: string
+  } | null
   statusHistory: Array<{
     id: string
     previousStatus: OrderStatus | null

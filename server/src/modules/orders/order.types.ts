@@ -1,3 +1,5 @@
+import type { PaymentMethod } from '@prisma/client'
+
 export interface CheckoutInput {
   checkoutKey: string
   customerName: string
@@ -5,6 +7,7 @@ export interface CheckoutInput {
   deliveryAddress: string
   city: string
   deliveryInstructions?: string
+  paymentMethod: PaymentMethod
 }
 
 export interface OrderItemResponse {
@@ -34,12 +37,22 @@ export interface OrderResponse {
   subtotal: string
   deliveryFee: string
   total: string
+  paymentMethod: PaymentMethod
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
   orderStatus: string
   createdAt: string
   updatedAt: string
   orderItems: OrderItemResponse[]
   paymentSubmissions: CustomerPaymentSubmissionResponse[]
+  payment: OrderPaymentResponse | null
+}
+
+export interface OrderPaymentResponse {
+  paymentMethod: PaymentMethod
+  bankName: string
+  accountName: string
+  accountNumber: string
+  instructions: string
 }
 
 export interface CustomerPaymentSubmissionResponse {

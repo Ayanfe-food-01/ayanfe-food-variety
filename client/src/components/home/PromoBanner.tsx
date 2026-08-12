@@ -1,16 +1,16 @@
-import { PhoneIcon, TruckIcon } from '../../assets/icons'
+import { PhoneIcon } from '../../assets/icons'
+import { useStoreSettings } from '../../hooks/useStoreSettings'
 
 export function PromoBanner() {
+  const { settings } = useStoreSettings()
+  const phone = settings?.callToOrderPhone
+
   return (
     <div className="home-promo">
-      <div className="container flex items-center justify-between gap-4">
-        <span className="flex items-center gap-2">
-          <TruckIcon size={17} />
-          Fresh essentials, ready for your kitchen
-        </span>
-        <a className="hidden items-center gap-2 sm:flex" href="tel:08125595879">
-          <PhoneIcon size={15} />
-          Need help? Call us
+      <div className="container flex items-center justify-center">
+        <a className="flex items-center gap-2" href={phone ? `tel:${phone}` : undefined} aria-label={phone ? `Call to order at ${phone}` : 'Call to order'}>
+          <PhoneIcon size={16} />
+          <span>CALL TO ORDER{phone ? `: ${phone}` : ''}</span>
         </a>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BagIcon, EyeIcon } from '../../assets/icons'
+import { CartIcon, EyeIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useToast } from '../ui/Toast'
@@ -44,10 +44,10 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
         <Link className="product-name" to={`/product/${product.slug ?? product.id}`}>{product.name}</Link>
         <span className="product-unit">{product.unit}</span>
         <strong className="product-price">{formatPrice(product.price)}</strong>
-        {compact ? <button className="quick-add" type="button" onClick={handleAddToCart} disabled={!product.isAvailable || isAdding}>
-          <BagIcon size={15} /> {isAdding ? 'Adding' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
-        </button> : <div className="product-actions">
-          {product.isAvailable ? <Button fullWidth={!showDetails} variant="outline" onClick={handleAddToCart} disabled={isAdding}><BagIcon size={16} /> {isAdding ? 'Adding…' : 'Add to cart'}</Button> : <p className="out-of-stock">Out of stock</p>}
+        {compact ? <Button className="quick-add" size="sm" fullWidth type="button" onClick={handleAddToCart} disabled={!product.isAvailable || isAdding}>
+          <CartIcon size={15} /> {isAdding ? 'Adding' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
+        </Button> : <div className="product-actions">
+          {product.isAvailable ? <Button fullWidth={!showDetails} variant="primary" onClick={handleAddToCart} disabled={isAdding}><CartIcon size={16} /> {isAdding ? 'Adding…' : 'Add to cart'}</Button> : <p className="out-of-stock">Out of stock</p>}
           {showDetails && <Link className="details-button" to={`/product/${product.slug ?? product.id}`} aria-label={`View details for ${product.name}`}><EyeIcon size={18} /></Link>}
         </div>}
       </div>

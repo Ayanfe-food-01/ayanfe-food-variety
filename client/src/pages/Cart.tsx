@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BagIcon, CloseIcon } from '../assets/icons'
+import { ArrowRight, CartIcon, CloseIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import type { CartItem } from '../context/cartContext'
@@ -75,7 +75,7 @@ function EmptyCart() {
     <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
       <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
-          <BagIcon size={28} />
+          <CartIcon size={28} />
         </div>
         <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Your basket is waiting</p>
         <h1 className="mt-3 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">Your cart is empty</h1>

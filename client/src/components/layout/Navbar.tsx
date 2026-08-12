@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { BagIcon, CloseIcon, MenuIcon, SearchIcon, UserIcon } from '../../assets/icons'
+import { CartIcon, CloseIcon, MenuIcon, SearchIcon, UserIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
+import { useStoreSettings } from '../../hooks/useStoreSettings'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -18,6 +19,11 @@ export function Navbar() {
   const navigate = useNavigate()
   const { totalQuantity } = useCart()
   const { user, logout } = useCustomerAuth()
+  const { settings } = useStoreSettings()
+  const announcementMessages = (settings?.announcementText ?? '')
+    .split(/\r?\n|\|/)
+    .map((message) => message.trim())
+    .filter(Boolean)
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? 'hidden' : ''
@@ -33,7 +39,24 @@ export function Navbar() {
 
   return (
     <header className="store-header">
-      <div className="header-utility"><div className="container">Quality foodstuff, delivered with care</div></div>
+      <div className="header-utility" aria-label="Store announcements">
+        {announcementMessages.length > 0 && (
+          <div className="ticker-viewport">
+            <div className="ticker-track">
+              {[0, 1].map((group) => (
+                <div className="ticker-group" aria-hidden={group === 1} key={group}>
+                  {announcementMessages.map((message, index) => (
+                    <span className="ticker-message" key={`${group}-${index}-${message}`}>
+                      {message}
+                      <span className="ticker-separator" aria-hidden="true">•</span>
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
       <nav className="container store-nav" aria-label="Main navigation">
         <button className="icon-button mobile-only" type="button" aria-label="Open navigation menu" onClick={() => setIsMenuOpen(true)}>
           <MenuIcon size={22} />
@@ -51,7 +74,7 @@ export function Navbar() {
             <UserIcon size={22} /><span className="desktop-only">{user ? 'Account' : 'Sign in'}</span>
           </Link>
           <Link className="cart-link" to="/cart" aria-label={`Cart with ${totalQuantity} items`}>
-            <BagIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
+            <CartIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
           </Link>
         </div>
       </nav>

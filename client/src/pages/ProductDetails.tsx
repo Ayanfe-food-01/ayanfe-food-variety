@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, BagIcon } from '../assets/icons'
+import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
@@ -319,7 +319,7 @@ export function ProductDetails() {
                   disabled={!product.isAvailable || isAdding}
                   aria-label={`Add ${quantity} ${product.name} to cart`}
                 >
-                  <BagIcon size={18} /> {isAdding ? 'Adding…' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
+                  <CartIcon size={18} /> {isAdding ? 'Adding…' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
                 </Button>
               </div>
               <p className="mt-3 text-xs text-muted">

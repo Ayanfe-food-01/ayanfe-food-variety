@@ -5,12 +5,16 @@ export interface StoreSettings {
   businessEmail: string
   businessPhone: string
   whatsappNumber: string
+  callToOrderPhone: string
+  announcementText: string
   address: string
   description: string
 }
 
 export interface StoreInformation {
   businessName: string
+  callToOrderPhone: string
+  announcementText: string
   address: string
   description: string
 }

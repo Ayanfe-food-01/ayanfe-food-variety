@@ -7,6 +7,8 @@ export interface StoreSettings {
   businessEmail: string
   businessPhone: string
   whatsappNumber: string
+  callToOrderPhone: string
+  announcementText: string
   address: string
   description: string
 }

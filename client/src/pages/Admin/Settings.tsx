@@ -13,7 +13,7 @@ import {
   type StoreInformation,
 } from '../../services/adminService'
 
-const emptyStore: StoreInformation = { businessName: '', address: '', description: '' }
+const emptyStore: StoreInformation = { businessName: '', callToOrderPhone: '', announcementText: '', address: '', description: '' }
 const emptyContact: ContactInformation = { businessEmail: '', businessPhone: '', whatsappNumber: '' }
 const emptyPayment: PaymentSettings = {
   paymentMethod: 'BANK_TRANSFER',
@@ -127,9 +127,14 @@ export function Settings() {
       {error && <p className="mt-5 rounded-xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</p>}
       {isLoading ? <p className="mt-8 text-sm text-muted">Loading settings…</p> : (
         <div className="mt-8 space-y-6">
-          <SettingsSection eyebrow="Store information" title="Store Information" description="Keep the public business identity and description current. Address and description may be left blank until they are ready to publish.">
+           <SettingsSection eyebrow="Store information" title="Store Information" description="Keep the public business identity, header messages, and description current. Address and description may be left blank until they are ready to publish.">
             <form className="space-y-5" onSubmit={submitStore}>
               <Field label="Business name" value={store.businessName} onChange={(event) => setStore({ ...store, businessName: event.target.value })} required maxLength={180} />
+               <div className="grid gap-5 sm:grid-cols-2">
+                 <Field label="Call to order phone" type="tel" value={store.callToOrderPhone} onChange={(event) => setStore({ ...store, callToOrderPhone: event.target.value })} required maxLength={40} inputMode="tel" placeholder="0801 234 5678" />
+                 <TextArea label="Announcement ticker messages" value={store.announcementText} onChange={(event) => setStore({ ...store, announcementText: event.target.value })} maxLength={2000} placeholder={'Fresh stock available today\nFree delivery on qualifying orders'} />
+               </div>
+               <p className="-mt-2 text-xs font-normal leading-5 text-muted">The green ticker rotates each line continuously. You can also separate messages with a vertical bar (|).</p>
               <Field label="Business address" value={store.address} onChange={(event) => setStore({ ...store, address: event.target.value })} maxLength={500} />
               <TextArea label="Short business description" value={store.description} onChange={(event) => setStore({ ...store, description: event.target.value })} maxLength={500} />
               <SaveButton saving={saving === 'store'} label="Save store information" />

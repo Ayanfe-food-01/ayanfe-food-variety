@@ -25,6 +25,8 @@ export interface PaymentSettings {
 
 export interface StoreInformation {
   businessName: string
+  callToOrderPhone: string
+  announcementText: string
   address: string
   description: string
 }

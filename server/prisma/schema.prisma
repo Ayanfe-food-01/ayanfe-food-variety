@@ -181,6 +181,8 @@ model StoreSettings {
   businessEmail   String   @map("business_email") @db.VarChar(255)
   businessPhone   String   @map("business_phone") @db.VarChar(40)
   whatsappNumber  String   @map("whatsapp_number") @db.VarChar(40)
+  callToOrderPhone String  @map("call_to_order_phone") @db.VarChar(40)
+  announcementText String  @map("announcement_text") @db.VarChar(2000)
   address         String   @db.VarChar(500)
   description     String   @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

@@ -4,7 +4,7 @@ import {
   getPublicSiteUrl,
   type VercelRequestLike,
   type VercelResponseLike,
-} from './_seo'
+} from './_seo.js'
 
 interface PublicProduct {
   slug: string

@@ -1,4 +1,4 @@
-import { getPublicSiteUrl, type VercelRequestLike, type VercelResponseLike } from './_seo'
+import { getPublicSiteUrl, type VercelRequestLike, type VercelResponseLike } from './_seo.js'
 
 export default function handler(request: VercelRequestLike, response: VercelResponseLike) {
   try {

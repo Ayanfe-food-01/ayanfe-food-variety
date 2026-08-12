@@ -13,7 +13,7 @@ const links: NavigationItem[] = [
   { label: 'Contact', href: '#contact' },
 ]
 
-const mobileNavRowClassName = 'border-b border-line/70 px-3 py-3 transition-colors duration-200 hover:text-green md:border-0 md:p-0'
+const mobileNavRowClassName = 'whitespace-nowrap border-b border-line/70 px-3 py-3 transition-colors duration-200 hover:text-green md:border-0 md:p-0'
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -39,8 +39,8 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-cream/90 backdrop-blur-xl">
-      <nav className="container relative flex min-h-[68px] items-center justify-between gap-8 py-3 md:min-h-[78px] md:py-4" aria-label="Main navigation">
-        <Link className="inline-flex items-center" to="/" aria-label="Ayanfe Food Variety home">
+      <nav className="container relative flex min-h-[68px] items-center justify-between gap-4 py-3 md:min-h-[78px] md:gap-6 md:py-4" aria-label="Main navigation">
+        <Link className="inline-flex shrink-0 items-center" to="/" aria-label="Ayanfe Food Variety home">
           <img className="h-16 w-16 object-contain md:h-[74px] md:w-[74px]" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
         </Link>
 
@@ -80,7 +80,7 @@ export function Navbar() {
           </Link>
         </NavigationMenu>
 
-        <Link className="hidden items-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:inline-flex" to="/cart" aria-label={`View cart${totalQuantity > 0 ? `, ${totalQuantity} items` : ''}`}>
+        <Link className="hidden shrink-0 items-center gap-2 rounded-full border border-green/20 px-4 py-2 text-sm font-bold text-green transition-all duration-200 hover:bg-green hover:text-cream md:inline-flex" to="/cart" aria-label={`View cart${totalQuantity > 0 ? `, ${totalQuantity} items` : ''}`}>
           <BagIcon size={20} />
           <span>Cart</span>
           <span className="grid min-w-5 place-items-center rounded-full bg-orange px-1.5 py-0.5 text-[10px] text-cream" aria-label={`${totalQuantity} items in cart`}>
@@ -88,7 +88,7 @@ export function Navbar() {
           </span>
         </Link>
         {user ? (
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden shrink-0 items-center gap-3 md:flex">
             <Link className="text-sm font-bold text-green transition-colors hover:text-orange" to="/orders" aria-label="Open your account">
               {user.name || 'Account'}
             </Link>
@@ -97,7 +97,7 @@ export function Navbar() {
             </button>
           </div>
         ) : (
-          <Link className="hidden text-sm text-muted transition-colors duration-200 hover:text-green md:block" to="/login">
+          <Link className="hidden shrink-0 text-sm text-muted transition-colors duration-200 hover:text-green md:block" to="/login">
             Login
           </Link>
         )}

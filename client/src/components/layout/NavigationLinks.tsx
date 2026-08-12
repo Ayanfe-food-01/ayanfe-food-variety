@@ -62,9 +62,9 @@ export function NavigationMenu({
         onClick={onClose}
       />
       <div
-        className={`sidebar-drawer fixed inset-y-0 left-0 z-[60] flex w-screen flex-col overflow-y-auto border-r border-line bg-cream p-6 text-sm font-medium text-muted shadow-[18px_0_50px_rgba(32,60,36,0.16)] ${
+        className={`sidebar-drawer fixed inset-y-0 left-0 z-[60] flex w-[min(88vw,360px)] flex-col overflow-y-auto border-r border-line bg-cream p-6 text-sm font-medium text-muted shadow-[18px_0_50px_rgba(32,60,36,0.16)] ${
           isOpen ? 'sidebar-drawer-open' : 'sidebar-drawer-closed'
-        } md:visible md:static md:z-auto md:w-auto md:translate-x-0 md:flex-row md:items-center md:gap-8 md:overflow-visible md:border-0 md:bg-transparent md:shadow-none`}
+        } md:!visible md:static md:inset-auto md:z-auto md:flex md:w-auto md:min-w-0 md:flex-1 md:translate-x-0 md:flex-row md:items-center md:justify-center md:gap-8 md:overflow-visible md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
       >
         {children}
       </div>

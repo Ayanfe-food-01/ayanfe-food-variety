@@ -20,6 +20,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(requestLogger);
+app.get('/', (_request, response) => {
+    response.json({
+        service: 'ayanfe-food-variety-api',
+        status: 'ok',
+        health: '/health',
+        api: '/api/v1',
+    });
+});
 app.get('/health', (_request, response) => {
     response.json({ data: { status: 'ok' } });
 });

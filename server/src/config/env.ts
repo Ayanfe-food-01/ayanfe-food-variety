@@ -21,14 +21,25 @@ const sessionSecret = process.env.SESSION_SECRET
 if (!sessionSecret || sessionSecret.length < 32) {
   throw new Error('SESSION_SECRET must be configured with at least 32 characters')
 }
-const corsOriginValue = process.env.CORS_ORIGIN ?? process.env.CLIENT_URL
+const publicAppUrl = process.env.PUBLIC_APP_URL?.trim()
+const corsOriginValue = [process.env.CORS_ORIGIN, process.env.CLIENT_URL, publicAppUrl]
+  .filter((origin): origin is string => Boolean(origin?.trim()))
+  .join(',')
 if (nodeEnv === 'production' && !corsOriginValue) {
   throw new Error('CORS_ORIGIN is required in production')
 }
 
-const corsOrigins = (corsOriginValue ?? 'http://localhost:5000')
+const normalizeOrigin = (origin: string): string => {
+  try {
+    return new URL(origin.trim()).origin
+  } catch {
+    return origin.trim().replace(/\/+$/, '')
+  }
+}
+
+const corsOrigins = (corsOriginValue || 'http://localhost:5000')
   .split(',')
-  .map((origin) => origin.trim())
+  .map(normalizeOrigin)
   .filter(Boolean)
 
 if (corsOrigins.length === 0) {
@@ -41,7 +52,7 @@ export const env = {
   nodeEnv,
   sessionSecret,
   corsOrigins,
-  publicAppUrl: process.env.PUBLIC_APP_URL ?? process.env.CLIENT_URL,
+  publicAppUrl: publicAppUrl ?? process.env.CLIENT_URL,
   googleOAuth: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,

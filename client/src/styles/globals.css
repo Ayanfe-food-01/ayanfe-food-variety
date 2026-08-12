@@ -89,6 +89,15 @@
     transform: translateX(-100%);
   }
 
+  @media (min-width: 768px) {
+    .sidebar-drawer {
+      position: static;
+      inset: auto;
+      visibility: visible;
+      transform: none;
+    }
+  }
+
   .home-fade-up {
     animation: home-fade-up 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }

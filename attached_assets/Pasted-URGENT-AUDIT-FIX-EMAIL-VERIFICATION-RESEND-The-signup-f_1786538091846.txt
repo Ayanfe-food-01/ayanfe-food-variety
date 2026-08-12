@@ -1,0 +1,307 @@
+URGENT — AUDIT & FIX EMAIL VERIFICATION / RESEND
+
+The signup flow currently says "Cannot send email verification".
+
+Do a complete end-to-end audit of the existing email verification implementation and FIX all issues you find.
+
+IMPORTANT:
+- Do not create a second email/OTP system.
+- Inspect the existing implementation first.
+- Reuse the current Prisma/Neon architecture.
+- Reuse the existing Resend integration.
+- Keep Route → Controller → Service → Prisma modular structure.
+- Do not hardcode API keys, emails, OTPs, or production URLs.
+- Do not skip errors or simply hide the error message.
+- Fix the actual root cause.
+- Do not modify unrelated features.
+
+1. RESEND CONFIGURATION
+
+Inspect every part of the Resend setup.
+
+Verify:
+
+RESEND_API_KEY
+EMAIL_FROM
+BUSINESS_EMAIL
+
+are loaded correctly on the BACKEND.
+
+Make sure these variables are NOT being accessed from frontend code.
+
+Check:
+- dotenv/environment loading
+- production environment loading
+- variable naming consistency
+- missing environment variables
+- whitespace/formatting issues
+- Resend client initialization
+- import/configuration errors
+
+If a required environment variable is missing, return a clear server-side configuration error.
+
+Never expose the Resend API key to the browser.
+
+2. RESEND API IMPLEMENTATION
+
+Inspect the actual Resend email-sending code.
+
+Verify that it correctly:
+
+- Initializes Resend.
+- Sends from the configured EMAIL_FROM.
+- Sends to the customer's email.
+- Uses the generated OTP.
+- Handles Resend API errors.
+- Handles network/API failures.
+- Returns a useful internal error.
+
+Do NOT pretend an email was sent when Resend actually failed.
+
+Do NOT log:
+- API keys
+- passwords
+- OTP values
+- session secrets
+
+3. EMAIL SENDER REQUIREMENTS
+
+Verify whether the configured EMAIL_FROM is actually valid for the current Resend account/domain configuration.
+
+If Resend requires a verified sender/domain, make this clear in the final report.
+
+Do not invent or hardcode a sender address.
+
+The implementation should use the configured EMAIL_FROM environment variable.
+
+4. SIGNUP FLOW
+
+Trace the complete flow:
+
+Frontend signup
+→ API request
+→ validation
+→ user creation
+→ OTP generation
+→ OTP hashing
+→ database storage
+→ Resend API
+→ email delivery
+
+Find exactly where the current flow fails.
+
+Fix the actual failure.
+
+Be careful about transaction design:
+
+Do not leave a user in a broken state if OTP generation/email setup fails.
+
+If the architecture uses a database transaction, ensure the transaction is correctly committed/rolled back.
+
+5. OTP
+
+Verify:
+
+- Exactly 6 digits.
+- Cryptographically secure generation.
+- Stored as a hash, never plaintext.
+- Expires after 10 minutes.
+- Cannot be reused.
+- Previous OTP becomes invalid when a new one is generated.
+- Verification attempts are appropriately limited.
+
+Do not log the OTP.
+
+6. DATABASE
+
+Inspect the Prisma schema and migrations.
+
+Verify the verification model/fields actually exist in Neon.
+
+Run the appropriate Prisma validation/generation commands.
+
+Confirm the application is using the correct production database.
+
+Do not create duplicate tables/models.
+
+If a migration is missing, create the correct migration using the existing Prisma workflow.
+
+7. VERIFY EMAIL
+
+Test the complete verification endpoint.
+
+Verify:
+
+Correct OTP
+→ email verified
+
+Incorrect OTP
+→ rejected
+
+Expired OTP
+→ rejected
+
+Already-used OTP
+→ rejected
+
+Already-verified account
+→ handled correctly
+
+After successful verification:
+
+emailVerified = true
+
+and the OTP record is invalidated/deleted appropriately.
+
+8. RESEND OTP
+
+Verify the resend endpoint.
+
+Flow:
+
+Request resend
+→ invalidate old OTP
+→ generate new OTP
+→ hash OTP
+→ save new OTP
+→ send through Resend
+
+Implement the existing cooldown/rate-limit protection.
+
+Do not allow unlimited email sending.
+
+9. FRONTEND ERROR HANDLING
+
+Inspect why the frontend currently displays:
+
+"Cannot send email verification"
+
+Make sure the frontend displays the actual safe error returned by the backend.
+
+Do not expose internal secrets or stack traces.
+
+Handle:
+
+- Resend failure
+- Missing environment configuration
+- Invalid email
+- Rate limit
+- Network failure
+- Expired OTP
+- Invalid OTP
+
+10. PRODUCTION ENVIRONMENT
+
+Test the actual deployed architecture:
+
+Vercel frontend
+→ Render backend
+→ Resend
+→ Neon
+
+Do NOT assume that because it works locally it works in production.
+
+Verify the Render environment variables are the ones actually being used.
+
+Do not hardcode production URLs.
+
+11. EMAIL DELIVERY
+
+After fixing the implementation, perform a real test if the environment allows it.
+
+Verify:
+
+- Request reaches Render.
+- Render reaches Resend.
+- Resend accepts the request.
+- Email is sent.
+- OTP corresponds to the stored hashed verification record.
+- Verification succeeds with the received OTP.
+
+If actual email delivery cannot be tested from the development environment, clearly identify the exact external configuration I must complete.
+
+12. LOGGING / DIAGNOSTICS
+
+Improve server-side diagnostics enough to identify failures.
+
+Log safe information such as:
+
+email verification requested
+email provider request started
+email provider response status
+verification record created
+verification failed due to expiry
+
+Never log:
+
+OTP
+password
+API key
+session secret
+full cookies
+authorization tokens
+
+13. COMPLETE ERROR AUDIT
+
+Search the entire email verification implementation for:
+
+- TODO
+- placeholder code
+- mock email sending
+- fake success responses
+- missing error handling
+- incorrect environment variable names
+- broken imports
+- incorrect Prisma fields
+- missing migrations
+- frontend/backend endpoint mismatch
+- incorrect request body
+- incorrect response handling
+- transaction problems
+- race conditions
+- hardcoded configuration
+
+Fix every relevant issue you find.
+
+14. TEST EVERYTHING
+
+Test:
+
+1. Signup with a valid email.
+2. User is created correctly.
+3. Verification OTP is generated.
+4. OTP is stored securely.
+5. Resend receives the request.
+6. Resend accepts the email.
+7. Email is delivered.
+8. Correct OTP verifies the account.
+9. Wrong OTP fails.
+10. Expired OTP fails.
+11. Used OTP fails.
+12. Resend generates a new OTP.
+13. Old OTP becomes invalid.
+14. Rate limiting works.
+15. Verified user can sign in.
+16. Unverified user cannot sign in.
+17. Existing admin authentication still works.
+18. Production build succeeds.
+
+15. FINAL REPORT
+
+Do NOT just say "fixed".
+
+Tell me:
+
+- Exact root cause of "Cannot send email verification".
+- Whether the issue was frontend, backend, Resend, environment variables, Prisma/database, or multiple issues.
+- What files were changed.
+- What database changes were made.
+- What environment variables are required.
+- Whether Resend accepted the email.
+- Whether the OTP was successfully received.
+- Whether verification succeeded.
+- Any remaining external setup I must perform.
+
+If the problem is caused by a Resend account/domain verification requirement, clearly tell me exactly what I need to configure in Resend.
+
+Then STOP.

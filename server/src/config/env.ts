@@ -82,8 +82,8 @@ export const env = {
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
   email: {
-    resendApiKey: process.env.RESEND_API_KEY,
-    businessEmail: process.env.BUSINESS_EMAIL,
-    from: process.env.EMAIL_FROM,
+    resendApiKey: process.env.RESEND_API_KEY?.trim(),
+    businessEmail: process.env.BUSINESS_EMAIL?.trim(),
+    from: process.env.EMAIL_FROM?.trim(),
   },
 } as const

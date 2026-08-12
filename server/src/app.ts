@@ -6,6 +6,7 @@ import { errorMiddleware } from './middleware/error.middleware.js'
 import { notFoundMiddleware } from './middleware/notFound.middleware.js'
 import { requestLogger } from './middleware/requestLogger.js'
 import { apiRoutes } from './routes/index.js'
+import { HttpError } from './utils/http.js'
 
 const normalizeOrigin = (origin: string): string => {
   try {
@@ -15,24 +16,32 @@ const normalizeOrigin = (origin: string): string => {
   }
 }
 
+const isAllowedOrigin = (origin: string | undefined): boolean => {
+  if (!origin) return true
+  return env.corsOrigins.includes(normalizeOrigin(origin))
+}
+
 export const app = express()
 app.set('trust proxy', 1)
 
+app.use(requestLogger)
 app.use(cors({
   origin: (origin, callback) => {
-    const normalizedOrigin = origin ? normalizeOrigin(origin) : undefined
-    if (!normalizedOrigin || env.corsOrigins.includes(normalizedOrigin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true)
       return
     }
 
-    console.warn(`Blocked CORS origin: ${origin}`)
-    callback(null, false)
+    console.warn(JSON.stringify({
+      event: 'cors_blocked',
+      origin: origin ?? null,
+      allowedOrigins: env.corsOrigins,
+    }))
+    callback(new HttpError(403, 'The request origin is not allowed.'))
   },
   credentials: true,
 }))
 app.use(express.json({ limit: '1mb' }))
-app.use(requestLogger)
 
 app.get('/', (_request, response) => {
   response.json({

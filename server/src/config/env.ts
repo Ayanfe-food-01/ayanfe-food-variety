@@ -9,10 +9,9 @@ const parsePort = (value: string | undefined): number => {
 }
 
 const nodeEnv = process.env.NODE_ENV ?? 'development'
-// Prefer the explicitly configured Neon database whenever it is available.
-// Replit may inject a runtime-managed DATABASE_URL for its own PostgreSQL
-// service; that must not silently override the user's selected Neon database.
-const databaseUrl = process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL
+// DATABASE_URL is the canonical Prisma/Render variable. The Neon-specific
+// fallback is retained only for this Replit workspace's existing local secret.
+const databaseUrl = process.env.DATABASE_URL ?? process.env.NEON_DATABASE_URL
 if (!databaseUrl) {
   throw new Error('A database connection is required to start the server')
 }
@@ -22,16 +21,9 @@ if (!sessionSecret || sessionSecret.length < 32) {
   throw new Error('SESSION_SECRET must be configured with at least 32 characters')
 }
 const publicAppUrl = process.env.PUBLIC_APP_URL?.trim()
-const corsOriginValue = [
-  process.env.CORS_ORIGIN,
-  process.env.CLIENT_URL,
-  process.env.VERCEL_FRONTEND_URL,
-  publicAppUrl,
-]
-  .filter((origin): origin is string => Boolean(origin?.trim()))
-  .join(',')
+const corsOriginValue = process.env.CORS_ORIGINS?.trim()
 if (nodeEnv === 'production' && !corsOriginValue) {
-  throw new Error('CORS_ORIGIN is required in production')
+  throw new Error('CORS_ORIGINS is required in production')
 }
 
 const normalizeOrigin = (origin: string): string => {
@@ -48,7 +40,7 @@ const corsOrigins = (corsOriginValue || 'http://localhost:5000')
   .filter(Boolean)
 
 if (corsOrigins.length === 0) {
-  throw new Error('CORS_ORIGIN must contain at least one origin')
+  throw new Error('CORS_ORIGINS must contain at least one origin')
 }
 
 export const env = {
@@ -57,7 +49,7 @@ export const env = {
   nodeEnv,
   sessionSecret,
   corsOrigins,
-  publicAppUrl: publicAppUrl ?? process.env.CLIENT_URL,
+  publicAppUrl,
   googleOAuth: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,

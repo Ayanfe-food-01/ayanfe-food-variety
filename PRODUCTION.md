@@ -10,11 +10,10 @@ This project is split into two services:
 ## 1. Neon
 
 Create a production Neon PostgreSQL database and copy its pooled or direct
-connection string into Render as `NEON_DATABASE_URL`. Keep `sslmode=require`.
-The application passes this value to Prisma at runtime and the migration
-script maps it to Prisma's standard `DATABASE_URL` variable automatically.
-For safety, local development prefers `DATABASE_URL`; `NEON_DATABASE_URL` is
-selected automatically only when `NODE_ENV=production`.
+connection string into Render as `DATABASE_URL`. Keep `sslmode=require`.
+Prisma and the migration scripts use this standard variable. The existing
+`NEON_DATABASE_URL` secret is supported only as a local Replit compatibility
+fallback; do not add it to Render.
 
 The Render blueprint runs `npm run prisma:migrate` before each deploy. This
 applies the committed Prisma migrations to the production database. Seed the
@@ -54,12 +53,11 @@ enter these settings manually:
 Required Render values:
 
 - `NODE_ENV=production`
-- `NEON_DATABASE_URL`
+- `DATABASE_URL`
 - `SESSION_SECRET` (at least 32 characters)
-- `CORS_ORIGIN` set to the exact Vercel origin
-- `PUBLIC_APP_URL` set to the Vercel origin
-- `VERCEL_FRONTEND_URL` may also be set to the exact Vercel origin when you
-  want the frontend origin named explicitly in Render's environment.
+- `CORS_ORIGINS` set to the exact Vercel origin (comma-separated when both
+  project domains must remain usable)
+- `PUBLIC_APP_URL` set to the canonical Vercel origin
 - Cloudinary values above
 
 Render supplies `PORT`; the committed blueprint includes `10000` as its
@@ -81,16 +79,20 @@ fallback routing.
 Set this Vercel environment variable for Preview and Production:
 
 ```text
-VITE_API_URL=https://your-render-service.onrender.com/api/v1
+VITE_API_URL=https://your-render-service.onrender.com
 ```
 
 The value must not end with punctuation such as a period. After changing a
 Vercel environment variable, trigger a new deployment; environment variables
-are embedded into the static frontend during the build.
+are embedded into the static frontend during the build. If the Vercel project
+domain changes, update `CORS_ORIGINS` on Render to the exact new origin and
+redeploy the API as well.
 
 The API uses credentialed cross-origin requests for admin and customer
-sessions, so `CORS_ORIGIN` must exactly match the deployed Vercel origin
-including `https://` and excluding a trailing slash.
+sessions, so every origin in `CORS_ORIGINS` must exactly match a deployed
+Vercel origin including `https://` and excluding a trailing slash. Do not
+commit a real deployment URL to source; set these values in Render and
+Vercel's environment settings.
 
 ## 5. Production smoke test
 
@@ -124,7 +126,7 @@ Vercel and Render secret/environment-variable settings.
 ## Local/Replit connection commands
 
 Run these commands from the repository root. Replit Secrets should contain
-`NEON_DATABASE_URL`, `SESSION_SECRET`, and the three `CLOUDINARY_*` values.
+`DATABASE_URL`, `SESSION_SECRET`, and the three `CLOUDINARY_*` values.
 Never put those values in a committed `.env` file.
 
 ```bash
@@ -171,13 +173,13 @@ production test, enter:
 ### Vercel
 
 ```text
-VITE_API_URL=https://<your-render-service>.onrender.com/api/v1
+VITE_API_URL=https://<your-render-service>.onrender.com
 ```
 
 ### Render
 
 ```text
-CORS_ORIGIN=https://<your-vercel-project>.vercel.app
+CORS_ORIGINS=https://<your-vercel-project>.vercel.app
 PUBLIC_APP_URL=https://<your-vercel-project>.vercel.app
 ```
 

@@ -18,7 +18,7 @@ const runMigration = () => new Promise((resolve, reject) => {
   const child = spawn(prismaBinary, ['migrate', 'deploy'], {
     env: {
       ...process.env,
-      DATABASE_URL: process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL,
+       DATABASE_URL: process.env.DATABASE_URL ?? process.env.NEON_DATABASE_URL,
     },
     stdio: ['inherit', 'inherit', 'pipe'],
   })

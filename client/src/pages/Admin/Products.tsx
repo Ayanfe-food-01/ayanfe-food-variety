@@ -144,8 +144,49 @@ export function Products() {
             <span>{result.pagination.total} {result.pagination.total === 1 ? 'product' : 'products'}</span>
             <span>Page {currentPage} of {totalPages}</span>
           </div>
-          <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-            <div className="overflow-x-auto">
+           <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+             <div className="space-y-3 p-4 md:hidden">
+               {result.products.map((product) => (
+                 <article className="rounded-2xl border border-line bg-cream/45 p-4" key={product.id}>
+                   <div className="flex items-start gap-3">
+                     <img className="size-16 shrink-0 rounded-xl object-cover" src={product.image} alt="" />
+                     <div className="min-w-0 flex-1">
+                       <p className="font-bold text-green-dark">{product.name}</p>
+                       <p className="mt-1 break-words text-xs text-muted">{product.description}</p>
+                       <p className="mt-1 text-xs text-muted">{product.category}</p>
+                     </div>
+                   </div>
+                   <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
+                     <div>
+                       <dt className="uppercase tracking-[0.12em] text-muted">Price / unit</dt>
+                       <dd className="mt-1 font-bold text-green-dark">{formatPrice(product.price)} <span className="font-normal text-muted">/ {product.unit}</span></dd>
+                     </div>
+                     <div>
+                       <dt className="uppercase tracking-[0.12em] text-muted">Stock</dt>
+                       <dd className="mt-1 font-bold text-green-dark">{product.stockQuantity ?? 0}</dd>
+                     </div>
+                     <div>
+                       <dt className="uppercase tracking-[0.12em] text-muted">Availability</dt>
+                       <dd className="mt-1">
+                         <span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${product.isActive && product.isAvailable ? 'bg-sage text-green' : product.isActive ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
+                           {!product.isActive ? 'Inactive' : product.isAvailable ? 'Available' : 'Out of stock'}
+                         </span>
+                       </dd>
+                     </div>
+                     <div>
+                       <dt className="uppercase tracking-[0.12em] text-muted">Created</dt>
+                       <dd className="mt-1 text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</dd>
+                     </div>
+                   </dl>
+                   <div className="mt-4 flex flex-wrap gap-3 border-t border-line pt-3 text-xs font-bold">
+                     <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}`}>View</Link>
+                     <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}/edit`}>Edit</Link>
+                     <button className="text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id} onClick={() => void toggleStatus(product.id, product.isActive)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
+                   </div>
+                 </article>
+               ))}
+             </div>
+             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
                   <tr>

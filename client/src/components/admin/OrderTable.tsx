@@ -24,7 +24,48 @@ export function OrderTable({ orders }: OrderTableProps) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="space-y-3 p-4 md:hidden">
+        {orders.map((order) => (
+          <article className="rounded-2xl border border-line bg-cream/45 p-4" key={order.orderNumber}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Order number</p>
+                <p className="mt-1 break-words font-bold text-green-dark">{order.orderNumber}</p>
+              </div>
+              <Link className="shrink-0 font-bold text-green hover:text-orange" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>
+                View
+              </Link>
+            </div>
+            <div className="mt-4">
+              <p className="font-semibold text-green-dark">{order.customerName}</p>
+              <p className="mt-1 break-words text-xs text-muted">{order.email ?? 'No email provided'}</p>
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
+              <div>
+                <dt className="uppercase tracking-[0.12em] text-muted">Phone</dt>
+                <dd className="mt-1 text-muted">{order.phone}</dd>
+              </div>
+              <div>
+                <dt className="uppercase tracking-[0.12em] text-muted">Date</dt>
+                <dd className="mt-1 text-muted">{formatDate(order.createdAt)}</dd>
+              </div>
+              <div>
+                <dt className="uppercase tracking-[0.12em] text-muted">Total</dt>
+                <dd className="mt-1 font-bold text-green-dark">{formatPrice(order.total)}</dd>
+              </div>
+              <div>
+                <dt className="uppercase tracking-[0.12em] text-muted">Payment</dt>
+                <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="uppercase tracking-[0.12em] text-muted">Order status</dt>
+                <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${statusClass(order.orderStatus)}`}>{order.orderStatus}</span></dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
             <tr>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from '../../assets/icons'
 import { StatCard } from '../../components/admin/StatCard'
 import { getDashboardStats, type DashboardStats } from '../../services/adminService'
 
@@ -23,7 +22,6 @@ export function Dashboard() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Dashboard</h1>
           <p className="mt-3 text-sm leading-6 text-muted">A live view of orders, payments, and store performance.</p>
         </div>
-        <Link className="inline-flex w-fit items-center gap-2 rounded-full bg-green px-4 py-2.5 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/payments">Review payments <ArrowRight size={16} /></Link>
       </div>
 
       {error ? (
@@ -41,7 +39,7 @@ export function Dashboard() {
         </div>
       )}
 
-      <section className="mt-8 grid gap-5 lg:grid-cols-2">
+      <section className="mt-8">
         <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Quick actions</p>
           <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Keep operations moving</h2>
@@ -49,11 +47,6 @@ export function Dashboard() {
             <Link className="rounded-xl border border-line p-4 transition-colors hover:border-green/30 hover:bg-sage/20" to="/admin/orders"><p className="font-bold text-green-dark">Manage orders</p><p className="mt-1 text-xs leading-5 text-muted">Open orders and update fulfillment status.</p></Link>
             <Link className="rounded-xl border border-line p-4 transition-colors hover:border-green/30 hover:bg-sage/20" to="/admin/settings"><p className="font-bold text-green-dark">Payment settings</p><p className="mt-1 text-xs leading-5 text-muted">Keep customer transfer instructions current.</p></Link>
           </div>
-        </div>
-        <div className="rounded-2xl border border-line bg-sage/30 p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Data note</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Numbers update from Neon</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">These cards are calculated from live order and payment records. No dashboard values are stored in the frontend.</p>
         </div>
       </section>
     </div>

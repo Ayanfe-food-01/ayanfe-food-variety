@@ -4,7 +4,6 @@ services:
     runtime: node
     rootDir: server
     buildCommand: npm ci && npm run build
-    preDeployCommand: npm run prisma:migrate
     startCommand: npm run start
     healthCheckPath: /health
     envVars:

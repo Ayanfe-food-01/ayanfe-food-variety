@@ -5,3 +5,4 @@
 - [Neon migration advisory locks](neon-migrations.md) — close pooled diagnostic sessions before retrying Prisma deploy when Neon reports a migration advisory-lock timeout.
 - [Portable deployment lockfiles](deployment-lockfiles.md) — external Vercel/Render installs cannot use Replit-only npm registry URLs committed in lockfiles.
 - [Render Free migration startup](render-free-migrations.md) — run Prisma deploy migrations in the production start script when Render locks pre-deploy commands.
+- [Split frontend/API configuration](split-api-configuration.md) — Vercel build variables must be clean API bases and Render must allow the exact frontend origin.

@@ -81,6 +81,10 @@ Set this Vercel environment variable for Preview and Production:
 VITE_API_URL=https://your-render-service.onrender.com/api/v1
 ```
 
+The value must not end with punctuation such as a period. After changing a
+Vercel environment variable, trigger a new deployment; environment variables
+are embedded into the static frontend during the build.
+
 The API uses credentialed cross-origin requests for admin and customer
 sessions, so `CORS_ORIGIN` must exactly match the deployed Vercel origin
 including `https://` and excluding a trailing slash.

@@ -1,8 +1,24 @@
-const configuredApiBaseUrl = import.meta.env.VITE_API_URL?.trim()
-const apiBaseUrl = (
-  configuredApiBaseUrl
-  || (import.meta.env.DEV ? '/api/v1' : '')
-).replace(/\/+$/, '')
+const normalizeApiBaseUrl = (value: string | undefined): string => {
+  const cleanedValue = value?.trim().replace(/[.,;!?]+$/, '').replace(/\/+$/, '') ?? ''
+  if (!cleanedValue) return ''
+
+  if (cleanedValue === '/api/v1' || cleanedValue.endsWith('/api/v1')) {
+    return cleanedValue
+  }
+
+  try {
+    const url = new URL(cleanedValue)
+    url.pathname = `${url.pathname.replace(/\/+$/, '')}/api/v1`
+    return url.toString().replace(/\/+$/, '')
+  } catch {
+    return cleanedValue
+  }
+}
+
+const configuredApiBaseUrl = import.meta.env.VITE_API_URL
+const apiBaseUrl = normalizeApiBaseUrl(
+  configuredApiBaseUrl || (import.meta.env.DEV ? '/api/v1' : undefined),
+)
 
 export class ApiError extends Error {
   readonly status: number

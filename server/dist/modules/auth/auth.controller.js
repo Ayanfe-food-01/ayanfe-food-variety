@@ -1,5 +1,5 @@
-import { authCookie, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, revokeCustomerSession, revokeSession, signupCustomer, isGoogleOAuthConfigured, } from './auth.service.js';
-import { validateCustomerSignupInput, validateLoginInput } from './auth.validator.js';
+import { authCookie, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, revokeCustomerSession, revokeSession, signupCustomer, isGoogleOAuthConfigured, resendCustomerVerificationEmail, verifyCustomerEmail, } from './auth.service.js';
+import { validateCustomerEmailVerificationInput, validateCustomerSignupInput, validateCustomerVerificationEmailInput, validateLoginInput, } from './auth.validator.js';
 export const loginController = async (request, response) => {
     const result = await login(validateLoginInput(request.body));
     const cookie = result.sessionType === 'admin' ? authCookie : customerAuthCookie;
@@ -35,8 +35,13 @@ const setCustomerCookie = (response, token) => {
 };
 export const customerSignupController = async (request, response) => {
     const result = await signupCustomer(validateCustomerSignupInput(request.body));
-    setCustomerCookie(response, result.token);
-    response.status(201).json({ success: true, data: { user: result.user } });
+    response.status(201).json({
+        success: true,
+        data: {
+            user: result.user,
+            verificationExpiresInSeconds: result.verificationExpiresInSeconds,
+        },
+    });
 };
 export const customerLoginController = async (request, response) => {
     const result = await loginCustomer(validateLoginInput(request.body));
@@ -64,6 +69,21 @@ export const customerProvidersController = (_request, response) => {
             message: isGoogleOAuthConfigured
                 ? 'Google OAuth credentials are configured; an OAuth callback must be enabled before use.'
                 : 'Google sign-in is unavailable. Configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI to enable it.',
+        },
+    });
+};
+export const customerVerifyEmailController = async (request, response) => {
+    const result = await verifyCustomerEmail(validateCustomerEmailVerificationInput(request.body));
+    response.json({ success: true, data: { verified: true, email: result.email } });
+};
+export const customerResendVerificationController = async (request, response) => {
+    const result = await resendCustomerVerificationEmail(validateCustomerVerificationEmailInput(request.body));
+    response.json({
+        success: true,
+        data: {
+            email: result.email,
+            verificationExpiresInSeconds: result.verificationExpiresInSeconds,
+            message: 'If the account requires verification, a new code has been sent.',
         },
     });
 };

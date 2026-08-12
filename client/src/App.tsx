@@ -15,6 +15,7 @@ import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Settings } from './pages/Admin/Settings'
 import { Login } from './pages/Login'
+import { VerifyEmail } from './pages/VerifyEmail'
 import { Products } from './pages/Admin/Products'
 import { ProductForm } from './pages/Admin/ProductForm'
 import { ProductView } from './pages/Admin/ProductView'
@@ -43,6 +44,7 @@ function PrivateRouteSeo() {
   const { pathname } = useLocation()
   const isPrivateRoute =
     pathname === '/login'
+    || pathname === '/verify-email'
     || pathname === '/cart'
     || pathname === '/checkout'
     || pathname.startsWith('/admin')
@@ -53,6 +55,8 @@ function PrivateRouteSeo() {
 
   const title = pathname === '/login'
     ? 'Sign in | Ayanfe Food Variety'
+    : pathname === '/verify-email'
+      ? 'Verify your email | Ayanfe Food Variety'
     : pathname.startsWith('/admin')
       ? 'Admin area | Ayanfe Food Variety'
       : pathname === '/cart'
@@ -88,6 +92,7 @@ function App() {
         <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
         <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/admin/login" element={<Navigate replace to="/login" />} />
         <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
         <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />

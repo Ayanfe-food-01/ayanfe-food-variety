@@ -43,9 +43,18 @@ export function Login() {
     setIsSubmitting(true)
     setError(null)
     try {
-      const user = mode === 'login'
-        ? await login(email, password)
-        : await signupCustomer(name, email, password)
+      if (mode === 'signup') {
+        const result = await signupCustomer(name, email, password)
+        navigate('/verify-email', {
+          replace: true,
+          state: {
+            email: result.user.email,
+            verificationExpiresInSeconds: result.verificationExpiresInSeconds,
+          },
+        })
+        return
+      }
+      const user = await login(email, password)
       completeAuthentication(user)
       navigate(getDestination(user), { replace: true })
     } catch (caught) {
@@ -80,6 +89,17 @@ export function Login() {
             {isSubmitting ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
           </Button>
         </form>
+        {mode === 'login' && error?.toLowerCase().includes('verify your email') && (
+          <Button
+            className="mt-4 w-full"
+            variant="outline"
+            size="sm"
+            type="button"
+            onClick={() => navigate('/verify-email', { state: { email: email.trim().toLowerCase() } })}
+          >
+            Verify your email
+          </Button>
+        )}
         <Button
           className="mt-7 w-full text-center"
           variant="text"

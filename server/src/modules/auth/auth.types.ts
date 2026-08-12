@@ -11,6 +11,15 @@ export interface CustomerSignupInput {
   password: string
 }
 
+export interface CustomerEmailVerificationInput {
+  email: string
+  otp: string
+}
+
+export interface CustomerVerificationEmailInput {
+  email: string
+}
+
 export interface AuthenticatedUser {
   id: string
   name: string

@@ -128,6 +128,15 @@ const orderDetailInclude = {
         orderBy: { createdAt: 'desc' },
         include: { changedByUser: { select: { name: true, email: true } } },
     },
+    paymentSnapshot: {
+        select: {
+            paymentMethod: true,
+            bankName: true,
+            accountName: true,
+            accountNumber: true,
+            instructions: true,
+        },
+    },
 };
 export async function getAdminOrder(orderNumber) {
     const order = await prisma.order.findUnique({ where: { orderNumber }, include: orderDetailInclude });

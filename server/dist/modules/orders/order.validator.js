@@ -1,4 +1,5 @@
 import { HttpError } from '../../utils/http.js';
+import { PaymentMethod } from '@prisma/client';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
 const requiredText = (value, field, maxLength) => {
@@ -43,6 +44,9 @@ export function validateCheckoutInput(body) {
         deliveryAddress: requiredText(body.deliveryAddress, 'deliveryAddress', 2000),
         city: requiredText(body.city, 'city', 120),
         deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
+        paymentMethod: body.paymentMethod === PaymentMethod.BANK_TRANSFER
+            ? PaymentMethod.BANK_TRANSFER
+            : (() => { throw new HttpError(400, 'Payment method is not supported.'); })(),
     };
 }
 export function validateOrderNumber(value) {

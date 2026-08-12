@@ -1,13 +1,19 @@
 import { promisify } from 'node:util';
-import { createHmac, randomBytes, scrypt as nodeScrypt, timingSafeEqual, } from 'node:crypto';
+import { createHmac, randomBytes, randomInt, scrypt as nodeScrypt, timingSafeEqual, } from 'node:crypto';
 import { UserRole } from '@prisma/client';
 import { env } from '../../config/env.js';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
+import { sendCustomerVerificationEmail } from './auth.email.js';
 const scrypt = promisify(nodeScrypt);
 const SESSION_COOKIE_NAME = 'ayanfe_admin_session';
 const CUSTOMER_SESSION_COOKIE_NAME = 'ayanfe_customer_session';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+const VERIFICATION_TTL_MS = 10 * 60 * 1000;
+const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
+const VERIFICATION_RESEND_WINDOW_MS = 24 * 60 * 60 * 1000;
+const MAX_VERIFICATION_RESENDS_PER_WINDOW = 5;
+const MAX_VERIFICATION_ATTEMPTS = 5;
 const toUser = (user) => ({
     id: user.id,
     name: user.name,
@@ -50,6 +56,21 @@ export async function verifyPassword(password, storedHash) {
     return expectedKey.length === actualKey.length && timingSafeEqual(expectedKey, actualKey);
 }
 const hashSessionToken = (token) => createHmac('sha256', env.sessionSecret).update(token).digest('hex');
+const generateVerificationCode = () => randomInt(0, 1_000_000).toString().padStart(6, '0');
+const hashVerificationCode = (userId, code) => createHmac('sha256', env.sessionSecret)
+    .update(`${userId}:${code}`)
+    .digest('hex');
+const isVerificationCodeValid = (userId, code, storedHash) => {
+    if (!/^[0-9a-f]{64}$/i.test(storedHash))
+        return false;
+    const expected = Buffer.from(storedHash, 'hex');
+    const actual = Buffer.from(hashVerificationCode(userId, code), 'hex');
+    return expected.length === actual.length && timingSafeEqual(expected, actual);
+};
+const verificationResult = (email) => ({
+    email,
+    verificationExpiresInSeconds: VERIFICATION_TTL_MS / 1000,
+});
 const readCookie = (cookieHeader, name) => {
     if (!cookieHeader)
         return null;
@@ -67,6 +88,9 @@ export async function login(input) {
         throw new HttpError(401, 'Invalid email or password.');
     }
     if (user.role === UserRole.CUSTOMER) {
+        if (!user.emailVerified) {
+            throw new HttpError(403, 'Please verify your email before signing in.');
+        }
         const customerSession = await createSession(user, 'customer');
         return { ...customerSession, sessionType: 'customer' };
     }
@@ -98,22 +122,145 @@ export async function signupCustomer(input) {
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (existing)
         throw new HttpError(409, 'An account with this email already exists.');
-    const user = await prisma.user.create({
-        data: {
-            name: input.name,
-            email: input.email,
-            passwordHash: await hashPassword(input.password),
-            role: UserRole.CUSTOMER,
-        },
+    const now = new Date();
+    const code = generateVerificationCode();
+    const passwordHash = await hashPassword(input.password);
+    const user = await prisma.$transaction(async (transaction) => {
+        const createdUser = await transaction.user.create({
+            data: {
+                name: input.name,
+                email: input.email,
+                passwordHash,
+                role: UserRole.CUSTOMER,
+                emailVerified: false,
+            },
+        });
+        await transaction.customerEmailVerification.create({
+            data: {
+                userId: createdUser.id,
+                otpHash: hashVerificationCode(createdUser.id, code),
+                expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
+                requestWindowStart: now,
+            },
+        });
+        return createdUser;
     });
-    return createSession(user, 'customer');
+    try {
+        await sendCustomerVerificationEmail({ recipient: user.email, code });
+    }
+    catch {
+        await prisma.customerEmailVerification.deleteMany({ where: { userId: user.id } });
+        await prisma.user.delete({ where: { id: user.id } });
+        throw new HttpError(503, 'We could not send a verification email. Please try again.');
+    }
+    return { user: toUser(user), ...verificationResult(user.email) };
 }
 export async function loginCustomer(input) {
     const user = await prisma.user.findUnique({ where: { email: input.email } });
     if (!user || user.role !== UserRole.CUSTOMER || !user.passwordHash || !(await verifyPassword(input.password, user.passwordHash))) {
         throw new HttpError(401, 'Invalid email or password.');
     }
+    if (!user.emailVerified) {
+        throw new HttpError(403, 'Please verify your email before signing in.');
+    }
     return createSession(user, 'customer');
+}
+export async function verifyCustomerEmail(input) {
+    const user = await prisma.user.findUnique({
+        where: { email: input.email },
+        select: { id: true, email: true, role: true, emailVerified: true },
+    });
+    if (!user || user.role !== UserRole.CUSTOMER) {
+        throw new HttpError(400, 'The verification code is invalid or has expired.');
+    }
+    if (user.emailVerified) {
+        throw new HttpError(400, 'This email is already verified. You can sign in.');
+    }
+    const pending = await prisma.customerEmailVerification.findUnique({ where: { userId: user.id } });
+    if (!pending) {
+        throw new HttpError(400, 'The verification code is invalid or has expired.');
+    }
+    if (pending.expiresAt <= new Date()) {
+        await prisma.customerEmailVerification.deleteMany({ where: { id: pending.id } });
+        throw new HttpError(400, 'This verification code has expired. Request a new code.');
+    }
+    if (pending.attempts >= MAX_VERIFICATION_ATTEMPTS) {
+        await prisma.customerEmailVerification.deleteMany({ where: { id: pending.id } });
+        throw new HttpError(429, 'Too many incorrect attempts. Request a new code.');
+    }
+    if (!isVerificationCodeValid(user.id, input.otp, pending.otpHash)) {
+        const nextAttempts = pending.attempts + 1;
+        await prisma.customerEmailVerification.updateMany({
+            where: { id: pending.id, attempts: pending.attempts },
+            data: { attempts: { increment: 1 } },
+        });
+        if (nextAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+            await prisma.customerEmailVerification.deleteMany({ where: { id: pending.id } });
+            throw new HttpError(429, 'Too many incorrect attempts. Request a new code.');
+        }
+        throw new HttpError(400, 'The verification code is incorrect.');
+    }
+    await prisma.$transaction(async (transaction) => {
+        const updated = await transaction.user.updateMany({
+            where: { id: user.id, emailVerified: false },
+            data: { emailVerified: true },
+        });
+        if (updated.count !== 1) {
+            throw new HttpError(400, 'This email is already verified. You can sign in.');
+        }
+        await transaction.customerEmailVerification.deleteMany({ where: { id: pending.id } });
+    });
+    return { email: user.email };
+}
+export async function resendCustomerVerificationEmail(input) {
+    const genericResult = {
+        email: input.email,
+        verificationExpiresInSeconds: VERIFICATION_TTL_MS / 1000,
+    };
+    const user = await prisma.user.findUnique({
+        where: { email: input.email },
+        select: { id: true, email: true, role: true, emailVerified: true },
+    });
+    if (!user || user.role !== UserRole.CUSTOMER || user.emailVerified) {
+        return genericResult;
+    }
+    const now = new Date();
+    const pending = await prisma.customerEmailVerification.findUnique({ where: { userId: user.id } });
+    if (pending && now.getTime() - pending.createdAt.getTime() < VERIFICATION_RESEND_COOLDOWN_MS) {
+        throw new HttpError(429, 'Please wait before requesting another verification code.');
+    }
+    const requestWindowIsActive = pending && now.getTime() - pending.requestWindowStart.getTime() < VERIFICATION_RESEND_WINDOW_MS;
+    if (requestWindowIsActive && pending.requestCount >= MAX_VERIFICATION_RESENDS_PER_WINDOW) {
+        throw new HttpError(429, 'Too many verification emails requested. Please try again later.');
+    }
+    const code = generateVerificationCode();
+    const requestWindowStart = requestWindowIsActive ? pending.requestWindowStart : now;
+    const requestCount = requestWindowIsActive ? (pending?.requestCount ?? 0) + 1 : 1;
+    await prisma.customerEmailVerification.upsert({
+        where: { userId: user.id },
+        create: {
+            userId: user.id,
+            otpHash: hashVerificationCode(user.id, code),
+            expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
+            requestWindowStart,
+            requestCount,
+        },
+        update: {
+            otpHash: hashVerificationCode(user.id, code),
+            expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
+            attempts: 0,
+            requestCount,
+            requestWindowStart,
+            createdAt: now,
+        },
+    });
+    try {
+        await sendCustomerVerificationEmail({ recipient: user.email, code });
+    }
+    catch {
+        throw new HttpError(503, 'We could not send a verification email. Please try again.');
+    }
+    return { ...genericResult, email: user.email };
 }
 export async function getAuthenticatedUser(token) {
     if (!token)

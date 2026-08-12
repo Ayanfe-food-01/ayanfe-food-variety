@@ -49,13 +49,24 @@ interface CustomerAuthResponse {
   data: { user: CustomerUser }
 }
 
-export async function signupCustomer(name: string, email: string, password: string): Promise<CustomerUser> {
-  const response = await request<CustomerAuthResponse>('/auth/customer/signup', {
+interface CustomerSignupResponse {
+  success: true
+  data: {
+    user: CustomerUser
+    verificationExpiresInSeconds: number
+  }
+}
+
+export async function signupCustomer(name: string, email: string, password: string): Promise<{
+  user: CustomerUser
+  verificationExpiresInSeconds: number
+}> {
+  const response = await request<CustomerSignupResponse>('/auth/customer/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email, password }),
   })
-  return response.data.user
+  return response.data
 }
 
 export async function loginCustomer(email: string, password: string): Promise<CustomerUser> {
@@ -78,5 +89,32 @@ export async function logoutCustomer(): Promise<void> {
 
 export async function getCustomerProviders(): Promise<{ google: boolean; message: string }> {
   const response = await request<{ success: true; data: { google: boolean; message: string } }>('/auth/customer/providers')
+  return response.data
+}
+
+export async function verifyCustomerEmail(email: string, otp: string): Promise<void> {
+  await request<{ success: true; data: { verified: true; email: string } }>('/auth/customer/verify-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  })
+}
+
+export async function resendCustomerVerification(email: string): Promise<{
+  verificationExpiresInSeconds: number
+  message: string
+}> {
+  const response = await request<{
+    success: true
+    data: {
+      email: string
+      verificationExpiresInSeconds: number
+      message: string
+    }
+  }>('/auth/customer/resend-verification', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
   return response.data
 }

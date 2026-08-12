@@ -18,7 +18,7 @@ export function ProductRail({ title, eyebrow, products, isLoading, hasError, onR
   return (
     <section className={`home-section product-section product-section-${tone}`} aria-labelledby={`${title}-heading`}>
       <div className="container">
-        <div className="home-section-heading">
+        <div className={`home-section-heading ${tone === 'yellow' ? 'home-section-heading-accent' : ''}`}>
           <div><p className="eyebrow">{eyebrow}</p><h2 id={`${title}-heading`}>{title}</h2></div>
           <Link className="section-link" to={href}>See all <ArrowRight size={16} /></Link>
         </div>

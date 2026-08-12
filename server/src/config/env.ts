@@ -22,7 +22,12 @@ if (!sessionSecret || sessionSecret.length < 32) {
   throw new Error('SESSION_SECRET must be configured with at least 32 characters')
 }
 const publicAppUrl = process.env.PUBLIC_APP_URL?.trim()
-const corsOriginValue = [process.env.CORS_ORIGIN, process.env.CLIENT_URL, publicAppUrl]
+const corsOriginValue = [
+  process.env.CORS_ORIGIN,
+  process.env.CLIENT_URL,
+  process.env.VERCEL_FRONTEND_URL,
+  publicAppUrl,
+]
   .filter((origin): origin is string => Boolean(origin?.trim()))
   .join(',')
 if (nodeEnv === 'production' && !corsOriginValue) {

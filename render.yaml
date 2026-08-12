@@ -17,6 +17,8 @@ services:
         sync: false
       - key: CORS_ORIGIN
         sync: false
+      - key: VERCEL_FRONTEND_URL
+        sync: false
       - key: PUBLIC_APP_URL
         sync: false
       - key: CLOUDINARY_CLOUD_NAME

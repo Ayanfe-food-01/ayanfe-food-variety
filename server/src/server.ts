@@ -5,7 +5,7 @@ import { closeDatabase, verifyDatabaseConnection } from './lib/prisma.js'
 const start = async () => {
   await verifyDatabaseConnection()
 
-  const server = app.listen(env.port, () => {
+  const server = app.listen(env.port, '0.0.0.0', () => {
     console.info(`Ayanfe API listening on port ${env.port}`)
   })
 

@@ -58,6 +58,8 @@ Required Render values:
 - `SESSION_SECRET` (at least 32 characters)
 - `CORS_ORIGIN` set to the exact Vercel origin
 - `PUBLIC_APP_URL` set to the Vercel origin
+- `VERCEL_FRONTEND_URL` may also be set to the exact Vercel origin when you
+  want the frontend origin named explicitly in Render's environment.
 - Cloudinary values above
 
 Render supplies `PORT`; the committed blueprint includes `10000` as its
@@ -102,6 +104,19 @@ After both services are deployed and the two public URLs have been entered:
    is saved and the admin portal can review it.
 5. Log into the admin portal and test a product image upload.
 6. Confirm Render logs show no database, CORS, or storage errors.
+
+For a repeatable external smoke test, run this from the repository root:
+
+```bash
+SMOKE_API_URL=https://your-render-service.onrender.com \
+SMOKE_FRONTEND_ORIGIN=https://your-vercel-project.vercel.app \
+npm --prefix server run smoke:production
+```
+
+The CORS line must report the exact frontend origin and
+`credentials=true`. Render request log lines include a request id, browser
+origin, and the origin that was actually authorized, which distinguishes a
+backend response from a browser CORS failure.
 
 Never paste production secrets into source files, commits, or chat. Use the
 Vercel and Render secret/environment-variable settings.

@@ -48,7 +48,8 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     })
   } catch {
     throw new ApiError(
-      'The API server cannot be reached. Start the API service or check the configured API URL.',
+      `Unable to reach the API at ${apiBaseUrl}. Verify the Vercel VITE_API_URL `
+      + `and Render CORS_ORIGIN settings.`,
       0,
     )
   }

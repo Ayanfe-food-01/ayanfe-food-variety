@@ -7,16 +7,26 @@ import { notFoundMiddleware } from './middleware/notFound.middleware.js'
 import { requestLogger } from './middleware/requestLogger.js'
 import { apiRoutes } from './routes/index.js'
 
+const normalizeOrigin = (origin: string): string => {
+  try {
+    return new URL(origin.trim()).origin
+  } catch {
+    return origin.trim().replace(/\/+$/, '')
+  }
+}
+
 export const app = express()
 app.set('trust proxy', 1)
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || env.corsOrigins.includes(origin)) {
+    const normalizedOrigin = origin ? normalizeOrigin(origin) : undefined
+    if (!normalizedOrigin || env.corsOrigins.includes(normalizedOrigin)) {
       callback(null, true)
       return
     }
 
+    console.warn(`Blocked CORS origin: ${origin}`)
     callback(null, false)
   },
   credentials: true,

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 
 export interface NavigationItem {
@@ -50,7 +51,7 @@ export function NavigationMenu({
   isOpen: boolean
   onClose: () => void
 }) {
-  return (
+  const menu = (
     <>
       <button
         className={`sidebar-backdrop fixed inset-0 z-50 bg-green-dark/25 backdrop-blur-[2px] md:hidden ${
@@ -62,12 +63,19 @@ export function NavigationMenu({
         onClick={onClose}
       />
       <div
-        className={`sidebar-drawer fixed inset-y-0 left-0 z-[60] flex w-[min(88vw,360px)] flex-col overflow-y-auto border-r border-line bg-cream p-6 text-sm font-medium text-muted shadow-[18px_0_50px_rgba(32,60,36,0.16)] ${
+        className={`sidebar-drawer fixed inset-0 z-[60] flex h-dvh min-h-full w-screen max-w-none flex-col overflow-y-auto border-r border-line bg-cream p-6 text-sm font-medium text-muted shadow-[18px_0_50px_rgba(32,60,36,0.16)] ${
           isOpen ? 'sidebar-drawer-open' : 'sidebar-drawer-closed'
-        } md:!visible md:static md:inset-auto md:z-auto md:flex md:w-auto md:min-w-0 md:flex-1 md:translate-x-0 md:flex-row md:items-center md:justify-center md:gap-8 md:overflow-visible md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
+        } md:!visible md:static md:h-auto md:min-h-0 md:inset-auto md:z-auto md:flex md:w-auto md:min-w-0 md:flex-1 md:translate-x-0 md:flex-row md:items-center md:justify-center md:gap-8 md:overflow-visible md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
       >
         {children}
       </div>
     </>
   )
+
+  // The sticky header uses backdrop-filter, which creates a containing block
+  // for fixed descendants. Portal the open mobile menu to body so inset-0
+  // always means the actual viewport, not the header's 78px height.
+  return isOpen && typeof document !== 'undefined'
+    ? createPortal(menu, document.body)
+    : menu
 }

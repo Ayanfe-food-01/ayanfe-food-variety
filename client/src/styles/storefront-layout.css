@@ -58,11 +58,10 @@
 
 @media (max-width: 767px) {
   .header-utility { font-size: 10px; }
-  .store-nav { min-height: 62px; gap: 10px; padding: 7px 16px; }
+  .store-nav { flex-wrap: wrap; min-height: 0; gap: 10px; padding: 7px 16px 12px; }
   .mobile-only { display: grid; flex: 0 0 auto; width: 36px; height: 36px; border: 0; }
   .brand-mark img { width: 57px; height: 47px; }
-  .store-nav > .search-form { position: absolute; top: 67px; left: 12px; right: 12px; width: auto; }
-  .store-nav { margin-bottom: 51px; }
+  .store-nav > .search-form { order: 3; position: static; flex: 0 0 100%; width: 100%; }
   .search-form button { display: none; }
   .store-actions { margin-left: auto; gap: 11px; }
   .account-link, .cart-link { padding: 5px; }

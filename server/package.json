@@ -16,13 +16,13 @@
     "test:inventory": "tsx scripts/inventory-safety-smoke.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^6.19.3",
     "@types/multer": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "multer": "^2.0.2",
-    "prisma": "^6.19.0"
+    "prisma": "^6.19.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

@@ -19,8 +19,11 @@ export function Orders() {
 
   useEffect(() => {
     let current = true
-    setIsLoading(true)
-    setError(null)
+    queueMicrotask(() => {
+      if (!current) return
+      setIsLoading(true)
+      setError(null)
+    })
     getAdminOrders(query)
       .then((page) => {
         if (current) setResult(page)

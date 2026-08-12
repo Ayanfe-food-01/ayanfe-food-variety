@@ -151,13 +151,16 @@ export function CartProvider({ children }: CartProviderProps) {
         window.localStorage.removeItem(CART_OWNER_STORAGE_KEY)
       }
       previousUserIdRef.current = null
-      setIsLoading(false)
+      window.setTimeout(() => setIsLoading(false), 0)
       return
     }
 
     let isCurrent = true
-    setIsLoading(true)
-    setError(null)
+    const hydrationStateTimer = setTimeout(() => {
+      if (!isCurrent) return
+      setIsLoading(true)
+      setError(null)
+    }, 0)
     const storedCartOwner = window.localStorage.getItem(CART_OWNER_STORAGE_KEY)
     const localItems = itemsRef.current.map((item) => ({ productId: item.id, quantity: item.quantity }))
     const hydrateCart = storedCartOwner === user.id
@@ -180,6 +183,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
     return () => {
       isCurrent = false
+      clearTimeout(hydrationStateTimer)
     }
   }, [applySnapshot, isCustomerAuthLoading, user])
 

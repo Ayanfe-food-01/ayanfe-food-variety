@@ -66,6 +66,9 @@ export function ToastProvider({ children }: ToastProviderProps) {
   )
 }
 
+// This module intentionally exports both the provider component and its hook.
+// They must share the same private context instance.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const context = useContext(ToastContext)
   if (!context) throw new Error('useToast must be used within a ToastProvider')

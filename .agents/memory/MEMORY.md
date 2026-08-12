@@ -3,3 +3,4 @@
 - [API workflow port detection](workflow-port-detection.md) — a healthy Express API can remain reachable while the managed console workflow is marked failed during port detection.
 - [Product image replacement](product-image-replacement.md) — upload new assets before persistence, delete old assets afterward, and clean up replacements on failed updates.
 - [Neon migration advisory locks](neon-migrations.md) — close pooled diagnostic sessions before retrying Prisma deploy when Neon reports a migration advisory-lock timeout.
+- [Portable deployment lockfiles](deployment-lockfiles.md) — external Vercel/Render installs cannot use Replit-only npm registry URLs committed in lockfiles.

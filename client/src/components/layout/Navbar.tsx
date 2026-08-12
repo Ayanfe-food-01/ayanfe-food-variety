@@ -8,6 +8,7 @@ import { NavigationLinks, NavigationMenu, type NavigationItem } from './Navigati
 const links: NavigationItem[] = [
   { label: 'Home', href: '/' },
   { label: 'Shop', href: '/shop' },
+  { label: 'New Arrivals', href: '/new-arrivals' },
   { label: 'Orders', href: '/orders' },
   { label: 'About', href: '#why-us' },
   { label: 'Contact', href: '#contact' },

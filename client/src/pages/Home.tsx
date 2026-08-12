@@ -4,6 +4,7 @@ import { CategorySection } from '../components/home/CategorySection'
 import { ContactSection } from '../components/home/ContactSection'
 import { FeaturedProducts } from '../components/home/FeaturedProducts'
 import { Hero } from '../components/home/Hero'
+import { NewArrivals } from '../components/home/NewArrivals'
 import { PromotionalCTA } from '../components/home/PromotionalCTA'
 import { WhyChooseUs } from '../components/home/WhyChooseUs'
 import { Seo } from '../seo/Seo'
@@ -32,6 +33,7 @@ export function Home() {
         <Hero />
         <CategorySection />
         <FeaturedProducts />
+        <NewArrivals />
         <WhyChooseUs />
         <PromotionalCTA />
         <ContactSection />

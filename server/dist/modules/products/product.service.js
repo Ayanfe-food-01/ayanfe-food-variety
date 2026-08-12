@@ -53,7 +53,7 @@ export async function getProducts(query) {
         ? [{ price: 'asc' }, { createdAt: 'desc' }]
         : query.sort === 'price_desc'
             ? [{ price: 'desc' }, { createdAt: 'desc' }]
-            : [{ createdAt: 'desc' }];
+            : [{ createdAt: 'desc' }, { id: 'desc' }];
     const [total, products] = await prisma.$transaction([
         prisma.product.count({ where }),
         prisma.product.findMany({
@@ -73,6 +73,9 @@ export async function getProducts(query) {
             totalPages: Math.max(1, Math.ceil(total / query.limit)),
         },
     };
+}
+export async function getNewArrivals(query) {
+    return getProducts({ ...query, sort: 'newest' });
 }
 export async function getProductById(identifier) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);

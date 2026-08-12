@@ -7,7 +7,7 @@ import { ProductGrid } from '../components/products/ProductGrid'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { getCategories } from '../services/categoryService'
 import { ApiError } from '../services/api'
-import { getProducts, type ProductPage } from '../services/productService'
+import { getNewArrivals, getProducts, type ProductPage } from '../services/productService'
 import type { Category } from '../types/category'
 import { Seo } from '../seo/Seo'
 
@@ -24,11 +24,11 @@ const readPage = (value: string | null) => {
   return Number.isInteger(page) && page > 0 ? page : 1
 }
 
-export function Shop() {
+export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const searchValue = searchParams.get('search') ?? ''
   const categoryValue = searchParams.get('category') ?? ''
-  const sortValue = searchParams.get('sort') ?? 'relevance'
+  const sortValue = newArrivalsOnly ? 'newest' : searchParams.get('sort') ?? 'relevance'
   const pageValue = readPage(searchParams.get('page'))
   const queryString = searchParams.toString()
 
@@ -79,12 +79,15 @@ export function Shop() {
       setIsProductsLoading(true)
       setProductsError(null)
 
-      void getProducts({
+      const loadProducts = newArrivalsOnly ? getNewArrivals : getProducts
+      void loadProducts({
         search: searchValue || undefined,
         category: categoryValue || undefined,
-        sort: SORT_OPTIONS.some((option) => option.value === sortValue)
+        ...(!newArrivalsOnly && {
+          sort: SORT_OPTIONS.some((option) => option.value === sortValue)
           ? sortValue as typeof SORT_OPTIONS[number]['value']
-          : 'relevance',
+            : 'relevance',
+        }),
         page: pageValue,
         limit: PAGE_SIZE,
       })
@@ -103,7 +106,7 @@ export function Shop() {
       current = false
       window.clearTimeout(timeoutId)
     }
-  }, [categoryValue, pageValue, searchValue, sortValue])
+  }, [categoryValue, newArrivalsOnly, pageValue, searchValue, sortValue])
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.slug === categoryValue || category.id === categoryValue),
@@ -136,25 +139,33 @@ export function Shop() {
   return (
     <>
       <Seo
-        title={selectedCategory ? `${selectedCategory.name} products | Ayanfe Food Variety` : 'Shop Nigerian foodstuff and groceries | Ayanfe Food Variety'}
-        description={selectedCategory
+        title={newArrivalsOnly
+          ? 'New arrivals | Ayanfe Food Variety'
+          : selectedCategory ? `${selectedCategory.name} products | Ayanfe Food Variety` : 'Shop Nigerian foodstuff and groceries | Ayanfe Food Variety'}
+        description={newArrivalsOnly
+          ? 'Discover the newest additions to Ayanfe Food Variety, from carefully sourced Nigerian foodstuff to everyday groceries.'
+          : selectedCategory
           ? `${selectedCategory.description || `Browse ${selectedCategory.name.toLowerCase()} from Ayanfe Food Variety.`} Shop our available collection.`
           : 'Browse Nigerian foodstuff, pantry staples, and everyday groceries from Ayanfe Food Variety. Find carefully sourced essentials for your kitchen.'}
-        canonicalPath="/shop"
+        canonicalPath={newArrivalsOnly ? '/new-arrivals' : '/shop'}
       />
       <Navbar />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-14 sm:py-20 lg:py-24">
-            <Breadcrumb className="mb-8" items={[{ label: 'Home', href: '/' }, { label: 'Shop' }]} />
+            <Breadcrumb className="mb-8" items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
             <div className="max-w-2xl">
               <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
                 <span className="inline-block size-2 rounded-full bg-orange" />
-                The full collection
+                {newArrivalsOnly ? 'Fresh on the shelf' : 'The full collection'}
               </p>
-              <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">Shop</h1>
+              <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">
+                {newArrivalsOnly ? 'New Arrivals' : 'Shop'}
+              </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-muted sm:text-lg">
-                Good food starts with great ingredients. Find carefully sourced staples and everyday essentials, delivered with the same care we put into every order.
+                {newArrivalsOnly
+                  ? 'Explore the latest products added to our collection, with the newest additions always appearing first.'
+                  : 'Good food starts with great ingredients. Find carefully sourced staples and everyday essentials, delivered with the same care we put into every order.'}
               </p>
             </div>
           </div>
@@ -165,7 +176,7 @@ export function Shop() {
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Browse our range</p>
               <h2 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
-                {selectedCategory?.name ?? 'Shop by category'}
+                 {selectedCategory?.name ?? (newArrivalsOnly ? 'Latest additions' : 'Shop by category')}
               </h2>
             </div>
             <p className="text-sm text-muted">
@@ -199,16 +210,22 @@ export function Shop() {
                   {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
                 </select>
               </label>
-              <label className="flex min-w-0 items-center gap-2 text-sm text-muted">
-                <span className="shrink-0 font-semibold text-green-dark">Sort</span>
-                <select
-                  className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 text-sm text-green-dark outline-none focus:border-green sm:w-44"
-                  value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
-                  onChange={(event) => updateParams({ sort: event.target.value === 'relevance' ? undefined : event.target.value, page: undefined })}
-                >
-                  {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
+              {!newArrivalsOnly ? (
+                <label className="flex min-w-0 items-center gap-2 text-sm text-muted">
+                  <span className="shrink-0 font-semibold text-green-dark">Sort</span>
+                  <select
+                    className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 text-sm text-green-dark outline-none focus:border-green sm:w-44"
+                    value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
+                    onChange={(event) => updateParams({ sort: event.target.value === 'relevance' ? undefined : event.target.value, page: undefined })}
+                  >
+                    {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+              ) : (
+                <span className="inline-flex h-12 items-center justify-center rounded-xl border border-green/15 bg-sage/50 px-4 text-sm font-semibold text-green-dark">
+                  Newest first
+                </span>
+              )}
             </div>
           </div>
 
@@ -261,10 +278,10 @@ export function Shop() {
           ) : (
             <div className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-14 text-center">
               <h3 className="m-0 text-xl font-bold text-green-dark">
-                {searchValue ? 'No products match your search' : categoryValue ? 'No products in this category' : 'No products are available right now'}
+                 {searchValue ? 'No products match your search' : categoryValue ? 'No products in this category' : newArrivalsOnly ? 'No new products are available right now' : 'No products are available right now'}
               </h3>
               <p className="mt-3 text-sm text-muted">
-                {searchValue ? 'Try a different product name or description.' : 'Please check back soon for new additions to our collection.'}
+                 {searchValue ? 'Try a different product name or description.' : 'Please check back soon for new additions to our collection.'}
               </p>
               {hasActiveFilters && (
                 <button className="mt-5 rounded-full bg-green px-5 py-2.5 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={clearFilters}>

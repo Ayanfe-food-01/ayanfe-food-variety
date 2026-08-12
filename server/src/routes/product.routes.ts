@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import {
+  getNewArrivalsController,
   getProductByIdController,
   getProductsController,
 } from '../modules/products/product.controller.js'
@@ -7,4 +8,5 @@ import {
 export const productRoutes = Router()
 
 productRoutes.get('/', getProductsController)
+productRoutes.get('/new-arrivals', getNewArrivalsController)
 productRoutes.get('/:id', getProductByIdController)

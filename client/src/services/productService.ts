@@ -89,6 +89,20 @@ export async function getProducts(query: ProductQuery = {}): Promise<ProductPage
   }
 }
 
+export async function getNewArrivals(query: Omit<ProductQuery, 'sort'> = {}): Promise<ProductPage> {
+  const params = new URLSearchParams()
+  if (query.search) params.set('search', query.search)
+  if (query.category) params.set('category', query.category)
+  if (query.page && query.page > 1) params.set('page', String(query.page))
+  if (query.limit && query.limit !== 20) params.set('limit', String(query.limit))
+  const queryString = params.toString()
+  const response = await request<ProductListResponse>(`/products/new-arrivals${queryString ? `?${queryString}` : ''}`)
+  return {
+    products: response.data.products.map(toProduct),
+    pagination: response.data.pagination,
+  }
+}
+
 export async function getProduct(id: string): Promise<Product> {
   const response = await request<ProductResponse>(`/products/${encodeURIComponent(id)}`)
   return toProduct(response.data)

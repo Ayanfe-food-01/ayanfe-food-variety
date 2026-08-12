@@ -1,8 +1,12 @@
 import { HttpError } from '../../utils/http.js';
-import { getProductById, getProducts } from './product.service.js';
+import { getNewArrivals, getProductById, getProducts } from './product.service.js';
 import { requireProductIdentifier, validatePublicProductsQuery } from './product.validator.js';
 export const getProductsController = async (request, response) => {
     const page = await getProducts(validatePublicProductsQuery(request.query));
+    response.json({ data: page });
+};
+export const getNewArrivalsController = async (request, response) => {
+    const page = await getNewArrivals(validatePublicProductsQuery(request.query));
     response.json({ data: page });
 };
 export const getProductByIdController = async (request, response) => {

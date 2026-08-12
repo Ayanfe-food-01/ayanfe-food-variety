@@ -71,7 +71,7 @@ export async function getProducts(query: PublicProductQuery): Promise<PublicProd
     ? [{ price: 'asc' }, { createdAt: 'desc' }]
     : query.sort === 'price_desc'
       ? [{ price: 'desc' }, { createdAt: 'desc' }]
-      : [{ createdAt: 'desc' }]
+      : [{ createdAt: 'desc' }, { id: 'desc' }]
 
   const [total, products] = await prisma.$transaction([
     prisma.product.count({ where }),
@@ -93,6 +93,10 @@ export async function getProducts(query: PublicProductQuery): Promise<PublicProd
       totalPages: Math.max(1, Math.ceil(total / query.limit)),
     },
   }
+}
+
+export async function getNewArrivals(query: PublicProductQuery): Promise<PublicProductPage> {
+  return getProducts({ ...query, sort: 'newest' })
 }
 
 export async function getProductById(identifier: string): Promise<PublicProduct | null> {

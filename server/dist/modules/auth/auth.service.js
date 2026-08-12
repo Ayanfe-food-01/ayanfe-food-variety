@@ -4,7 +4,7 @@ import { UserRole } from '@prisma/client';
 import { env } from '../../config/env.js';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
-import { sendCustomerVerificationEmail } from './auth.email.js';
+import { assertVerificationEmailConfigured, sendCustomerVerificationEmail, VerificationEmailError, } from './auth.email.js';
 const scrypt = promisify(nodeScrypt);
 const SESSION_COOKIE_NAME = 'ayanfe_admin_session';
 const CUSTOMER_SESSION_COOKIE_NAME = 'ayanfe_customer_session';
@@ -71,6 +71,20 @@ const verificationResult = (email) => ({
     email,
     verificationExpiresInSeconds: VERIFICATION_TTL_MS / 1000,
 });
+const getEmailDomain = (email) => email.split('@')[1]?.toLowerCase() || 'unknown';
+const logVerificationEvent = (event, email, extra) => {
+    console.info(JSON.stringify({
+        event,
+        recipientDomain: getEmailDomain(email),
+        ...extra,
+    }));
+};
+const getEmailDeliveryError = (error) => {
+    if (error instanceof VerificationEmailError && error.reason === 'configuration') {
+        return new HttpError(503, 'Email verification is not configured on the server. Please contact support.');
+    }
+    return new HttpError(503, 'We could not send a verification email. Please try again later.');
+};
 const readCookie = (cookieHeader, name) => {
     if (!cookieHeader)
         return null;
@@ -119,12 +133,20 @@ async function createSession(user, kind) {
     return { user: toUser(user), token };
 }
 export async function signupCustomer(input) {
+    try {
+        assertVerificationEmailConfigured();
+    }
+    catch (error) {
+        logVerificationEvent('email_verification_configuration_failed', input.email);
+        throw getEmailDeliveryError(error);
+    }
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (existing)
         throw new HttpError(409, 'An account with this email already exists.');
     const now = new Date();
     const code = generateVerificationCode();
     const passwordHash = await hashPassword(input.password);
+    logVerificationEvent('email_verification_requested', input.email);
     const user = await prisma.$transaction(async (transaction) => {
         const createdUser = await transaction.user.create({
             data: {
@@ -148,11 +170,24 @@ export async function signupCustomer(input) {
     try {
         await sendCustomerVerificationEmail({ recipient: user.email, code });
     }
-    catch {
-        await prisma.customerEmailVerification.deleteMany({ where: { userId: user.id } });
-        await prisma.user.delete({ where: { id: user.id } });
-        throw new HttpError(503, 'We could not send a verification email. Please try again.');
+    catch (error) {
+        try {
+            await prisma.$transaction([
+                prisma.customerEmailVerification.deleteMany({ where: { userId: user.id } }),
+                prisma.user.delete({ where: { id: user.id } }),
+            ]);
+        }
+        catch (cleanupError) {
+            console.error(JSON.stringify({
+                event: 'email_verification_signup_cleanup_failed',
+                recipientDomain: getEmailDomain(user.email),
+                errorName: cleanupError instanceof Error ? cleanupError.name : 'UnknownError',
+            }));
+        }
+        logVerificationEvent('email_verification_delivery_failed', user.email);
+        throw getEmailDeliveryError(error);
     }
+    logVerificationEvent('email_verification_record_created', user.email);
     return { user: toUser(user), ...verificationResult(user.email) };
 }
 export async function loginCustomer(input) {
@@ -236,30 +271,54 @@ export async function resendCustomerVerificationEmail(input) {
     const code = generateVerificationCode();
     const requestWindowStart = requestWindowIsActive ? pending.requestWindowStart : now;
     const requestCount = requestWindowIsActive ? (pending?.requestCount ?? 0) + 1 : 1;
-    await prisma.customerEmailVerification.upsert({
+    const replacement = {
+        otpHash: hashVerificationCode(user.id, code),
+        expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
+        attempts: 0,
+        requestCount,
+        requestWindowStart,
+        createdAt: now,
+    };
+    const saved = await prisma.customerEmailVerification.upsert({
         where: { userId: user.id },
-        create: {
-            userId: user.id,
-            otpHash: hashVerificationCode(user.id, code),
-            expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
-            requestWindowStart,
-            requestCount,
-        },
-        update: {
-            otpHash: hashVerificationCode(user.id, code),
-            expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
-            attempts: 0,
-            requestCount,
-            requestWindowStart,
-            createdAt: now,
-        },
+        create: { userId: user.id, ...replacement },
+        update: replacement,
     });
     try {
         await sendCustomerVerificationEmail({ recipient: user.email, code });
     }
-    catch {
-        throw new HttpError(503, 'We could not send a verification email. Please try again.');
+    catch (error) {
+        try {
+            if (pending) {
+                await prisma.customerEmailVerification.updateMany({
+                    where: { id: saved.id, createdAt: now },
+                    data: {
+                        otpHash: pending.otpHash,
+                        expiresAt: pending.expiresAt,
+                        attempts: pending.attempts,
+                        requestCount: pending.requestCount,
+                        requestWindowStart: pending.requestWindowStart,
+                        createdAt: pending.createdAt,
+                    },
+                });
+            }
+            else {
+                await prisma.customerEmailVerification.deleteMany({
+                    where: { id: saved.id, createdAt: now },
+                });
+            }
+        }
+        catch (rollbackError) {
+            console.error(JSON.stringify({
+                event: 'email_verification_resend_rollback_failed',
+                recipientDomain: getEmailDomain(user.email),
+                errorName: rollbackError instanceof Error ? rollbackError.name : 'UnknownError',
+            }));
+        }
+        logVerificationEvent('email_verification_resend_failed', user.email);
+        throw getEmailDeliveryError(error);
     }
+    logVerificationEvent('email_verification_resend_sent', user.email);
     return { ...genericResult, email: user.email };
 }
 export async function getAuthenticatedUser(token) {

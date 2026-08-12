@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /login
-Disallow: /cart
-Disallow: /checkout
-Disallow: /orders
-Disallow: /order-confirmation
-Sitemap: https://ayanfe-food-variety.vercel.app/sitemap.xml

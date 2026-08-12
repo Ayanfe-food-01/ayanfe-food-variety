@@ -9,9 +9,9 @@ const parsePort = (value: string | undefined): number => {
 }
 
 const nodeEnv = process.env.NODE_ENV ?? 'development'
-// DATABASE_URL is the canonical Prisma/Render variable. The Neon-specific
-// fallback is retained only for this Replit workspace's existing local secret.
-const databaseUrl = process.env.DATABASE_URL ?? process.env.NEON_DATABASE_URL
+// Prefer the explicit Neon database in this workspace. Render deployments
+// provide DATABASE_URL instead, so it remains the production fallback.
+const databaseUrl = process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL
 if (!databaseUrl) {
   throw new Error('A database connection is required to start the server')
 }

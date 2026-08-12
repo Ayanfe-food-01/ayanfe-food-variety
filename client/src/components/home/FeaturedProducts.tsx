@@ -47,7 +47,7 @@ export function FeaturedProducts() {
           <Link className="inline-flex items-center gap-1 text-sm font-bold text-green transition-all duration-200 hover:gap-2" to="/shop">See the full collection <ArrowUpRight size={16} /></Link>
         </div>
         {isLoading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" aria-label="Loading products">
+          <div className="product-grid" aria-label="Loading products">
             {Array.from({ length: 4 }, (_, index) => (
               <div className="h-[320px] animate-pulse rounded-2xl bg-sage" key={index} />
             ))}

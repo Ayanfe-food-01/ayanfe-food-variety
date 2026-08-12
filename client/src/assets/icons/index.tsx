@@ -79,6 +79,14 @@ export function SearchIcon({ size, strokeWidth, className }: IconProps) {
   )
 }
 
+export function ChevronDownIcon({ size, strokeWidth }: IconProps) {
+  return (
+    <svg {...iconProps({ size, strokeWidth })}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
 export function EyeIcon({ size, strokeWidth }: IconProps) {
   return (
     <svg {...iconProps({ size, strokeWidth })}>

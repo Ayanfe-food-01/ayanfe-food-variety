@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { SearchIcon } from '../assets/icons'
+import { ChevronDownIcon, SearchIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
@@ -184,12 +184,12 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
             </p>
           </div>
 
-          <div className="mb-10 grid gap-3 rounded-2xl border border-line bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
-            <form className="relative" onSubmit={submitSearch} role="search">
+          <div className="shop-filters mb-10 rounded-2xl border border-line bg-white p-3 sm:p-4">
+            <form className="shop-filter-search relative" onSubmit={submitSearch} role="search">
               <label className="sr-only" htmlFor="product-search">Search products</label>
               <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
               <input
-                className="h-12 w-full rounded-xl border border-line bg-cream pl-11 pr-4 text-sm outline-none transition-colors placeholder:text-muted/80 focus:border-green"
+                className="h-12 w-full rounded-full border border-line bg-cream pl-11 pr-4 text-sm outline-none transition-colors placeholder:text-muted/80 focus:border-green"
                 id="product-search"
                 type="search"
                 value={searchInput}
@@ -197,11 +197,11 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
                 placeholder="Search products or ingredients"
               />
             </form>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <label className="flex min-w-0 items-center gap-2 text-sm text-muted">
-                <span className="shrink-0 font-semibold text-green-dark">Category</span>
+            <div className="shop-filter-controls">
+              <label className="filter-select-wrap">
+                <span className="sr-only">Filter by category</span>
                 <select
-                  className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 text-sm text-green-dark outline-none focus:border-green sm:w-44"
+                  className="filter-select"
                   value={categoryValue}
                   onChange={(event) => updateParams({ category: event.target.value || undefined, page: undefined })}
                   disabled={isCategoriesLoading}
@@ -209,20 +209,22 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
                   <option value="">{isCategoriesLoading ? 'Loading…' : 'All categories'}</option>
                   {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
                 </select>
+                <ChevronDownIcon className="filter-select-icon" size={17} />
               </label>
               {!newArrivalsOnly ? (
-                <label className="flex min-w-0 items-center gap-2 text-sm text-muted">
-                  <span className="shrink-0 font-semibold text-green-dark">Sort</span>
+                <label className="filter-select-wrap">
+                  <span className="sr-only">Sort products</span>
                   <select
-                    className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 text-sm text-green-dark outline-none focus:border-green sm:w-44"
+                    className="filter-select"
                     value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
                     onChange={(event) => updateParams({ sort: event.target.value === 'relevance' ? undefined : event.target.value, page: undefined })}
                   >
                     {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
+                  <ChevronDownIcon className="filter-select-icon" size={17} />
                 </label>
               ) : (
-                <span className="inline-flex h-12 items-center justify-center rounded-xl border border-green/15 bg-sage/50 px-4 text-sm font-semibold text-green-dark">
+                <span className="filter-pill">
                   Newest first
                 </span>
               )}
@@ -239,7 +241,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
           )}
 
           {isProductsLoading ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" aria-label="Loading products">
+            <div className="product-grid" aria-label="Loading products">
               {Array.from({ length: 8 }, (_, index) => <div className="h-[390px] animate-pulse rounded-2xl bg-sage" key={index} />)}
             </div>
           ) : productsError ? (

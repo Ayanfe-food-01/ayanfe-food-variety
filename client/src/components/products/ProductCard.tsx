@@ -47,8 +47,8 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
         {compact ? <Button className="quick-add" size="sm" fullWidth type="button" onClick={handleAddToCart} disabled={!product.isAvailable || isAdding}>
           <CartIcon size={15} /> {isAdding ? 'Adding' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
         </Button> : <div className="product-actions">
-          {product.isAvailable ? <Button fullWidth={!showDetails} variant="primary" onClick={handleAddToCart} disabled={isAdding}><CartIcon size={16} /> {isAdding ? 'Adding…' : 'Add to cart'}</Button> : <p className="out-of-stock">Out of stock</p>}
-          {showDetails && <Link className="details-button" to={`/product/${product.slug ?? product.id}`} aria-label={`View details for ${product.name}`}><EyeIcon size={18} /></Link>}
+          {product.isAvailable ? <Button className="product-add-button" size="sm" fullWidth={!showDetails} variant="primary" onClick={handleAddToCart} disabled={isAdding}><CartIcon size={15} /> {isAdding ? 'Adding…' : 'Add to cart'}</Button> : <p className="out-of-stock">Out of stock</p>}
+          {showDetails && <Link className="details-button" to={`/product/${product.slug ?? product.id}`} aria-label={`View details for ${product.name}`}><EyeIcon size={17} /></Link>}
         </div>}
       </div>
     </article>

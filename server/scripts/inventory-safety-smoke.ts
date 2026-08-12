@@ -1,17 +1,20 @@
+import { randomUUID } from 'node:crypto'
 import { OrderStatus, Prisma, UserRole } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/lib/prisma.js'
 import { addCustomerCartItem, clearCustomerCart, updateCustomerCartItem } from '../src/modules/cart/cart.service.js'
 import { updateAdminOrderStatus } from '../src/modules/admin/admin.service.js'
-import { createOrder } from '../src/modules/orders/order.service.js'
+import { checkoutCustomerCart } from '../src/modules/orders/order.service.js'
+import { PaymentMethod } from '@prisma/client'
 import { HttpError } from '../src/utils/http.js'
 
 const slug = `inventory-smoke-${Date.now()}`
-const orderInput = (productId: string, quantity: number) => ({
+const checkoutInput = (checkoutKey: string) => ({
+  checkoutKey,
   customerName: 'Inventory Smoke Test',
   phone: '08000000000',
   deliveryAddress: 'Test address',
   city: 'Ibadan',
-  items: [{ productId, quantity }],
+  paymentMethod: PaymentMethod.BANK_TRANSFER,
 })
 
 const expectHttpError = async (operation: Promise<unknown>, expectedStatus: number): Promise<void> => {
@@ -26,7 +29,7 @@ const expectHttpError = async (operation: Promise<unknown>, expectedStatus: numb
 
 async function main() {
   const category = await prisma.category.create({
-    data: { name: `Inventory Smoke ${slug}`, slug, image: '' },
+    data: { name: `Inventory Smoke ${slug}`, slug, imageUrl: '' },
   })
   const customer = await prisma.user.create({
     data: { name: 'Inventory Smoke Customer', email: `${slug}@example.com`, role: UserRole.CUSTOMER },
@@ -83,9 +86,15 @@ async function main() {
     },
   })
 
+  const createSmokeOrder = async (productId: string, quantity: number) => {
+    await clearCustomerCart(customer.id)
+    await addCustomerCartItem(customer.id, { productId, quantity })
+    return checkoutCustomerCart(customer.id, checkoutInput(randomUUID()))
+  }
+
   try {
     const addedCart = await addCustomerCartItem(customer.id, { productId: cartProduct.id, quantity: 2 })
-    if (addedCart[0]?.quantity !== 2) throw new Error('Available product was not added to cart.')
+    if (addedCart.items[0]?.quantity !== 2) throw new Error('Available product was not added to cart.')
     await expectHttpError(
       addCustomerCartItem(customer.id, { productId: outOfStockProduct.id, quantity: 1 }),
       409,
@@ -99,15 +108,17 @@ async function main() {
     })
     await expectHttpError(updateCustomerCartItem(customer.id, cartItem.id, 6), 409)
 
-    await expectHttpError(createOrder(orderInput(rollbackProduct.id, 4)), 409)
+    await expectHttpError(createSmokeOrder(rollbackProduct.id, 4), 409)
     const rollbackState = await prisma.product.findUniqueOrThrow({ where: { id: rollbackProduct.id } })
     if (rollbackState.stockQuantity !== 3) throw new Error('Failed checkout changed stock.')
     const rollbackOrders = await prisma.order.count({ where: { orderItems: { some: { productId: rollbackProduct.id } } } })
     if (rollbackOrders !== 0) throw new Error('Failed checkout created a partial order.')
 
+    await clearCustomerCart(customer.id)
+    await addCustomerCartItem(customer.id, { productId: concurrentProduct.id, quantity: 1 })
     const results = await Promise.allSettled([
-      createOrder(orderInput(concurrentProduct.id, 1)),
-      createOrder(orderInput(concurrentProduct.id, 1)),
+      checkoutCustomerCart(customer.id, checkoutInput(randomUUID())),
+      checkoutCustomerCart(customer.id, checkoutInput(randomUUID())),
     ])
     const successes = results.filter((result) => result.status === 'fulfilled')
     if (successes.length !== 1) throw new Error(`Expected exactly one concurrent purchase, got ${successes.length}.`)

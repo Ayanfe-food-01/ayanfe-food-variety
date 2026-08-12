@@ -7,6 +7,7 @@
     "build:client": "npm --prefix client run build",
     "build:server": "npm --prefix server run build",
     "typecheck": "npm --prefix client run typecheck && npm --prefix server run typecheck",
+    "check": "npm run typecheck && npm run prisma:validate",
     "prisma:validate": "cd server && npx prisma validate",
     "prisma:migrate:status": "cd server && npx prisma migrate status",
     "test": "echo \"No automated tests configured\""

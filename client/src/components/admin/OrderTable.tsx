@@ -1,5 +1,6 @@
 import type { AdminOrderListItem } from '../../services/orderService'
 import { Link } from 'react-router-dom'
+import { formatOrderStatus } from '../../utils/orderStatus'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -8,7 +9,7 @@ const formatDate = (value: string) =>
   new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 
 const statusClass = (status: string) => {
-  if (status === 'PAID' || status === 'COMPLETED') return 'bg-green/10 text-green'
+  if (status === 'PAID' || status === 'DELIVERED') return 'bg-green/10 text-green'
   if (status === 'CANCELLED' || status === 'FAILED') return 'bg-orange/10 text-orange'
   return 'bg-sage text-green-dark'
 }
@@ -59,7 +60,7 @@ export function OrderTable({ orders }: OrderTableProps) {
               </div>
               <div className="col-span-2">
                 <dt className="uppercase tracking-[0.12em] text-muted">Order status</dt>
-                <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${statusClass(order.orderStatus)}`}>{order.orderStatus}</span></dd>
+                 <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></dd>
               </div>
             </dl>
           </article>
@@ -81,7 +82,7 @@ export function OrderTable({ orders }: OrderTableProps) {
           </thead>
           <tbody className="divide-y divide-line">
             {orders.map((order) => (
-              <tr className="hover:bg-cream/60" key={order.orderNumber}>
+               <tr className="hover:bg-cream/60" key={order.orderNumber}>
                 <td className="px-5 py-4 font-semibold text-green-dark">{order.orderNumber}</td>
                 <td className="px-5 py-4">
                   <p className="m-0 font-semibold text-green-dark">{order.customerName}</p>
@@ -91,7 +92,7 @@ export function OrderTable({ orders }: OrderTableProps) {
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt)}</td>
                 <td className="whitespace-nowrap px-5 py-4 font-semibold text-green-dark">{formatPrice(order.total)}</td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></td>
-                <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{order.orderStatus}</span></td>
+                <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></td>
                 <td className="px-5 py-4 text-right"><Link className="font-bold text-green hover:text-orange" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View</Link></td>
               </tr>
             ))}

@@ -29,9 +29,9 @@ export function Dashboard() {
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Total orders" value={stats?.totalOrders ?? '—'} detail="All orders recorded" />
-          <StatCard label="Pending orders" value={stats?.pendingOrders ?? '—'} detail="Awaiting fulfillment" accent="orange" />
+          <StatCard label="Order placed" value={stats?.orderPlacedOrders ?? '—'} detail="Awaiting fulfillment" accent="orange" />
           <StatCard label="Processing orders" value={stats?.processingOrders ?? '—'} detail="Being prepared" />
-          <StatCard label="Completed orders" value={stats?.completedOrders ?? '—'} detail="Fulfillment complete" />
+          <StatCard label="Delivered orders" value={stats?.deliveredOrders ?? '—'} detail="Fulfillment complete" />
           <StatCard label="Cancelled orders" value={stats?.cancelledOrders ?? '—'} detail="Cancelled orders" accent="orange" />
           <StatCard label="Payment review" value={stats?.pendingPaymentVerification ?? '—'} detail="Receipts awaiting review" accent="orange" />
           <StatCard label="Verified payments" value={stats?.verifiedPayments ?? '—'} detail="Approved payment proofs" />

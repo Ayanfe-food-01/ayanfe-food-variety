@@ -2,9 +2,9 @@ import type { OrderStatus, PaymentSubmissionStatus, PaymentStatus } from '@prism
 
 export interface DashboardStats {
   totalOrders: number
-  pendingOrders: number
+  orderPlacedOrders: number
   processingOrders: number
-  completedOrders: number
+  deliveredOrders: number
   cancelledOrders: number
   pendingPaymentVerification: number
   verifiedPayments: number

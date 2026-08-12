@@ -47,6 +47,16 @@ type OrderWithItems = Prisma.OrderGetPayload<{
         instructions: true
       }
     }
+    statusHistory: {
+      orderBy: {
+        createdAt: 'asc'
+      }
+      select: {
+        previousStatus: true
+        newStatus: true
+        createdAt: true
+      }
+    }
   }
 }>
 
@@ -105,6 +115,11 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
     ),
     paymentSubmissions: order.paymentSubmissions.map(toPaymentSubmissionResponse),
     payment: order.paymentSnapshot,
+    statusHistory: order.statusHistory.map((history) => ({
+      previousStatus: history.previousStatus,
+      newStatus: history.newStatus,
+      createdAt: history.createdAt.toISOString(),
+    })),
   }
 }
 
@@ -140,6 +155,14 @@ const orderInclude = {
       accountName: true,
       accountNumber: true,
       instructions: true,
+    },
+  },
+  statusHistory: {
+    orderBy: { createdAt: 'asc' as const },
+    select: {
+      previousStatus: true,
+      newStatus: true,
+      createdAt: true,
     },
   },
 } satisfies Prisma.OrderInclude
@@ -274,8 +297,15 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         total: subtotal.add(totalDeliveryFee),
         paymentMethod: input.paymentMethod,
         paymentStatus: PaymentStatus.PENDING,
-        orderStatus: OrderStatus.PENDING,
+        orderStatus: OrderStatus.ORDER_PLACED,
         orderItems: { create: orderItems },
+        statusHistory: {
+          create: {
+            previousStatus: null,
+            newStatus: OrderStatus.ORDER_PLACED,
+            changedBy: user.id,
+          },
+        },
         paymentSnapshot: {
           create: {
             paymentMethod: paymentSettings.paymentMethod,

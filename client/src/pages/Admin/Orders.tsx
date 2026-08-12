@@ -92,10 +92,11 @@ export function Orders() {
             Order status
             <select className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" value={query.orderStatus ?? ''} onChange={(event) => updateFilter('orderStatus', event.target.value)}>
               <option value="">All statuses</option>
-              <option value="PENDING">Pending</option>
+               <option value="ORDER_PLACED">Order Placed</option>
               <option value="PROCESSING">Processing</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+               <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+               <option value="DELIVERED">Delivered</option>
+               <option value="CANCELLED">Cancelled</option>
             </select>
           </label>
           <label className="text-xs font-bold text-green-dark">

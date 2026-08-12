@@ -6,7 +6,8 @@ import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getBankDetails, type BankDetails } from '../services/paymentService'
-import { getCustomerOrder, type CreatedOrder } from '../services/orderService'
+import { getCustomerOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
+import { formatOrderStatus } from '../utils/orderStatus'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -18,11 +19,20 @@ const paymentStatusCopy: Record<CreatedOrder['paymentStatus'], { label: string; 
 }
 
 const trackerSteps = [
-  { key: 'placed', label: 'Order Placed' },
-  { key: 'paid', label: 'Payment Confirmed' },
-  { key: 'processing', label: 'Processing' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'placed', label: 'Order Placed', status: 'ORDER_PLACED' as OrderStatus },
+  { key: 'paid', label: 'Payment Confirmed', status: null },
+  { key: 'processing', label: 'Processing', status: 'PROCESSING' as OrderStatus },
+  { key: 'out-for-delivery', label: 'Out for Delivery', status: 'OUT_FOR_DELIVERY' as OrderStatus },
+  { key: 'delivered', label: 'Delivered', status: 'DELIVERED' as OrderStatus },
 ] as const
+
+const fulfillmentRank: Record<OrderStatus, number> = {
+  ORDER_PLACED: 0,
+  PROCESSING: 1,
+  OUT_FOR_DELIVERY: 2,
+  DELIVERED: 3,
+  CANCELLED: -1,
+}
 
 function OrderTracker({ order }: { order: CreatedOrder }) {
   if (order.orderStatus === 'CANCELLED') {
@@ -34,29 +44,52 @@ function OrderTracker({ order }: { order: CreatedOrder }) {
     )
   }
 
-  const completedSteps = new Set<string>(['placed'])
-  if (order.paymentStatus === 'PAID') completedSteps.add('paid')
-  if (order.orderStatus === 'PROCESSING' || order.orderStatus === 'COMPLETED') completedSteps.add('processing')
-  if (order.orderStatus === 'COMPLETED') completedSteps.add('completed')
+  const getStepState = (step: typeof trackerSteps[number]): 'complete' | 'active' | 'pending' => {
+    if (step.key === 'placed') return 'complete'
+    if (step.key === 'paid') return order.paymentStatus === 'PAID' ? 'complete' : 'active'
+    if (!step.status) return 'pending'
+    const currentRank = fulfillmentRank[order.orderStatus]
+    const stepRank = fulfillmentRank[step.status]
+    if (currentRank > stepRank) return 'complete'
+    if (currentRank === stepRank) return 'active'
+    return 'pending'
+  }
+
+  const getStepTimestamp = (step: typeof trackerSteps[number]): string | null => {
+    if (step.key === 'placed') return order.createdAt
+    if (step.key === 'paid') {
+      return order.paymentSubmissions.find((submission) => submission.status === 'VERIFIED')?.reviewedAt ?? null
+    }
+    return order.statusHistory.find((history) => history.newStatus === step.status)?.createdAt ?? null
+  }
 
   return (
     <div className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
         {trackerSteps.map((step, index) => (
           <div className="flex flex-1 items-start gap-3 sm:block sm:text-center" key={step.key}>
+            {(() => {
+              const state = getStepState(step)
+              const timestamp = getStepTimestamp(step)
+              return (
+                <>
             <div className="flex items-center sm:block">
-              <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${completedSteps.has(step.key) ? 'bg-green text-cream' : 'border border-line bg-cream text-muted'}`}>
-                {completedSteps.has(step.key) ? '✓' : index + 1}
+              <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${state === 'complete' ? 'bg-green text-cream' : state === 'active' ? 'border-2 border-orange bg-orange/10 text-orange' : 'border border-line bg-cream text-muted'}`}>
+                {state === 'complete' ? '✓' : state === 'active' ? '●' : '○'}
               </span>
               {index < trackerSteps.length - 1 && (
-                <span className={`ml-3 hidden h-0.5 w-full sm:inline-block ${completedSteps.has(trackerSteps[index + 1].key) ? 'bg-green' : 'bg-line'}`} />
+                <span className={`ml-3 hidden h-0.5 w-full sm:inline-block ${state === 'complete' ? 'bg-green' : 'bg-line'}`} />
               )}
             </div>
-            <p className={`pt-1 text-sm font-bold ${completedSteps.has(step.key) ? 'text-green-dark' : 'text-muted'}`}>{step.label}</p>
+            <p className={`pt-1 text-sm font-bold ${state === 'complete' ? 'text-green-dark' : state === 'active' ? 'text-orange' : 'text-muted'}`}>{step.label}</p>
+            {timestamp && <p className="mt-1 text-[11px] text-muted">{new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(timestamp))}</p>}
+                </>
+              )
+            })()}
           </div>
         ))}
       </div>
-      <p className="mt-5 text-xs leading-5 text-muted">Payment verification and fulfilment progress are tracked separately.</p>
+      <p className="mt-5 text-xs leading-5 text-muted">Payment verification and fulfilment progress are tracked separately. The current order status is {formatOrderStatus(order.orderStatus)}.</p>
     </div>
   )
 }
@@ -111,7 +144,7 @@ export function CustomerOrderDetails() {
                 <strong className="text-green-dark">{paymentStatusCopy[order.paymentStatus].label}</strong>
                 <p className="mt-1 text-xs text-muted">{paymentStatusCopy[order.paymentStatus].description}</p>
                 <p className="mt-3 text-muted">Order status</p>
-                <strong className="text-green-dark">{order.orderStatus}</strong>
+                <strong className="text-green-dark">{formatOrderStatus(order.orderStatus)}</strong>
               </div>
             </div>
             <div className="mt-8">

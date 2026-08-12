@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '@prisma/client'
+import type { OrderStatus, PaymentMethod } from '@prisma/client'
 
 export interface CheckoutInput {
   checkoutKey: string
@@ -40,12 +40,17 @@ export interface OrderResponse {
   total: string
   paymentMethod: PaymentMethod
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
-  orderStatus: string
+  orderStatus: OrderStatus
   createdAt: string
   updatedAt: string
   orderItems: OrderItemResponse[]
   paymentSubmissions: CustomerPaymentSubmissionResponse[]
   payment: OrderPaymentResponse | null
+  statusHistory: Array<{
+    previousStatus: OrderStatus | null
+    newStatus: OrderStatus
+    createdAt: string
+  }>
 }
 
 export interface OrderPaymentResponse {

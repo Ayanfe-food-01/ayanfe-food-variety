@@ -45,6 +45,11 @@ export interface CreatedOrder {
     accountNumber: string
     instructions: string
   } | null
+  statusHistory: Array<{
+    previousStatus: OrderStatus | null
+    newStatus: OrderStatus
+    createdAt: string
+  }>
 }
 
 export interface CustomerOrderListItem {
@@ -97,7 +102,7 @@ export async function getCustomerOrder(orderNumber: string): Promise<CreatedOrde
   return response.data.order
 }
 
-export type OrderStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED'
+export type OrderStatus = 'ORDER_PLACED' | 'PROCESSING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
 export type PaymentMethod = 'BANK_TRANSFER'

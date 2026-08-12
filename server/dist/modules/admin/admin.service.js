@@ -29,11 +29,11 @@ const toPaymentListItem = (payment) => ({
     createdAt: payment.createdAt.toISOString(),
 });
 export async function getDashboardStats() {
-    const [totalOrders, pendingOrders, processingOrders, completedOrders, cancelledOrders, pendingPaymentVerification, verifiedPayments, sales] = await Promise.all([
+    const [totalOrders, orderPlacedOrders, processingOrders, deliveredOrders, cancelledOrders, pendingPaymentVerification, verifiedPayments, sales] = await Promise.all([
         prisma.order.count(),
-        prisma.order.count({ where: { orderStatus: OrderStatus.PENDING } }),
+        prisma.order.count({ where: { orderStatus: OrderStatus.ORDER_PLACED } }),
         prisma.order.count({ where: { orderStatus: OrderStatus.PROCESSING } }),
-        prisma.order.count({ where: { orderStatus: OrderStatus.COMPLETED } }),
+        prisma.order.count({ where: { orderStatus: OrderStatus.DELIVERED } }),
         prisma.order.count({ where: { orderStatus: OrderStatus.CANCELLED } }),
         prisma.paymentSubmission.count({ where: { status: PaymentSubmissionStatus.PENDING } }),
         prisma.paymentSubmission.count({ where: { status: PaymentSubmissionStatus.VERIFIED } }),
@@ -44,9 +44,9 @@ export async function getDashboardStats() {
     ]);
     return {
         totalOrders,
-        pendingOrders,
+        orderPlacedOrders,
         processingOrders,
-        completedOrders,
+        deliveredOrders,
         cancelledOrders,
         pendingPaymentVerification,
         verifiedPayments,
@@ -172,11 +172,17 @@ export async function getAdminOrder(orderNumber) {
     };
 }
 const allowedTransitions = {
-    [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-    [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
-    [OrderStatus.COMPLETED]: [],
+    [OrderStatus.ORDER_PLACED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+    [OrderStatus.PROCESSING]: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
+    [OrderStatus.OUT_FOR_DELIVERY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+    [OrderStatus.DELIVERED]: [],
     [OrderStatus.CANCELLED]: [],
 };
+const fulfillmentStatusesRequiringPayment = new Set([
+    OrderStatus.PROCESSING,
+    OrderStatus.OUT_FOR_DELIVERY,
+    OrderStatus.DELIVERED,
+]);
 export async function updateAdminOrderStatus(orderNumber, input, adminId) {
     const updated = await prisma.$transaction(async (transaction) => {
         const existing = await transaction.order.findUnique({
@@ -211,6 +217,9 @@ export async function updateAdminOrderStatus(orderNumber, input, adminId) {
         }
         if (!allowedTransitions[existing.orderStatus].includes(input.orderStatus)) {
             throw new HttpError(409, `Order status cannot change from ${existing.orderStatus} to ${input.orderStatus}.`);
+        }
+        if (fulfillmentStatusesRequiringPayment.has(input.orderStatus) && existing.paymentStatus !== PaymentStatus.PAID) {
+            throw new HttpError(409, 'Payment must be confirmed before the order can move through fulfilment.');
         }
         const orderUpdate = await transaction.order.updateMany({
             where: { id: existing.id, orderStatus: existing.orderStatus },

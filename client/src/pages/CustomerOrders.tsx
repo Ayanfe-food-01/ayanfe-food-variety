@@ -6,6 +6,7 @@ import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getCustomerOrders, type CustomerOrderListItem } from '../services/orderService'
+import { formatOrderStatus } from '../utils/orderStatus'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -14,7 +15,7 @@ const formatDate = (date: string) =>
   new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(date))
 
 const statusClass = (status: string) =>
-  status === 'PAID' || status === 'COMPLETED'
+  status === 'PAID' || status === 'DELIVERED'
     ? 'bg-green/10 text-green'
     : status === 'CANCELLED' || status === 'FAILED' || status === 'REJECTED'
       ? 'bg-orange/10 text-orange'
@@ -84,7 +85,7 @@ export function CustomerOrders() {
                     </div>
                     <div className="flex items-center gap-5">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span>
-                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{order.orderStatus}</span>
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>
                       <strong className="text-sm text-green-dark">{formatPrice(order.total)}</strong>
                       <span className="text-muted"><ArrowRight size={16} /></span>
                     </div>

@@ -6,6 +6,7 @@ import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getCustomerOrder, type CreatedOrder } from '../services/orderService'
+import { formatOrderStatus } from '../utils/orderStatus'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -122,7 +123,7 @@ export function OrderConfirmation() {
                 <p className="mt-3 text-sm leading-6 text-muted">
                   Payment remains pending until it is handled separately. Keep your order number for future reference.
                 </p>
-                <p className="mt-4 text-sm font-bold text-green-dark">Order status: {order.orderStatus}</p>
+                 <p className="mt-4 text-sm font-bold text-green-dark">Order status: {formatOrderStatus(order.orderStatus)}</p>
               </div>
             </div>
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { getAdminOrder, updateAdminOrderStatus, type AdminOrder, type OrderStatus } from '../../services/orderService'
-import { orderStatuses } from '../../components/admin/orderStatuses'
+import { formatOrderStatus, getOrderStatusOptions } from '../../utils/orderStatus'
 import { useToast } from '../../components/ui/Toast'
 
 const formatPrice = (value: string) =>
@@ -11,7 +11,7 @@ const formatPrice = (value: string) =>
 const formatDate = (value: string) => new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 
 const statusClass = (status: string) => {
-  if (status === 'PAID' || status === 'COMPLETED' || status === 'VERIFIED') return 'bg-green/10 text-green'
+  if (status === 'PAID' || status === 'DELIVERED' || status === 'VERIFIED') return 'bg-green/10 text-green'
   if (status === 'FAILED' || status === 'CANCELLED' || status === 'REJECTED') return 'bg-orange/10 text-orange'
   return 'bg-sage text-green-dark'
 }
@@ -19,7 +19,7 @@ const statusClass = (status: string) => {
 export function OrderDetail() {
   const { orderNumber } = useParams()
   const [order, setOrder] = useState<AdminOrder | null>(null)
-  const [status, setStatus] = useState<OrderStatus>('PENDING')
+  const [status, setStatus] = useState<OrderStatus>('ORDER_PLACED')
   const [note, setNote] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -60,7 +60,7 @@ export function OrderDetail() {
     <div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div><Link className="text-sm font-bold text-green hover:text-orange" to="/admin/orders">← Back to orders</Link><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Order detail</p><h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{order.orderNumber}</h1><p className="mt-3 text-sm text-muted">Placed {formatDate(order.createdAt)}</p></div>
-        <div className="flex gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span><span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{order.orderStatus}</span></div>
+         <div className="flex flex-wrap gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span><span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></div>
       </div>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
@@ -94,14 +94,14 @@ export function OrderDetail() {
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Order status</h2>
             <p className="mt-1 text-sm text-muted">Payment status remains separate and cannot be changed here.</p>
-            <label className="mt-5 block text-sm font-bold text-green-dark">Current status<select className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={status} onChange={(event) => setStatus(event.target.value as OrderStatus)}>{orderStatuses.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+             <label className="mt-5 block text-sm font-bold text-green-dark">Current status<select className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={status} onChange={(event) => setStatus(event.target.value as OrderStatus)}>{getOrderStatusOptions(order.orderStatus).map((option) => <option key={option} value={option}>{formatOrderStatus(option)}</option>)}</select></label>
             <label className="mt-4 block text-sm font-bold text-green-dark">Internal note <textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the audit history" maxLength={1000} /></label>
             <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={() => void saveStatus()}>{isSaving ? 'Saving…' : 'Save order status'}</button>
           </section>
 
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Status history</h2>
-            {order.statusHistory.length === 0 ? <p className="mt-4 text-sm text-muted">No status changes have been recorded.</p> : <div className="mt-4 space-y-4">{order.statusHistory.map((history) => <div className="border-l-2 border-sage pl-4" key={history.id}><p className="text-sm font-bold text-green-dark">{history.previousStatus ?? 'Created'} → {history.newStatus}</p><p className="mt-1 text-xs text-muted">{formatDate(history.createdAt)} · {history.changedBy.name}</p>{history.note && <p className="mt-2 text-sm text-muted">{history.note}</p>}</div>)}</div>}
+            {order.statusHistory.length === 0 ? <p className="mt-4 text-sm text-muted">No status changes have been recorded.</p> : <div className="mt-4 space-y-4">{order.statusHistory.map((history) => <div className="border-l-2 border-sage pl-4" key={history.id}><p className="text-sm font-bold text-green-dark">{history.previousStatus ? `${formatOrderStatus(history.previousStatus)} → ` : 'Created → '}{formatOrderStatus(history.newStatus)}</p><p className="mt-1 text-xs text-muted">{formatDate(history.createdAt)} · {history.changedBy.name}</p>{history.note && <p className="mt-2 text-sm text-muted">{history.note}</p>}</div>)}</div>}
           </section>
         </div>
       </div>

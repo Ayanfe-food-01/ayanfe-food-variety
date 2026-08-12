@@ -64,9 +64,10 @@ export async function notifyOrderStatusChanged(order: {
   }
 
   const statusCopy: Record<OrderStatus, string> = {
-    PENDING: 'Your order has been placed and is awaiting processing.',
+    ORDER_PLACED: 'Your order has been placed and is awaiting payment verification.',
     PROCESSING: 'Your order is now being prepared.',
-    COMPLETED: 'Your order has been completed.',
+    OUT_FOR_DELIVERY: 'Your order is out for delivery.',
+    DELIVERED: 'Your order has been delivered.',
     CANCELLED: 'Your order has been cancelled.',
   }
   const orderLink = env.publicAppUrl

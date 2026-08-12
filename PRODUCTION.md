@@ -64,10 +64,11 @@ Render supplies `PORT`; the committed blueprint includes `10000` as its
 default service value.
 
 The production `start` script runs `prisma migrate deploy` before starting
-Express. This keeps migrations safe on Render Free, where the dashboard may
-lock the separate pre-deploy command behind a paid plan. If a migration fails,
-the service intentionally does not start, so Render reports the database
-configuration or migration error instead of serving an incompatible schema.
+Express. It retries only transient Prisma advisory-lock timeouts with a short,
+bounded backoff. This keeps migrations safe on Render Free, where the
+dashboard may lock the separate pre-deploy command behind a paid plan. If the
+database configuration or a real migration error occurs, the service
+intentionally does not start instead of serving an incompatible schema.
 
 ## 4. Vercel
 

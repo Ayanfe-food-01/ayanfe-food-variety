@@ -124,7 +124,7 @@ export function CustomerOrderDetails() {
                   <div className="flex items-center justify-between gap-4 py-4" key={item.id}>
                     <div>
                       <p className="font-bold text-green-dark">{item.productName}</p>
-                      <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)}</p>
+                       <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · Delivery {formatPrice(item.deliveryFee)}</p>
                     </div>
                     <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
                   </div>

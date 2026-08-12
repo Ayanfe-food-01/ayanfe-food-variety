@@ -10,6 +10,7 @@ const cartInclude = {
                     name: true,
                     unit: true,
                     price: true,
+                    deliveryFee: true,
                     image: true,
                     isActive: true,
                     stockQuantity: true,
@@ -22,9 +23,11 @@ const cartInclude = {
 };
 function toCartResponse(cart) {
     let subtotal = new Prisma.Decimal(0);
+    let deliveryFee = new Prisma.Decimal(0);
     let totalQuantity = 0;
     const items = cart.items.map((item) => {
         const itemSubtotal = item.product.price.mul(item.quantity);
+        const itemDeliveryFee = item.product.deliveryFee.mul(item.quantity);
         const isProductActive = item.product.isActive && item.product.category.isActive;
         const canUpdateQuantity = isProductActive && item.product.stockQuantity > 0;
         const isAvailable = isProductActive && item.product.stockQuantity >= item.quantity && item.product.stockQuantity > 0;
@@ -36,6 +39,7 @@ function toCartResponse(cart) {
                     ? `Only ${item.product.stockQuantity} unit(s) are currently available.`
                     : null;
         subtotal = subtotal.add(itemSubtotal);
+        deliveryFee = deliveryFee.add(itemDeliveryFee);
         totalQuantity += item.quantity;
         return {
             id: item.id,
@@ -43,6 +47,7 @@ function toCartResponse(cart) {
             name: item.product.name,
             unit: item.product.unit,
             price: item.product.price.toString(),
+            deliveryFee: itemDeliveryFee.toString(),
             image: item.product.image,
             quantity: item.quantity,
             itemSubtotal: itemSubtotal.toString(),
@@ -55,6 +60,7 @@ function toCartResponse(cart) {
     return {
         items,
         subtotal: subtotal.toString(),
+        deliveryFee: deliveryFee.toString(),
         totalQuantity,
         canCheckout: items.length > 0 && items.every((item) => item.isAvailable
             && Number.isInteger(item.quantity)

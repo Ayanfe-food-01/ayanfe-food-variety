@@ -99,6 +99,7 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
         unitPrice: item.unitPrice.toString(),
         quantity: item.quantity,
         subtotal: item.subtotal.toString(),
+         deliveryFee: item.deliveryFee.toString(),
         product: item.product,
       }),
     ),
@@ -215,6 +216,7 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         id: true,
         name: true,
         price: true,
+        deliveryFee: true,
         isActive: true,
         stockQuantity: true,
         category: { select: { isActive: true } },
@@ -238,19 +240,24 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       const product = productsById.get(item.productId)
       if (!product) throw new HttpError(409, 'One or more products are no longer available.')
       const subtotal = product.price.mul(item.quantity)
+      const deliveryFee = product.deliveryFee.mul(item.quantity)
       return {
         productId: product.id,
         productName: product.name,
         unitPrice: product.price,
         quantity: item.quantity,
         subtotal,
+        deliveryFee,
       }
     })
     const subtotal = orderItems.reduce(
       (total, item) => total.add(item.subtotal),
       new Prisma.Decimal(0),
     )
-    const deliveryFee = new Prisma.Decimal(0)
+    const totalDeliveryFee = orderItems.reduce(
+      (total, item) => total.add(item.deliveryFee),
+      new Prisma.Decimal(0),
+    )
     const order = await transaction.order.create({
       data: {
         checkoutKey: input.checkoutKey,
@@ -263,8 +270,8 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         city: input.city,
         note: input.deliveryInstructions,
         subtotal,
-        deliveryFee,
-        total: subtotal.add(deliveryFee),
+        deliveryFee: totalDeliveryFee,
+        total: subtotal.add(totalDeliveryFee),
         paymentMethod: input.paymentMethod,
         paymentStatus: PaymentStatus.PENDING,
         orderStatus: OrderStatus.PENDING,

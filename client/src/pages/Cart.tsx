@@ -97,6 +97,8 @@ export function Cart() {
   const {
     items,
     subtotal,
+    deliveryFee,
+    total,
     totalQuantity,
     canCheckout,
     isLoading,
@@ -233,7 +235,8 @@ export function Cart() {
                             />
                             <div className="text-right">
                               <p className="m-0 text-xs text-muted">{formatPrice(item.price)} each</p>
-                              <p className="mt-1 text-base font-bold text-green-dark">{formatPrice(getItemSubtotal(item))}</p>
+                               <p className="mt-1 text-base font-bold text-green-dark">{formatPrice(getItemSubtotal(item))}</p>
+                               <p className="mt-1 text-xs text-muted">{item.deliveryFee === 0 ? 'Delivery: Free' : `Delivery: ${formatPrice(item.deliveryFee)}`}</p>
                             </div>
                           </div>
                         </div>
@@ -253,10 +256,14 @@ export function Cart() {
                       <span>Subtotal</span>
                       <span className="font-bold text-green-dark">{formatPrice(subtotal)}</span>
                     </div>
+                    <div className="flex justify-between gap-4 text-muted">
+                      <span>Delivery fee</span>
+                      <span className="font-bold text-green-dark">{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span className="font-bold text-green-dark">Total</span>
-                    <strong className="text-2xl text-green-dark">{formatPrice(subtotal)}</strong>
+                     <strong className="text-2xl text-green-dark">{formatPrice(total)}</strong>
                   </div>
                   {canCheckout ? (
                     <Link

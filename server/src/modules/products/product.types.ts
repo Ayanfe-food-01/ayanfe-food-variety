@@ -7,6 +7,7 @@ export interface Product {
   slug: string
   description: string
   price: string
+  deliveryFee: string
   unit: string
   image: string
   isActive: boolean
@@ -51,6 +52,7 @@ export interface ProductInput {
   name: string
   categoryId: string
   price: string
+  deliveryFee: string
   unit: string
   description: string
   isActive: boolean

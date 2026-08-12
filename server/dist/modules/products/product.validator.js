@@ -25,26 +25,28 @@ const integerValue = (value, field) => {
     }
     return number;
 };
-const priceValue = (value) => {
+const moneyValue = (value, field, allowZero) => {
     if (typeof value !== 'string' && typeof value !== 'number')
-        throw new HttpError(400, 'Price is required.');
+        throw new HttpError(400, `${field} is required.`);
     const normalized = String(value).trim();
     const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(normalized);
     if (!match) {
-        throw new HttpError(400, 'Price must be greater than zero and valid.');
+        throw new HttpError(400, `${field} must be ${allowZero ? 'zero or a' : 'greater than zero and a'} valid amount.`);
     }
     const wholePart = match[1].replace(/^0+(?=\d)/, '');
     const fractionalPart = (match[2] ?? '').padEnd(2, '0');
-    if (wholePart === '0' && fractionalPart === '00') {
-        throw new HttpError(400, 'Price must be greater than zero and valid.');
+    if (!allowZero && wholePart === '0' && fractionalPart === '00') {
+        throw new HttpError(400, `${field} must be greater than zero and valid.`);
     }
     if (wholePart.length > 10
         || (wholePart.length === 10 && wholePart > '1000000000')
         || (wholePart === '1000000000' && fractionalPart !== '00')) {
-        throw new HttpError(400, 'Price must be greater than zero and valid.');
+        throw new HttpError(400, `${field} is too large.`);
     }
     return `${wholePart}.${fractionalPart}`;
 };
+const priceValue = (value) => moneyValue(value, 'Price', false);
+const deliveryFeeValue = (value) => moneyValue(value, 'Delivery fee', true);
 export function validateAdminProductId(value) {
     if (!value || !UUID_PATTERN.test(value.trim()))
         throw new HttpError(400, 'Product ID is invalid.');
@@ -60,6 +62,7 @@ export function validateProductFields(body) {
         name: requiredText(body.name, 'Product name', 2, 180),
         categoryId,
         price: priceValue(body.price),
+        deliveryFee: deliveryFeeValue(body.deliveryFee),
         unit: requiredText(body.unit, 'Unit', 1, 80),
         description: requiredText(body.description, 'Description', 10, 4000),
         isActive: booleanValue(body.isActive, 'Availability', true),

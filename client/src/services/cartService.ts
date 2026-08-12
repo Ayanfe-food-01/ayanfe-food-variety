@@ -6,6 +6,7 @@ export interface CustomerCartItem {
   name: string
   unit: string
   price: string
+  deliveryFee: string
   image: string
   quantity: number
   itemSubtotal: string
@@ -18,6 +19,7 @@ export interface CustomerCartItem {
 export interface CustomerCartSnapshot {
   items: CustomerCartItem[]
   subtotal: string
+  deliveryFee: string
   totalQuantity: number
   canCheckout: boolean
 }

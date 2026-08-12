@@ -5,6 +5,7 @@ export interface Product {
   category: string
   unit: string
   price: number
+  deliveryFee: number
   image: string
   description: string
   categoryId?: string

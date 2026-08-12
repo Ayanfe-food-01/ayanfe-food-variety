@@ -7,6 +7,7 @@ export const products: Product[] = [
     category: 'Rice',
     unit: '5 kg bag',
     price: 18500,
+    deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=720&q=85',
     description: 'Fragrant, long-grain jasmine rice for everyday family meals.',
@@ -21,6 +22,7 @@ export const products: Product[] = [
     category: 'Beans',
     unit: '2 kg bag',
     price: 7200,
+    deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=720&q=85',
     description: 'Clean, wholesome honey beans with a rich, satisfying flavour.',
@@ -35,6 +37,7 @@ export const products: Product[] = [
     category: 'Oil',
     unit: '2 litres',
     price: 8500,
+    deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=720&q=85',
     description: 'Pure vegetable oil for cooking, frying, and family recipes.',
@@ -49,6 +52,7 @@ export const products: Product[] = [
     category: 'Yam',
     unit: '1 tuber',
     price: 4500,
+    deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1596097557993-7c9d65f4c498?auto=format&fit=crop&w=720&q=85',
     description: 'Fresh white yam sourced for hearty, comforting meals.',

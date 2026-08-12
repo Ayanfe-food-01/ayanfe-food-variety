@@ -17,6 +17,7 @@ export interface OrderItemResponse {
   unitPrice: string
   quantity: number
   subtotal: string
+  deliveryFee: string
   product: {
     id: string
     slug: string

@@ -10,6 +10,7 @@ interface ProductApiResponse {
   slug: string
   description: string
   price: string
+  deliveryFee: string
   unit: string
   image: string
   isActive: boolean
@@ -50,8 +51,9 @@ export interface ProductPage {
 
 const toProduct = (product: ProductApiResponse): Product => {
   const price = Number(product.price)
+  const deliveryFee = Number(product.deliveryFee)
 
-  if (!Number.isFinite(price)) {
+  if (!Number.isFinite(price) || !Number.isFinite(deliveryFee) || deliveryFee < 0) {
     throw new Error('The product data is invalid.')
   }
 
@@ -64,6 +66,7 @@ const toProduct = (product: ProductApiResponse): Product => {
     category: product.categoryName,
     unit: product.unit,
     price,
+    deliveryFee,
     image: product.image,
     description: product.description,
     availabilityStatus: product.availabilityStatus,

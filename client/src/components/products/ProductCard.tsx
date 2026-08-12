@@ -44,6 +44,7 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
         <Link className="product-name" to={`/product/${product.slug ?? product.id}`}>{product.name}</Link>
         <span className="product-unit">{product.unit}</span>
         <strong className="product-price">{formatPrice(product.price)}</strong>
+        <span className="product-delivery">{product.deliveryFee === 0 ? 'Delivery: Free' : `Delivery: ${formatPrice(product.deliveryFee)} / unit`}</span>
         {compact ? <Button className="quick-add" size="sm" fullWidth type="button" onClick={handleAddToCart} disabled={!product.isAvailable || isAdding}>
           <CartIcon size={15} /> {isAdding ? 'Adding' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
         </Button> : <div className="product-actions">

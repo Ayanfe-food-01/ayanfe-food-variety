@@ -6,6 +6,8 @@ const DEFAULT_STORE_SETTINGS = {
     businessEmail: 'Ayanfefoodvariety@gmail.com',
     businessPhone: '08125595879',
     whatsappNumber: '08125595879',
+    callToOrderPhone: '08125595879',
+    announcementText: 'Quality foodstuff, delivered with care',
     address: '',
     description: '',
 };
@@ -14,11 +16,15 @@ const toStoreSettings = (settings) => ({
     businessEmail: settings.businessEmail,
     businessPhone: settings.businessPhone,
     whatsappNumber: settings.whatsappNumber,
+    callToOrderPhone: settings.callToOrderPhone,
+    announcementText: settings.announcementText,
     address: settings.address,
     description: settings.description,
 });
 const toStoreInformation = (settings) => ({
     businessName: settings.businessName,
+    callToOrderPhone: settings.callToOrderPhone,
+    announcementText: settings.announcementText,
     address: settings.address,
     description: settings.description,
 });
@@ -43,6 +49,8 @@ export async function getAdminStoreInformation() {
     const settings = await getSettings();
     return settings ? toStoreInformation(settings) : {
         businessName: DEFAULT_STORE_SETTINGS.businessName,
+        callToOrderPhone: DEFAULT_STORE_SETTINGS.callToOrderPhone,
+        announcementText: DEFAULT_STORE_SETTINGS.announcementText,
         address: DEFAULT_STORE_SETTINGS.address,
         description: DEFAULT_STORE_SETTINGS.description,
     };
@@ -58,6 +66,8 @@ export async function updateAdminStoreInformation(input) {
             businessEmail: DEFAULT_STORE_SETTINGS.businessEmail,
             businessPhone: DEFAULT_STORE_SETTINGS.businessPhone,
             whatsappNumber: DEFAULT_STORE_SETTINGS.whatsappNumber,
+            callToOrderPhone: input.callToOrderPhone,
+            announcementText: input.announcementText,
         },
         update: input,
     });

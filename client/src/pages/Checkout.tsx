@@ -95,6 +95,8 @@ export function Checkout() {
   const {
     items,
     subtotal,
+    deliveryFee,
+    total,
     totalQuantity,
     canCheckout,
     isLoading: isCartLoading,
@@ -451,10 +453,11 @@ export function Checkout() {
               <div className="my-6 space-y-3 border-y border-line py-5 text-sm">
                 <div className="flex justify-between gap-4 text-muted"><span>Items</span><span>{totalQuantity}</span></div>
                 <div className="flex justify-between gap-4 text-muted"><span>Subtotal</span><span className="font-bold text-green-dark">{formatPrice(subtotal)}</span></div>
+                 <div className="flex justify-between gap-4 text-muted"><span>Delivery fee</span><span className="font-bold text-green-dark">{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span></div>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>
-                <strong className="text-2xl text-green-dark">{formatPrice(subtotal)}</strong>
+                 <strong className="text-2xl text-green-dark">{formatPrice(total)}</strong>
               </div>
             </aside>
           </div>

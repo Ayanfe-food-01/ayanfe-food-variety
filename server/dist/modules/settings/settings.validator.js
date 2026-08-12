@@ -26,6 +26,8 @@ export function validateStoreInformationInput(body) {
         throw new HttpError(400, 'Store information is required.');
     return {
         businessName: requiredText(body.businessName, 'Business name', 180),
+        callToOrderPhone: validatePhone(body.callToOrderPhone, 'Call to order phone'),
+        announcementText: optionalText(body.announcementText ?? '', 'Announcement text', 2000),
         address: optionalText(body.address, 'Business address', 500),
         description: optionalText(body.description, 'Business description', 500),
     };

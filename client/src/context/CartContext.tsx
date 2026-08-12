@@ -25,6 +25,7 @@ const toCartItem = (item: CustomerCartItem): CartItem => ({
   name: item.name,
   unit: item.unit,
   price: Number(item.price),
+  deliveryFee: Number(item.deliveryFee),
   image: item.image,
   quantity: item.quantity,
   itemSubtotal: Number(item.itemSubtotal),
@@ -47,6 +48,8 @@ const isCartItem = (value: unknown): value is CartItem => {
     typeof item.unit === 'string' &&
     typeof price === 'number' &&
     Number.isFinite(price) &&
+    typeof item.deliveryFee === 'number' &&
+    Number.isFinite(item.deliveryFee) &&
     typeof item.image === 'string' &&
     typeof quantity === 'number' &&
     Number.isInteger(quantity) &&
@@ -67,6 +70,7 @@ const readStoredCart = (): CartItem[] => {
     return parsedCart.filter(isCartItem).map((item) => ({
       ...item,
       itemSubtotal: typeof item.itemSubtotal === 'number' ? item.itemSubtotal : item.price * item.quantity,
+      deliveryFee: typeof item.deliveryFee === 'number' ? item.deliveryFee : 0,
       isAvailable: item.isAvailable !== false,
       availableQuantity: item.availableQuantity,
       canUpdateQuantity: item.canUpdateQuantity !== false,
@@ -82,6 +86,7 @@ const createCartItem = (product: Product, quantity: number): CartItem => ({
   name: product.name,
   unit: product.unit,
   price: product.price,
+  deliveryFee: product.deliveryFee * quantity,
   image: product.image,
   quantity,
   itemSubtotal: product.price * quantity,
@@ -97,6 +102,7 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
   const [items, setItems] = useState<CartItem[]>(readStoredCart)
   const [authoritativeSubtotal, setAuthoritativeSubtotal] = useState<number | null>(null)
+  const [authoritativeDeliveryFee, setAuthoritativeDeliveryFee] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pendingItemIds, setPendingItemIds] = useState<string[]>([])
@@ -120,11 +126,13 @@ export function CartProvider({ children }: CartProviderProps) {
   const applySnapshot = useCallback((snapshot: CustomerCartSnapshot) => {
     setItems(snapshot.items.map(toCartItem))
     setAuthoritativeSubtotal(Number(snapshot.subtotal))
+    setAuthoritativeDeliveryFee(Number(snapshot.deliveryFee))
   }, [])
 
   const refreshCart = useCallback(async () => {
     if (!user) {
       setAuthoritativeSubtotal(null)
+      setAuthoritativeDeliveryFee(null)
       setIsLoading(false)
       return
     }
@@ -148,6 +156,7 @@ export function CartProvider({ children }: CartProviderProps) {
       if (previousUserIdRef.current) {
         setItems([])
         setAuthoritativeSubtotal(null)
+        setAuthoritativeDeliveryFee(null)
         window.localStorage.removeItem(CART_OWNER_STORAGE_KEY)
       }
       previousUserIdRef.current = null
@@ -216,6 +225,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
     setError(null)
     setAuthoritativeSubtotal(null)
+    setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.id === product.id)
       if (!existingItem) return [...currentItems, createCartItem(product, safeQuantity)]
@@ -226,6 +236,7 @@ export function CartProvider({ children }: CartProviderProps) {
               ...item,
               quantity: item.quantity + safeQuantity,
               itemSubtotal: item.price * (item.quantity + safeQuantity),
+              deliveryFee: item.deliveryFee / item.quantity * (item.quantity + safeQuantity),
             }
           : item,
       )
@@ -243,12 +254,14 @@ export function CartProvider({ children }: CartProviderProps) {
 
     if (!item.isAvailable) return
     setAuthoritativeSubtotal(null)
+    setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => currentItems.map((currentItem) =>
       currentItem.id === productId
         ? {
             ...currentItem,
             quantity: currentItem.quantity + 1,
             itemSubtotal: currentItem.price * (currentItem.quantity + 1),
+            deliveryFee: currentItem.deliveryFee / currentItem.quantity * (currentItem.quantity + 1),
           }
         : currentItem,
     ))
@@ -269,12 +282,14 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     setAuthoritativeSubtotal(null)
+    setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => currentItems.map((currentItem) =>
       currentItem.id === productId
         ? {
             ...currentItem,
             quantity: currentItem.quantity - 1,
             itemSubtotal: currentItem.price * (currentItem.quantity - 1),
+            deliveryFee: currentItem.deliveryFee / currentItem.quantity * (currentItem.quantity - 1),
           }
         : currentItem,
     ))
@@ -291,6 +306,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
     setError(null)
     setAuthoritativeSubtotal(null)
+    setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => currentItems.filter((currentItem) => currentItem.id !== productId))
   }, [pendingItemIds, runItemMutation, user])
 
@@ -304,6 +320,7 @@ export function CartProvider({ children }: CartProviderProps) {
       } else {
         setItems([])
         setAuthoritativeSubtotal(null)
+      setAuthoritativeDeliveryFee(null)
       }
     } catch (caught: unknown) {
       setError(messageFromError(caught))
@@ -315,6 +332,8 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const getItemSubtotal = useCallback((item: CartItem) => item.itemSubtotal, [])
   const subtotal = authoritativeSubtotal ?? items.reduce((total, item) => total + getItemSubtotal(item), 0)
+  const deliveryFee = authoritativeDeliveryFee ?? items.reduce((total, item) => total + item.deliveryFee, 0)
+  const total = subtotal + deliveryFee
   const totalQuantity = items.reduce((total, item) => total + item.quantity, 0)
   const canCheckout = items.length > 0 && items.every((item) => item.isAvailable)
 
@@ -323,6 +342,8 @@ export function CartProvider({ children }: CartProviderProps) {
       items,
       totalQuantity,
       subtotal,
+      deliveryFee,
+      total,
       canCheckout,
       isLoading,
       error,
@@ -351,6 +372,7 @@ export function CartProvider({ children }: CartProviderProps) {
       refreshCart,
       removeFromCart,
       subtotal,
+      deliveryFee,
       totalQuantity,
     ],
   )

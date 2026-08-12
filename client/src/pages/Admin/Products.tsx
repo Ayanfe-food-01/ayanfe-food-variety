@@ -165,6 +165,10 @@ export function Products() {
                        <dt className="uppercase tracking-[0.12em] text-muted">Stock</dt>
                        <dd className="mt-1 font-bold text-green-dark">{product.stockQuantity ?? 0}</dd>
                      </div>
+                      <div>
+                        <dt className="uppercase tracking-[0.12em] text-muted">Delivery fee</dt>
+                        <dd className="mt-1 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</dd>
+                      </div>
                      <div>
                        <dt className="uppercase tracking-[0.12em] text-muted">Availability</dt>
                        <dd className="mt-1">
@@ -193,6 +197,7 @@ export function Products() {
                     <th className="px-4 py-4 font-bold">Product</th>
                     <th className="px-4 py-4 font-bold">Category</th>
                     <th className="px-4 py-4 font-bold">Price / unit</th>
+                     <th className="px-4 py-4 font-bold">Delivery fee</th>
                     <th className="px-4 py-4 font-bold">Stock</th>
                     <th className="px-4 py-4 font-bold">Availability</th>
                     <th className="px-4 py-4 font-bold">Created</th>
@@ -210,6 +215,7 @@ export function Products() {
                       </td>
                       <td className="px-4 py-4 text-muted">{product.category}</td>
                       <td className="px-4 py-4"><span className="font-bold text-green-dark">{formatPrice(product.price)}</span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
+                       <td className="px-4 py-4 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</td>
                       <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.isActive && product.isAvailable ? 'bg-sage text-green' : product.isActive ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>

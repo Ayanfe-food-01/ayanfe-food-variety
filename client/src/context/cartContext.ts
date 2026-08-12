@@ -7,6 +7,7 @@ export interface CartItem {
   name: Product['name']
   unit: Product['unit']
   price: Product['price']
+  deliveryFee: Product['deliveryFee']
   image: Product['image']
   quantity: number
   itemSubtotal: number
@@ -20,6 +21,8 @@ export interface CartContextValue {
   items: CartItem[]
   totalQuantity: number
   subtotal: number
+  deliveryFee: number
+  total: number
   canCheckout: boolean
   isLoading: boolean
   error: string | null

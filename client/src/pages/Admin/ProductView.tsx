@@ -36,6 +36,7 @@ export function ProductView() {
             <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-orange"><span>{product.category}</span><span className="text-line">•</span><span>{product.isActive ? product.isAvailable ? 'Available' : 'Out of stock' : 'Inactive'}</span></div>
             <h2 className="mt-3 text-3xl font-bold tracking-[-0.04em] text-green-dark">{product.name}</h2>
             <p className="mt-4 text-2xl font-bold text-green-dark">{formatPrice(product.price)} <span className="text-sm font-normal text-muted">/ {product.unit}</span></p>
+             <p className="mt-2 text-sm font-semibold text-green">{product.deliveryFee === 0 ? 'Delivery: Free' : `Delivery: ${formatPrice(product.deliveryFee)} / unit`}</p>
             <p className="mt-6 text-sm leading-7 text-muted">{product.description}</p>
             <dl className="mt-8 grid gap-4 border-t border-line pt-6 sm:grid-cols-2">
               <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Stock quantity</dt><dd className="mt-1 text-lg font-bold text-green-dark">{product.stockQuantity ?? 0}</dd></div>

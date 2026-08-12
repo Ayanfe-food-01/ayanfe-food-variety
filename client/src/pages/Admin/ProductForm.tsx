@@ -4,10 +4,10 @@ import { ApiError } from '../../services/api'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
-const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', unit: '', description: '', stockQuantity: '0', isActive: true }
+const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', deliveryFee: '0', unit: '', description: '', stockQuantity: '0', isActive: true }
 const acceptedImageTypes = ['image/jpeg', 'image/png', 'image/webp']
 const maxImageSize = 5 * 1024 * 1024
-type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
+type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
 
 export function ProductForm() {
   const { id } = useParams<{ id: string }>()
@@ -38,7 +38,7 @@ export function ProductForm() {
       })
     if (!id) return
     getAdminProduct(id).then((product) => {
-      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive })
+      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), deliveryFee: String(product.deliveryFee), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive })
       setCurrentImage(product.image)
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
     return () => { current = false }
@@ -72,11 +72,13 @@ export function ProductForm() {
     const unit = form.unit.trim()
     const description = form.description.trim()
     const price = form.price.trim()
+    const deliveryFee = form.deliveryFee.trim()
     const stock = Number(form.stockQuantity)
     if (name.length < 2 || name.length > 180) nextErrors.name = 'Use 2 to 180 characters.'
     if (!form.categoryId) nextErrors.categoryId = 'Select an active category.'
     else if (categories.find((category) => category.id === form.categoryId)?.isActive !== true) nextErrors.categoryId = 'Select an active category.'
     if (!/^\d+(?:\.\d{1,2})?$/.test(price) || Number(price) <= 0) nextErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
+    if (!/^\d+(?:\.\d{1,2})?$/.test(deliveryFee) || !Number.isFinite(Number(deliveryFee)) || Number(deliveryFee) < 0) nextErrors.deliveryFee = 'Enter a delivery fee of zero or more with up to 2 decimals.'
     if (!unit || unit.length > 80) nextErrors.unit = 'Enter a unit using up to 80 characters.'
     if (description.length < 10 || description.length > 4000) nextErrors.description = 'Use 10 to 4,000 characters.'
     if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
@@ -129,6 +131,7 @@ export function ProductForm() {
             <label className="text-sm font-bold text-green-dark sm:col-span-2">Product name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('name')} value={form.name} onChange={(event) => update('name', event.target.value)} maxLength={180} required />{fieldErrors.name && <span className="mt-1 block text-xs font-normal text-orange" id="name-error">{fieldErrors.name}</span>}</label>
             <label className="text-sm font-bold text-green-dark">Category<select className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('categoryId')} value={form.categoryId} onChange={(event) => update('categoryId', event.target.value)} disabled={isCategoriesLoading} required><option value="">{isCategoriesLoading ? 'Loading categories…' : 'Select category'}</option>{categories.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
             <label className="text-sm font-bold text-green-dark">Price (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('price')} type="text" inputMode="decimal" value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required />{fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
+             <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
             <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('unit')} value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required />{fieldErrors.unit && <span className="mt-1 block text-xs font-normal text-orange" id="unit-error">{fieldErrors.unit}</span>}</label>
             <label className="text-sm font-bold text-green-dark">Stock quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={form.stockQuantity} onChange={(event) => update('stockQuantity', event.target.value)} required />{fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
           </div>

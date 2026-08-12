@@ -277,6 +277,9 @@ export function ProductDetails() {
                 <p className="m-0 text-2xl font-bold text-green-dark">{formatPrice(product.price)}</p>
                 <span className="text-sm text-muted">per {product.unit}</span>
               </div>
+              <p className="mt-2 text-sm font-semibold text-green">
+                {product.deliveryFee === 0 ? 'Delivery: Free' : `Delivery: ${formatPrice(product.deliveryFee)} / unit`}
+              </p>
               <p className="mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">
                 {product.description}
               </p>

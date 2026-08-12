@@ -9,6 +9,7 @@ export interface CustomerCartItemResponse {
   name: string
   unit: string
   price: string
+  deliveryFee: string
   image: string
   quantity: number
   itemSubtotal: string
@@ -21,6 +22,7 @@ export interface CustomerCartItemResponse {
 export interface CustomerCartResponse {
   items: CustomerCartItemResponse[]
   subtotal: string
+  deliveryFee: string
   totalQuantity: number
   canCheckout: boolean
 }

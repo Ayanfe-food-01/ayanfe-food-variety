@@ -255,6 +255,7 @@ interface AdminProductApiResponse {
   slug: string
   description: string
   price: string
+  deliveryFee: string
   unit: string
   image: string
   isActive: boolean
@@ -269,6 +270,7 @@ export interface ProductFormInput {
   name: string
   categoryId: string
   price: string
+  deliveryFee: string
   unit: string
   description: string
   stockQuantity: string
@@ -292,6 +294,7 @@ const formDataFor = (input: ProductFormInput): FormData => {
   formData.set('name', input.name)
   formData.set('categoryId', input.categoryId)
   formData.set('price', input.price)
+  formData.set('deliveryFee', input.deliveryFee)
   formData.set('unit', input.unit)
   formData.set('description', input.description)
   formData.set('stockQuantity', input.stockQuantity)
@@ -307,6 +310,7 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   category: product.categoryName,
   unit: product.unit,
   price: Number(product.price),
+  deliveryFee: Number(product.deliveryFee),
   image: product.image,
   description: product.description,
   stockQuantity: product.stockQuantity,

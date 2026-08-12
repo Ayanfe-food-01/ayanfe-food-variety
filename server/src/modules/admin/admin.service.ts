@@ -144,6 +144,7 @@ const orderDetailInclude = {
       unitPrice: true,
       quantity: true,
       subtotal: true,
+       deliveryFee: true,
     },
   },
   paymentSubmissions: {

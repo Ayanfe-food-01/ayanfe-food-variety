@@ -1,6 +1,6 @@
 export const SITE_NAME = 'Ayanfe Food Variety'
 export const HOMEPAGE_TITLE = 'Ayanfe Food Variety | Buy Nigerian Foodstuff Online'
-export const BRAND_MESSAGE = 'Quality, natural Nigerian foodstuff — delivered fresh to your kitchen.'
+export const BRAND_MESSAGE = 'Quality Nigerian Foodstuff, Delivered to Your Doorstep.'
 export const DEFAULT_SITE_DESCRIPTION =
   `${BRAND_MESSAGE} Shop swallow flours, grains, oils and more.`
 export const ABOUT_TITLE = 'About Ayanfe Food Variety | Nigerian Foodstuff'

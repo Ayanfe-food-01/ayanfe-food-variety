@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { ChevronDownIcon } from '../../assets/icons'
 
 export interface SelectOption {
@@ -37,14 +38,21 @@ export function SelectField({
 }: SelectFieldProps) {
   const listboxId = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null)
   const selectedIndex = options.findIndex((option) => option.value === value)
   const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setIsOpen(false)
         setHighlightedIndex(-1)
       }
@@ -53,6 +61,52 @@ export function SelectField({
     document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setMenuStyle(null)
+      return
+    }
+
+    const updateMenuPosition = () => {
+      const trigger = wrapperRef.current?.querySelector<HTMLButtonElement>('.select-field-button')
+      if (!trigger) return
+
+      const rect = trigger.getBoundingClientRect()
+      const viewportPadding = 8
+      const gap = 6
+      const preferredMaxHeight = Math.min(272, window.innerHeight * 0.45)
+      const spaceBelow = window.innerHeight - rect.bottom - viewportPadding
+      const spaceAbove = rect.top - viewportPadding
+      const openBelow = spaceBelow >= Math.min(180, preferredMaxHeight) || spaceBelow >= spaceAbove
+      const maxHeight = Math.max(
+        96,
+        Math.min(preferredMaxHeight, openBelow ? spaceBelow : spaceAbove),
+      )
+      const top = openBelow
+        ? rect.bottom + gap
+        : Math.max(viewportPadding, rect.top - maxHeight - gap)
+      const left = Math.min(
+        Math.max(viewportPadding, rect.left),
+        Math.max(viewportPadding, window.innerWidth - rect.width - viewportPadding),
+      )
+
+      setMenuStyle({
+        left,
+        maxHeight,
+        top,
+        width: Math.min(rect.width, window.innerWidth - viewportPadding * 2),
+      })
+    }
+
+    updateMenuPosition()
+    window.addEventListener('resize', updateMenuPosition)
+    window.addEventListener('scroll', updateMenuPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition)
+      window.removeEventListener('scroll', updateMenuPosition, true)
+    }
+  }, [isOpen])
 
   const openMenu = (startIndex = selectedIndex >= 0 ? selectedIndex : 0) => {
     if (disabled) return
@@ -130,8 +184,15 @@ export function SelectField({
         </span>
         <ChevronDownIcon className="select-field-chevron" size={17} aria-hidden="true" />
       </button>
-      {isOpen && options.length > 0 && (
-        <div className="select-field-menu" id={listboxId} role="listbox" aria-label={ariaLabel}>
+      {isOpen && options.length > 0 && menuStyle && createPortal(
+        <div
+          className="select-field-menu"
+          id={listboxId}
+          ref={menuRef}
+          role="listbox"
+          aria-label={ariaLabel}
+          style={menuStyle}
+        >
           {options.map((option, index) => (
             <button
               aria-selected={option.value === value}
@@ -146,7 +207,8 @@ export function SelectField({
               {option.value === value && <span className="select-field-check" aria-hidden="true">✓</span>}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
       {required && <span className="sr-only" aria-hidden="true">Required</span>}
     </div>

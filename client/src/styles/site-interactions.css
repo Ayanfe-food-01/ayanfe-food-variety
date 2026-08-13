@@ -93,6 +93,21 @@
     will-change: opacity, transform;
   }
   .scroll-reveal-visible { opacity: 1; transform: translateY(0); }
+  .cancel-order-dialog {
+    scrollbar-gutter: stable;
+  }
+  .cancel-order-dialog::-webkit-scrollbar {
+    width: 8px;
+  }
+  .cancel-order-dialog::-webkit-scrollbar-track {
+    margin: 14px 0;
+    background: transparent;
+  }
+  .cancel-order-dialog::-webkit-scrollbar-thumb {
+    border: 2px solid var(--color-cream);
+    border-radius: 999px;
+    background: var(--color-sage);
+  }
 }
 
 @media (min-width: 768px) {

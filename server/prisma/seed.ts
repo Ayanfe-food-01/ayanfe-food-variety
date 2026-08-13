@@ -85,7 +85,6 @@ async function main() {
       whatsappNumber: '08125595879',
       callToOrderPhone: '08125595879',
       announcementText: 'Quality foodstuff, delivered with care',
-      heroImage: null,
       address: '',
       description: '',
     },

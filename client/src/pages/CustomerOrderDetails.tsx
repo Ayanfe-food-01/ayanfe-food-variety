@@ -292,10 +292,10 @@ export function CustomerOrderDetails() {
       </main>
       <Footer />
       {isCancelDialogOpen && order && (
-        <div className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-y-auto bg-green-dark/50 p-4 sm:p-6" role="presentation" onMouseDown={(event) => {
+        <div className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-hidden bg-green-dark/50 p-4 sm:p-6" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) closeCancellationDialog()
         }}>
-          <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-cream p-6 shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:p-8" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title">
+          <div className="cancel-order-dialog my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-cream p-6 shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:p-8" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title">
             <h2 id="cancel-order-title" className="text-2xl font-bold text-green-dark">Cancel this order?</h2>
             <p className="mt-3 text-sm leading-6 text-muted">Your order information and payment history will remain saved.</p>
             <label className="mt-6 block text-sm font-bold text-green-dark">

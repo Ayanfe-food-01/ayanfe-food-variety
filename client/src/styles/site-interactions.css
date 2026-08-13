@@ -23,8 +23,8 @@
 }
 
 @keyframes route-content-enter {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @layer components {
@@ -70,7 +70,7 @@
   .route-content {
     min-height: 100%;
     animation: route-content-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    will-change: opacity, transform;
+    will-change: opacity;
   }
   .sidebar-backdrop { transition: opacity 280ms ease, visibility 0s linear 280ms; }
   .sidebar-backdrop-open { visibility: visible; transition-delay: 0s; }

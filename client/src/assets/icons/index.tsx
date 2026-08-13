@@ -79,9 +79,9 @@ export function SearchIcon({ size, strokeWidth, className }: IconProps) {
   )
 }
 
-export function ChevronDownIcon({ size, strokeWidth }: IconProps) {
+export function ChevronDownIcon({ size, strokeWidth, className }: IconProps) {
   return (
-    <svg {...iconProps({ size, strokeWidth })}>
+    <svg {...iconProps({ size, strokeWidth, className })}>
       <path d="m6 9 6 6 6-6" />
     </svg>
   )

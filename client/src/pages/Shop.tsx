@@ -218,16 +218,13 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
         </section>
 
         <section className="container py-14 sm:py-18 lg:py-24" aria-labelledby="collection-heading">
-          <div className="mb-8 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
+          <div className="mb-8">
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Browse our range</p>
               <h2 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
                  {selectedCategory?.name ?? (newArrivalsOnly ? 'Latest additions' : 'Shop by category')}
               </h2>
             </div>
-            <p className="text-sm text-muted">
-              {isProductsLoading ? 'Loading products…' : `${pagination?.total ?? 0} ${(pagination?.total ?? 0) === 1 ? 'product' : 'products'}`}
-            </p>
           </div>
 
           <div className="shop-filters mb-10 rounded-2xl border border-line bg-white p-3 sm:p-4">

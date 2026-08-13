@@ -56,6 +56,8 @@ export async function getProducts(query: PublicProductQuery): Promise<PublicProd
           OR: [
             { name: { contains: query.search, mode: 'insensitive' } },
             { description: { contains: query.search, mode: 'insensitive' } },
+            { category: { name: { contains: query.search, mode: 'insensitive' } } },
+            { category: { slug: { contains: query.search, mode: 'insensitive' } } },
           ],
         }
       : {}),

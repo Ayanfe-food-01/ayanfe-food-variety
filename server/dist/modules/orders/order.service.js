@@ -1,8 +1,8 @@
 import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
-import { notifyOrderCreated } from './order.email.js';
-import { deductStock } from '../inventory/inventory.service.js';
+import { notifyOrderCreated, notifyOrderStatusChanged } from './order.email.js';
+import { deductStock, restoreStock } from '../inventory/inventory.service.js';
 const toPaymentSubmissionResponse = (submission) => ({
     id: submission.id,
     senderName: submission.senderName,
@@ -40,6 +40,8 @@ const toOrderResponse = (order) => {
         paymentMethod: order.paymentMethod,
         paymentStatus,
         orderStatus: order.orderStatus,
+        cancellationReason: order.cancellationReason,
+        cancelledAt: order.cancelledAt?.toISOString() ?? null,
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
         orderItems: order.orderItems.map((item) => ({
@@ -324,6 +326,75 @@ export async function getCustomerOrderByNumber(userId, orderNumber) {
         include: orderInclude,
     });
     return order ? toOrderResponse(order) : null;
+}
+const customerCancellableStatuses = new Set([
+    OrderStatus.ORDER_PLACED,
+    OrderStatus.PROCESSING,
+]);
+export async function cancelCustomerOrder(userId, orderNumber, reason) {
+    const result = await prisma.$transaction(async (transaction) => {
+        const existing = await transaction.order.findFirst({
+            where: { orderNumber, userId },
+            include: {
+                orderItems: { select: { productId: true, quantity: true } },
+            },
+        });
+        if (!existing)
+            throw new HttpError(404, 'Order not found.');
+        if (!customerCancellableStatuses.has(existing.orderStatus)) {
+            throw new HttpError(409, 'This order can no longer be cancelled.');
+        }
+        const cancelledAt = new Date();
+        const updated = await transaction.order.updateMany({
+            where: {
+                id: existing.id,
+                userId,
+                orderStatus: { in: [...customerCancellableStatuses] },
+            },
+            data: {
+                orderStatus: OrderStatus.CANCELLED,
+                cancellationReason: reason ?? null,
+                cancelledAt,
+                ...(existing.stockDeductedAt && !existing.stockRestoredAt
+                    ? { stockRestoredAt: cancelledAt }
+                    : {}),
+            },
+        });
+        if (updated.count !== 1) {
+            throw new HttpError(409, 'The order changed while it was being cancelled. Please try again.');
+        }
+        const order = await transaction.order.findUniqueOrThrow({
+            where: { id: existing.id },
+            include: orderInclude,
+        });
+        await transaction.orderStatusHistory.create({
+            data: {
+                orderId: order.id,
+                previousStatus: existing.orderStatus,
+                newStatus: OrderStatus.CANCELLED,
+                changedBy: userId,
+                note: reason ?? 'Cancelled by customer.',
+            },
+        });
+        if (existing.stockDeductedAt && !existing.stockRestoredAt) {
+            for (const item of existing.orderItems) {
+                await restoreStock(transaction, {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    orderId: order.id,
+                    orderNumber: order.orderNumber,
+                });
+            }
+        }
+        return order;
+    });
+    void notifyOrderStatusChanged({
+        orderNumber: result.orderNumber,
+        customerName: result.customerName,
+        customerEmail: result.email,
+        orderStatus: result.orderStatus,
+    }).catch((error) => console.error('Order cancellation email failed', error));
+    return toOrderResponse(result);
 }
 export async function getOrderById(id) {
     const order = await prisma.order.findUnique({

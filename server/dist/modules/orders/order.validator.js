@@ -49,6 +49,19 @@ export function validateCheckoutInput(body) {
             : (() => { throw new HttpError(400, 'Payment method is not supported.'); })(),
     };
 }
+export function validateCancellationInput(body) {
+    if (body === undefined || body === null)
+        return {};
+    if (!isRecord(body))
+        throw new HttpError(400, 'Cancellation details are invalid.');
+    const reason = body.reason;
+    if (reason === undefined || reason === null || reason === '')
+        return {};
+    if (typeof reason !== 'string' || reason.trim().length > 500) {
+        throw new HttpError(400, 'Cancellation reason must be 500 characters or fewer.');
+    }
+    return { reason: reason.trim() || undefined };
+}
 export function validateOrderNumber(value) {
     if (!value || !/^AFV-\d{4}-\d{6}$/.test(value.trim())) {
         throw new HttpError(400, 'Order number is invalid.');

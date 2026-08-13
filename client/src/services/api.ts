@@ -56,7 +56,8 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
         },
       })
       break
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') throw error
       if (attempt === maxNetworkAttempts) throw new ApiError(networkErrorMessage(), 0)
       await wait(attempt * 400)
     }

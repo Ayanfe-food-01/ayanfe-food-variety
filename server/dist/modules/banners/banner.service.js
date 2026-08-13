@@ -18,7 +18,14 @@ export async function getPublicBanners() {
         where: { isActive: true },
         orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
     });
-    return banners.map(toBanner);
+    return banners.map((banner) => ({
+        id: banner.id,
+        title: banner.title,
+        imageUrl: banner.imageUrl,
+        promotionalText: banner.promotionalText,
+        buttonText: banner.buttonText,
+        destination: banner.destination,
+    }));
 }
 export async function listAdminBanners() {
     const banners = await prisma.promotionalBanner.findMany({

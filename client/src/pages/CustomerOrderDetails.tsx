@@ -191,7 +191,7 @@ export function CustomerOrderDetails() {
                 <p className="mt-3 text-muted">Order status</p>
                 <strong className="block text-green-dark">{formatOrderStatus(order.orderStatus)}</strong>
                 {canCustomerCancelOrder(order.orderStatus) && (
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-4 flex justify-start sm:justify-end">
                     <button
                       className="inline-flex items-center rounded-full border border-orange/40 px-4 py-2 text-sm font-bold text-orange transition-colors hover:bg-orange/10"
                       type="button"

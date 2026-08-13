@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { ChevronDownIcon, SearchIcon } from '../assets/icons'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ChevronDownIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
@@ -10,6 +10,7 @@ import { ApiError } from '../services/api'
 import { getNewArrivals, getProducts, type ProductPage } from '../services/productService'
 import type { Category } from '../types/category'
 import { Seo } from '../seo/Seo'
+import { ProductSearchAutocomplete } from '../components/products/ProductSearchAutocomplete'
 import {
   getAbsoluteUrl,
   getBreadcrumbSchema,
@@ -36,6 +37,7 @@ const readPage = (value: string | null) => {
 
 export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const searchValue = searchParams.get('search') ?? ''
   const categoryValue = searchParams.get('category') ?? ''
   const sortValue = newArrivalsOnly ? 'newest' : searchParams.get('sort') ?? 'relevance'
@@ -228,18 +230,16 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
           </div>
 
           <div className="shop-filters mb-10 rounded-2xl border border-line bg-white p-3 sm:p-4">
-            <form className="shop-filter-search relative" onSubmit={submitSearch} role="search">
-              <label className="sr-only" htmlFor="product-search">Search products</label>
-              <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
-              <input
-                className="h-12 w-full rounded-full border border-line bg-cream pl-11 pr-4 text-sm outline-none transition-colors placeholder:text-muted/80 focus:border-green"
-                id="product-search"
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search products or ingredients"
-              />
-            </form>
+            <ProductSearchAutocomplete
+              className="shop-filter-search"
+              value={searchInput}
+              onChange={setSearchInput}
+              onSubmit={submitSearch}
+              onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
+              inputId="product-search"
+              placeholder="Search products or ingredients"
+              ariaLabel="Search products"
+            />
             <div className="shop-filter-controls">
               <label className="filter-select-wrap">
                 <span className="sr-only">Filter by category</span>

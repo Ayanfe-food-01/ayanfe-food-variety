@@ -37,6 +37,7 @@
 }
 .home-section-heading-accent .section-link { align-self: flex-start; margin-top: 4px; }
 .home-section-heading h2 { margin: 0; color: var(--color-green-dark); font-size: clamp(1.35rem, 3vw, 1.8rem); letter-spacing: -.035em; }
+.home-section-heading .eyebrow { margin-bottom: 4px; }
 .home-section-heading-accent h2,
 .home-section-heading-accent .section-link { color: var(--color-cream); }
 .home-section-heading-accent .section-link:hover { color: var(--color-orange); }

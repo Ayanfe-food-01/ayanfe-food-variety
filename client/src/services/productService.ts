@@ -37,6 +37,7 @@ export interface ProductQuery {
   sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest'
   page?: number
   limit?: number
+  signal?: AbortSignal
 }
 
 export interface ProductPage {
@@ -85,7 +86,9 @@ export async function getProducts(query: ProductQuery = {}): Promise<ProductPage
   if (query.page && query.page > 1) params.set('page', String(query.page))
   if (query.limit && query.limit !== 20) params.set('limit', String(query.limit))
   const queryString = params.toString()
-  const response = await request<ProductListResponse>(`/products${queryString ? `?${queryString}` : ''}`)
+  const response = await request<ProductListResponse>(`/products${queryString ? `?${queryString}` : ''}`, {
+    signal: query.signal,
+  })
   return {
     products: response.data.products.map(toProduct),
     pagination: response.data.pagination,
@@ -99,7 +102,9 @@ export async function getNewArrivals(query: Omit<ProductQuery, 'sort'> = {}): Pr
   if (query.page && query.page > 1) params.set('page', String(query.page))
   if (query.limit && query.limit !== 20) params.set('limit', String(query.limit))
   const queryString = params.toString()
-  const response = await request<ProductListResponse>(`/products/new-arrivals${queryString ? `?${queryString}` : ''}`)
+  const response = await request<ProductListResponse>(`/products/new-arrivals${queryString ? `?${queryString}` : ''}`, {
+    signal: query.signal,
+  })
   return {
     products: response.data.products.map(toProduct),
     pagination: response.data.pagination,

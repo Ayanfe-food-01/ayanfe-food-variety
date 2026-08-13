@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { CartIcon, CloseIcon, MenuIcon, SearchIcon, UserIcon } from '../../assets/icons'
+import { CartIcon, CloseIcon, MenuIcon, UserIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
+import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -65,11 +66,15 @@ export function Navbar() {
         <Link className="brand-mark" to="/" aria-label="Ayanfe Food Variety home">
           <img src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety" />
         </Link>
-        <form className="search-form" onSubmit={submitSearch} role="search">
-          <SearchIcon size={19} />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products, brands and categories" aria-label="Search products" />
-          <button type="submit">Search</button>
-        </form>
+        <ProductSearchAutocomplete
+          value={search}
+          onChange={setSearch}
+          onSubmit={submitSearch}
+          onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
+          placeholder="Search products, brands and categories"
+          ariaLabel="Search products"
+          showSubmitButton
+        />
         <div className="store-actions">
           <Link className="account-link" to={user ? '/orders' : '/login'} aria-label={user ? 'Open your orders' : 'Sign in'}>
             <UserIcon size={22} /><span className="desktop-only">{user ? 'Account' : 'Sign in'}</span>
@@ -89,9 +94,18 @@ export function Navbar() {
           <img className="mobile-menu-logo" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety" />
           <button className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>
         </div>
-        <form className="search-form mobile-search" onSubmit={submitSearch} role="search">
-          <SearchIcon size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search the store" aria-label="Search the store" />
-        </form>
+        <ProductSearchAutocomplete
+          className="mobile-search"
+          value={search}
+          onChange={setSearch}
+          onSubmit={submitSearch}
+          onSelectProduct={(product) => {
+            setIsMenuOpen(false)
+            navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)
+          }}
+          placeholder="Search the store"
+          ariaLabel="Search the store"
+        />
         <div className="mobile-links">{links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}</div>
         {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <Link className="logout-link" to="/login" onClick={() => setIsMenuOpen(false)}>Sign in</Link>}
       </aside>

@@ -1,4 +1,5 @@
 import { request } from './api'
+import type { ProductDiscountType } from '../types/product'
 
 export interface CustomerCartItem {
   id: string
@@ -6,6 +7,9 @@ export interface CustomerCartItem {
   name: string
   unit: string
   price: string
+  originalPrice: string
+  discountType: ProductDiscountType | null
+  discountValue: string | null
   deliveryFee: string
   image: string
   quantity: number

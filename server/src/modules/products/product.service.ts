@@ -10,6 +10,7 @@ import type {
   PublicProductQuery,
 } from './product.types.js'
 import { recordStockAdjustment } from '../inventory/inventory.service.js'
+import { calculateDiscountedPrice } from './product.pricing.js'
 
 type ProductWithCategory = Prisma.ProductGetPayload<{
   include: { category: true }
@@ -26,6 +27,9 @@ const toProduct = (product: ProductWithCategory): Product => ({
   slug: product.slug,
   description: product.description,
   price: product.price.toString(),
+  discountType: product.discountType,
+  discountValue: product.discountValue?.toString() ?? null,
+  discountedPrice: calculateDiscountedPrice(product.price, product.discountType, product.discountValue).toString(),
   deliveryFee: product.deliveryFee.toString(),
   unit: product.unit,
   image: product.image,
@@ -200,6 +204,8 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
           slug: await uniqueSlug(input.name),
           description: input.description,
           price: input.price,
+          discountType: input.discountType,
+          discountValue: input.discountValue,
           deliveryFee: input.deliveryFee,
           unit: input.unit,
           image: input.image ?? '',
@@ -248,6 +254,8 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           slug: await uniqueSlug(input.name, id),
           description: input.description,
           price: input.price,
+          discountType: input.discountType,
+          discountValue: input.discountValue,
           deliveryFee: input.deliveryFee,
           unit: input.unit,
           ...(input.image ? { image: input.image } : {}),

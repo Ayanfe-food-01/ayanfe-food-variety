@@ -1,4 +1,5 @@
 import { HttpError } from '../../utils/http.js'
+import type { ProductDiscountType } from '@prisma/client'
 import type { AdminProductQuery, ProductInput, PublicProductQuery, PublicProductSort } from './product.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -53,6 +54,33 @@ const moneyValue = (value: unknown, field: string, allowZero: boolean): string =
 const priceValue = (value: unknown): string => moneyValue(value, 'Price', false)
 const deliveryFeeValue = (value: unknown): string => moneyValue(value, 'Delivery fee', true)
 
+const discountTypeValue = (value: unknown): ProductDiscountType | null => {
+  if (value === undefined || value === null || value === '') return null
+  if (value === 'PERCENTAGE' || value === 'FIXED') return value
+  throw new HttpError(400, 'Discount type must be percentage or fixed amount.')
+}
+
+const discountFields = (
+  typeValue: unknown,
+  value: unknown,
+  originalPrice: string,
+): Pick<ProductInput, 'discountType' | 'discountValue'> => {
+  const discountType = discountTypeValue(typeValue)
+  if (!discountType) return { discountType: null, discountValue: null }
+
+  const discountValue = moneyValue(value, 'Discount value', false)
+  const numericValue = Number(discountValue)
+  const numericPrice = Number(originalPrice)
+  if (discountType === 'PERCENTAGE' && numericValue > 100) {
+    throw new HttpError(400, 'Percentage discount cannot be greater than 100.')
+  }
+  if (discountType === 'FIXED' && numericValue > numericPrice) {
+    throw new HttpError(400, 'Fixed discount cannot be greater than the product price.')
+  }
+
+  return { discountType, discountValue }
+}
+
 export function validateAdminProductId(value: string | undefined): string {
   if (!value || !UUID_PATTERN.test(value.trim())) throw new HttpError(400, 'Product ID is invalid.')
   return value.trim()
@@ -62,10 +90,12 @@ export function validateProductFields(body: unknown): Omit<ProductInput, 'image'
   if (!isRecord(body)) throw new HttpError(400, 'Product data is required.')
   const categoryId = requiredText(body.categoryId, 'Category', 1, 40)
   if (!UUID_PATTERN.test(categoryId)) throw new HttpError(400, 'Category is invalid.')
+  const price = priceValue(body.price)
   return {
     name: requiredText(body.name, 'Product name', 2, 180),
     categoryId,
-    price: priceValue(body.price),
+    price,
+    ...discountFields(body.discountType, body.discountValue, price),
     deliveryFee: deliveryFeeValue(body.deliveryFee),
     unit: requiredText(body.unit, 'Unit', 1, 80),
     description: requiredText(body.description, 'Description', 10, 4000),

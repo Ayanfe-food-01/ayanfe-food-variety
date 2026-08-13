@@ -4,6 +4,7 @@ import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
+import { ProductPrice } from '../components/products/ProductPrice'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
@@ -444,7 +445,14 @@ export function Checkout() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="m-0 truncate text-sm font-bold text-green-dark">{item.name}</p>
-                      <p className="mt-1 text-xs text-muted">{item.unit} · {formatPrice(item.price)} each</p>
+                       <p className="mt-1 text-xs text-muted">
+                         {item.unit} · <ProductPrice
+                           originalPrice={item.originalPrice}
+                           discountedPrice={item.price}
+                           discountedClassName="font-bold text-green-dark"
+                           originalClassName="ml-1 text-muted"
+                         /> each
+                       </p>
                     </div>
                     <strong className="text-sm text-green-dark">{formatPrice(getItemSubtotal(item))}</strong>
                   </div>

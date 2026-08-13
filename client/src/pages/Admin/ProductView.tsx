@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { getAdminProduct } from '../../services/adminService'
+import { ProductPrice } from '../../components/products/ProductPrice'
 import type { Product } from '../../types/product'
-
-const formatPrice = (value: number) =>
-  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value)
 
 export function ProductView() {
   const { id } = useParams<{ id: string }>()
@@ -35,7 +33,8 @@ export function ProductView() {
           <div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-orange"><span>{product.category}</span><span className="text-line">•</span><span>{product.isActive ? product.isAvailable ? 'Available' : 'Out of stock' : 'Inactive'}</span></div>
             <h2 className="mt-3 text-3xl font-bold tracking-[-0.04em] text-green-dark">{product.name}</h2>
-            <p className="mt-4 text-2xl font-bold text-green-dark">{formatPrice(product.price)} <span className="text-sm font-normal text-muted">/ {product.unit}</span></p>
+            <p className="mt-4 text-2xl font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-2 text-base font-normal text-muted" /> <span className="text-sm font-normal text-muted">/ {product.unit}</span></p>
+            {product.discountType && <p className="mt-2 text-xs font-semibold text-orange">{product.discountType === 'PERCENTAGE' ? `${product.discountValue}% discount` : `NGN ${product.discountValue} discount`}</p>}
             <p className="mt-6 text-sm leading-7 text-muted">{product.description}</p>
             <dl className="mt-8 grid gap-4 border-t border-line pt-6 sm:grid-cols-2">
               <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Stock quantity</dt><dd className="mt-1 text-lg font-bold text-green-dark">{product.stockQuantity ?? 0}</dd></div>

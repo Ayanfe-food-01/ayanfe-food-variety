@@ -6,8 +6,8 @@ import { SelectField } from '../../components/ui/SelectField'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
-const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', deliveryFee: '0', unit: '', description: '', stockQuantity: '0', isActive: true }
-type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
+const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', discountType: '', discountValue: '', deliveryFee: '0', unit: '', description: '', stockQuantity: '0', isActive: true }
+type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'discountType' | 'discountValue' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
 
 export function ProductForm() {
   const { id } = useParams<{ id: string }>()
@@ -38,7 +38,7 @@ export function ProductForm() {
       })
     if (!id) return
     getAdminProduct(id).then((product) => {
-      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), deliveryFee: String(product.deliveryFee), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive })
+      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), discountType: product.discountType ?? '', discountValue: product.discountValue === null ? '' : String(product.discountValue), deliveryFee: String(product.deliveryFee), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive })
       setCurrentImage(product.image)
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
     return () => { current = false }
@@ -56,18 +56,32 @@ export function ProductForm() {
     setFieldErrors((current) => ({ ...current, image: errorMessage ?? undefined }))
   }
 
+  const updateDiscountType = (value: string) => {
+    if (value !== '' && value !== 'PERCENTAGE' && value !== 'FIXED') return
+    update('discountType', value)
+    if (!value) update('discountValue', '')
+  }
+
   const validate = (): FormErrors => {
     const nextErrors: FormErrors = {}
     const name = form.name.trim()
     const unit = form.unit.trim()
     const description = form.description.trim()
     const price = form.price.trim()
+    const discountValue = form.discountValue.trim()
     const deliveryFee = form.deliveryFee.trim()
     const stock = Number(form.stockQuantity)
     if (name.length < 2 || name.length > 180) nextErrors.name = 'Use 2 to 180 characters.'
     if (!form.categoryId) nextErrors.categoryId = 'Select an active category.'
     else if (categories.find((category) => category.id === form.categoryId)?.isActive !== true) nextErrors.categoryId = 'Select an active category.'
     if (!/^\d+(?:\.\d{1,2})?$/.test(price) || Number(price) <= 0) nextErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
+    if (form.discountType && (!/^\d+(?:\.\d{1,2})?$/.test(discountValue) || Number(discountValue) <= 0)) {
+      nextErrors.discountValue = 'Enter a discount greater than zero with up to 2 decimals.'
+    } else if (form.discountType === 'PERCENTAGE' && Number(discountValue) > 100) {
+      nextErrors.discountValue = 'Percentage discount cannot be greater than 100.'
+    } else if (form.discountType === 'FIXED' && Number(discountValue) > Number(price)) {
+      nextErrors.discountValue = 'Fixed discount cannot be greater than the product price.'
+    }
     if (!/^\d+(?:\.\d{1,2})?$/.test(deliveryFee) || !Number.isFinite(Number(deliveryFee)) || Number(deliveryFee) < 0) nextErrors.deliveryFee = 'Enter a delivery fee of zero or more with up to 2 decimals.'
     if (!unit || unit.length > 80) nextErrors.unit = 'Enter a unit using up to 80 characters.'
     if (description.length < 10 || description.length > 4000) nextErrors.description = 'Use 10 to 4,000 characters.'
@@ -131,7 +145,24 @@ export function ProductForm() {
               required
               value={form.categoryId}
             />{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
-            <label className="text-sm font-bold text-green-dark">Price (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('price')} type="text" inputMode="decimal" value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required />{fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
+             <label className="text-sm font-bold text-green-dark">Price (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('price')} type="text" inputMode="decimal" value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required />{fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
+             <div className="sm:col-span-2">
+               <div className="grid gap-5 sm:grid-cols-2">
+                 <label className="text-sm font-bold text-green-dark">Discount type (optional)<SelectField
+                   className="mt-2 w-full"
+                   {...fieldProps('discountType')}
+                   onChange={updateDiscountType}
+                   options={[
+                     { value: '', label: 'No discount' },
+                     { value: 'PERCENTAGE', label: 'Percentage discount' },
+                     { value: 'FIXED', label: 'Fixed amount discount' },
+                   ]}
+                   value={form.discountType}
+                 />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
+                 {form.discountType && <label className="text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
+               </div>
+               <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>
+             </div>
              <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
             <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('unit')} value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required />{fieldErrors.unit && <span className="mt-1 block text-xs font-normal text-orange" id="unit-error">{fieldErrors.unit}</span>}</label>
             <label className="text-sm font-bold text-green-dark">Stock quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={form.stockQuantity} onChange={(event) => update('stockQuantity', event.target.value)} required />{fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>

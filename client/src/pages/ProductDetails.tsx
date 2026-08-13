@@ -4,6 +4,7 @@ import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
+import { ProductPrice } from '../components/products/ProductPrice'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
 import { useToast } from '../components/ui/Toast'
@@ -129,19 +130,12 @@ export function ProductDetails() {
       '@type': 'Offer',
       url: getSiteUrl() ? new URL(productPath, `${getSiteUrl()}/`).toString() : productPath,
       priceCurrency: 'NGN',
-      price: product.price.toFixed(2),
+       price: product.discountedPrice.toFixed(2),
       availability: product.isAvailable
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
     },
   } : null
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      maximumFractionDigits: 0,
-    }).format(price)
 
   if (isLoading) {
     return (
@@ -296,7 +290,13 @@ export function ProductDetails() {
                 {product.name}
               </h1>
               <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
-                <p className="m-0 text-2xl font-bold text-green-dark">{formatPrice(product.price)}</p>
+                <ProductPrice
+                  className="text-2xl font-bold text-green-dark"
+                  originalPrice={product.price}
+                  discountedPrice={product.discountedPrice}
+                  discountedClassName="text-green-dark"
+                  originalClassName="ml-2 text-base font-normal text-muted"
+                />
                 <span className="text-sm text-muted">per {product.unit}</span>
               </div>
               <p className="mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">

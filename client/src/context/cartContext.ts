@@ -1,5 +1,6 @@
 import { createContext } from 'react'
 import type { Product } from '../types/product'
+import type { ProductDiscountType } from '../types/product'
 
 export interface CartItem {
   id: Product['id']
@@ -7,6 +8,9 @@ export interface CartItem {
   name: Product['name']
   unit: Product['unit']
   price: Product['price']
+  originalPrice: number
+  discountType: ProductDiscountType | null
+  discountValue: number | null
   deliveryFee: Product['deliveryFee']
   image: Product['image']
   quantity: number

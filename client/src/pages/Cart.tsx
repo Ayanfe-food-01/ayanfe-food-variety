@@ -5,6 +5,7 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import type { CartItem } from '../context/cartContext'
 import { useCart } from '../hooks/useCart'
+import { ProductPrice } from '../components/products/ProductPrice'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -234,7 +235,15 @@ export function Cart() {
                               onIncrease={() => void increaseQuantity(item.id)}
                             />
                             <div className="text-right">
-                              <p className="m-0 text-xs text-muted">{formatPrice(item.price)} each</p>
+                              <p className="m-0 text-xs text-muted">
+                                <ProductPrice
+                                  originalPrice={item.originalPrice}
+                                  discountedPrice={item.price}
+                                  discountedClassName="font-bold text-green-dark"
+                                  originalClassName="ml-1 text-muted"
+                                />{' '}
+                                each
+                              </p>
                                <p className="mt-1 text-base font-bold text-green-dark">{formatPrice(getItemSubtotal(item))}</p>
                                <p className="mt-1 text-xs text-muted">{item.deliveryFee === 0 ? 'Delivery: Free' : `Delivery: ${formatPrice(item.deliveryFee)}`}</p>
                             </div>

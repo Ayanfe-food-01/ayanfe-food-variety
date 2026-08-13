@@ -1,3 +1,5 @@
+import type { ProductDiscountType } from '@prisma/client'
+
 export interface Product {
   id: string
   categoryId: string
@@ -7,6 +9,9 @@ export interface Product {
   slug: string
   description: string
   price: string
+  discountType: ProductDiscountType | null
+  discountValue: string | null
+  discountedPrice: string
   deliveryFee: string
   unit: string
   image: string
@@ -52,6 +57,8 @@ export interface ProductInput {
   name: string
   categoryId: string
   price: string
+  discountType: ProductDiscountType | null
+  discountValue: string | null
   deliveryFee: string
   unit: string
   description: string

@@ -11,11 +11,9 @@ import {
   type AdminProductsQuery,
 } from '../../services/adminService'
 import type { Category } from '../../types/category'
+import { ProductPrice } from '../../components/products/ProductPrice'
 
 const pageSize = 10
-
-const formatPrice = (value: number) =>
-  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value)
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(value))

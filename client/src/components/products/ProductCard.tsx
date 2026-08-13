@@ -5,8 +5,8 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useToast } from '../ui/Toast'
 import { Button } from '../ui/Button'
+import { ProductPrice } from './ProductPrice'
 import type { Product } from '../../types/product'
-import { formatPrice } from '../../utils/formatPrice'
 
 interface ProductCardProps {
   product: Product
@@ -43,7 +43,14 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
         <p className="product-category">{product.category}</p>
         <Link className="product-name" to={`/product/${product.slug ?? product.id}`}>{product.name}</Link>
         <span className="product-unit">{product.unit}</span>
-        <strong className="product-price">{formatPrice(product.price)}</strong>
+        <strong className="product-price">
+          <ProductPrice
+            originalPrice={product.price}
+            discountedPrice={product.discountedPrice}
+            discountedClassName="text-green-dark"
+            originalClassName="ml-1 text-sm font-normal text-muted"
+          />
+        </strong>
         {compact ? <Button className="quick-add" size="sm" fullWidth type="button" onClick={handleAddToCart} disabled={!product.isAvailable || isAdding}>
           <CartIcon size={15} /> {isAdding ? 'Adding' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
         </Button> : <div className="product-actions">

@@ -9,6 +9,7 @@ import type {
 } from './order.types.js'
 import { notifyOrderCreated, notifyOrderStatusChanged } from './order.email.js'
 import { deductStock, restoreStock } from '../inventory/inventory.service.js'
+import { calculateDiscountedPrice } from '../products/product.pricing.js'
 
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: {
@@ -249,6 +250,8 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         id: true,
         name: true,
         price: true,
+         discountType: true,
+         discountValue: true,
         deliveryFee: true,
         isActive: true,
         stockQuantity: true,
@@ -272,12 +275,17 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
     const orderItems = cart.items.map((item) => {
       const product = productsById.get(item.productId)
       if (!product) throw new HttpError(409, 'One or more products are no longer available.')
-      const subtotal = product.price.mul(item.quantity)
+       const unitPrice = calculateDiscountedPrice(
+         product.price,
+         product.discountType,
+         product.discountValue,
+       )
+       const subtotal = unitPrice.mul(item.quantity)
       const deliveryFee = product.deliveryFee.mul(item.quantity)
       return {
         productId: product.id,
         productName: product.name,
-        unitPrice: product.price,
+         unitPrice,
         quantity: item.quantity,
         subtotal,
         deliveryFee,

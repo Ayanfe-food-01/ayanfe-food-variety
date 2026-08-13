@@ -6,18 +6,65 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/branding/ayanfe-food-variety-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Shop quality Nigerian foodstuff, pantry staples, and everyday groceries from Ayanfe Food Variety." />
+    <meta name="description" content="Shop natural, preservative-free &amp; gluten-free Nigerian foodstuff — swallow flours, grains, oils &amp; more. Fast, reliable delivery." />
     <meta name="robots" content="index, follow" />
     <meta property="og:site_name" content="Ayanfe Food Variety" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Ayanfe Food Variety | Nigerian foodstuff and everyday groceries" />
-    <meta property="og:description" content="Shop quality Nigerian foodstuff, pantry staples, and everyday groceries from Ayanfe Food Variety." />
+    <meta property="og:title" content="Ayanfe Food Variety | Buy Nigerian Foodstuff Online" />
+    <meta property="og:description" content="Shop natural, preservative-free &amp; gluten-free Nigerian foodstuff — swallow flours, grains, oils &amp; more. Fast, reliable delivery." />
     <meta property="og:image" content="%PUBLIC_APP_URL%/branding/ayanfe-food-variety-logo.png" />
     <meta property="og:url" content="%PUBLIC_APP_URL%/" />
     <link rel="canonical" href="%PUBLIC_APP_URL%/" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Ayanfe Food Variety | Buy Nigerian Foodstuff Online" />
+    <meta name="twitter:description" content="Shop natural, preservative-free &amp; gluten-free Nigerian foodstuff — swallow flours, grains, oils &amp; more. Fast, reliable delivery." />
     <meta name="twitter:image" content="%PUBLIC_APP_URL%/branding/ayanfe-food-variety-logo.png" />
-    <title>Ayanfe Food Variety | Nigerian foodstuff and everyday groceries</title>
+    <title>Ayanfe Food Variety | Buy Nigerian Foodstuff Online</title>
+    <script>
+      (() => {
+        const siteUrl = '%PUBLIC_APP_URL%'.replace(/\/+$/, '')
+        const path = window.location.pathname
+        const params = new URLSearchParams(window.location.search)
+        const isCleanCategory = path === '/shop' && params.has('category') && !params.has('search') && !params.has('sort') && !params.has('page')
+        const canonicalPath = path === '/'
+          ? '/'
+          : path === '/about'
+            ? '/about'
+            : path === '/new-arrivals'
+              ? '/new-arrivals'
+              : isCleanCategory
+                ? `${path}?category=${encodeURIComponent(params.get('category') || '')}`
+                : path === '/shop'
+                  ? '/shop'
+                  : path
+        const routeMeta = path === '/about'
+          ? {
+              title: 'About Ayanfe Food Variety | Nigerian Foodstuff',
+              description: 'Learn about Ayanfe Food Variety Limited, a Nigerian foodstuff brand offering natural, gluten-free staples and reliable online delivery.',
+            }
+          : path === '/new-arrivals'
+            ? {
+                title: 'New Nigerian Foodstuff Arrivals | Ayanfe Food Variety',
+                description: 'Discover new Nigerian foodstuff arrivals, from natural pantry staples to everyday groceries, with convenient online delivery.',
+              }
+            : path === '/shop'
+              ? {
+                  title: 'Buy Nigerian Foodstuff Online | Ayanfe Food Variety',
+                  description: 'Shop Nigerian foodstuff online, including natural pantry staples, grains, oils and everyday essentials with reliable delivery.',
+                }
+              : null
+        const canonical = document.querySelector('link[rel="canonical"]')
+        canonical?.setAttribute('href', `${siteUrl}${canonicalPath}`)
+        if (routeMeta) {
+          document.title = routeMeta.title
+          document.querySelector('meta[name="description"]')?.setAttribute('content', routeMeta.description)
+          document.querySelector('meta[property="og:title"]')?.setAttribute('content', routeMeta.title)
+          document.querySelector('meta[property="og:description"]')?.setAttribute('content', routeMeta.description)
+          document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', routeMeta.title)
+          document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', routeMeta.description)
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

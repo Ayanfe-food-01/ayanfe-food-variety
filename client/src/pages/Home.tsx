@@ -7,14 +7,13 @@ import { HomeTrustStrip } from '../components/home/HomeTrustStrip'
 import { ProductRail } from '../components/home/ProductRail'
 import { useHomeCatalog } from '../hooks/useHomeCatalog'
 import { Seo } from '../seo/Seo'
-import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SOCIAL_IMAGE_PATH, getAbsoluteUrl, getSiteUrl, SITE_NAME } from '../seo/config'
+import { DEFAULT_SITE_DESCRIPTION, HOMEPAGE_TITLE, getOrganizationSchema } from '../seo/config'
 
 export function Home() {
   const catalog = useHomeCatalog()
-  const organizationSchema = { '@context': 'https://schema.org', '@type': 'Organization', name: SITE_NAME, url: getSiteUrl(), logo: getAbsoluteUrl(DEFAULT_SOCIAL_IMAGE_PATH), description: DEFAULT_SITE_DESCRIPTION }
 
   return <>
-    <Seo title="Ayanfe Food Variety | Nigerian foodstuff and everyday groceries" description={DEFAULT_SITE_DESCRIPTION} canonicalPath="/" jsonLd={organizationSchema} />
+    <Seo title={HOMEPAGE_TITLE} description={DEFAULT_SITE_DESCRIPTION} canonicalPath="/" jsonLd={getOrganizationSchema()} />
     <Navbar />
     <main>
       <Hero />

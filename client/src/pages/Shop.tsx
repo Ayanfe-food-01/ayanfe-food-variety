@@ -10,6 +10,16 @@ import { ApiError } from '../services/api'
 import { getNewArrivals, getProducts, type ProductPage } from '../services/productService'
 import type { Category } from '../types/category'
 import { Seo } from '../seo/Seo'
+import {
+  getAbsoluteUrl,
+  getBreadcrumbSchema,
+  getCategoryMetaDescription,
+  getCategoryTitle as getCategoryPageTitle,
+  NEW_ARRIVALS_DESCRIPTION,
+  NEW_ARRIVALS_TITLE,
+  SHOP_DESCRIPTION,
+  SHOP_TITLE,
+} from '../seo/config'
 
 const PAGE_SIZE = 20
 const SORT_OPTIONS = [
@@ -135,19 +145,53 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
   const products = result?.products ?? []
   const pagination = result?.pagination
   const hasActiveFilters = Boolean(searchValue || categoryValue || sortValue !== 'relevance')
+  const pageTitle = newArrivalsOnly
+    ? NEW_ARRIVALS_TITLE
+    : selectedCategory
+      ? getCategoryPageTitle(selectedCategory.name)
+      : SHOP_TITLE
+  const pageDescription = newArrivalsOnly
+    ? NEW_ARRIVALS_DESCRIPTION
+    : selectedCategory
+      ? getCategoryMetaDescription(selectedCategory.name, selectedCategory.description)
+      : SHOP_DESCRIPTION
+  const categoryPath = selectedCategory ? `/shop?category=${encodeURIComponent(selectedCategory.slug)}` : '/shop'
+  const canonicalPath = newArrivalsOnly ? '/new-arrivals' : selectedCategory && !searchValue ? categoryPath : '/shop'
+  const hasNonCanonicalFilters = Boolean(searchValue || sortValue !== 'relevance' || pageValue > 1)
+  const collectionJsonLd = selectedCategory || newArrivalsOnly
+    ? [
+        getBreadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: newArrivalsOnly ? 'New Arrivals' : selectedCategory?.name ?? 'Shop', path: canonicalPath },
+        ]),
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: pageTitle,
+          description: pageDescription,
+          url: getAbsoluteUrl(canonicalPath),
+          mainEntity: {
+            '@type': 'ItemList',
+            numberOfItems: products.length,
+            itemListElement: products.map((item, index) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              url: getAbsoluteUrl(`/product/${item.slug ?? item.id}`),
+              name: item.name,
+            })),
+          },
+        },
+      ]
+    : null
 
   return (
     <>
       <Seo
-        title={newArrivalsOnly
-          ? 'New arrivals | Ayanfe Food Variety'
-          : selectedCategory ? `${selectedCategory.name} products | Ayanfe Food Variety` : 'Shop Nigerian foodstuff and groceries | Ayanfe Food Variety'}
-        description={newArrivalsOnly
-          ? 'Discover the newest additions to Ayanfe Food Variety, from carefully sourced Nigerian foodstuff to everyday groceries.'
-          : selectedCategory
-          ? `${selectedCategory.description || `Browse ${selectedCategory.name.toLowerCase()} from Ayanfe Food Variety.`} Shop our available collection.`
-          : 'Browse Nigerian foodstuff, pantry staples, and everyday groceries from Ayanfe Food Variety. Find carefully sourced essentials for your kitchen.'}
-        canonicalPath={newArrivalsOnly ? '/new-arrivals' : '/shop'}
+        title={pageTitle}
+        description={pageDescription}
+        canonicalPath={canonicalPath}
+        noIndex={hasNonCanonicalFilters}
+        jsonLd={collectionJsonLd}
       />
       <Navbar />
       <main>
@@ -160,12 +204,14 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
                 {newArrivalsOnly ? 'Fresh on the shelf' : 'The full collection'}
               </p>
               <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">
-                {newArrivalsOnly ? 'New Arrivals' : 'Shop'}
+                {newArrivalsOnly ? 'New Nigerian Foodstuff Arrivals' : selectedCategory?.name ?? 'Buy Nigerian Foodstuff Online'}
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-muted sm:text-lg">
                 {newArrivalsOnly
-                  ? 'Explore the latest products added to our collection, with the newest additions always appearing first.'
-                  : 'Good food starts with great ingredients. Find carefully sourced staples and everyday essentials, delivered with the same care we put into every order.'}
+                  ? 'Explore the latest natural, preservative-free Nigerian foodstuff added to our collection, with reliable delivery across Nigeria.'
+                  : selectedCategory
+                    ? `${selectedCategory.description || `Shop ${selectedCategory.name.toLowerCase()} online.`} Find quality Nigerian foodstuff with convenient delivery.`
+                    : 'Shop natural, preservative-free and gluten-free Nigerian foodstuff, pantry staples and everyday essentials with reliable delivery.'}
               </p>
             </div>
           </div>

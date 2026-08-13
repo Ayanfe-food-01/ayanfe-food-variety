@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Home } from './pages/Home'
+import { About } from './pages/About'
 import { Shop } from './pages/Shop'
 import { ProductDetails } from './pages/ProductDetails'
 import { Cart } from './pages/Cart'
@@ -83,6 +84,7 @@ function App() {
       <PrivateRouteSeo />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/new-arrivals" element={<Shop newArrivalsOnly />} />
         <Route path="/product/:id" element={<ProductDetails />} />

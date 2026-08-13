@@ -9,8 +9,8 @@ export function Hero() {
       <div className="container home-hero-inner">
         <div className="home-hero-copy">
           <p className="eyebrow">Your trusted foodstuff market</p>
-          <h1 id="home-heading">Stock your kitchen <em>with ease.</em></h1>
-          <p>Find everyday Nigerian foodstuff and pantry essentials, carefully selected and ready for your next meal.</p>
+          <h1 id="home-heading">Natural, gluten-free <em>Nigerian foodstuff online.</em></h1>
+          <p>Shop preservative-free swallow flours, grains, oils and everyday pantry essentials, with fast, reliable delivery across Nigeria.</p>
           <div className="hero-actions">
             <Link className="primary-button" to="/shop">Shop all products <ArrowRight size={17} /></Link>
             <span className="hero-note"><TruckIcon size={17} /> Simple ordering, helpful service</span>

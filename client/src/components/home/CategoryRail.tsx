@@ -27,7 +27,7 @@ export function CategoryRail({ categories, isLoading, hasError, onRetry }: Categ
         </div> : categories.length ? <div className="category-rail">
           {categories.map((category) => (
             <Link className="category-tile" to={`/shop?category=${category.slug}`} key={category.id}>
-              {category.imageUrl ? <img src={category.imageUrl} alt="" loading="lazy" /> : <span className="category-placeholder" aria-hidden="true" />}
+              {category.imageUrl ? <img src={category.imageUrl} alt={`${category.name} Nigerian foodstuff - Ayanfe Food Variety`} loading="lazy" /> : <span className="category-placeholder" aria-hidden="true" />}
               <span>{category.name}</span>
             </Link>
           ))}

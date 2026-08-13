@@ -9,6 +9,7 @@ const links = [
   { label: 'Home', href: '/' },
   { label: 'Shop', href: '/shop' },
   { label: 'New arrivals', href: '/new-arrivals' },
+  { label: 'About us', href: '/about' },
   { label: 'Orders', href: '/orders' },
 ]
 
@@ -80,7 +81,6 @@ export function Navbar() {
       </nav>
       <div className="desktop-nav container">
         {links.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
-        <Link to="#why-us">Why Ayanfe</Link>
         {user && <button type="button" onClick={() => void logout()}>Log out</button>}
       </div>
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} />

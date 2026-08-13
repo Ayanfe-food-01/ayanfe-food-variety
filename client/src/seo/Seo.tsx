@@ -7,6 +7,7 @@ interface SeoProps {
   canonicalPath?: string
   image?: string
   imageAlt?: string
+  type?: 'website' | 'product'
   noIndex?: boolean
   jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null
 }
@@ -37,6 +38,7 @@ export function Seo({
   canonicalPath = '/',
   image = DEFAULT_SOCIAL_IMAGE_PATH,
   imageAlt = `${SITE_NAME} logo`,
+  type = 'website',
   noIndex = false,
   jsonLd = null,
 }: SeoProps) {
@@ -51,7 +53,7 @@ export function Seo({
     upsertMeta('name', 'description', description)
     upsertMeta('name', 'robots', robots)
     upsertMeta('property', 'og:site_name', SITE_NAME)
-    upsertMeta('property', 'og:type', 'website')
+    upsertMeta('property', 'og:type', type)
     upsertMeta('property', 'og:title', title)
     upsertMeta('property', 'og:description', description)
     upsertMeta('property', 'og:url', canonicalUrl)
@@ -75,7 +77,7 @@ export function Seo({
       structuredData.textContent = JSON.stringify(jsonLd)
       document.head.appendChild(structuredData)
     }
-  }, [canonicalPath, description, image, imageAlt, jsonLd, noIndex, title])
+  }, [canonicalPath, description, image, imageAlt, jsonLd, noIndex, title, type])
 
   return null
 }

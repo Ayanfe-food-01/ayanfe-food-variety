@@ -36,7 +36,7 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
   return (
     <article className={cardClass}>
       <Link className="product-image-wrap" to={`/product/${product.slug ?? product.id}`} aria-label={`View ${product.name}`}>
-        {product.image && !imageError ? <img src={product.image} alt={product.name} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
+        {product.image && !imageError ? <img src={product.image} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
         {product.availabilityStatus === 'LOW_STOCK' && <span className="product-badge">Low stock</span>}
       </Link>
       <div className="product-card-body">

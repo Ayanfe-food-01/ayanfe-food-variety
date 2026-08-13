@@ -1,5 +1,6 @@
 import { MailIcon, PhoneIcon } from '../../assets/icons'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
+import { Link } from 'react-router-dom'
 
 export function Footer() {
   const { settings } = useStoreSettings()
@@ -12,26 +13,26 @@ export function Footer() {
     <footer className="bg-green-dark py-14 text-cream">
       <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_0.7fr_0.7fr_1fr]">
         <div>
-          <a className="inline-flex items-center" href="#home" aria-label="Ayanfe Food Variety home">
+           <Link className="inline-flex items-center" to="/" aria-label="Ayanfe Food Variety home">
             <img className="h-28 w-28 rounded-2xl bg-white object-contain p-1" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
-          </a>
+           </Link>
           <p className="mt-5 max-w-[270px] text-sm leading-6 text-cream/60">
              {settings?.description || 'Quality foodstuff and everyday essentials, carefully sourced and brought closer to your kitchen.'}
           </p>
         </div>
         <div>
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-sage">Explore</h3>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#home">Home</a>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#products">Shop</a>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#why-us">About us</a>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#contact">Contact</a>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/">Home</Link>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/shop">Shop Nigerian foodstuff</Link>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/about">About us</Link>
+          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="/#contact">Contact</a>
         </div>
         <div>
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-sage">Categories</h3>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#categories">Rice</a>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#categories">Beans</a>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#categories">Oil</a>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="#categories">Yam &amp; Spices</a>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/shop?category=rice">Rice</Link>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/shop?category=beans">Beans</Link>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/shop?category=cooking-oils">Cooking oils</Link>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/shop?category=flours">Flours</Link>
         </div>
         <div>
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-sage">Get in touch</h3>

@@ -13,7 +13,14 @@ import { ApiError } from '../services/api'
 import { getProduct, getProducts } from '../services/productService'
 import type { Product } from '../types/product'
 import { Seo } from '../seo/Seo'
-import { getAbsoluteUrl, getSiteUrl, SITE_NAME } from '../seo/config'
+import {
+  getAbsoluteUrl,
+  getBreadcrumbSchema,
+  getProductMetaDescription,
+  getProductTitle,
+  getSiteUrl,
+  SITE_NAME,
+} from '../seo/config'
 
 export function ProductDetails() {
   const { id } = useParams<{ id: string }>()
@@ -104,12 +111,18 @@ export function ProductDetails() {
 
   const isAdding = product ? pendingItemIds.includes(product.id) : false
   const productPath = product ? `/product/${product.slug ?? product.id}` : `/product/${id ?? ''}`
-  const productDescription = product?.description || 'View product details from Ayanfe Food Variety.'
+  const productDescription = product ? getProductMetaDescription(product.name) : 'View product details from Ayanfe Food Variety.'
   const productSchema = product ? {
     '@context': 'https://schema.org',
     '@type': 'Product',
+    '@id': getAbsoluteUrl(productPath),
     name: product.name,
     description: product.description,
+    sku: product.id,
+    brand: {
+      '@type': 'Brand',
+      name: SITE_NAME,
+    },
     ...(product.image ? { image: [getAbsoluteUrl(product.image)] } : {}),
     category: product.category,
     offers: {
@@ -224,12 +237,21 @@ export function ProductDetails() {
   return (
     <>
       <Seo
-        title={`${product.name} | Ayanfe Food Variety`}
+        title={getProductTitle(product.name)}
         description={productDescription}
         canonicalPath={productPath}
         image={product.image || undefined}
-        imageAlt={`${product.name} from Ayanfe Food Variety`}
-        jsonLd={productSchema}
+        imageAlt={`${product.name} - Ayanfe Food Variety`}
+        type="product"
+        jsonLd={[
+          productSchema!,
+          getBreadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Shop', path: '/shop' },
+            { name: product.category, path: product.categorySlug ? `/shop?category=${encodeURIComponent(product.categorySlug)}` : '/shop' },
+            { name: product.name, path: productPath },
+          ]),
+        ]}
       />
       <Navbar />
       <main>
@@ -251,7 +273,7 @@ export function ProductDetails() {
                   <img
                     className="size-full object-cover transition-transform duration-500 hover:scale-[1.02]"
                     src={product.image}
-                    alt={`${product.name}, ${product.category}`}
+                    alt={`${product.name} - Ayanfe Food Variety`}
                     width={720}
                     height={720}
                     fetchPriority="high"

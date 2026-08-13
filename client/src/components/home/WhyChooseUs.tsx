@@ -2,9 +2,9 @@ import { CheckIcon, HeartIcon, ShieldIcon, TruckIcon } from '../../assets/icons'
 import { RevealOnScroll } from '../ui/RevealOnScroll'
 
 const benefits = [
-  { icon: <ShieldIcon />, title: 'Quality you can trust', description: 'We select and handle every product with care, so you can shop with confidence.' },
+  { icon: <ShieldIcon />, title: 'Quality you can trust', description: 'We carefully select natural, preservative-free foodstuff so you can shop with confidence.' },
   { icon: <HeartIcon />, title: 'Prices that feel fair', description: 'Good food should be accessible. We keep our prices honest and our value high.' },
-  { icon: <TruckIcon />, title: 'Easy, convenient shopping', description: 'Get your kitchen essentials without the market run. Simple ordering, made easier.' },
+  { icon: <TruckIcon />, title: 'Easy, nationwide delivery', description: 'Order Nigerian foodstuff online and get your kitchen essentials delivered across Nigeria.' },
   { icon: <CheckIcon />, title: 'Service with care', description: 'Have a question? Our friendly team is always happy to point you in the right direction.' },
 ]
 
@@ -16,7 +16,7 @@ export function WhyChooseUs() {
         <div className="mb-12 max-w-[600px]">
           <div className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-sage"><span className="inline-block size-2 rounded-full bg-sage" /> The Ayanfe difference</div>
           <h2 className="m-0 text-4xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl">Food shopping should feel <em className="font-display font-medium not-italic text-orange">easy.</em></h2>
-          <p className="mt-5 max-w-[490px] text-base leading-7 text-cream/70">We’re here to make stocking your kitchen a little simpler, one quality product at a time.</p>
+          <p className="mt-5 max-w-[490px] text-base leading-7 text-cream/70">We make it easier to find natural, gluten-free Nigerian foodstuff online and bring it from our store to your kitchen.</p>
         </div>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {benefits.map((benefit) => (

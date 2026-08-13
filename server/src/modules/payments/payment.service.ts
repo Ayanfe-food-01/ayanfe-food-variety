@@ -74,6 +74,9 @@ export async function submitPayment(
   if (order.paymentStatus === PaymentStatus.PAID) {
     throw new HttpError(409, 'This order has already been paid.')
   }
+  if (order.orderStatus === 'CANCELLED') {
+    throw new HttpError(409, 'Payment proof cannot be submitted for a cancelled order.')
+  }
   const pendingSubmission = await prisma.paymentSubmission.findFirst({
     where: { orderId: order.id, status: PaymentSubmissionStatus.PENDING },
   })

@@ -103,6 +103,8 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
     paymentMethod: order.paymentMethod,
     paymentStatus,
     orderStatus: order.orderStatus,
+    cancellationReason: order.cancellationReason,
+    cancelledAt: order.cancelledAt?.toISOString() ?? null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     orderItems: order.orderItems.map(
@@ -408,6 +410,89 @@ export async function getCustomerOrderByNumber(userId: string, orderNumber: stri
     include: orderInclude,
   })
   return order ? toOrderResponse(order) : null
+}
+
+const customerCancellableStatuses = new Set<OrderStatus>([
+  OrderStatus.ORDER_PLACED,
+  OrderStatus.PROCESSING,
+])
+
+export async function cancelCustomerOrder(
+  userId: string,
+  orderNumber: string,
+  reason?: string,
+): Promise<OrderResponse> {
+  const result = await prisma.$transaction(async (transaction) => {
+    const existing = await transaction.order.findFirst({
+      where: { orderNumber, userId },
+      include: {
+        orderItems: { select: { productId: true, quantity: true } },
+      },
+    })
+
+    if (!existing) throw new HttpError(404, 'Order not found.')
+    if (!customerCancellableStatuses.has(existing.orderStatus)) {
+      throw new HttpError(409, 'This order can no longer be cancelled.')
+    }
+
+    const cancelledAt = new Date()
+    const updated = await transaction.order.updateMany({
+      where: {
+        id: existing.id,
+        userId,
+        orderStatus: { in: [...customerCancellableStatuses] },
+      },
+      data: {
+        orderStatus: OrderStatus.CANCELLED,
+        cancellationReason: reason ?? null,
+        cancelledAt,
+        ...(existing.stockDeductedAt && !existing.stockRestoredAt
+          ? { stockRestoredAt: cancelledAt }
+          : {}),
+      },
+    })
+
+    if (updated.count !== 1) {
+      throw new HttpError(409, 'The order changed while it was being cancelled. Please try again.')
+    }
+
+    const order = await transaction.order.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: orderInclude,
+    })
+
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        previousStatus: existing.orderStatus,
+        newStatus: OrderStatus.CANCELLED,
+        changedBy: userId,
+        note: reason ?? 'Cancelled by customer.',
+      },
+    })
+
+    if (existing.stockDeductedAt && !existing.stockRestoredAt) {
+      for (const item of existing.orderItems) {
+        await restoreStock(transaction, {
+          productId: item.productId,
+          quantity: item.quantity,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+        })
+      }
+    }
+
+    return order
+  })
+
+  void notifyOrderStatusChanged({
+    orderNumber: result.orderNumber,
+    customerName: result.customerName,
+    customerEmail: result.email,
+    orderStatus: result.orderStatus,
+  }).catch((error: unknown) => console.error('Order cancellation email failed', error))
+
+  return toOrderResponse(result)
 }
 
 export async function getOrderById(id: string): Promise<OrderResponse | null> {

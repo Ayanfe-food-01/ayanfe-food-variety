@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { checkoutController } from '../modules/orders/order.controller.js'
 import {
+  cancelCustomerOrderController,
   getCustomerOrderController,
   listCustomerOrdersController,
 } from '../modules/orders/customer-order.controller.js'
@@ -19,6 +20,7 @@ const requireCheckoutRequestHeader: import('express').RequestHandler = (request,
 export const orderRoutes = Router()
 
 orderRoutes.get('/', requireCustomerAuthentication, requireCustomerRole, listCustomerOrdersController)
+orderRoutes.patch('/:orderNumber/cancel', requireCustomerAuthentication, requireCustomerRole, cancelCustomerOrderController)
 orderRoutes.get('/:orderNumber', requireCustomerAuthentication, requireCustomerRole, getCustomerOrderController)
 orderRoutes.post(
   '/',

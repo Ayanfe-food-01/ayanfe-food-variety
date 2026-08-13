@@ -1,6 +1,6 @@
 import { HttpError } from '../../utils/http.js'
 import { PaymentMethod } from '@prisma/client'
-import type { CheckoutInput } from './order.types.js'
+import type { CancellationInput, CheckoutInput } from './order.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -59,6 +59,19 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
       ? PaymentMethod.BANK_TRANSFER
       : (() => { throw new HttpError(400, 'Payment method is not supported.') })(),
   }
+}
+
+export function validateCancellationInput(body: unknown): CancellationInput {
+  if (body === undefined || body === null) return {}
+  if (!isRecord(body)) throw new HttpError(400, 'Cancellation details are invalid.')
+
+  const reason = body.reason
+  if (reason === undefined || reason === null || reason === '') return {}
+  if (typeof reason !== 'string' || reason.trim().length > 500) {
+    throw new HttpError(400, 'Cancellation reason must be 500 characters or fewer.')
+  }
+
+  return { reason: reason.trim() || undefined }
 }
 
 export function validateOrderNumber(value: string | undefined): string {

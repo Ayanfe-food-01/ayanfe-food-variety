@@ -10,6 +10,10 @@ export interface CheckoutInput {
   paymentMethod: PaymentMethod
 }
 
+export interface CancellationInput {
+  reason?: string
+}
+
 export interface OrderItemResponse {
   id: string
   productId: string
@@ -41,6 +45,8 @@ export interface OrderResponse {
   paymentMethod: PaymentMethod
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
   orderStatus: OrderStatus
+  cancellationReason: string | null
+  cancelledAt: string | null
   createdAt: string
   updatedAt: string
   orderItems: OrderItemResponse[]

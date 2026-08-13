@@ -94,6 +94,8 @@ model Order {
   paymentMethod    PaymentMethod @default(BANK_TRANSFER) @map("payment_method")
   paymentStatus    PaymentStatus @default(PENDING) @map("payment_status")
   orderStatus      OrderStatus   @default(ORDER_PLACED) @map("order_status")
+  cancellationReason String?     @map("cancellation_reason") @db.VarChar(500)
+  cancelledAt      DateTime?     @map("cancelled_at") @db.Timestamptz(6)
   stockDeductedAt  DateTime?   @map("stock_deducted_at") @db.Timestamptz(6)
   stockRestoredAt  DateTime?   @map("stock_restored_at") @db.Timestamptz(6)
   createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)

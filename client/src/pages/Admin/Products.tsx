@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '../../components/ui/Toast'
+import { SelectField } from '../../components/ui/SelectField'
 import { ApiError } from '../../services/api'
 import {
   getAdminCategories,
@@ -118,19 +119,29 @@ export function Products() {
           <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark lg:self-end" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
             Category
-            <select className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" value={query.categoryId ?? ''} onChange={(event) => updateFilter('categoryId', event.target.value)}>
-              <option value="">All categories</option>
-              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-            </select>
+            <SelectField
+              className="mt-2 w-full sm:w-44"
+              options={[
+                { value: '', label: 'All categories' },
+                ...categories.map((category) => ({ value: category.id, label: category.name })),
+              ]}
+              onChange={(value) => updateFilter('categoryId', value)}
+              value={query.categoryId ?? ''}
+            />
           </label>
           <label className="text-xs font-bold text-green-dark">
             Availability
-            <select className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" value={query.availability ?? ''} onChange={(event) => updateFilter('availability', event.target.value)}>
-              <option value="">All products</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="out-of-stock">Out of stock</option>
-            </select>
+            <SelectField
+              className="mt-2 w-full sm:w-44"
+              options={[
+                { value: '', label: 'All products' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+                { value: 'out-of-stock', label: 'Out of stock' },
+              ]}
+              onChange={(value) => updateFilter('availability', value)}
+              value={query.availability ?? ''}
+            />
           </label>
         </form>
       </section>

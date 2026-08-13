@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { MoreHorizontalIcon } from '../../assets/icons'
 import { useToast } from '../../components/ui/Toast'
+import { SelectField } from '../../components/ui/SelectField'
 import { ApiError } from '../../services/api'
 import {
   deleteAdminCategory,
@@ -197,11 +198,16 @@ export function Categories() {
           <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
             Status
-            <select className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-40" value={query.status ?? ''} onChange={(event) => setQuery((current) => ({ ...current, status: (event.target.value || undefined) as AdminCategoriesQuery['status'], page: 1 }))}>
-              <option value="">All categories</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <SelectField
+              className="mt-2 w-full sm:w-40"
+              options={[
+                { value: '', label: 'All categories' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+              onChange={(value) => setQuery((current) => ({ ...current, status: (value || undefined) as AdminCategoriesQuery['status'], page: 1 }))}
+              value={query.status ?? ''}
+            />
           </label>
         </form>
       </section>

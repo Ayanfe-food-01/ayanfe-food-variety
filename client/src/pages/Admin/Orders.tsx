@@ -7,6 +7,7 @@ import {
   type AdminOrdersQuery,
 } from '../../services/orderService'
 import { OrderTable } from '../../components/admin/OrderTable'
+import { SelectField } from '../../components/ui/SelectField'
 
 const pageSize = 10
 
@@ -81,30 +82,45 @@ export function Orders() {
           <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark lg:self-end" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
             Payment
-            <select className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-40" value={query.paymentStatus ?? ''} onChange={(event) => updateFilter('paymentStatus', event.target.value)}>
-              <option value="">All payments</option>
-              <option value="PENDING">Pending</option>
-              <option value="PAID">Paid</option>
-              <option value="FAILED">Failed</option>
-            </select>
+            <SelectField
+              className="mt-2 w-full sm:w-40"
+              options={[
+                { value: '', label: 'All payments' },
+                { value: 'PENDING', label: 'Pending' },
+                { value: 'PAID', label: 'Paid' },
+                { value: 'FAILED', label: 'Failed' },
+              ]}
+              onChange={(value) => updateFilter('paymentStatus', value)}
+              value={query.paymentStatus ?? ''}
+            />
           </label>
           <label className="text-xs font-bold text-green-dark">
             Order status
-            <select className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" value={query.orderStatus ?? ''} onChange={(event) => updateFilter('orderStatus', event.target.value)}>
-              <option value="">All statuses</option>
-               <option value="ORDER_PLACED">Order Placed</option>
-              <option value="PROCESSING">Processing</option>
-               <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-               <option value="DELIVERED">Delivered</option>
-               <option value="CANCELLED">Cancelled</option>
-            </select>
+            <SelectField
+              className="mt-2 w-full sm:w-44"
+              options={[
+                { value: '', label: 'All statuses' },
+                { value: 'ORDER_PLACED', label: 'Order Placed' },
+                { value: 'PROCESSING', label: 'Processing' },
+                { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+                { value: 'DELIVERED', label: 'Delivered' },
+                { value: 'CANCELLED', label: 'Cancelled' },
+              ]}
+              onChange={(value) => updateFilter('orderStatus', value)}
+              value={query.orderStatus ?? ''}
+            />
           </label>
           <label className="text-xs font-bold text-green-dark">
             Sort
-            <select className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-36" value={query.sort ?? 'newest'} onChange={(event) => updateFilter('sort', event.target.value)}>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
+            <SelectField
+              className="mt-2 w-full sm:w-36"
+              options={[
+                { value: 'newest', label: 'Newest first' },
+                { value: 'oldest', label: 'Oldest first' },
+              ]}
+              onChange={(value) => updateFilter('sort', value)}
+              value={query.sort ?? 'newest'}
+            />
           </label>
         </form>
       </section>

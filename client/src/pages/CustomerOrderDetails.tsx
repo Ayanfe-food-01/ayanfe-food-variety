@@ -9,6 +9,7 @@ import { getBankDetails, type BankDetails } from '../services/paymentService'
 import { cancelCustomerOrder, getCustomerOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
 import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
+import { SelectField } from '../components/ui/SelectField'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -299,14 +300,15 @@ export function CustomerOrderDetails() {
             <p className="mt-3 text-sm leading-6 text-muted">Your order information and payment history will remain saved.</p>
             <label className="mt-6 block text-sm font-bold text-green-dark">
               Reason <span className="font-normal text-muted">(optional)</span>
-              <select
-                className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
+              <SelectField
+                className="mt-2 w-full"
+                options={[
+                  { value: '', label: 'Select a reason' },
+                  ...customerCancellationReasons.map((reason) => ({ value: reason, label: reason })),
+                ]}
+                onChange={setCancellationReason}
                 value={cancellationReason}
-                onChange={(event) => setCancellationReason(event.target.value)}
-              >
-                <option value="">Select a reason</option>
-                {customerCancellationReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
-              </select>
+              />
             </label>
             {cancellationReason === 'Other' && (
               <label className="mt-4 block text-sm font-bold text-green-dark">

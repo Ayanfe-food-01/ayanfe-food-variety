@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { SelectField } from '../../components/ui/SelectField'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
@@ -118,7 +119,18 @@ export function ProductForm() {
         {isLoading ? <p className="text-sm text-muted">Loading product…</p> : <form className="space-y-5" noValidate onSubmit={submit}>
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="text-sm font-bold text-green-dark sm:col-span-2">Product name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('name')} value={form.name} onChange={(event) => update('name', event.target.value)} maxLength={180} required />{fieldErrors.name && <span className="mt-1 block text-xs font-normal text-orange" id="name-error">{fieldErrors.name}</span>}</label>
-            <label className="text-sm font-bold text-green-dark">Category<select className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('categoryId')} value={form.categoryId} onChange={(event) => update('categoryId', event.target.value)} disabled={isCategoriesLoading} required><option value="">{isCategoriesLoading ? 'Loading categories…' : 'Select category'}</option>{categories.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
+            <label className="text-sm font-bold text-green-dark">Category<SelectField
+              className="mt-2 w-full"
+              {...fieldProps('categoryId')}
+              disabled={isCategoriesLoading}
+              onChange={(value) => update('categoryId', value)}
+              options={[
+                { value: '', label: isCategoriesLoading ? 'Loading categories…' : 'Select category' },
+                ...categories.filter((category) => category.isActive).map((category) => ({ value: category.id, label: category.name })),
+              ]}
+              required
+              value={form.categoryId}
+            />{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
             <label className="text-sm font-bold text-green-dark">Price (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('price')} type="text" inputMode="decimal" value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required />{fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
              <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
             <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('unit')} value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required />{fieldErrors.unit && <span className="mt-1 block text-xs font-normal text-orange" id="unit-error">{fieldErrors.unit}</span>}</label>

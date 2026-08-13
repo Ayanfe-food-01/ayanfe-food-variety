@@ -5,6 +5,7 @@ import { getAdminOrder, updateAdminOrderStatus, type AdminOrder, type OrderStatu
 import { formatOrderStatus, getOrderStatusOptions } from '../../utils/orderStatus'
 import { useToast } from '../../components/ui/Toast'
 import { ImagePreview } from '../../components/ui/ImagePreview'
+import { SelectField } from '../../components/ui/SelectField'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -116,7 +117,12 @@ export function OrderDetail() {
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Order status</h2>
             <p className="mt-1 text-sm text-muted">Payment status remains separate and cannot be changed here.</p>
-             <label className="mt-5 block text-sm font-bold text-green-dark">Current status<select className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={status} onChange={(event) => setStatus(event.target.value as OrderStatus)}>{getOrderStatusOptions(order.orderStatus).map((option) => <option key={option} value={option}>{formatOrderStatus(option)}</option>)}</select></label>
+             <label className="mt-5 block text-sm font-bold text-green-dark">Current status<SelectField
+               className="mt-2 w-full"
+               options={getOrderStatusOptions(order.orderStatus).map((option) => ({ value: option, label: formatOrderStatus(option) }))}
+               onChange={(value) => setStatus(value as OrderStatus)}
+               value={status}
+             /></label>
             <label className="mt-4 block text-sm font-bold text-green-dark">Internal note <textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the audit history" maxLength={1000} /></label>
             <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={() => void saveStatus()}>{isSaving ? 'Saving…' : 'Save order status'}</button>
           </section>

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronDownIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
+import { SelectField } from '../components/ui/SelectField'
 import { getCategories } from '../services/categoryService'
 import { ApiError } from '../services/api'
 import { getNewArrivals, getProducts, type ProductPage } from '../services/productService'
@@ -241,31 +241,27 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
               ariaLabel="Search products"
             />
             <div className="shop-filter-controls">
-              <label className="filter-select-wrap">
-                <span className="sr-only">Filter by category</span>
-                <select
-                  className="filter-select"
-                  value={categoryValue}
-                  onChange={(event) => updateParams({ category: event.target.value || undefined, page: undefined })}
-                  disabled={isCategoriesLoading}
-                >
-                  <option value="">{isCategoriesLoading ? 'Loading…' : 'All categories'}</option>
-                  {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
-                </select>
-                <ChevronDownIcon className="filter-select-icon" size={17} />
-              </label>
+              <SelectField
+                ariaLabel="Filter by category"
+                className="filter-select-wrap"
+                options={[
+                  { value: '', label: isCategoriesLoading ? 'Loading…' : 'All categories' },
+                  ...categories.map((category) => ({ value: category.slug, label: category.name })),
+                ]}
+                onChange={(value) => updateParams({ category: value || undefined, page: undefined })}
+                value={categoryValue}
+                variant="filter"
+                disabled={isCategoriesLoading}
+              />
               {!newArrivalsOnly ? (
-                <label className="filter-select-wrap">
-                  <span className="sr-only">Sort products</span>
-                  <select
-                    className="filter-select"
-                    value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
-                    onChange={(event) => updateParams({ sort: event.target.value === 'relevance' ? undefined : event.target.value, page: undefined })}
-                  >
-                    {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
-                  <ChevronDownIcon className="filter-select-icon" size={17} />
-                </label>
+                <SelectField
+                  ariaLabel="Sort products"
+                  className="filter-select-wrap"
+                  options={SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                  onChange={(value) => updateParams({ sort: value === 'relevance' ? undefined : value, page: undefined })}
+                  value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
+                  variant="filter"
+                />
               ) : (
                 <span className="filter-pill">
                   Newest first

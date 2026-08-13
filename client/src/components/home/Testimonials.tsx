@@ -15,7 +15,7 @@ export function Testimonials() {
               Kind words from our community.
             </h2>
             <p className="mt-4 text-base leading-7 text-muted">
-              Sample feedback for now — approved customer quotes can be added here later.
+              Trusted by shoppers who want quality foodstuff delivered with care.
             </p>
           </div>
 

@@ -34,6 +34,7 @@ export interface CreatedOrder {
     transactionReference: string
     amount: string
     transferredAt: string
+    proofUrl: string
     status: 'PENDING' | 'VERIFIED' | 'REJECTED'
     reviewedAt: string | null
     createdAt: string

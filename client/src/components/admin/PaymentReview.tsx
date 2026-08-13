@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AdminPayment } from '../../services/paymentService'
+import { ImagePreview } from '../ui/ImagePreview'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -46,7 +47,12 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Payment status</p><p className="mt-1 font-bold text-green-dark">{payment.status}</p></div>
         </div>
 
-        <a className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-green/20 bg-sage/35 px-4 py-4 text-sm font-bold text-green hover:bg-sage" href={payment.proofUrl} target="_blank" rel="noreferrer">View receipt / payment proof</a>
+        <ImagePreview
+          className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-green/20 bg-sage/35 px-4 py-4 text-sm font-bold text-green hover:bg-sage"
+          src={payment.proofUrl}
+          alt={`Payment proof for ${payment.transactionReference}`}
+          label="View receipt / payment proof"
+        />
 
         <label className="mt-6 block text-sm font-bold text-green-dark">
           Review note

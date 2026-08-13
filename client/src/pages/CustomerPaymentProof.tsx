@@ -7,6 +7,7 @@ import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getCustomerOrder, type CreatedOrder } from '../services/orderService'
 import { getBankDetails, submitPaymentProof, type BankDetails, type PaymentSubmission } from '../services/paymentService'
+import { ImagePreview } from '../components/ui/ImagePreview'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -131,6 +132,7 @@ export function CustomerPaymentProof() {
               <div className="mt-6 rounded-2xl border border-green/25 bg-sage/25 p-6" role="status">
                 <h2 className="font-bold text-green-dark">Payment verification pending</h2>
                 <p className="mt-2 text-sm leading-6 text-muted">Your payment submission is awaiting review. The order will only become paid after approval.</p>
+               {'proofUrl' in payment && payment.proofUrl && <ImagePreview className="mt-4 inline-flex font-bold text-green hover:text-orange" src={payment.proofUrl} alt={`Payment proof for ${order.orderNumber}`} label="View submitted payment proof" />}
               </div>
               ) : bank ? (
               <form className="mt-6 space-y-4 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8" onSubmit={handleSubmit}>

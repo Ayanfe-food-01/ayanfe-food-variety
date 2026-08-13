@@ -8,6 +8,7 @@ import { ApiError } from '../services/api'
 import { getBankDetails, type BankDetails } from '../services/paymentService'
 import { getCustomerOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
 import { formatOrderStatus } from '../utils/orderStatus'
+import { ImagePreview } from '../components/ui/ImagePreview'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -205,6 +206,7 @@ export function CustomerOrderDetails() {
                       <div>
                         <p className="font-bold text-green-dark">{submission.transactionReference}</p>
                         <p className="mt-1 text-xs text-muted">Submitted {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(submission.createdAt))}</p>
+                        <ImagePreview className="mt-3 inline-flex text-xs font-bold text-green hover:text-orange" src={submission.proofUrl} alt={`Payment proof for ${submission.transactionReference}`} label="View payment proof" />
                       </div>
                       <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{submission.status}</span>
                     </div>

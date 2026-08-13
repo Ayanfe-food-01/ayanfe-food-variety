@@ -57,7 +57,7 @@ function RouteTransition() {
     transitionTimeout.current = window.setTimeout(() => {
       setIsRouteLoading(false)
       transitionTimeout.current = undefined
-    }, 320)
+    }, 650)
   }, [])
 
   useEffect(() => {

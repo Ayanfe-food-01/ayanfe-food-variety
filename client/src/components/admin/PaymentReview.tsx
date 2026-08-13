@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { AdminPayment, PaymentRejectionReason } from '../../services/paymentService'
 import { ImagePreview } from '../ui/ImagePreview'
@@ -18,6 +18,18 @@ const rejectionReasons: Array<{ value: PaymentRejectionReason; label: string }> 
   { value: 'OTHER', label: 'Other' },
 ]
 
+const rejectionReasonLabel = (value: PaymentRejectionReason): string =>
+  rejectionReasons.find((reason) => reason.value === value)?.label ?? value.replaceAll('_', ' ')
+
+const auditActionLabel = (value: string): string =>
+  value === 'PROOF_SUBMITTED'
+    ? 'Proof submitted'
+    : value === 'PAYMENT_CONFIRMED'
+      ? 'Payment confirmed'
+      : value === 'PAYMENT_REJECTED'
+        ? 'Payment rejected'
+        : value.replaceAll('_', ' ')
+
 interface PaymentReviewProps {
   payment: AdminPayment
   isSaving: boolean
@@ -33,6 +45,20 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
   const isPending = payment.status === 'PENDING'
   const amountMatches = payment.amount === payment.expectedAmount
 
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isSaving) onClose()
+    }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isSaving, onClose])
+
   const reject = async () => {
     if (!rejectionReason) {
       setError('Select a rejection reason before rejecting this payment.')
@@ -43,7 +69,15 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-green-dark/35 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="payment-review-title">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-green-dark/35 p-0 sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="payment-review-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isSaving) onClose()
+      }}
+    >
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-cream p-6 shadow-2xl sm:rounded-3xl sm:p-8">
         <div className="flex items-start justify-between gap-5">
           <div>
@@ -63,8 +97,16 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transaction reference</p><p className="mt-1 break-all font-bold text-green-dark">{payment.transactionReference}</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Submitted</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.createdAt)}</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transfer date</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.transferredAt)}</p></div>
-          <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Current status</p><p className="mt-1 font-bold text-green-dark">{payment.status} · Order payment {payment.orderPaymentStatus}</p></div>
+          <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Current status</p><p className="mt-1 font-bold text-green-dark">{payment.status} · Order payment {payment.orderPaymentStatus}</p>{payment.reviewedAt && <p className="mt-1 text-xs text-muted">Reviewed {formatDate(payment.reviewedAt)}</p>}</div>
         </div>
+
+        {payment.rejectionReason && (
+          <section className="mt-6 rounded-2xl border border-orange/25 bg-orange/10 p-5" aria-label="Rejection details">
+            <h3 className="font-bold text-orange">Rejection details</h3>
+            <p className="mt-2 text-sm font-semibold text-green-dark">{rejectionReasonLabel(payment.rejectionReason)}</p>
+            {payment.reviewNote && <p className="mt-1 text-sm leading-6 text-muted">{payment.reviewNote}</p>}
+          </section>
+        )}
 
         <section className="mt-6 rounded-2xl border border-line bg-white p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -84,7 +126,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
             <div className="mt-4 space-y-3">
               {payment.auditHistory.map((event) => (
                 <div className="border-l-2 border-sage pl-4 text-sm" key={event.id}>
-                  <p className="font-bold text-green-dark">{event.action.replaceAll('_', ' ')}</p>
+                  <p className="font-bold text-green-dark">{auditActionLabel(event.action)}</p>
                   <p className="mt-1 text-xs text-muted">{formatDate(event.createdAt)} · {event.performedBy?.name ?? 'System'}</p>
                   {event.note && <p className="mt-1 text-xs text-muted">{event.note}</p>}
                 </div>

@@ -1,4 +1,10 @@
-import type { OrderStatus, PaymentSubmissionStatus, PaymentStatus } from '@prisma/client'
+import type {
+  OrderStatus,
+  PaymentMethod,
+  PaymentRejectionReason,
+  PaymentSubmissionStatus,
+  PaymentStatus,
+} from '@prisma/client'
 
 export interface DashboardStats {
   totalOrders: number
@@ -53,17 +59,67 @@ export interface AdminOrderStatusHistory {
 export interface AdminPaymentListItem {
   id: string
   orderId: string
+  orderNumber: string
   customerName: string
   customerEmail: string | null
+  customerPhone: string
   amount: string
+  expectedAmount: string
+  paymentMethod: PaymentMethod
+  orderStatus: OrderStatus
+  orderPaymentStatus: PaymentStatus
   senderName: string
   transactionReference: string
   transferredAt: string
   createdAt: string
   status: PaymentSubmissionStatus
   proofUrl: string
+  proofAvailable: boolean
+  rejectionReason: PaymentRejectionReason | null
   reviewNote: string | null
   reviewedAt: string | null
+  auditHistory?: AdminPaymentAuditItem[]
+}
+
+export interface AdminPaymentAuditItem {
+  id: string
+  action: string
+  note: string | null
+  createdAt: string
+  performedBy: { name: string; email: string } | null
+}
+
+export interface AdminPaymentsQuery {
+  search?: string
+  status?: PaymentSubmissionStatus
+  paymentMethod?: PaymentMethod
+  from?: Date
+  to?: Date
+  sort: 'newest' | 'oldest'
+  page: number
+  pageSize: number
+}
+
+export interface AdminPaymentSummaryItem {
+  count: number
+  totalAmount: string
+}
+
+export interface AdminPaymentSummary {
+  pending: AdminPaymentSummaryItem
+  verified: AdminPaymentSummaryItem
+  rejected: AdminPaymentSummaryItem
+}
+
+export interface AdminPaymentsPage {
+  payments: AdminPaymentListItem[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+  summary: AdminPaymentSummary
 }
 
 export interface UpdateOrderStatusInput {

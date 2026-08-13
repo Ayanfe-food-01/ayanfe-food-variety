@@ -1,4 +1,4 @@
-import type { PaymentSubmissionStatus } from '@prisma/client'
+import type { PaymentRejectionReason, PaymentSubmissionStatus } from '@prisma/client'
 
 export interface SubmitPaymentInput {
   orderId: string
@@ -9,6 +9,7 @@ export interface SubmitPaymentInput {
 }
 
 export interface ReviewPaymentInput {
+  rejectionReason?: PaymentRejectionReason
   reviewNote?: string
 }
 
@@ -21,6 +22,7 @@ export interface PaymentSubmissionResponse {
   transferredAt: string
   proofUrl: string
   status: PaymentSubmissionStatus
+  rejectionReason: PaymentRejectionReason | null
   reviewNote: string | null
   reviewedAt: string | null
   createdAt: string

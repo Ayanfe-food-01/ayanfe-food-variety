@@ -1,4 +1,5 @@
-import { PaymentStatus, PaymentSubmissionStatus, Prisma } from '@prisma/client'
+import { PaymentAuditAction, PaymentStatus, PaymentSubmissionStatus, Prisma } from '@prisma/client'
+import type { PaymentRejectionReason } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { notifyPaymentReviewed, notifyPaymentSubmitted } from './payment.email.js'
@@ -20,6 +21,7 @@ const toResponse = (submission: {
   transferredAt: Date
   proofUrl: string
   status: PaymentSubmissionStatus
+  rejectionReason: PaymentRejectionReason | null
   reviewNote: string | null
   reviewedAt: Date | null
   createdAt: Date
@@ -33,15 +35,12 @@ const toResponse = (submission: {
   transferredAt: submission.transferredAt.toISOString(),
   proofUrl: submission.proofUrl,
   status: submission.status,
+  rejectionReason: submission.rejectionReason,
   reviewNote: submission.reviewNote,
   reviewedAt: submission.reviewedAt?.toISOString() ?? null,
   createdAt: submission.createdAt.toISOString(),
   updatedAt: submission.updatedAt.toISOString(),
 })
-
-const ensureAmountMatches = (amount: Prisma.Decimal, total: Prisma.Decimal) => {
-  if (!amount.eq(total)) throw new HttpError(400, 'The transferred amount must match the order total.')
-}
 
 const toBankDetails = (settings: {
   bankName: string
@@ -83,20 +82,29 @@ export async function submitPayment(
   if (pendingSubmission) throw new HttpError(409, 'A payment proof for this order is already awaiting review.')
 
   const amount = new Prisma.Decimal(input.amount)
-  ensureAmountMatches(amount, order.total)
   const uploadedProof = await uploadPaymentProof(file, order.id)
   let submission
   try {
-    submission = await prisma.paymentSubmission.create({
-      data: {
-        orderId: order.id,
-        senderName: input.senderName,
-        transactionReference: input.transactionReference,
-        amount,
-        transferredAt: new Date(input.transferredAt),
-        proofUrl: uploadedProof.url,
-        status: PaymentSubmissionStatus.PENDING,
-      },
+    submission = await prisma.$transaction(async (transaction) => {
+      const created = await transaction.paymentSubmission.create({
+        data: {
+          orderId: order.id,
+          senderName: input.senderName,
+          transactionReference: input.transactionReference,
+          amount,
+          transferredAt: new Date(input.transferredAt),
+          proofUrl: uploadedProof.url,
+          status: PaymentSubmissionStatus.PENDING,
+        },
+      })
+      await transaction.paymentAuditEvent.create({
+        data: {
+          paymentSubmissionId: created.id,
+          action: PaymentAuditAction.PROOF_SUBMITTED,
+          performedById: authenticatedUserId,
+        },
+      })
+      return created
     })
   } catch (error: unknown) {
     await deletePaymentProof(uploadedProof.publicId)
@@ -135,6 +143,7 @@ export async function reviewPayment(
   id: string,
   verified: boolean,
   input: ReviewPaymentInput,
+  adminId: string,
 ): Promise<PaymentSubmissionResponse> {
   const result = await prisma.$transaction(async (transaction) => {
     const submission = await transaction.paymentSubmission.findUnique({ where: { id } })
@@ -145,34 +154,39 @@ export async function reviewPayment(
 
     const order = await transaction.order.findUnique({ where: { id: submission.orderId } })
     if (!order) throw new HttpError(404, 'Order not found.')
-    ensureAmountMatches(submission.amount, order.total)
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      throw new HttpError(409, 'This order payment has already been confirmed.')
+    }
 
     const claimed = await transaction.paymentSubmission.updateMany({
       where: { id, status: PaymentSubmissionStatus.PENDING },
       data: {
         status: verified ? PaymentSubmissionStatus.VERIFIED : PaymentSubmissionStatus.REJECTED,
+        rejectionReason: verified ? null : input.rejectionReason,
         reviewNote: input.reviewNote ?? null,
         reviewedAt: new Date(),
       },
     })
     if (claimed.count !== 1) throw new HttpError(409, 'This payment submission has already been reviewed.')
 
-    if (verified) {
-      await transaction.order.update({
-        where: { id: order.id },
-        data: { paymentStatus: PaymentStatus.PAID },
-      })
-    } else {
-      await transaction.order.update({
-        where: { id: order.id },
-        data: { paymentStatus: PaymentStatus.FAILED },
-      })
-    }
+    await transaction.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: verified ? PaymentStatus.PAID : PaymentStatus.FAILED },
+    })
+    await transaction.paymentAuditEvent.create({
+      data: {
+        paymentSubmissionId: id,
+        action: verified ? PaymentAuditAction.PAYMENT_CONFIRMED : PaymentAuditAction.PAYMENT_REJECTED,
+        performedById: adminId,
+        note: input.reviewNote ?? input.rejectionReason ?? null,
+      },
+    })
     const updated = await transaction.paymentSubmission.findUniqueOrThrow({ where: { id } })
     return {
       submission: toResponse(updated),
       customerEmail: order.email,
       orderId: order.id,
+      rejectionReason: input.rejectionReason ?? null,
     }
   })
 
@@ -181,6 +195,7 @@ export async function reviewPayment(
     customerEmail: result.customerEmail,
     verified,
     reviewNote: input.reviewNote ?? null,
+    rejectionReason: result.rejectionReason,
   }).catch((error: unknown) => console.error('Payment review email failed', error))
 
   return result.submission

@@ -15,6 +15,14 @@ interface EmailMessage {
   html: string
 }
 
+type PaymentRejectionReason =
+  | 'AMOUNT_MISMATCH'
+  | 'PROOF_UNCLEAR'
+  | 'TRANSACTION_UNVERIFIED'
+  | 'WRONG_ACCOUNT'
+  | 'DUPLICATE_PROOF'
+  | 'OTHER'
+
 async function sendEmail(message: EmailMessage): Promise<void> {
   if (!env.email.resendApiKey || !env.email.from) {
     console.warn('Payment email skipped: Resend is not configured.')
@@ -59,6 +67,7 @@ export async function notifyPaymentReviewed(order: {
   customerEmail: string | null
   verified: boolean
   reviewNote: string | null
+  rejectionReason?: PaymentRejectionReason | null
 }): Promise<void> {
   if (!order.customerEmail) return
   const subject = order.verified
@@ -66,7 +75,7 @@ export async function notifyPaymentReviewed(order: {
     : `Payment Verification Issue — Order #${order.id}`
   const message = order.verified
     ? 'Your payment has been verified. Your order remains pending fulfillment review.'
-    : `We could not verify your payment proof. Review note: ${order.reviewNote ?? 'Please contact us for help.'}`
+    : `We could not verify your payment proof. Reason: ${order.rejectionReason?.replaceAll('_', ' ').toLowerCase() ?? 'Please contact us for help.'}${order.reviewNote ? ` — ${order.reviewNote}` : ''}`
   await sendEmail({
     to: order.customerEmail,
     subject,

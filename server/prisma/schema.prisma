@@ -23,6 +23,21 @@ enum PaymentSubmissionStatus {
   REJECTED
 }
 
+enum PaymentRejectionReason {
+  AMOUNT_MISMATCH
+  PROOF_UNCLEAR
+  TRANSACTION_UNVERIFIED
+  WRONG_ACCOUNT
+  DUPLICATE_PROOF
+  OTHER
+}
+
+enum PaymentAuditAction {
+  PROOF_SUBMITTED
+  PAYMENT_CONFIRMED
+  PAYMENT_REJECTED
+}
+
 enum OrderStatus {
   ORDER_PLACED
   PROCESSING
@@ -134,15 +149,32 @@ model PaymentSubmission {
   transferredAt        DateTime                @map("transferred_at") @db.Timestamptz(6)
   proofUrl             String                  @map("proof_url")
   status               PaymentSubmissionStatus @default(PENDING)
+  rejectionReason      PaymentRejectionReason? @map("rejection_reason")
   reviewNote           String?                 @map("review_note")
   reviewedAt           DateTime?               @map("reviewed_at") @db.Timestamptz(6)
   createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   order                Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  auditEvents          PaymentAuditEvent[]
 
   @@index([orderId], map: "payment_submissions_order_id_idx")
   @@index([status], map: "payment_submissions_status_idx")
   @@map("payment_submissions")
+}
+
+model PaymentAuditEvent {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentSubmissionId String            @map("payment_submission_id") @db.Uuid
+  action              PaymentAuditAction
+  performedById       String?           @map("performed_by_id") @db.Uuid
+  note                String?           @db.VarChar(1000)
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  paymentSubmission   PaymentSubmission @relation(fields: [paymentSubmissionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  performedBy         User?             @relation("PaymentAuditActor", fields: [performedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([paymentSubmissionId, createdAt], map: "payment_audit_events_submission_created_idx")
+  @@index([performedById], map: "payment_audit_events_performed_by_idx")
+  @@map("payment_audit_events")
 }
 
 model OrderStatusHistory {
@@ -230,6 +262,7 @@ model User {
   orders       Order[]
   orderStatusChanges OrderStatusHistory[]
   cart         CustomerCart?
+  paymentAuditEvents PaymentAuditEvent[] @relation("PaymentAuditActor")
 
   @@map("users")
 }

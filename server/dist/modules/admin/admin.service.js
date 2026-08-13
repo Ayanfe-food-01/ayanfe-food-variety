@@ -16,17 +16,36 @@ const toOrderListItem = (order) => ({
 const toPaymentListItem = (payment) => ({
     id: payment.id,
     orderId: payment.orderId,
+    orderNumber: payment.order.orderNumber,
     customerName: payment.order.customerName,
     customerEmail: payment.order.email,
+    customerPhone: payment.order.phone,
     senderName: payment.senderName,
     transactionReference: payment.transactionReference,
     amount: payment.amount.toString(),
+    expectedAmount: payment.order.total.toString(),
+    paymentMethod: payment.order.paymentMethod,
+    orderPaymentStatus: payment.order.paymentStatus,
+    orderStatus: payment.order.orderStatus,
     transferredAt: payment.transferredAt.toISOString(),
     proofUrl: payment.proofUrl,
+    proofAvailable: Boolean(payment.proofUrl.trim()),
     status: payment.status,
+    rejectionReason: payment.rejectionReason,
     reviewNote: payment.reviewNote,
     reviewedAt: payment.reviewedAt?.toISOString() ?? null,
     createdAt: payment.createdAt.toISOString(),
+    ...(payment.auditEvents
+        ? {
+            auditHistory: payment.auditEvents.map((event) => ({
+                id: event.id,
+                action: event.action,
+                note: event.note,
+                createdAt: event.createdAt.toISOString(),
+                performedBy: event.performedBy,
+            })),
+        }
+        : {}),
 });
 export async function getDashboardStats() {
     const [totalOrders, orderPlacedOrders, processingOrders, deliveredOrders, cancelledOrders, pendingPaymentVerification, verifiedPayments, sales] = await Promise.all([
@@ -274,18 +293,102 @@ export async function updateAdminOrderStatus(orderNumber, input, adminId) {
     }).catch((error) => console.error('Order status email failed', error));
     return getAdminOrder(orderNumber);
 }
-export async function listAdminPayments(status) {
-    const payments = await prisma.paymentSubmission.findMany({
-        where: status ? { status } : undefined,
-        orderBy: { createdAt: 'desc' },
-        include: { order: { select: { customerName: true, email: true } } },
+export async function listAdminPayments(query) {
+    const search = query.search
+        ? {
+            OR: [
+                { transactionReference: { contains: query.search, mode: 'insensitive' } },
+                { senderName: { contains: query.search, mode: 'insensitive' } },
+                { order: { orderNumber: { contains: query.search, mode: 'insensitive' } } },
+                { order: { customerName: { contains: query.search, mode: 'insensitive' } } },
+                { order: { email: { contains: query.search, mode: 'insensitive' } } },
+            ],
+        }
+        : undefined;
+    const where = {
+        ...(search ?? {}),
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.paymentMethod ? { order: { paymentMethod: query.paymentMethod } } : {}),
+        ...(query.from || query.to
+            ? { createdAt: { ...(query.from ? { gte: query.from } : {}), ...(query.to ? { lte: query.to } : {}) } }
+            : {}),
+    };
+    const orderSelect = {
+        orderNumber: true,
+        customerName: true,
+        email: true,
+        phone: true,
+        total: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        orderStatus: true,
+    };
+    const [total, payments, grouped] = await Promise.all([
+        prisma.paymentSubmission.count({ where }),
+        prisma.paymentSubmission.findMany({
+            where,
+            orderBy: { createdAt: query.sort === 'oldest' ? 'asc' : 'desc' },
+            skip: (query.page - 1) * query.pageSize,
+            take: query.pageSize,
+            include: { order: { select: orderSelect } },
+        }),
+        prisma.paymentSubmission.groupBy({
+            by: ['status'],
+            _count: { _all: true },
+            _sum: { amount: true },
+        }),
+    ]);
+    const summary = {
+        pending: { count: 0, totalAmount: '0' },
+        verified: { count: 0, totalAmount: '0' },
+        rejected: { count: 0, totalAmount: '0' },
+    };
+    grouped.forEach((item) => {
+        const key = item.status === PaymentSubmissionStatus.PENDING
+            ? 'pending'
+            : item.status === PaymentSubmissionStatus.VERIFIED
+                ? 'verified'
+                : 'rejected';
+        summary[key] = { count: item._count._all, totalAmount: item._sum.amount?.toString() ?? '0' };
     });
-    return payments.map(toPaymentListItem);
+    return {
+        payments: payments.map(toPaymentListItem),
+        pagination: {
+            page: query.page,
+            pageSize: query.pageSize,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+        },
+        summary,
+    };
 }
 export async function getAdminPayment(id) {
     const payment = await prisma.paymentSubmission.findUnique({
         where: { id },
-        include: { order: { select: { customerName: true, email: true } } },
+        include: {
+            order: {
+                select: {
+                    orderNumber: true,
+                    customerName: true,
+                    email: true,
+                    phone: true,
+                    total: true,
+                    paymentMethod: true,
+                    paymentStatus: true,
+                    orderStatus: true,
+                },
+            },
+            auditEvents: {
+                orderBy: { createdAt: 'asc' },
+                select: {
+                    id: true,
+                    action: true,
+                    note: true,
+                    createdAt: true,
+                    performedBy: { select: { name: true, email: true } },
+                },
+            },
+        },
     });
     if (!payment)
         throw new HttpError(404, 'Payment submission not found.');

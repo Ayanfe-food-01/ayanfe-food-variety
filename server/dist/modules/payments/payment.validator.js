@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { PaymentRejectionReason, Prisma } from '@prisma/client';
 import { HttpError } from '../../utils/http.js';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const requiredString = (value, field, maxLength) => {
@@ -44,14 +44,23 @@ export const validatePaymentSubmissionId = (value) => {
 export const validateReviewPaymentInput = (body, isRejection) => {
     if (!body || typeof body !== 'object') {
         if (isRejection)
-            throw new HttpError(400, 'A review note is required when rejecting a payment.');
+            throw new HttpError(400, 'A rejection reason is required.');
         return {};
     }
-    const value = body.reviewNote;
-    if (value === undefined || value === null || value === '') {
-        if (isRejection)
-            throw new HttpError(400, 'A review note is required when rejecting a payment.');
-        return {};
+    const input = body;
+    const reason = input.rejectionReason;
+    if (isRejection && (typeof reason !== 'string' || !Object.values(PaymentRejectionReason).includes(reason))) {
+        throw new HttpError(400, 'A valid rejection reason is required.');
     }
-    return { reviewNote: requiredString(value, 'Review note', 1000) };
+    if (!isRejection && reason !== undefined && (typeof reason !== 'string' || !Object.values(PaymentRejectionReason).includes(reason))) {
+        throw new HttpError(400, 'Rejection reason is invalid.');
+    }
+    const value = input.reviewNote;
+    if (value !== undefined && value !== null && value !== '') {
+        return {
+            rejectionReason: reason,
+            reviewNote: requiredString(value, 'Review note', 1000),
+        };
+    }
+    return { rejectionReason: reason };
 };

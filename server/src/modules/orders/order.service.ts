@@ -200,9 +200,11 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
 
     const user = await transaction.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, emailVerified: true },
     })
-    if (!user || user.role !== 'CUSTOMER') throw new HttpError(403, 'Customer access is required.')
+    if (!user || user.role !== 'CUSTOMER' || !user.emailVerified) {
+      throw new HttpError(403, 'A verified customer account is required.')
+    }
 
     const cartReference = await transaction.customerCart.findUnique({
       where: { userId: user.id },
@@ -375,9 +377,20 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       orderNumber: result.order.orderNumber,
       customerName: result.order.customerName,
       customerEmail: result.order.email,
+      phone: result.order.phone,
+      deliveryAddress: result.order.deliveryAddress,
+      city: result.order.city,
+      note: result.order.note,
+      subtotal: result.order.subtotal.toString(),
+      deliveryFee: result.order.deliveryFee.toString(),
       total: result.order.total.toString(),
+      paymentMethod: result.order.paymentMethod,
+      paymentStatus: result.order.paymentStatus,
+      orderStatus: result.order.orderStatus,
+      createdAt: result.order.createdAt.toISOString(),
       items: result.order.orderItems.map((item) => ({
         name: item.productName,
+        unitPrice: item.unitPrice.toString(),
         quantity: item.quantity,
         subtotal: item.subtotal.toString(),
       })),

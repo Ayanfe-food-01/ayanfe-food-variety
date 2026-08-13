@@ -8,3 +8,4 @@
 - [Split frontend/API configuration](split-api-configuration.md) — Vercel build variables must be clean API bases and Render must allow the exact frontend origin.
 - [Static crawl-control files](seo-robots-static-assets.md) — keep robots.txt on the static frontend path so crawl access does not depend on a runtime function.
 - [Vercel API TypeScript compatibility](vercel-api-typescript.md) — Vercel may scan unused api folders; NodeNext handlers need .js imports and explicit Node typings.
+- [Branded email notifications](branded-email-notifications.md) — transactional emails share one Resend/template path and never become part of the order transaction.

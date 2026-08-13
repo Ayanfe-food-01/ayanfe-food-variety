@@ -1,45 +1,230 @@
+import type { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { env } from '../../config/env.js'
-import type { OrderStatus } from '@prisma/client'
+import {
+  escapeHtml,
+  renderBrandedEmail,
+  sendEmail,
+  type EmailMessage,
+} from '../../lib/email/email.service.js'
 
-const escapeHtml = (value: string): string =>
-  value.replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
-  })[character] ?? character)
+type OrderEmailItem = {
+  name: string
+  unitPrice: string
+  quantity: number
+  subtotal: string
+}
 
-export async function notifyOrderCreated(order: {
+type CreatedOrderEmail = {
   orderNumber: string
   customerName: string
   customerEmail: string | null
+  phone: string
+  deliveryAddress: string
+  city: string
+  note: string | null
+  subtotal: string
+  deliveryFee: string
   total: string
-  items: Array<{ name: string; quantity: number; subtotal: string }>
-}): Promise<void> {
-  if (!order.customerEmail || !env.email.resendApiKey || !env.email.from) {
-    if (!env.email.resendApiKey || !env.email.from) console.warn('Order confirmation email skipped: Resend is not configured.')
-    return
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  orderStatus: OrderStatus
+  createdAt: string
+  items: OrderEmailItem[]
+}
+
+const formatPrice = (value: string): string =>
+  new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(Number(value))
+
+const formatPaymentMethod = (method: PaymentMethod): string =>
+  method === 'BANK_TRANSFER' ? 'Bank transfer' : method
+
+const formatStatus = (status: OrderStatus | PaymentStatus): string =>
+  status
+    .split('_')
+    .map((part) => `${part.slice(0, 1)}${part.slice(1).toLowerCase()}`)
+    .join(' ')
+
+const formatDateTime = (value: string): string =>
+  new Intl.DateTimeFormat('en-NG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Africa/Lagos',
+  }).format(new Date(value))
+
+const getAppLink = (path: string): string | null => {
+  if (!env.publicAppUrl) return null
+  try {
+    const baseUrl = new URL(env.publicAppUrl)
+    if (!['http:', 'https:'].includes(baseUrl.protocol)) return null
+    return new URL(path.replace(/^\/+/, ''), `${baseUrl.toString().replace(/\/+$/, '')}/`).toString()
+  } catch {
+    return null
+  }
+}
+
+const renderOrderItems = (items: OrderEmailItem[]): string => `
+  <table role="presentation" class="email-table" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:24px 0;border-collapse:collapse;color:#173b2b;font-size:14px;">
+    <thead>
+      <tr style="border-bottom:2px solid #dfe7dc;">
+        <th align="left" style="padding:0 0 10px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#66756b;">Product</th>
+        <th align="center" style="padding:0 8px 10px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#66756b;">Qty</th>
+        <th align="right" style="padding:0 0 10px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#66756b;">Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map((item) => `
+        <tr style="border-bottom:1px solid #edf1eb;">
+          <td style="padding:13px 0;line-height:1.45;">${escapeHtml(item.name)}<br><span style="color:#66756b;font-size:12px;">${escapeHtml(formatPrice(item.unitPrice))} each</span></td>
+          <td align="center" style="padding:13px 8px;color:#58695e;">${item.quantity}</td>
+          <td align="right" style="padding:13px 0;font-weight:bold;white-space:nowrap;">${escapeHtml(formatPrice(item.subtotal))}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+`
+
+const renderTotals = (order: CreatedOrderEmail): string => `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-top:1px solid #dfe7dc;color:#58695e;font-size:14px;">
+    <tr><td style="padding:11px 0 0;">Subtotal</td><td align="right" style="padding:11px 0 0;color:#173b2b;font-weight:bold;">${escapeHtml(formatPrice(order.subtotal))}</td></tr>
+    <tr><td style="padding:8px 0;">Delivery fee</td><td align="right" style="padding:8px 0;color:#173b2b;font-weight:bold;">${escapeHtml(formatPrice(order.deliveryFee))}</td></tr>
+    <tr><td style="padding:14px 0 0;color:#173b2b;font-size:17px;font-weight:bold;">Total</td><td align="right" style="padding:14px 0 0;color:#173b2b;font-size:17px;font-weight:bold;">${escapeHtml(formatPrice(order.total))}</td></tr>
+  </table>
+`
+
+const renderOrderDetails = (order: CreatedOrderEmail, includeCustomerEmail: boolean): string => `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:20px 0;background:#f5f7f1;border-radius:14px;color:#58695e;font-size:13px;">
+    <tr><td style="padding:14px 16px 5px;">Order number</td><td align="right" style="padding:14px 16px 5px;color:#173b2b;font-weight:bold;">${escapeHtml(order.orderNumber)}</td></tr>
+    ${includeCustomerEmail && order.customerEmail ? `<tr><td style="padding:5px 16px;">Customer email</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(order.customerEmail)}</td></tr>` : ''}
+    <tr><td style="padding:5px 16px;">Payment method</td><td align="right" style="padding:5px 16px;color:#173b2b;font-weight:bold;">${escapeHtml(formatPaymentMethod(order.paymentMethod))}</td></tr>
+    <tr><td style="padding:5px 16px;">Payment status</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(formatStatus(order.paymentStatus))}</td></tr>
+    <tr><td style="padding:5px 16px 14px;">Order status</td><td align="right" style="padding:5px 16px 14px;color:#173b2b;">${escapeHtml(formatStatus(order.orderStatus))}</td></tr>
+  </table>
+`
+
+const renderDeliveryDetails = (order: CreatedOrderEmail, includePhone: boolean): string => `
+  <div style="margin-top:24px;padding-top:22px;border-top:1px solid #dfe7dc;">
+    <h2 style="margin:0 0 12px;color:#173b2b;font-size:18px;">Delivery details</h2>
+    <p style="margin:0;color:#58695e;font-size:14px;line-height:1.75;">
+      <strong style="color:#173b2b;">${escapeHtml(order.customerName)}</strong><br>
+      ${includePhone ? `${escapeHtml(order.phone)}<br>` : ''}
+      ${escapeHtml(order.deliveryAddress)}, ${escapeHtml(order.city)}
+      ${order.note ? `<br><span style="color:#66756b;">Instructions: ${escapeHtml(order.note)}</span>` : ''}
+    </p>
+  </div>
+`
+
+const customerOrderMessage = (order: CreatedOrderEmail): EmailMessage => {
+  const orderLink = getAppLink(`/orders/${encodeURIComponent(order.orderNumber)}`)
+  return {
+    to: order.customerEmail!,
+    subject: `Order confirmation — ${order.orderNumber}`,
+    html: renderBrandedEmail({
+      title: 'Order received',
+      preheader: `Your order ${order.orderNumber} has been placed successfully.`,
+      intro: `Hi ${escapeHtml(order.customerName)}, your order has been placed successfully. We will keep you updated as it moves through fulfilment.`,
+      contentHtml: `
+        ${renderOrderDetails(order, false)}
+        ${renderOrderItems(order.items)}
+        ${renderTotals(order)}
+        ${renderDeliveryDetails(order, true)}
+        ${orderLink ? `<p style="margin:28px 0 0;text-align:center;"><a href="${escapeHtml(orderLink)}" style="display:inline-block;padding:13px 20px;border-radius:999px;background:#285b37;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">View your order</a></p>` : ''}
+      `,
+      footerNote: 'Payment remains pending until your transfer is reviewed by the store.',
+    }),
+    text: [
+      'Ayanfe Food Variety order confirmation',
+      `Hi ${order.customerName},`,
+      `Order: ${order.orderNumber}`,
+      ...order.items.map((item) => `${item.name} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
+      `Subtotal: ${formatPrice(order.subtotal)}`,
+      `Delivery fee: ${formatPrice(order.deliveryFee)}`,
+      `Total: ${formatPrice(order.total)}`,
+      `Payment method: ${formatPaymentMethod(order.paymentMethod)}`,
+      `Order status: ${formatStatus(order.orderStatus)}`,
+      `Delivery: ${order.deliveryAddress}, ${order.city}`,
+    ].join('\n'),
+  }
+}
+
+const adminOrderMessage = (order: CreatedOrderEmail): EmailMessage => {
+  const orderLink = getAppLink(`/admin/orders/${encodeURIComponent(order.orderNumber)}`)
+  return {
+    to: env.email.businessEmail!,
+    subject: `New Order Received — ${order.orderNumber}`,
+    html: renderBrandedEmail({
+      title: 'New Order Received',
+      preheader: `Order ${order.orderNumber} from ${order.customerName}`,
+      intro: `A new order was created at ${escapeHtml(formatDateTime(order.createdAt))}. Review the order details below.`,
+      contentHtml: `
+        ${renderOrderDetails(order, true)}
+        ${renderOrderItems(order.items)}
+        ${renderTotals(order)}
+        ${renderDeliveryDetails(order, true)}
+        <p style="margin:24px 0 0;color:#58695e;font-size:13px;line-height:1.7;">Customer phone: <strong style="color:#173b2b;">${escapeHtml(order.phone)}</strong></p>
+        ${orderLink ? `<p style="margin:28px 0 0;text-align:center;"><a href="${escapeHtml(orderLink)}" style="display:inline-block;padding:13px 20px;border-radius:999px;background:#285b37;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Open in Admin Portal</a></p>` : ''}
+      `,
+      footerNote: `Order created ${formatDateTime(order.createdAt)}.`,
+    }),
+    text: [
+      'New Order Received',
+      `Order: ${order.orderNumber}`,
+      `Customer: ${order.customerName}`,
+      `Email: ${order.customerEmail ?? 'Not provided'}`,
+      `Phone: ${order.phone}`,
+      ...order.items.map((item) => `${item.name} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
+      `Total: ${formatPrice(order.total)}`,
+      `Payment method: ${formatPaymentMethod(order.paymentMethod)}`,
+      `Payment status: ${formatStatus(order.paymentStatus)}`,
+      `Delivery: ${order.deliveryAddress}, ${order.city}`,
+      `Created: ${formatDateTime(order.createdAt)}`,
+    ].join('\n'),
+  }
+}
+
+async function sendOrderMessage(message: EmailMessage, audience: 'customer' | 'business', orderNumber: string): Promise<void> {
+  try {
+    await sendEmail(message)
+  } catch (error: unknown) {
+    console.error(JSON.stringify({
+      event: 'order_email_failed',
+      audience,
+      orderNumber,
+      reason: error instanceof Error ? error.message : 'UnknownError',
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+    }))
+  }
+}
+
+export async function notifyOrderCreated(order: CreatedOrderEmail): Promise<void> {
+  const messages: Promise<void>[] = []
+
+  if (order.customerEmail) {
+    messages.push(sendOrderMessage(customerOrderMessage(order), 'customer', order.orderNumber))
+  } else {
+    console.warn(JSON.stringify({
+      event: 'order_email_skipped',
+      audience: 'customer',
+      orderNumber: order.orderNumber,
+      reason: 'missing_customer_email',
+    }))
   }
 
-  const items = order.items
-    .map((item) => `<li>${escapeHtml(item.name)} × ${item.quantity} — ₦${escapeHtml(item.subtotal)}</li>`)
-    .join('')
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.email.resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.email.from,
-      to: [order.customerEmail],
-      subject: `Order received — ${order.orderNumber}`,
-      html: `<p>Hi ${escapeHtml(order.customerName)},</p>
-        <p>Your order <strong>${escapeHtml(order.orderNumber)}</strong> has been placed successfully.</p>
-        <ul>${items}</ul>
-        <p><strong>Total:</strong> ₦${escapeHtml(order.total)}<br>
-        <strong>Payment status:</strong> Pending</p>
-         <p>After completing your transfer, submit your payment proof from your order page so the store can verify it.</p>`,
-    }),
-  })
-  if (!response.ok) console.error('Order confirmation email provider returned an error', response.status)
+  if (env.email.businessEmail) {
+    messages.push(sendOrderMessage(adminOrderMessage(order), 'business', order.orderNumber))
+  } else {
+    console.warn(JSON.stringify({
+      event: 'order_email_skipped',
+      audience: 'business',
+      orderNumber: order.orderNumber,
+      reason: 'BUSINESS_EMAIL_not_configured',
+    }))
+  }
+
+  await Promise.all(messages)
 }
 
 export async function notifyOrderStatusChanged(order: {
@@ -49,10 +234,6 @@ export async function notifyOrderStatusChanged(order: {
   orderStatus: OrderStatus
 }): Promise<void> {
   if (!order.customerEmail) return
-  if (!env.email.resendApiKey || !env.email.from) {
-    console.warn('Order status email skipped: Resend is not configured.')
-    return
-  }
 
   const statusCopy: Record<OrderStatus, string> = {
     ORDER_PLACED: 'Your order has been placed and is awaiting payment verification.',
@@ -61,24 +242,22 @@ export async function notifyOrderStatusChanged(order: {
     DELIVERED: 'Your order has been delivered.',
     CANCELLED: 'Your order has been cancelled.',
   }
-  const orderLink = env.publicAppUrl
-    ? `<p><a href="${escapeHtml(`${env.publicAppUrl.replace(/\/+$/, '')}/orders/${encodeURIComponent(order.orderNumber)}`)}">View your order</a></p>`
-    : ''
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.email.resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.email.from,
-      to: [order.customerEmail],
-      subject: `Order update — ${order.orderNumber}`,
-      html: `<p>Hi ${escapeHtml(order.customerName)},</p>
-        <p>${escapeHtml(statusCopy[order.orderStatus])}</p>
-        <p>Order: <strong>${escapeHtml(order.orderNumber)}</strong></p>
-        ${orderLink}`,
+  const orderLink = getAppLink(`/orders/${encodeURIComponent(order.orderNumber)}`)
+  await sendEmail({
+    to: order.customerEmail,
+    subject: `Order update — ${order.orderNumber}`,
+    html: renderBrandedEmail({
+      title: 'Order update',
+      preheader: `An update is available for order ${order.orderNumber}.`,
+      intro: `Hi ${escapeHtml(order.customerName)}, ${escapeHtml(statusCopy[order.orderStatus])}`,
+      contentHtml: `
+        <div style="padding:16px;border-radius:14px;background:#f5f7f1;">
+          <p style="margin:0;color:#66756b;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Order number</p>
+          <p style="margin:6px 0 0;color:#173b2b;font-size:20px;font-weight:bold;">${escapeHtml(order.orderNumber)}</p>
+        </div>
+        ${orderLink ? `<p style="margin:26px 0 0;text-align:center;"><a href="${escapeHtml(orderLink)}" style="display:inline-block;padding:13px 20px;border-radius:999px;background:#285b37;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">View your order</a></p>` : ''}
+      `,
     }),
+    text: `Ayanfe Food Variety order update\n\nHi ${order.customerName}, ${statusCopy[order.orderStatus]}\n\nOrder: ${order.orderNumber}`,
   })
-  if (!response.ok) console.error('Order status email provider returned an error', response.status)
 }

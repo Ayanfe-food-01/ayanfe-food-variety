@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import { EmailServiceError, escapeHtml, renderBrandedEmail, sendEmail, } from '../../lib/email/email.service.js';
 export class VerificationEmailError extends Error {
     reason;
     providerStatus;
@@ -9,14 +10,6 @@ export class VerificationEmailError extends Error {
         this.name = 'VerificationEmailError';
     }
 }
-const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-})[character] ?? character);
-const getRecipientDomain = (recipient) => recipient.split('@')[1]?.toLowerCase() || 'unknown';
 export function assertVerificationEmailConfigured() {
     if (!env.email.resendApiKey?.trim()) {
         throw new VerificationEmailError('configuration', 'RESEND_API_KEY is not configured on the server.');
@@ -28,37 +21,29 @@ export function assertVerificationEmailConfigured() {
 export async function sendCustomerVerificationEmail(input) {
     assertVerificationEmailConfigured();
     const safeCode = escapeHtml(input.code);
-    console.info(JSON.stringify({
-        event: 'email_provider_request_started',
-        provider: 'resend',
-        recipientDomain: getRecipientDomain(input.recipient),
-    }));
-    let response;
     try {
-        response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${env.email.resendApiKey}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                from: env.email.from,
-                to: [input.recipient],
-                subject: 'Verify your email — Ayanfe Food Variety',
-                html: `
-          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#173b2b;max-width:560px">
-            <h1 style="color:#1f6b45">Ayanfe Food Variety</h1>
-            <p>Use the code below to verify your email address and finish creating your customer account.</p>
-            <p style="font-size:32px;letter-spacing:8px;font-weight:700;color:#173b2b">${safeCode}</p>
-            <p>This code expires in <strong>10 minutes</strong>.</p>
-            <p style="color:#6b7280">For your security, never share this code with anyone. If you did not request an account, you can safely ignore this email.</p>
+        await sendEmail({
+            to: input.recipient,
+            subject: 'Verify your email — Ayanfe Food Variety',
+            html: renderBrandedEmail({
+                title: 'Verify your email',
+                preheader: 'Your Ayanfe Food Variety verification code',
+                intro: 'Use the code below to verify your email address and finish creating your customer account.',
+                contentHtml: `
+          <div style="margin:0 0 24px;padding:18px;border-radius:14px;background:#f5f7f1;text-align:center;">
+            <p style="margin:0;color:#173b2b;font-size:32px;letter-spacing:8px;font-weight:700;">${safeCode}</p>
           </div>
+          <p style="margin:0 0 14px;color:#58695e;font-size:14px;line-height:1.7;">This code expires in <strong style="color:#173b2b;">10 minutes</strong>.</p>
+          <p style="margin:0;color:#66756b;font-size:13px;line-height:1.7;">For your security, never share this code with anyone. If you did not request an account, you can safely ignore this email.</p>
         `,
-                text: `Ayanfe Food Variety email verification\n\nYour 6-digit verification code is: ${input.code}\n\nThis code expires in 10 minutes. Never share this code with anyone.`,
             }),
+            text: `Ayanfe Food Variety email verification\n\nYour 6-digit verification code is: ${input.code}\n\nThis code expires in 10 minutes. Never share this code with anyone.`,
         });
     }
     catch (error) {
+        if (error instanceof EmailServiceError) {
+            throw new VerificationEmailError(error.reason, error.message, error.providerStatus);
+        }
         console.error(JSON.stringify({
             event: 'email_provider_request_failed',
             provider: 'resend',
@@ -66,14 +51,5 @@ export async function sendCustomerVerificationEmail(input) {
             errorName: error instanceof Error ? error.name : 'UnknownError',
         }));
         throw new VerificationEmailError('network', 'The email provider could not be reached.');
-    }
-    console.info(JSON.stringify({
-        event: 'email_provider_response',
-        provider: 'resend',
-        status: response.status,
-        accepted: response.ok,
-    }));
-    if (!response.ok) {
-        throw new VerificationEmailError('provider', `Verification email provider returned ${response.status}.`, response.status);
     }
 }

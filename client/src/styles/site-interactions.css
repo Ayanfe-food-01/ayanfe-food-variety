@@ -12,9 +12,9 @@
   to { transform: rotate(360deg); }
 }
 
-@keyframes route-loader-pulse {
-  0%, 100% { transform: scale(.96); }
-  50% { transform: scale(1); }
+@keyframes route-loader-logo-breathe {
+  0%, 100% { opacity: .9; transform: scale(.98); }
+  50% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes route-loader-enter {
@@ -45,19 +45,16 @@
     position: relative;
     display: grid;
     place-items: center;
-    width: 72px;
-    height: 72px;
-    border: 1px solid rgb(32 60 36 / 12%);
-    border-radius: 22px;
-    background: white;
-    box-shadow: 0 12px 30px rgb(32 60 36 / 16%);
-    animation: route-loader-pulse 900ms ease-in-out infinite;
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
   }
 
   .route-loader-mark img {
-    width: 53px;
-    height: 53px;
+    width: 62px;
+    height: 62px;
     object-fit: contain;
+    animation: route-loader-logo-breathe 900ms ease-in-out infinite;
   }
 
   .route-loader-ring {
@@ -104,6 +101,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .route-loader, .route-loader-mark, .route-loader-ring { animation: none; }
+  .route-loader-mark img { animation: none; }
   .route-content { animation: none; }
   .home-fade-up, .home-fade-up-delay-1, .home-fade-up-delay-2,
   .toast-slide-in, .sidebar-backdrop, .sidebar-drawer { animation: none; transition: none; }

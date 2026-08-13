@@ -9,6 +9,7 @@ export interface StoreSettings {
   whatsappNumber: string
   callToOrderPhone: string
   announcementText: string
+  heroImage: string | null
   address: string
   description: string
 }

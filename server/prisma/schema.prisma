@@ -185,6 +185,7 @@ model StoreSettings {
   whatsappNumber  String   @map("whatsapp_number") @db.VarChar(40)
   callToOrderPhone String  @map("call_to_order_phone") @db.VarChar(40)
   announcementText String  @map("announcement_text") @db.VarChar(2000)
+  heroImage       String?  @map("hero_image") @db.VarChar(1000)
   address         String   @db.VarChar(500)
   description     String   @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

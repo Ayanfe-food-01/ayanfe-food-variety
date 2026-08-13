@@ -27,6 +27,7 @@ export interface StoreInformation {
   businessName: string
   callToOrderPhone: string
   announcementText: string
+  heroImage: string | null
   address: string
   description: string
 }
@@ -82,11 +83,19 @@ export async function getStoreInformation(): Promise<StoreInformation | null> {
   return response.data.settings
 }
 
-export async function updateStoreInformation(settings: StoreInformation): Promise<StoreInformation> {
+export async function updateStoreInformation(settings: StoreInformation, heroImage?: File): Promise<StoreInformation> {
+  const formData = new FormData()
+  formData.set('businessName', settings.businessName)
+  formData.set('callToOrderPhone', settings.callToOrderPhone)
+  formData.set('announcementText', settings.announcementText)
+  formData.set('heroImage', settings.heroImage ?? '')
+  formData.set('address', settings.address)
+  formData.set('description', settings.description)
+  if (heroImage) formData.set('heroImage', heroImage)
+
   const response = await request<StoreInformationResponse>('/admin/settings/store', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
+    body: formData,
   })
   if (!response.data.settings) throw new Error('Store information was not returned.')
   return response.data.settings

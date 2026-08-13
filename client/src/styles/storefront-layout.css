@@ -89,7 +89,8 @@
 .account-link, .cart-link { display: flex; align-items: center; gap: 6px; color: var(--color-green-dark); font-size: 13px; font-weight: 700; }
 .cart-link { position: relative; }
 .cart-link b { display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 99px; background: var(--color-orange); color: white; font-size: 10px; }
-.desktop-nav { display: flex; align-items: center; gap: 27px; min-height: 42px; border-top: 1px solid var(--color-line); color: var(--color-muted); font-size: 12px; font-weight: 600; }
+.desktop-nav { position: relative; display: flex; align-items: center; gap: 27px; min-height: 42px; border-top: 0; color: var(--color-muted); font-size: 12px; font-weight: 600; }
+.desktop-nav::before { position: absolute; top: 0; left: 50%; width: 100vw; border-top: 1px solid var(--color-line); content: ''; transform: translateX(-50%); }
 .desktop-nav a:hover, .desktop-nav button:hover { color: var(--color-orange); }
 .desktop-nav button { border: 0; padding: 0; background: transparent; color: inherit; cursor: pointer; }
 .icon-button { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--color-line); border-radius: 50%; background: transparent; color: var(--color-green-dark); cursor: pointer; }

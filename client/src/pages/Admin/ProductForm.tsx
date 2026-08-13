@@ -1,12 +1,11 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
+import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
 const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', deliveryFee: '0', unit: '', description: '', stockQuantity: '0', isActive: true }
-const acceptedImageTypes = ['image/jpeg', 'image/png', 'image/webp']
-const maxImageSize = 5 * 1024 * 1024
 type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
 
 export function ProductForm() {
@@ -50,20 +49,10 @@ export function ProductForm() {
     setError(null)
   }
 
-  const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    if (!acceptedImageTypes.includes(file.type)) {
-      setFieldErrors((current) => ({ ...current, image: 'Choose a JPG, PNG, or WEBP image.' }))
-      return
-    }
-    if (file.size > maxImageSize) {
-      setFieldErrors((current) => ({ ...current, image: 'Product images must be 5 MB or smaller.' }))
-      return
-    }
-    setFieldErrors((current) => ({ ...current, image: undefined }))
+  const chooseImage = (file: File | undefined, preview: string | null, errorMessage: string | null) => {
     update('image', file)
-    setImagePreview(URL.createObjectURL(file))
+    setImagePreview(preview)
+    setFieldErrors((current) => ({ ...current, image: errorMessage ?? undefined }))
   }
 
   const validate = (): FormErrors => {
@@ -136,8 +125,16 @@ export function ProductForm() {
             <label className="text-sm font-bold text-green-dark">Stock quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={form.stockQuantity} onChange={(event) => update('stockQuantity', event.target.value)} required />{fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
           </div>
           <label className="block text-sm font-bold text-green-dark">Description<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('description')} value={form.description} onChange={(event) => update('description', event.target.value)} maxLength={4000} required />{fieldErrors.description && <span className="mt-1 block text-xs font-normal text-orange" id="description-error">{fieldErrors.description}</span>}<span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/4,000 characters</span></label>
-          <label className="block text-sm font-bold text-green-dark">Product image<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold" {...fieldProps('image')} type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} required={!isEditing} /><span className="mt-1 block text-xs font-normal text-muted">JPG, PNG, or WEBP up to 5 MB. {isEditing && 'Leave empty to keep the current image.'}</span>{fieldErrors.image && <span className="mt-1 block text-xs font-normal text-orange" id="image-error">{fieldErrors.image}</span>}</label>
-          {(imagePreview || currentImage) && <img className="size-28 rounded-2xl object-cover" src={imagePreview || currentImage || ''} alt="Product preview" />}
+           <ImageUploadField
+             label="Product image"
+             helperText={`JPG, PNG, or WEBP up to 5 MB. ${isEditing ? 'Leave empty to keep the current image.' : ''}`}
+             alt="Product preview"
+             currentUrl={currentImage}
+             previewUrl={imagePreview}
+             error={fieldErrors.image}
+             required={!isEditing}
+             onChange={chooseImage}
+           />
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
           {isSaving && <p className="text-sm font-semibold text-muted" role="status">{saveStatus === 'uploading' ? 'Uploading image…' : 'Saving product…'}</p>}

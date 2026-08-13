@@ -14,6 +14,7 @@ import {
   getAdminContactInformationController,
   getAdminPaymentSettingsController,
   getAdminStoreInformationController,
+  heroImageUpload,
   updateAdminContactInformationController,
   updateAdminPaymentSettingsController,
   updateAdminStoreInformationController,
@@ -59,7 +60,7 @@ adminRoutes.get('/payments/:id', getAdminPaymentController)
 adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController)
 adminRoutes.post('/payments/:id/reject', rejectAdminPaymentController)
 adminRoutes.get('/settings/store', getAdminStoreInformationController)
-adminRoutes.put('/settings/store', updateAdminStoreInformationController)
+  adminRoutes.put('/settings/store', heroImageUpload, updateAdminStoreInformationController)
 adminRoutes.get('/settings/contact', getAdminContactInformationController)
 adminRoutes.put('/settings/contact', updateAdminContactInformationController)
 adminRoutes.get('/settings/payment', getAdminPaymentSettingsController)

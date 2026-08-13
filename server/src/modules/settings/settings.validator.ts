@@ -38,6 +38,7 @@ export function validateStoreInformationInput(body: unknown): UpdateStoreInforma
     businessName: requiredText(body.businessName, 'Business name', 180),
     callToOrderPhone: validatePhone(body.callToOrderPhone, 'Call to order phone'),
     announcementText: optionalText(body.announcementText ?? '', 'Announcement text', 2000),
+    heroImage: body.heroImage ? optionalText(body.heroImage, 'Hero image URL', 1000) : null,
     address: optionalText(body.address, 'Business address', 500),
     description: optionalText(body.description, 'Business description', 500),
   }

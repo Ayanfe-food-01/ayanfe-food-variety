@@ -111,7 +111,6 @@ export function Payments() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Payments</h1>
           <p className="mt-3 text-sm text-muted">Review transfer receipts manually before confirming payment.</p>
         </div>
-        <span className="rounded-full bg-orange/10 px-3 py-2 text-xs font-bold text-orange">{summary.pending.count} pending verification</span>
       </div>
 
       <section className="mt-8 grid gap-3 sm:grid-cols-3" aria-label="Payment verification overview">

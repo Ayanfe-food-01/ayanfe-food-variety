@@ -103,7 +103,7 @@ export function Banners() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Merchandising</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Promotional banners</h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted">Create the offers and flyers that appear in the homepage carousel. Only active banners are visible to customers.</p>
+          <p className="mt-3 max-w-2xl text-sm text-muted">Create the offers and flyers that appear in the homepage promotional section. Only active banners are visible to customers.</p>
         </div>
         <Link className="inline-flex w-fit rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/banners/new">Add banner</Link>
       </div>

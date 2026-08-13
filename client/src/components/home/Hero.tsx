@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, TruckIcon } from '../../assets/icons'
-import { BannerCarousel } from './BannerCarousel'
 import { PromoBanner } from './PromoBanner'
 
 export function Hero() {
@@ -17,7 +16,6 @@ export function Hero() {
             <span className="hero-note"><TruckIcon size={17} /> Simple ordering, helpful service</span>
           </div>
         </div>
-        <BannerCarousel />
       </div>
     </section>
   </>

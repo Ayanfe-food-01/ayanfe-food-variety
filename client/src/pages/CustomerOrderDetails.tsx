@@ -6,8 +6,8 @@ import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getBankDetails, type BankDetails } from '../services/paymentService'
-import { getCustomerOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
-import { formatOrderStatus } from '../utils/orderStatus'
+import { cancelCustomerOrder, getCustomerOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
+import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
 
 const formatPrice = (price: string) =>
@@ -101,6 +101,11 @@ export function CustomerOrderDetails() {
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [bank, setBank] = useState<BankDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [cancellationReason, setCancellationReason] = useState('')
+  const [otherCancellationReason, setOtherCancellationReason] = useState('')
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
 
   useEffect(() => {
     if (isAuthLoading || !user || !orderNumber) return
@@ -113,6 +118,31 @@ export function CustomerOrderDetails() {
         // Bank settings may be temporarily unavailable; the order remains viewable.
       })
   }, [isAuthLoading, orderNumber, user])
+
+  const closeCancellationDialog = () => {
+    setIsCancelDialogOpen(false)
+    setCancellationReason('')
+    setOtherCancellationReason('')
+    setCancelError(null)
+  }
+
+  const confirmCancellation = async () => {
+    if (!order || !orderNumber) return
+    setIsCancelling(true)
+    setCancelError(null)
+    const reason = cancellationReason === 'Other'
+      ? otherCancellationReason.trim() || undefined
+      : cancellationReason || undefined
+
+    try {
+      setOrder(await cancelCustomerOrder(orderNumber, reason))
+      closeCancellationDialog()
+    } catch (caught: unknown) {
+      setCancelError(caught instanceof ApiError ? caught.message : 'The order could not be cancelled.')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
 
   return (
     <>
@@ -146,8 +176,28 @@ export function CustomerOrderDetails() {
                 <p className="mt-1 text-xs text-muted">{paymentStatusCopy[order.paymentStatus].description}</p>
                 <p className="mt-3 text-muted">Order status</p>
                 <strong className="text-green-dark">{formatOrderStatus(order.orderStatus)}</strong>
+                {canCustomerCancelOrder(order.orderStatus) && (
+                  <button
+                    className="mt-4 rounded-full border border-orange/40 px-4 py-2 text-sm font-bold text-orange transition-colors hover:bg-orange/10"
+                    type="button"
+                    onClick={() => {
+                      setCancelError(null)
+                      setIsCancelDialogOpen(true)
+                    }}
+                  >
+                    Cancel Order
+                  </button>
+                )}
               </div>
             </div>
+            {order.orderStatus === 'CANCELLED' && (
+              <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5">
+                <p className="font-bold text-orange">Cancelled</p>
+                {order.cancelledAt && <p className="mt-1 text-sm text-muted">Cancelled {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(order.cancelledAt))}</p>}
+                {order.cancellationReason && <p className="mt-2 text-sm text-muted"><strong className="text-green-dark">Reason:</strong> {order.cancellationReason}</p>}
+                {order.paymentStatus === 'PAID' && <p className="mt-3 text-sm leading-6 text-muted">Payment status remains PAID. The store will handle any applicable refund separately.</p>}
+              </div>
+            )}
             <div className="mt-8">
               <OrderTracker order={order} />
             </div>
@@ -224,6 +274,48 @@ export function CustomerOrderDetails() {
         )}
       </main>
       <Footer />
+      {isCancelDialogOpen && order && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-green-dark/50 p-4 sm:items-center" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeCancellationDialog()
+        }}>
+          <div className="w-full max-w-lg rounded-3xl border border-line bg-cream p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title">
+            <h2 id="cancel-order-title" className="text-2xl font-bold text-green-dark">Cancel this order?</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">Your order information and payment history will remain saved.</p>
+            <label className="mt-6 block text-sm font-bold text-green-dark">
+              Reason <span className="font-normal text-muted">(optional)</span>
+              <select
+                className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
+                value={cancellationReason}
+                onChange={(event) => setCancellationReason(event.target.value)}
+              >
+                <option value="">Select a reason</option>
+                {customerCancellationReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+              </select>
+            </label>
+            {cancellationReason === 'Other' && (
+              <label className="mt-4 block text-sm font-bold text-green-dark">
+                Tell us more <span className="font-normal text-muted">(optional)</span>
+                <textarea
+                  className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-white px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
+                  value={otherCancellationReason}
+                  onChange={(event) => setOtherCancellationReason(event.target.value)}
+                  maxLength={500}
+                  placeholder="Optional cancellation reason"
+                />
+              </label>
+            )}
+            {cancelError && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 p-3 text-sm text-orange" role="alert">{cancelError}</p>}
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button className="rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-white disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={closeCancellationDialog} disabled={isCancelling}>
+                Keep Order
+              </button>
+              <button className="rounded-full bg-orange px-5 py-3 text-sm font-bold text-white hover:bg-orange/90 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => void confirmCancellation()} disabled={isCancelling}>
+                {isCancelling ? 'Cancelling…' : 'Confirm Cancellation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

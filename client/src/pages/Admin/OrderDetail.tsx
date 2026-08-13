@@ -84,6 +84,27 @@ export function OrderDetail() {
             <div className="mt-3 space-y-2 border-t border-line pt-4 text-sm"><div className="flex justify-between text-muted"><span>Subtotal</span><span>{formatPrice(order.subtotal)}</span></div><div className="flex justify-between text-muted"><span>Delivery fee</span><span>{formatPrice(order.deliveryFee)}</span></div><div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div></div>
           </section>
 
+          {order.orderStatus === 'CANCELLED' && (
+            <section className="rounded-2xl border border-orange/25 bg-orange/5 p-5 shadow-sm sm:p-6">
+              <h2 className="text-lg font-bold text-orange">Cancellation details</h2>
+              <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.12em] text-muted">Cancelled at</dt>
+                  <dd className="mt-1 font-semibold text-green-dark">{order.cancelledAt ? formatDate(order.cancelledAt) : 'Not recorded'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.12em] text-muted">Reason</dt>
+                  <dd className="mt-1 font-semibold text-green-dark">{order.cancellationReason ?? 'No reason provided'}</dd>
+                </div>
+              </dl>
+              {order.paymentStatus === 'PAID' && (
+                <p className="mt-4 rounded-xl bg-white/70 p-3 text-sm leading-6 text-muted">
+                  This order is marked paid. Payment status was preserved; review any applicable refund manually.
+                </p>
+              )}
+            </section>
+          )}
+
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Payment history</h2>
             <p className="mt-1 text-sm text-muted">Payment status is controlled only from the Payments review area.</p>

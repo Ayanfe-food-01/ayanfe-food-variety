@@ -186,6 +186,7 @@ export async function getAdminOrder(orderNumber: string) {
     total: order.total.toString(),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
+    cancelledAt: order.cancelledAt?.toISOString() ?? null,
     orderItems: order.orderItems.map((item) => ({
       ...item,
       unitPrice: item.unitPrice.toString(),
@@ -266,6 +267,12 @@ export async function updateAdminOrderStatus(orderNumber: string, input: UpdateO
       where: { id: existing.id, orderStatus: existing.orderStatus },
       data: {
         orderStatus: input.orderStatus,
+        ...(input.orderStatus === OrderStatus.CANCELLED
+          ? {
+              cancellationReason: input.note ?? existing.cancellationReason,
+              cancelledAt: existing.cancelledAt ?? new Date(),
+            }
+          : {}),
         ...(input.orderStatus === OrderStatus.CANCELLED && existing.stockDeductedAt && !existing.stockRestoredAt
           ? { stockRestoredAt: new Date() }
           : {}),

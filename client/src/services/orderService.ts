@@ -26,6 +26,8 @@ export interface CreatedOrder {
   }>
   paymentStatus: CustomerPaymentStatus
   orderStatus: OrderStatus
+  cancellationReason: string | null
+  cancelledAt: string | null
   createdAt: string
   updatedAt: string
   paymentSubmissions: Array<{
@@ -104,6 +106,15 @@ export async function getCustomerOrder(orderNumber: string): Promise<CreatedOrde
   return response.data.order
 }
 
+export async function cancelCustomerOrder(orderNumber: string, reason?: string): Promise<CreatedOrder> {
+  const response = await request<CustomerOrderResponse>(`/orders/${encodeURIComponent(orderNumber)}/cancel`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+  return response.data.order
+}
+
 export type OrderStatus = 'ORDER_PLACED' | 'PROCESSING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
@@ -125,6 +136,8 @@ export interface AdminOrder {
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
+  cancellationReason: string | null
+  cancelledAt: string | null
   createdAt: string
   updatedAt: string
   orderItems: Array<{

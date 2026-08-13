@@ -7,8 +7,8 @@ import type {
   OrderResponse,
   CustomerPaymentSubmissionResponse,
 } from './order.types.js'
-import { notifyOrderCreated } from './order.email.js'
-import { deductStock } from '../inventory/inventory.service.js'
+import { notifyOrderCreated, notifyOrderStatusChanged } from './order.email.js'
+import { deductStock, restoreStock } from '../inventory/inventory.service.js'
 
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: {

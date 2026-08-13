@@ -16,6 +16,7 @@ interface ProductApiResponse {
   deliveryFee: string
   unit: string
   image: string
+  stockQuantity: number
   isActive: boolean
   isAvailable: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
@@ -58,6 +59,7 @@ const toProduct = (product: ProductApiResponse): Product => {
   const discountedPrice = Number(product.discountedPrice)
   const discountValue = product.discountValue === null ? null : Number(product.discountValue)
   const deliveryFee = Number(product.deliveryFee)
+  const stockQuantity = Number(product.stockQuantity)
 
   if (
     !Number.isFinite(price)
@@ -67,6 +69,8 @@ const toProduct = (product: ProductApiResponse): Product => {
     || (discountValue !== null && (!Number.isFinite(discountValue) || discountValue <= 0))
     || !Number.isFinite(deliveryFee)
     || deliveryFee < 0
+    || !Number.isInteger(stockQuantity)
+    || stockQuantity < 0
   ) {
     throw new Error('The product data is invalid.')
   }
@@ -86,6 +90,7 @@ const toProduct = (product: ProductApiResponse): Product => {
     deliveryFee,
     image: product.image,
     description: product.description,
+    stockQuantity,
     availabilityStatus: product.availabilityStatus,
     isActive: product.isActive,
     isAvailable: product.isAvailable,

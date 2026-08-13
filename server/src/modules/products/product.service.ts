@@ -46,9 +46,7 @@ const toProduct = (product: ProductWithCategory): Product => ({
 })
 
 const toPublicProduct = (product: ProductWithCategory): PublicProduct => {
-  const response = toProduct(product)
-  const { stockQuantity: _stockQuantity, ...publicProduct } = response
-  return publicProduct
+  return toProduct(product)
 }
 
 export async function getProducts(query: PublicProductQuery): Promise<PublicProductPage> {

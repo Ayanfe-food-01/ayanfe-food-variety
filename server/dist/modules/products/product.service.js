@@ -31,9 +31,7 @@ const toProduct = (product) => ({
     updatedAt: product.updatedAt.toISOString(),
 });
 const toPublicProduct = (product) => {
-    const response = toProduct(product);
-    const { stockQuantity: _stockQuantity, ...publicProduct } = response;
-    return publicProduct;
+    return toProduct(product);
 };
 export async function getProducts(query) {
     const where = {

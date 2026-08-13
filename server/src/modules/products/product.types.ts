@@ -23,7 +23,7 @@ export interface Product {
   updatedAt: string
 }
 
-export type PublicProduct = Omit<Product, 'stockQuantity'>
+export type PublicProduct = Product
 
 export type PublicProductSort = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
 

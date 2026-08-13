@@ -6,6 +6,7 @@ import { Hero } from '../components/home/Hero'
 import { HomeTrustStrip } from '../components/home/HomeTrustStrip'
 import { PromoBanners } from '../components/home/PromoBanners'
 import { ProductRail } from '../components/home/ProductRail'
+import { Testimonials } from '../components/home/Testimonials'
 import { useHomeCatalog } from '../hooks/useHomeCatalog'
 import { usePromotionalBanners } from '../hooks/usePromotionalBanners'
 import { Seo } from '../seo/Seo'
@@ -25,6 +26,7 @@ export function Home() {
       <ProductRail title="Popular right now" eyebrow="Customer favourites" products={catalog.featured} isLoading={catalog.isLoading} hasError={catalog.errors.featured} onRetry={catalog.retry} />
       <ProductRail title="Fresh on the shelf" eyebrow="New arrivals" products={catalog.newArrivals} isLoading={catalog.isLoading} hasError={catalog.errors.newArrivals} onRetry={catalog.retry} href="/new-arrivals" tone="yellow" />
       <HomeTrustStrip />
+      <Testimonials />
       <ContactSection />
     </main>
     <Footer />

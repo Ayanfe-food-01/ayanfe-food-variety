@@ -32,7 +32,7 @@ export function ProductDetails() {
   const [isNotFound, setIsNotFound] = useState(false)
   const [hasError, setHasError] = useState(false)
   const [imageError, setImageError] = useState(false)
-  const { addToCart, pendingItemIds } = useCart()
+  const { addToCart, items, pendingItemIds } = useCart()
   const { user, openAuth } = useCustomerAuth()
   const { showToast } = useToast()
 
@@ -86,15 +86,24 @@ export function ProductDetails() {
     return () => window.clearTimeout(timeoutId)
   }, [loadProduct])
 
+  const currentCartQuantity = product
+    ? items.find((item) => item.id === product.id)?.quantity ?? 0
+    : 0
+  const availableStock = product?.stockQuantity ?? 0
+  const remainingStockForCart = Math.max(0, availableStock - currentCartQuantity)
+  const maxSelectableQuantity = Math.max(1, remainingStockForCart)
+  const selectedQuantity = Math.min(quantity, maxSelectableQuantity)
+  const canAddToCart = Boolean(product?.isAvailable && remainingStockForCart > 0)
+
   const retryProduct = () => {
     setIsLoading(true)
     void loadProduct()
   }
 
   const addProductToCart = async () => {
-    if (!product) return
+    if (!product || !canAddToCart) return
     try {
-      await addToCart(product, quantity)
+      await addToCart(product, selectedQuantity)
       showToast(`${product.name} added to your cart.`, 'success')
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'This product could not be added to your cart.', 'error')
@@ -102,7 +111,7 @@ export function ProductDetails() {
   }
 
   const handleAddToCart = () => {
-    if (!product?.isAvailable) return
+    if (!product?.isAvailable || !canAddToCart) return
     if (!user) {
       openAuth(addProductToCart)
       return
@@ -315,7 +324,7 @@ export function ProductDetails() {
                       className="grid size-11 place-items-center text-xl text-muted transition-colors hover:text-green disabled:cursor-not-allowed disabled:opacity-40"
                       type="button"
                       aria-label="Decrease quantity"
-                      disabled={quantity === 1}
+                      disabled={selectedQuantity === 1 || !canAddToCart}
                       onClick={() => setQuantity((current) => Math.max(1, current - 1))}
                     >
                       −
@@ -327,8 +336,8 @@ export function ProductDetails() {
                       className="grid size-11 place-items-center text-xl text-muted transition-colors hover:text-green"
                       type="button"
                       aria-label="Increase quantity"
-                       disabled={!product.isAvailable}
-                       onClick={() => setQuantity((current) => current + 1)}
+                        disabled={!canAddToCart || selectedQuantity >= maxSelectableQuantity}
+                        onClick={() => setQuantity((current) => Math.min(maxSelectableQuantity, current + 1))}
                     >
                       +
                     </button>
@@ -338,14 +347,28 @@ export function ProductDetails() {
                   className="h-12 flex-1 px-6 shadow-lg shadow-green/15 hover:-translate-y-0.5"
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={!product.isAvailable || isAdding}
-                  aria-label={`Add ${quantity} ${product.name} to cart`}
+                   disabled={!canAddToCart || isAdding}
+                   aria-label={`Add ${selectedQuantity} ${product.name} to cart`}
                 >
-                  <CartIcon size={18} /> {isAdding ? 'Adding…' : product.isAvailable ? 'Add to cart' : 'Out of stock'}
+                   <CartIcon size={18} /> {isAdding
+                     ? 'Adding…'
+                     : availableStock === 0
+                       ? 'Out of stock'
+                       : canAddToCart
+                         ? 'Add to cart'
+                         : 'All available in cart'}
                 </Button>
               </div>
+               <p className={`mt-4 text-sm font-semibold ${availableStock > 0 ? 'text-green-dark' : 'text-orange'}`} role="status" aria-live="polite">
+                 {availableStock > 0
+                   ? `${availableStock} ${availableStock === 1 ? 'unit' : 'units'} available`
+                   : 'Out of stock'}
+               </p>
+               {availableStock > 0 && currentCartQuantity >= availableStock && (
+                 <p className="mt-1 text-xs text-muted">All available units are already in your cart.</p>
+               )}
               <p className="mt-3 text-xs text-muted">
-                {quantity} {quantity === 1 ? 'unit' : 'units'} selected
+                 {selectedQuantity} {selectedQuantity === 1 ? 'unit' : 'units'} selected
               </p>
             </article>
           </div>

@@ -44,7 +44,7 @@ export function ImagePreview({ src, alt, label = 'View image', children, classNa
       </button>
       {isOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-green-dark/80 p-4 sm:p-8"
+           className="fixed inset-0 z-[100] flex items-center justify-center bg-green-dark/80 p-4 sm:p-8"
           role="dialog"
           aria-modal="true"
           aria-label={`${alt} preview`}
@@ -52,7 +52,7 @@ export function ImagePreview({ src, alt, label = 'View image', children, classNa
             if (event.target === event.currentTarget) setIsOpen(false)
           }}
         >
-          <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col items-center rounded-2xl bg-cream p-3 shadow-2xl sm:p-5">
+           <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col items-center overflow-y-auto rounded-2xl bg-cream p-3 shadow-2xl sm:max-h-[calc(100vh-4rem)] sm:p-5">
             <div className="flex w-full items-center justify-between gap-4 pb-3">
               <p className="truncate text-sm font-bold text-green-dark">{alt}</p>
               <button
@@ -64,12 +64,12 @@ export function ImagePreview({ src, alt, label = 'View image', children, classNa
                 <CloseIcon size={18} />
               </button>
             </div>
-            <div className="flex min-h-48 w-full items-center justify-center overflow-hidden rounded-xl bg-green-dark/5">
+             <div className="flex min-h-48 max-h-[calc(100vh-9rem)] w-full items-center justify-center overflow-auto rounded-xl bg-green-dark/5 sm:max-h-[calc(100vh-11rem)]">
               {hasImageError ? (
                 <p className="px-6 py-12 text-center text-sm text-muted">This image could not be previewed.</p>
               ) : (
                 <img
-                  className="max-h-[calc(92vh-100px)] w-auto max-w-full object-contain"
+                   className="max-h-full w-auto max-w-full object-contain"
                   src={src}
                   alt={alt}
                   onError={() => setHasImageError(true)}

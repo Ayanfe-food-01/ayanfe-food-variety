@@ -32,6 +32,7 @@ type OrderWithItems = Prisma.OrderGetPayload<{
         transferredAt: true
         proofUrl: true
         status: true
+         reviewNote: true
         reviewedAt: true
         createdAt: true
       }
@@ -71,6 +72,7 @@ const toPaymentSubmissionResponse = (
   transferredAt: submission.transferredAt.toISOString(),
   proofUrl: submission.proofUrl,
   status: submission.status,
+  reviewNote: submission.reviewNote,
   reviewedAt: submission.reviewedAt?.toISOString() ?? null,
   createdAt: submission.createdAt.toISOString(),
 })
@@ -147,6 +149,7 @@ const orderInclude = {
       transferredAt: true,
       proofUrl: true,
       status: true,
+       reviewNote: true,
       reviewedAt: true,
       createdAt: true,
     },

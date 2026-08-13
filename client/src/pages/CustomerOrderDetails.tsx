@@ -51,7 +51,7 @@ function OrderTracker({ order }: { order: CreatedOrder }) {
     if (!step.status) return 'pending'
     const currentRank = fulfillmentRank[order.orderStatus]
     const stepRank = fulfillmentRank[step.status]
-    if (currentRank > stepRank) return 'complete'
+     if (currentRank > stepRank || (step.status === 'DELIVERED' && currentRank === stepRank)) return 'complete'
     if (currentRank === stepRank) return 'active'
     return 'pending'
   }
@@ -205,7 +205,13 @@ export function CustomerOrderDetails() {
                     <div className="flex flex-wrap justify-between gap-3 py-4 text-sm" key={submission.id}>
                       <div>
                         <p className="font-bold text-green-dark">{submission.transactionReference}</p>
-                        <p className="mt-1 text-xs text-muted">Submitted {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(submission.createdAt))}</p>
+                         <p className="mt-1 text-xs text-muted">Submitted {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(submission.createdAt))}</p>
+                         {submission.reviewNote && (
+                           <p className={`mt-3 rounded-xl px-3 py-2 text-xs leading-5 ${submission.status === 'REJECTED' ? 'bg-orange/10 text-orange' : 'bg-sage/45 text-muted'}`}>
+                             <strong className={submission.status === 'REJECTED' ? 'text-orange' : 'text-green-dark'}>Review note:</strong>{' '}
+                             {submission.reviewNote}
+                           </p>
+                         )}
                         <ImagePreview className="mt-3 inline-flex text-xs font-bold text-green hover:text-orange" src={submission.proofUrl} alt={`Payment proof for ${submission.transactionReference}`} label="View payment proof" />
                       </div>
                       <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{submission.status}</span>

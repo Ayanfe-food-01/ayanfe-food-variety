@@ -36,6 +36,7 @@ export interface CreatedOrder {
     transferredAt: string
     proofUrl: string
     status: 'PENDING' | 'VERIFIED' | 'REJECTED'
+     reviewNote: string | null
     reviewedAt: string | null
     createdAt: string
   }>

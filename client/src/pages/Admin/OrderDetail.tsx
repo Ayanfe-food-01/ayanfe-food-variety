@@ -44,9 +44,9 @@ export function OrderDetail() {
     setIsSaving(true)
     setError(null)
     try {
-      setOrder(await updateAdminOrderStatus(orderNumber, status, note))
+       setOrder(await updateAdminOrderStatus(orderNumber, status, note))
       setNote('')
-      showToast('Order status updated. The customer notification was queued when email is configured.', 'success')
+       showToast('Order status updated successfully.', 'success')
     } catch (caught) {
       showToast(caught instanceof ApiError ? caught.message : 'Order status could not be updated.', 'error')
     } finally {

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
@@ -49,6 +49,59 @@ const toPublicProduct = (product: ProductWithCategory): PublicProduct => {
   return toProduct(product)
 }
 
+interface PopularProductRow {
+  id: string
+  categoryId: string
+  categoryName: string
+  categorySlug: string
+  name: string
+  slug: string
+  description: string
+  price: Prisma.Decimal
+  discountType: Product['discountType']
+  discountValue: Prisma.Decimal | null
+  discountedPrice: Prisma.Decimal
+  deliveryFee: Prisma.Decimal
+  unit: string
+  image: string
+  isActive: boolean
+  stockQuantity: number
+  createdAt: Date
+  updatedAt: Date
+  orderedQuantity: bigint
+}
+
+const toPopularProduct = (product: PopularProductRow): PublicProduct => ({
+  id: product.id,
+  categoryId: product.categoryId,
+  categoryName: product.categoryName,
+  categorySlug: product.categorySlug,
+  name: product.name,
+  slug: product.slug,
+  description: product.description,
+  price: product.price.toString(),
+  discountType: product.discountType,
+  discountValue: product.discountValue?.toString() ?? null,
+  discountedPrice: calculateDiscountedPrice(
+    product.price,
+    product.discountType,
+    product.discountValue,
+  ).toString(),
+  deliveryFee: product.deliveryFee.toString(),
+  unit: product.unit,
+  image: product.image,
+  isActive: product.isActive,
+  stockQuantity: product.stockQuantity,
+  availabilityStatus: product.stockQuantity === 0
+    ? 'OUT_OF_STOCK'
+    : product.stockQuantity <= 5
+      ? 'LOW_STOCK'
+      : 'IN_STOCK',
+  isAvailable: product.isActive && product.stockQuantity > 0,
+  createdAt: product.createdAt.toISOString(),
+  updatedAt: product.updatedAt.toISOString(),
+})
+
 export async function getProducts(query: PublicProductQuery): Promise<PublicProductPage> {
   const where: Prisma.ProductWhereInput = {
     isActive: true,
@@ -96,6 +149,70 @@ export async function getProducts(query: PublicProductQuery): Promise<PublicProd
       limit: query.limit,
       total,
       totalPages: Math.max(1, Math.ceil(total / query.limit)),
+    },
+  }
+}
+
+export async function getPopularProducts(query: PublicProductQuery): Promise<PublicProductPage> {
+  const products = await prisma.$queryRaw<PopularProductRow[]>(Prisma.sql`
+    SELECT
+      p.id,
+      p.category_id AS "categoryId",
+      c.name AS "categoryName",
+      c.slug AS "categorySlug",
+      p.name,
+      p.slug,
+      p.description,
+      p.price,
+      p.discount_type AS "discountType",
+      p.discount_value AS "discountValue",
+      p.delivery_fee AS "deliveryFee",
+      p.unit,
+      p.image,
+      p.is_active AS "isActive",
+      p.stock_quantity AS "stockQuantity",
+      p.created_at AS "createdAt",
+      p.updated_at AS "updatedAt",
+      COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END), 0)::bigint AS "orderedQuantity"
+    FROM products p
+    INNER JOIN categories c ON c.id = p.category_id
+    LEFT JOIN order_items oi ON oi.product_id = p.id
+    LEFT JOIN orders o
+      ON o.id = oi.order_id
+      AND o.payment_status = ${PaymentStatus.PAID}::"PaymentStatus"
+      AND o.order_status <> ${OrderStatus.CANCELLED}::"OrderStatus"
+    WHERE p.is_active = true
+      AND c.is_active = true
+    GROUP BY
+      p.id,
+      p.category_id,
+      c.name,
+      c.slug,
+      p.name,
+      p.slug,
+      p.description,
+      p.price,
+      p.discount_type,
+      p.discount_value,
+      p.delivery_fee,
+      p.unit,
+      p.image,
+      p.is_active,
+      p.stock_quantity,
+      p.created_at,
+      p.updated_at
+    ORDER BY "orderedQuantity" DESC, p.created_at DESC, p.id DESC
+    LIMIT ${query.limit}
+    OFFSET ${(query.page - 1) * query.limit}
+  `)
+
+  return {
+    products: products.map(toPopularProduct),
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total: products.length,
+      totalPages: 1,
     },
   }
 }

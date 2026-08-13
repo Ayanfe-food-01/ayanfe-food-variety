@@ -23,7 +23,7 @@ export function Home() {
       <Hero />
       <PromoBanners banners={promotionalBanners} />
       <CategoryRail categories={catalog.categories} isLoading={catalog.isLoading} hasError={catalog.errors.categories} onRetry={catalog.retry} />
-      <ProductRail title="Popular right now" eyebrow="Customer favourites" products={catalog.featured} isLoading={catalog.isLoading} hasError={catalog.errors.featured} onRetry={catalog.retry} />
+      <ProductRail title="Popular right now" eyebrow="Customer favourites" products={catalog.popularProducts} isLoading={catalog.isLoading} hasError={catalog.errors.popular} onRetry={catalog.retry} />
       <ProductRail title="Fresh on the shelf" eyebrow="New arrivals" products={catalog.newArrivals} isLoading={catalog.isLoading} hasError={catalog.errors.newArrivals} onRetry={catalog.retry} href="/new-arrivals" tone="yellow" />
       <HomeTrustStrip />
       <Testimonials />

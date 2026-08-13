@@ -132,6 +132,20 @@ export async function getNewArrivals(query: Omit<ProductQuery, 'sort'> = {}): Pr
   }
 }
 
+export async function getPopularProducts(query: Omit<ProductQuery, 'sort'> = {}): Promise<ProductPage> {
+  const params = new URLSearchParams()
+  if (query.page && query.page > 1) params.set('page', String(query.page))
+  if (query.limit && query.limit !== 20) params.set('limit', String(query.limit))
+  const queryString = params.toString()
+  const response = await request<ProductListResponse>(`/products/popular${queryString ? `?${queryString}` : ''}`, {
+    signal: query.signal,
+  })
+  return {
+    products: response.data.products.map(toProduct),
+    pagination: response.data.pagination,
+  }
+}
+
 export async function getProduct(id: string): Promise<Product> {
   const response = await request<ProductResponse>(`/products/${encodeURIComponent(id)}`)
   return toProduct(response.data)

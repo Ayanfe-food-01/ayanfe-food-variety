@@ -379,14 +379,6 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         quantity: item.quantity,
         subtotal: item.subtotal.toString(),
       })),
-       bank: result.order.paymentSnapshot
-         ? {
-             bankName: result.order.paymentSnapshot.bankName,
-             accountName: result.order.paymentSnapshot.accountName,
-             accountNumber: result.order.paymentSnapshot.accountNumber,
-             instructions: result.order.paymentSnapshot.instructions,
-           }
-         : null,
     }).catch((error: unknown) => console.error('Order confirmation email failed', error))
   }
 

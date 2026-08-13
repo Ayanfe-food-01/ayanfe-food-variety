@@ -55,7 +55,7 @@ const categories: CatalogCategory[] = [
   {
     name: 'Flours & Powders',
     slug: 'flours-powders',
-    description: 'Gluten-free and traditional food flours for swallow, baking, and family recipes.',
+    description: 'Traditional food flours for swallow, baking, and family recipes.',
     imageAsset: 'plantain-flour-500g.jpg',
   },
   {
@@ -177,7 +177,7 @@ const products: CatalogProduct[] = [
     categorySlug: 'flours-powders',
     name: 'Plantain Flour',
     slug: 'plantain-flour-500g',
-    description: 'Gluten-free plantain flour for swallow, baking, and creative family recipes.',
+    description: 'Plantain flour for swallow, baking, and creative family recipes.',
     price: '3000.00',
     unit: '500 g pouch',
     imageAsset: 'plantain-flour-500g.jpg',
@@ -197,7 +197,7 @@ const products: CatalogProduct[] = [
     categorySlug: 'breakfast-cereals',
     name: 'Oat Flour',
     slug: 'oat-flour-500g',
-    description: 'Gluten-free oat flour for nourishing breakfasts, smoothies, and baking.',
+    description: 'Oat flour for nourishing breakfasts, smoothies, and baking.',
     price: '4000.00',
     unit: '500 g pouch',
     imageAsset: 'oat-flour-500g.jpg',

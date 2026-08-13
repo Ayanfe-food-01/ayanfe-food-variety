@@ -211,7 +211,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
                   ? 'Explore the latest natural, preservative-free Nigerian foodstuff added to our collection, with reliable delivery across Nigeria.'
                   : selectedCategory
                     ? `${selectedCategory.description || `Shop ${selectedCategory.name.toLowerCase()} online.`} Find quality Nigerian foodstuff with convenient delivery.`
-                    : 'Shop natural, preservative-free and gluten-free Nigerian foodstuff, pantry staples and everyday essentials with reliable delivery.'}
+                    : 'Shop quality, natural Nigerian foodstuff, pantry staples and everyday essentials with reliable delivery.'}
               </p>
             </div>
           </div>

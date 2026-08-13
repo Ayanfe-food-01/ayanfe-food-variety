@@ -1,10 +1,11 @@
 export const SITE_NAME = 'Ayanfe Food Variety'
 export const HOMEPAGE_TITLE = 'Ayanfe Food Variety | Buy Nigerian Foodstuff Online'
+export const BRAND_MESSAGE = 'Quality, natural Nigerian foodstuff — delivered fresh to your kitchen.'
 export const DEFAULT_SITE_DESCRIPTION =
-  'Shop natural, preservative-free & gluten-free Nigerian foodstuff — swallow flours, grains, oils & more. Fast, reliable delivery.'
+  `${BRAND_MESSAGE} Shop swallow flours, grains, oils and more.`
 export const ABOUT_TITLE = 'About Ayanfe Food Variety | Nigerian Foodstuff'
 export const ABOUT_DESCRIPTION =
-  'Learn about Ayanfe Food Variety Limited, a Nigerian foodstuff brand offering natural, gluten-free staples and reliable online delivery.'
+  `Ayanfe Food Variety brings quality, natural Nigerian foodstuff to your kitchen with reliable online delivery.`
 export const SHOP_TITLE = 'Buy Nigerian Foodstuff Online | Ayanfe Food Variety'
 export const SHOP_DESCRIPTION =
   'Shop Nigerian foodstuff online, including natural pantry staples, grains, oils and everyday essentials with reliable delivery.'
@@ -31,7 +32,7 @@ export const getCategoryTitle = (categoryName: string): string =>
 
 export const getCategoryMetaDescription = (categoryName: string, categoryDescription?: string): string =>
   fitMetaText(
-    `Explore ${categoryName} at Ayanfe Food Variety. Shop natural and gluten-free Nigerian foodstuff with reliable online delivery. ${categoryDescription ?? ''}`,
+    `Explore ${categoryName} at Ayanfe Food Variety. ${BRAND_MESSAGE} ${categoryDescription ?? ''}`,
     155,
   )
 

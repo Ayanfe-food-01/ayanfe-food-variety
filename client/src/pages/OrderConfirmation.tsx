@@ -56,29 +56,16 @@ export function OrderConfirmation() {
               </div>
             </div>
 
-             {order.payment?.paymentMethod === 'BANK_TRANSFER' && (
-               <div className="mt-6 rounded-2xl border border-green/25 bg-sage/30 p-6 shadow-sm sm:p-8">
-                 <div className="flex flex-wrap items-start justify-between gap-4">
-                   <div>
-                     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Payment instructions</p>
-                     <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Complete your bank transfer</h2>
-                     <p className="mt-2 text-sm leading-6 text-muted">Use the saved details below. Payment status stays pending until the store confirms your transfer.</p>
-                   </div>
-                   <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-green-dark">Bank Transfer</span>
-                 </div>
-                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                   <PaymentDetail label="Bank name" value={order.payment.bankName} />
-                   <PaymentDetail label="Account name" value={order.payment.accountName} />
-                   <PaymentDetail label="Account number" value={order.payment.accountNumber} copyable />
-                   <PaymentDetail label="Order number" value={order.orderNumber} copyable />
-                   <PaymentDetail label="Amount to pay" value={formatPrice(order.total)} copyable />
-                 </div>
-                 <div className="mt-4 rounded-xl bg-white/70 p-4">
-                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Payment instructions</p>
-                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-green-dark">{order.payment.instructions}</p>
-                 </div>
-               </div>
-             )}
+             <div className="mt-6 rounded-2xl border border-green/25 bg-sage/30 p-6 shadow-sm sm:p-8">
+               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Next step</p>
+               <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Send your payment proof</h2>
+               <p className="mt-2 text-sm leading-6 text-muted">
+                 After completing the transfer using the details shown during checkout, send your receipt so we can verify your payment.
+               </p>
+               <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof`}>
+                 Submit payment proof <ArrowRight size={16} />
+               </Link>
+             </div>
 
             <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -140,26 +127,5 @@ export function OrderConfirmation() {
       </main>
       <Footer />
     </>
-  )
-}
-
-function PaymentDetail({ label, value, copyable = false }: { label: string; value: string; copyable?: boolean }) {
-  const copy = async () => {
-    if (!navigator.clipboard) return
-    await navigator.clipboard.writeText(value)
-  }
-
-  return (
-    <div className="rounded-xl border border-green/10 bg-white p-4">
-      <p className="text-xs text-muted">{label}</p>
-      <div className="mt-1 flex items-center justify-between gap-3">
-        <strong className="break-words text-sm text-green-dark">{value}</strong>
-        {copyable && (
-          <button className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[11px] font-bold text-green-dark hover:bg-sage" type="button" onClick={() => void copy()}>
-            Copy
-          </button>
-        )}
-      </div>
-    </div>
   )
 }

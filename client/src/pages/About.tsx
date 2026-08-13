@@ -20,7 +20,7 @@ const commitments = [
   {
     icon: HeartIcon,
     title: 'Made for your kitchen',
-    text: 'Ayanfe Food Variety helps households shop confidently for gluten-free staples, grains, oils and more.',
+    text: 'Ayanfe Food Variety helps households shop confidently for quality staples, grains, oils and more.',
   },
   {
     icon: TruckIcon,
@@ -49,7 +49,7 @@ export function About() {
                 Why Ayanfe
               </p>
               <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">
-                Natural, gluten-free Nigerian foodstuff online.
+                Quality, natural Nigerian foodstuff for every kitchen.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-7 text-muted sm:text-lg">
                 Ayanfe Food Variety Limited is a Nigerian food processing and foodstuff delivery brand making natural, preservative-free staples easier to find and order online.
@@ -71,7 +71,7 @@ export function About() {
                 We believe stocking your kitchen should feel simple, dependable and close to home. That is why we bring together quality Nigerian foodstuff, pantry essentials and everyday groceries in one easy-to-use online shop.
               </p>
               <p>
-                From gluten-free swallow flours and grains to cooking oils and wellness-friendly choices, our growing range is selected to support real family meals. We pair that care with clear product information, friendly service and reliable delivery.
+                From swallow flours and grains to cooking oils and everyday pantry choices, our growing range is selected to support real family meals. We pair that care with clear product information, friendly service and reliable delivery.
               </p>
               <Link className="inline-flex items-center gap-2 font-bold text-green transition-all hover:gap-3" to="/shop">
                 Shop our Nigerian foodstuff <ArrowRight size={16} />

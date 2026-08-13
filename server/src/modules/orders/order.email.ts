@@ -12,7 +12,6 @@ export async function notifyOrderCreated(order: {
   customerEmail: string | null
   total: string
   items: Array<{ name: string; quantity: number; subtotal: string }>
-  bank: { bankName: string; accountName: string; accountNumber: string; instructions: string } | null
 }): Promise<void> {
   if (!order.customerEmail || !env.email.resendApiKey || !env.email.from) {
     if (!env.email.resendApiKey || !env.email.from) console.warn('Order confirmation email skipped: Resend is not configured.')
@@ -22,13 +21,6 @@ export async function notifyOrderCreated(order: {
   const items = order.items
     .map((item) => `<li>${escapeHtml(item.name)} × ${item.quantity} — ₦${escapeHtml(item.subtotal)}</li>`)
     .join('')
-  const bank = order.bank
-    ? `<p><strong>Bank:</strong> ${escapeHtml(order.bank.bankName)}<br>
-       <strong>Account name:</strong> ${escapeHtml(order.bank.accountName)}<br>
-       <strong>Account number:</strong> ${escapeHtml(order.bank.accountNumber)}</p>
-       <p>${escapeHtml(order.bank.instructions)}</p>`
-    : '<p>Payment instructions will be provided by the store.</p>'
-
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -44,8 +36,7 @@ export async function notifyOrderCreated(order: {
         <ul>${items}</ul>
         <p><strong>Total:</strong> ₦${escapeHtml(order.total)}<br>
         <strong>Payment status:</strong> Pending</p>
-        ${bank}
-        <p>Payment is not confirmed until your transfer is reviewed by the store.</p>`,
+         <p>After completing your transfer, submit your payment proof from your order page so the store can verify it.</p>`,
     }),
   })
   if (!response.ok) console.error('Order confirmation email provider returned an error', response.status)

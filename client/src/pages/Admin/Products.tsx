@@ -12,6 +12,7 @@ import {
 } from '../../services/adminService'
 import type { Category } from '../../types/category'
 import { ProductPrice } from '../../components/products/ProductPrice'
+import { formatPrice } from '../../utils/formatPrice'
 
 const pageSize = 10
 
@@ -168,7 +169,7 @@ export function Products() {
                    <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
                      <div>
                        <dt className="uppercase tracking-[0.12em] text-muted">Price / unit</dt>
-                       <dd className="mt-1 font-bold text-green-dark">{formatPrice(product.price)} <span className="font-normal text-muted">/ {product.unit}</span></dd>
+                        <dd className="mt-1 font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /> <span className="font-normal text-muted">/ {product.unit}</span></dd>
                      </div>
                      <div>
                        <dt className="uppercase tracking-[0.12em] text-muted">Stock</dt>
@@ -223,7 +224,7 @@ export function Products() {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-muted">{product.category}</td>
-                      <td className="px-4 py-4"><span className="font-bold text-green-dark">{formatPrice(product.price)}</span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
+                      <td className="px-4 py-4"><span className="font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /></span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
                        <td className="px-4 py-4 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</td>
                       <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>
                       <td className="px-4 py-4">

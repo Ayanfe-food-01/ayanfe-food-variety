@@ -66,7 +66,11 @@ const discountFields = (
   originalPrice: string,
 ): Pick<ProductInput, 'discountType' | 'discountValue'> => {
   const discountType = discountTypeValue(typeValue)
-  if (!discountType) return { discountType: null, discountValue: null }
+  const hasDiscountValue = value !== undefined && value !== null && String(value).trim() !== ''
+  if (!discountType) {
+    if (hasDiscountValue) throw new HttpError(400, 'A discount type is required when a discount value is provided.')
+    return { discountType: null, discountValue: null }
+  }
 
   const discountValue = moneyValue(value, 'Discount value', false)
   const numericValue = Number(discountValue)

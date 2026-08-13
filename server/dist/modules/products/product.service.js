@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { recordStockAdjustment } from '../inventory/inventory.service.js';
+import { calculateDiscountedPrice } from './product.pricing.js';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const toProduct = (product) => ({
     id: product.id,
@@ -12,6 +13,9 @@ const toProduct = (product) => ({
     slug: product.slug,
     description: product.description,
     price: product.price.toString(),
+    discountType: product.discountType,
+    discountValue: product.discountValue?.toString() ?? null,
+    discountedPrice: calculateDiscountedPrice(product.price, product.discountType, product.discountValue).toString(),
     deliveryFee: product.deliveryFee.toString(),
     unit: product.unit,
     image: product.image,
@@ -174,6 +178,8 @@ export async function createProduct(input, adminId) {
                     slug: await uniqueSlug(input.name),
                     description: input.description,
                     price: input.price,
+                    discountType: input.discountType,
+                    discountValue: input.discountValue,
                     deliveryFee: input.deliveryFee,
                     unit: input.unit,
                     image: input.image ?? '',
@@ -221,6 +227,8 @@ export async function updateProduct(input, adminId, id) {
                     slug: await uniqueSlug(input.name, id),
                     description: input.description,
                     price: input.price,
+                    discountType: input.discountType,
+                    discountValue: input.discountValue,
                     deliveryFee: input.deliveryFee,
                     unit: input.unit,
                     ...(input.image ? { image: input.image } : {}),

@@ -47,6 +47,32 @@ const moneyValue = (value, field, allowZero) => {
 };
 const priceValue = (value) => moneyValue(value, 'Price', false);
 const deliveryFeeValue = (value) => moneyValue(value, 'Delivery fee', true);
+const discountTypeValue = (value) => {
+    if (value === undefined || value === null || value === '')
+        return null;
+    if (value === 'PERCENTAGE' || value === 'FIXED')
+        return value;
+    throw new HttpError(400, 'Discount type must be percentage or fixed amount.');
+};
+const discountFields = (typeValue, value, originalPrice) => {
+    const discountType = discountTypeValue(typeValue);
+    const hasDiscountValue = value !== undefined && value !== null && String(value).trim() !== '';
+    if (!discountType) {
+        if (hasDiscountValue)
+            throw new HttpError(400, 'A discount type is required when a discount value is provided.');
+        return { discountType: null, discountValue: null };
+    }
+    const discountValue = moneyValue(value, 'Discount value', false);
+    const numericValue = Number(discountValue);
+    const numericPrice = Number(originalPrice);
+    if (discountType === 'PERCENTAGE' && numericValue > 100) {
+        throw new HttpError(400, 'Percentage discount cannot be greater than 100.');
+    }
+    if (discountType === 'FIXED' && numericValue > numericPrice) {
+        throw new HttpError(400, 'Fixed discount cannot be greater than the product price.');
+    }
+    return { discountType, discountValue };
+};
 export function validateAdminProductId(value) {
     if (!value || !UUID_PATTERN.test(value.trim()))
         throw new HttpError(400, 'Product ID is invalid.');
@@ -58,10 +84,12 @@ export function validateProductFields(body) {
     const categoryId = requiredText(body.categoryId, 'Category', 1, 40);
     if (!UUID_PATTERN.test(categoryId))
         throw new HttpError(400, 'Category is invalid.');
+    const price = priceValue(body.price);
     return {
         name: requiredText(body.name, 'Product name', 2, 180),
         categoryId,
-        price: priceValue(body.price),
+        price,
+        ...discountFields(body.discountType, body.discountValue, price),
         deliveryFee: deliveryFeeValue(body.deliveryFee),
         unit: requiredText(body.unit, 'Unit', 1, 80),
         description: requiredText(body.description, 'Description', 10, 4000),

@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
+import { calculateDiscountedPrice } from '../products/product.pricing.js';
 const cartInclude = {
     items: {
         include: {
@@ -10,6 +11,8 @@ const cartInclude = {
                     name: true,
                     unit: true,
                     price: true,
+                    discountType: true,
+                    discountValue: true,
                     deliveryFee: true,
                     image: true,
                     isActive: true,
@@ -26,7 +29,8 @@ function toCartResponse(cart) {
     let deliveryFee = new Prisma.Decimal(0);
     let totalQuantity = 0;
     const items = cart.items.map((item) => {
-        const itemSubtotal = item.product.price.mul(item.quantity);
+        const discountedPrice = calculateDiscountedPrice(item.product.price, item.product.discountType, item.product.discountValue);
+        const itemSubtotal = discountedPrice.mul(item.quantity);
         const itemDeliveryFee = item.product.deliveryFee.mul(item.quantity);
         const isProductActive = item.product.isActive && item.product.category.isActive;
         const canUpdateQuantity = isProductActive && item.product.stockQuantity > 0;
@@ -46,7 +50,10 @@ function toCartResponse(cart) {
             productId: item.product.id,
             name: item.product.name,
             unit: item.product.unit,
-            price: item.product.price.toString(),
+            price: discountedPrice.toString(),
+            originalPrice: item.product.price.toString(),
+            discountType: item.product.discountType,
+            discountValue: item.product.discountValue?.toString() ?? null,
             deliveryFee: itemDeliveryFee.toString(),
             image: item.product.image,
             quantity: item.quantity,

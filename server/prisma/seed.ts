@@ -83,6 +83,8 @@ async function main() {
       businessEmail: 'Ayanfefoodvariety@gmail.com',
       businessPhone: '08125595879',
       whatsappNumber: '08125595879',
+      callToOrderPhone: '08125595879',
+      announcementText: 'Quality foodstuff, delivered with care',
       address: '',
       description: '',
     },

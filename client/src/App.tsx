@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { About } from './pages/About'
@@ -39,6 +39,97 @@ function ScrollToTop() {
 function RouteToastBridge() {
   useRouteToast()
   return null
+}
+
+function RouteTransition() {
+  const location = useLocation()
+  const locationKey = `${location.pathname}${location.search}${location.hash}`
+  const previousLocationKey = useRef(locationKey)
+  const progressTimeout = useRef<number | undefined>(undefined)
+  const [isProgressVisible, setIsProgressVisible] = useState(false)
+
+  const startProgress = useCallback(() => {
+    if (progressTimeout.current !== undefined) {
+      window.clearTimeout(progressTimeout.current)
+    }
+
+    setIsProgressVisible(true)
+    progressTimeout.current = window.setTimeout(() => {
+      setIsProgressVisible(false)
+      progressTimeout.current = undefined
+    }, 280)
+  }, [])
+
+  useEffect(() => {
+    const handleInternalNavigation = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+      const target = event.target instanceof Element ? event.target.closest('a') : null
+      if (!target || target.target === '_blank' || target.hasAttribute('download')) return
+
+      const destination = new URL(target.href, window.location.href)
+      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
+      const next = `${destination.pathname}${destination.search}${destination.hash}`
+
+      if (destination.origin === window.location.origin && next !== current) {
+        startProgress()
+      }
+    }
+
+    const handleHistoryNavigation = () => startProgress()
+
+    document.addEventListener('click', handleInternalNavigation, true)
+    window.addEventListener('popstate', handleHistoryNavigation)
+
+    return () => {
+      document.removeEventListener('click', handleInternalNavigation, true)
+      window.removeEventListener('popstate', handleHistoryNavigation)
+      if (progressTimeout.current !== undefined) window.clearTimeout(progressTimeout.current)
+    }
+  }, [startProgress])
+
+  useEffect(() => {
+    if (previousLocationKey.current !== locationKey) {
+      previousLocationKey.current = locationKey
+      startProgress()
+    }
+  }, [locationKey, startProgress])
+
+  return (
+    <>
+      {isProgressVisible && <div className="route-progress" role="progressbar" aria-label="Loading page" />}
+      <div className="route-page" key={locationKey}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/new-arrivals" element={<Shop newArrivalsOnly />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
+          <Route path="/orders" element={<CustomerOrders />} />
+          <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
+          <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/admin/login" element={<Navigate replace to="/login" />} />
+          <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
+          <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
+          <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
+          <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />
+          <Route path="/admin/products/new" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
+          <Route path="/admin/products/:id" element={<RequireAdmin><ProductView /></RequireAdmin>} />
+          <Route path="/admin/products/:id/edit" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
+          <Route path="/admin/categories" element={<RequireAdmin><Categories /></RequireAdmin>} />
+          <Route path="/admin/categories/new" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
+          <Route path="/admin/categories/:id/edit" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
+          <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
+          <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
+        </Routes>
+      </div>
+    </>
+  )
 }
 
 function PrivateRouteSeo() {
@@ -82,34 +173,7 @@ function App() {
       <ScrollToTop />
       <RouteToastBridge />
       <PrivateRouteSeo />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/new-arrivals" element={<Shop newArrivalsOnly />} />
-        <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-         <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
-        <Route path="/orders" element={<CustomerOrders />} />
-        <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
-        <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/admin/login" element={<Navigate replace to="/login" />} />
-        <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
-        <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
-        <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
-        <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />
-        <Route path="/admin/products/new" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
-        <Route path="/admin/products/:id" element={<RequireAdmin><ProductView /></RequireAdmin>} />
-        <Route path="/admin/products/:id/edit" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
-        <Route path="/admin/categories" element={<RequireAdmin><Categories /></RequireAdmin>} />
-        <Route path="/admin/categories/new" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
-        <Route path="/admin/categories/:id/edit" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
-        <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
-        <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
-      </Routes>
+      <RouteTransition />
     </>
   )
 }

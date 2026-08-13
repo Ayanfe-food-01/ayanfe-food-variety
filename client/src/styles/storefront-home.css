@@ -42,7 +42,7 @@
 .product-unit { color: var(--color-muted); font-size: 10px; }
 .product-price { color: var(--color-green-dark); font-size: 15px; }
 .product-actions { display: flex; align-items: stretch; gap: 6px; margin-top: 4px; min-width: 0; }
-.product-actions .product-add-button { min-width: 0; flex: 1 1 auto; padding: 8px 8px; font-size: 11px; line-height: 1.2; }
+.product-actions .product-add-button { min-width: 0; flex: 1 1 auto; border-radius: 7px; padding: 8px 8px; font-size: 11px; line-height: 1.2; }
 .details-button { display: grid; flex: 0 0 36px; place-items: center; min-height: 34px; border: 1px solid var(--color-green); border-radius: 7px; color: var(--color-green); transition: background-color .2s ease, color .2s ease; }
 .details-button:hover { background: var(--color-green); color: white; }
 .out-of-stock { align-self: center; margin: 4px 0 0; color: var(--color-muted); font-size: 11px; font-weight: 700; }

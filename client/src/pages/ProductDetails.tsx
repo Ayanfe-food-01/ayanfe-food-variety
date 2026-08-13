@@ -52,6 +52,7 @@ export function ProductDetails() {
     setProduct(null)
     setRelatedProducts([])
     setImageError(false)
+    setQuantity(1)
 
     try {
       const loadedProduct = await getProduct(id)
@@ -330,14 +331,14 @@ export function ProductDetails() {
                       −
                     </button>
                     <output className="min-w-9 text-center text-sm font-bold text-green-dark" id="quantity" aria-live="polite">
-                      {quantity}
+                      {selectedQuantity}
                     </output>
                     <button
                       className="grid size-11 place-items-center text-xl text-muted transition-colors hover:text-green"
                       type="button"
                       aria-label="Increase quantity"
-                        disabled={!canAddToCart || selectedQuantity >= maxSelectableQuantity}
-                        onClick={() => setQuantity((current) => Math.min(maxSelectableQuantity, current + 1))}
+                      disabled={!canAddToCart || selectedQuantity >= maxSelectableQuantity}
+                      onClick={() => setQuantity((current) => Math.min(maxSelectableQuantity, current + 1))}
                     >
                       +
                     </button>

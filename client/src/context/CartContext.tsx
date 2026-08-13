@@ -100,6 +100,7 @@ const createCartItem = (product: Product, quantity: number): CartItem => ({
   quantity,
   itemSubtotal: product.discountedPrice * quantity,
   isAvailable: product.isAvailable,
+  availableQuantity: product.stockQuantity,
   canUpdateQuantity: product.isAvailable,
   availabilityMessage: product.isAvailable ? null : 'This product is no longer available.',
 })
@@ -232,24 +233,32 @@ export function CartProvider({ children }: CartProviderProps) {
       return
     }
 
+    const existingItem = itemsRef.current.find((item) => item.id === product.id)
+    const nextQuantity = (existingItem?.quantity ?? 0) + safeQuantity
+    if (!product.isAvailable) {
+      throw new Error('This product is unavailable.')
+    }
+    if (nextQuantity > product.stockQuantity) {
+      throw new Error(`Insufficient stock. Only ${product.stockQuantity} ${product.stockQuantity === 1 ? 'unit' : 'units'} available.`)
+    }
+
     setError(null)
     setAuthoritativeSubtotal(null)
     setAuthoritativeDeliveryFee(null)
-    setItems((currentItems) => {
-      const existingItem = currentItems.find((item) => item.id === product.id)
-      if (!existingItem) return [...currentItems, createCartItem(product, safeQuantity)]
-
-      return currentItems.map((item) =>
-        item.id === product.id
-          ? {
-              ...item,
-              quantity: item.quantity + safeQuantity,
-              itemSubtotal: item.price * (item.quantity + safeQuantity),
-              deliveryFee: item.deliveryFee / item.quantity * (item.quantity + safeQuantity),
-            }
-          : item,
-      )
-    })
+    const nextItems = !existingItem
+      ? [...itemsRef.current, createCartItem(product, safeQuantity)]
+      : itemsRef.current.map((item) =>
+          item.id === product.id
+            ? {
+                ...item,
+                quantity: item.quantity + safeQuantity,
+                itemSubtotal: item.price * (item.quantity + safeQuantity),
+                deliveryFee: item.deliveryFee / item.quantity * (item.quantity + safeQuantity),
+              }
+            : item,
+        )
+    itemsRef.current = nextItems
+    setItems(nextItems)
   }, [runItemMutation, user])
 
   const increaseQuantity = useCallback(async (productId: string) => {
@@ -262,6 +271,10 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     if (!item.isAvailable) return
+    if (typeof item.availableQuantity === 'number' && item.quantity >= item.availableQuantity) {
+      setError(`Only ${item.availableQuantity} ${item.availableQuantity === 1 ? 'unit' : 'units'} available.`)
+      return
+    }
     setAuthoritativeSubtotal(null)
     setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => currentItems.map((currentItem) =>

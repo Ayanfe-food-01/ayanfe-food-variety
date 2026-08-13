@@ -1,4 +1,18 @@
 .home-promo { padding: 10px 0; background: var(--color-orange); color: white; font-size: 12px; font-weight: 700; }
+.banner-carousel-wrap { padding: 18px 0 0; background: var(--color-cream); }
+.banner-carousel { position: relative; overflow: hidden; width: 100%; max-width: 1160px; margin: 0 auto; border-radius: 18px; background: var(--color-sage); box-shadow: 0 12px 28px rgb(32 60 36 / 10%); }
+.banner-carousel > a { display: block; }
+.banner-carousel-image { width: 100%; aspect-ratio: 3 / 1; min-height: 150px; object-fit: cover; }
+.banner-carousel-content { position: absolute; inset: auto 0 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 54px 16px 20px; background: linear-gradient(transparent, rgb(16 36 21 / 78%)); color: white; }
+.banner-carousel-content p { margin: 18px 0 0; font-size: clamp(12px, 2vw, 16px); font-weight: 700; }
+.banner-carousel-content > span { margin-top: 18px; border-radius: 999px; background: var(--color-orange); padding: 8px 13px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.banner-carousel-control { position: absolute; top: 50%; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; transform: translateY(-50%); border: 1px solid rgb(255 255 255 / 65%); border-radius: 50%; background: rgb(32 60 36 / 70%); color: white; font-size: 25px; line-height: 1; cursor: pointer; }
+.banner-carousel-control:hover, .banner-carousel-control:focus-visible { background: var(--color-orange); }
+.banner-carousel-prev { left: 12px; }
+.banner-carousel-next { right: 12px; }
+.banner-carousel-dots { position: absolute; right: 0; bottom: 10px; left: 0; display: flex; justify-content: center; gap: 6px; }
+.banner-carousel-dot { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 999px; background: rgb(255 255 255 / 65%); cursor: pointer; }
+.banner-carousel-dot.is-active { width: 20px; background: white; }
 .home-hero { background: var(--color-green-dark); color: var(--color-cream); }
 .home-hero-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; min-height: 235px; padding-top: 31px; padding-bottom: 31px; }
 .home-hero-copy { max-width: 690px; }
@@ -82,6 +96,15 @@
 
 @media (max-width: 767px) {
   .home-promo { font-size: 10px; }
+  .banner-carousel-wrap { padding-top: 12px; }
+  .banner-carousel { border-radius: 12px; }
+  .banner-carousel-image { aspect-ratio: 16 / 8; min-height: 130px; }
+  .banner-carousel-content { padding: 11px 42px 22px 13px; }
+  .banner-carousel-content p { margin-top: 12px; font-size: 11px; }
+  .banner-carousel-content > span { margin-top: 12px; padding: 6px 9px; font-size: 9px; }
+  .banner-carousel-control { width: 28px; height: 28px; font-size: 21px; }
+  .banner-carousel-prev { left: 8px; }
+  .banner-carousel-next { right: 8px; }
   .home-hero-inner { min-height: 190px; padding-top: 22px; padding-bottom: 22px; }
   .hero-actions { margin-top: 14px; }
   .home-hero-copy > p:not(.eyebrow) { font-size: 13px; }

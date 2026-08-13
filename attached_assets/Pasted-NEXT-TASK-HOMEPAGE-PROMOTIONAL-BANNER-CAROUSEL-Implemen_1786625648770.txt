@@ -1,0 +1,261 @@
+NEXT TASK — HOMEPAGE PROMOTIONAL BANNER CAROUSEL
+
+Implement a professional dynamic promotional banner/flyer management system.
+
+The goal is similar to the promotional banner carousel commonly used by ecommerce websites such as Jumia.
+
+IMPORTANT:
+- Inspect the existing project architecture before implementing.
+- Reuse the existing modular Route → Controller → Service → Prisma structure.
+- Reuse the existing Cloudinary integration for image storage.
+- Do NOT hardcode banner images into the frontend.
+- Do NOT store image binary data in PostgreSQL.
+- Do NOT create duplicate image-upload infrastructure.
+- Preserve the existing homepage design and components.
+- Do not redesign unrelated features.
+
+1. ADMIN BANNER MANAGEMENT
+
+Add a Banner/Promotional Banner section to the existing Admin Portal.
+
+Admin should be able to:
+
+- Upload a banner/flyer image.
+- Enter an internal banner title/name.
+- Optionally enter promotional text.
+- Optionally enter button text.
+- Optionally specify where the banner button/image should lead.
+- Set display order.
+- Activate/deactivate the banner.
+- Edit an existing banner.
+- Delete an existing banner.
+- Preview the banner before publishing.
+
+Use the existing admin authentication and authorization system.
+
+Only authorized admins can manage banners.
+
+2. IMAGE STORAGE
+
+Use the existing Cloudinary integration.
+
+When an admin uploads a banner:
+
+Admin Portal
+→ Backend
+→ Cloudinary
+→ Store returned image URL/public identifier in database
+
+Do not expose Cloudinary API secrets to the frontend.
+
+Validate uploaded files appropriately.
+
+Support common web image formats such as:
+
+- JPG/JPEG
+- PNG
+- WebP
+
+Reject unsupported file types and unreasonable file sizes.
+
+3. DATABASE
+
+Inspect the existing Prisma schema first.
+
+Create a Banner/PromotionalBanner model only if an equivalent model does not already exist.
+
+The model should support at least:
+
+- id
+- title/name
+- image URL
+- Cloudinary public ID where needed for deletion
+- optional promotional text
+- optional button text
+- optional destination/link
+- isActive
+- displayOrder
+- createdAt
+- updatedAt
+
+Use appropriate indexes.
+
+Do not duplicate existing functionality.
+
+4. ADMIN LIST
+
+The existing Admin Portal should display banners in a manageable list/table.
+
+Show:
+
+- Preview image
+- Name
+- Active/inactive status
+- Display order
+- Created date
+- Edit
+- Activate/deactivate
+- Delete
+
+Use the existing admin UI design system.
+
+5. HOMEPAGE CAROUSEL
+
+Update the EXISTING homepage.
+
+Add a horizontal promotional banner carousel.
+
+Only active banners should be displayed.
+
+Respect the admin-configured display order.
+
+The carousel should support:
+
+- Automatic sliding
+- Previous/next controls
+- Swipe/touch interaction on mobile
+- Pagination indicators where appropriate
+- Smooth transitions
+- Pause/appropriate accessibility behavior where practical
+
+Do not make the homepage feel cluttered.
+
+6. RESPONSIVE DESIGN
+
+The banner carousel must work properly on:
+
+- Mobile
+- Tablet
+- Desktop
+
+Use appropriate responsive image behavior.
+
+Do not distort promotional artwork.
+
+If the project has an established banner aspect ratio, preserve it.
+
+7. LINKS
+
+If a banner has a destination configured:
+
+Clicking the banner/button should navigate to that destination.
+
+Support internal storefront destinations safely.
+
+Do not allow unsafe arbitrary URL behavior.
+
+If no destination is configured, the banner should simply be informational.
+
+8. PERFORMANCE
+
+Optimize banner loading.
+
+Use appropriate image URLs/transformations from Cloudinary where the existing integration supports them.
+
+Do not download unnecessarily large original images to the browser.
+
+Lazy-load banners that are not immediately visible where appropriate.
+
+The homepage must remain fast.
+
+9. EMPTY STATE
+
+If there are no active banners:
+
+Do not show a broken carousel.
+
+The homepage should simply hide the promotional carousel or gracefully show the existing homepage content.
+
+10. API
+
+Use the existing architecture:
+
+Route
+→ Controller
+→ Service
+→ Prisma
+
+Create/reuse appropriate endpoints for:
+
+- Create banner
+- Get active banners
+- Get admin banners
+- Update banner
+- Activate/deactivate banner
+- Delete banner
+
+The public endpoint should return only the information required by the storefront.
+
+11. DELETE
+
+When deleting a banner:
+
+- Delete the database record.
+- Remove the corresponding Cloudinary asset when appropriate.
+- Handle Cloudinary/database failures safely.
+- Do not leave unnecessary orphaned images.
+
+Do not expose internal Cloudinary identifiers to customers.
+
+12. SECURITY
+
+Ensure:
+
+- Only authorized admins can create/update/delete banners.
+- Customers cannot manage banners.
+- Backend validates all fields.
+- Uploaded files are validated.
+- Cloudinary secrets remain server-side.
+- Destination links are validated/sanitized.
+- No raw database errors are exposed to the frontend.
+
+13. PRODUCTION
+
+Ensure the feature works with:
+
+Vercel frontend
+→ Render backend
+→ Neon PostgreSQL
+→ Cloudinary
+
+Do not hardcode production URLs.
+
+Use the existing environment configuration.
+
+14. TEST
+
+Test:
+
+1. Admin can upload a banner.
+2. Image uploads to Cloudinary.
+3. Database stores the correct image information.
+4. Banner appears in the admin portal.
+5. Admin can edit it.
+6. Admin can activate/deactivate it.
+7. Admin can change display order.
+8. Active banners appear on homepage.
+9. Inactive banners do not appear.
+10. Multiple banners display in the correct order.
+11. Carousel works on mobile.
+12. Carousel works on desktop.
+13. Banner links work correctly.
+14. Banner deletion removes the database record and appropriate Cloudinary asset.
+15. Unauthorized users cannot manage banners.
+16. No banner configuration is hardcoded in the frontend.
+17. Production build succeeds.
+
+IMPORTANT:
+Do not create unrelated ecommerce features.
+
+At the end report:
+
+- Database changes
+- API endpoints
+- Cloudinary implementation
+- Admin functionality
+- Homepage implementation
+- Security measures
+- Production configuration
+- Test/build results
+
+Then STOP.

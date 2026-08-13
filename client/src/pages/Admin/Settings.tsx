@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { ApiError } from '../../services/api'
-import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { useToast } from '../../components/ui/Toast'
 import {
   getContactInformation,
@@ -14,7 +13,7 @@ import {
   type StoreInformation,
 } from '../../services/adminService'
 
-const emptyStore: StoreInformation = { businessName: '', callToOrderPhone: '', announcementText: '', heroImage: null, address: '', description: '' }
+const emptyStore: StoreInformation = { businessName: '', callToOrderPhone: '', announcementText: '', address: '', description: '' }
 const emptyContact: ContactInformation = { businessEmail: '', businessPhone: '', whatsappNumber: '' }
 const emptyPayment: PaymentSettings = {
   paymentMethod: 'BANK_TRANSFER',
@@ -77,9 +76,6 @@ export function Settings() {
   const [store, setStore] = useState(emptyStore)
   const [contact, setContact] = useState(emptyContact)
   const [payment, setPayment] = useState(emptyPayment)
-  const [heroImageFile, setHeroImageFile] = useState<File | undefined>()
-  const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null)
-  const [heroImageError, setHeroImageError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -112,14 +108,8 @@ export function Settings() {
 
   const submitStore = (event: FormEvent) => {
     event.preventDefault()
-    if (heroImageError) {
-      setError(heroImageError)
-      return
-    }
-    void save('store', () => updateStoreInformation(store, heroImageFile), (value) => {
+    void save('store', () => updateStoreInformation(store), (value) => {
       setStore(value)
-      setHeroImageFile(undefined)
-      setHeroImagePreview(null)
     }, 'Store information saved.')
   }
   const submitContact = (event: FormEvent) => {
@@ -147,19 +137,6 @@ export function Settings() {
                  <TextArea label="Announcement ticker messages" value={store.announcementText} onChange={(event) => setStore({ ...store, announcementText: event.target.value })} maxLength={2000} placeholder={'Fresh stock available today\nFree delivery on qualifying orders'} />
                </div>
                <p className="-mt-2 text-xs font-normal leading-5 text-muted">The green ticker rotates each line continuously. You can also separate messages with a vertical bar (|).</p>
-               <ImageUploadField
-                 label="Upload hero image"
-                 helperText="JPG, PNG, or WEBP up to 5 MB. Leave empty to keep the current image."
-                 alt="Hero image preview"
-                 currentUrl={store.heroImage}
-                 previewUrl={heroImagePreview}
-                 error={heroImageError ?? undefined}
-                 onChange={(file, preview, imageError) => {
-                   setHeroImageFile(file)
-                   setHeroImagePreview(preview)
-                   setHeroImageError(imageError)
-                 }}
-               />
               <Field label="Business address" value={store.address} onChange={(event) => setStore({ ...store, address: event.target.value })} maxLength={500} />
               <TextArea label="Short business description" value={store.description} onChange={(event) => setStore({ ...store, description: event.target.value })} maxLength={500} />
               <SaveButton saving={saving === 'store'} label="Save store information" />

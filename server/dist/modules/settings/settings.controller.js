@@ -4,10 +4,11 @@ export const getAdminStoreInformationController = async (_request, response) => 
     response.json({ success: true, data: { settings: await getAdminStoreInformation() } });
 };
 export const updateAdminStoreInformationController = async (request, response) => {
+    const fields = validateStoreInformationInput(request.body);
     response.json({
         success: true,
         message: 'Store information updated.',
-        data: { settings: await updateAdminStoreInformation(validateStoreInformationInput(request.body)) },
+        data: { settings: await updateAdminStoreInformation(fields) },
     });
 };
 export const getAdminContactInformationController = async (_request, response) => {

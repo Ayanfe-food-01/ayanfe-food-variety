@@ -9,7 +9,6 @@ export interface StoreSettings {
   whatsappNumber: string
   callToOrderPhone: string
   announcementText: string
-  heroImage: string | null
   address: string
   description: string
 }
@@ -29,6 +28,15 @@ export interface PaymentSettings {
   isActive: boolean
 }
 
+export interface PromotionalBanner {
+  id: string
+  title: string
+  imageUrl: string
+  promotionalText: string | null
+  buttonText: string | null
+  destination: string | null
+}
+
 interface PublicStoreSettingsResponse {
   success: true
   data: PublicStoreSettings
@@ -37,4 +45,14 @@ interface PublicStoreSettingsResponse {
 export async function getPublicStoreSettings(): Promise<PublicStoreSettings> {
   const response = await request<PublicStoreSettingsResponse>('/store/settings')
   return response.data
+}
+
+interface PublicBannersResponse {
+  success: true
+  data: { banners: PromotionalBanner[] }
+}
+
+export async function getPublicBanners(): Promise<PromotionalBanner[]> {
+  const response = await request<PublicBannersResponse>('/store/banners')
+  return response.data.banners
 }

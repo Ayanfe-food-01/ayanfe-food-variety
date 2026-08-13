@@ -14,7 +14,6 @@ import {
   getAdminContactInformationController,
   getAdminPaymentSettingsController,
   getAdminStoreInformationController,
-  heroImageUpload,
   updateAdminContactInformationController,
   updateAdminPaymentSettingsController,
   updateAdminStoreInformationController,
@@ -36,6 +35,15 @@ import {
   updateAdminCategoryStatusController,
   categoryImageUpload,
 } from '../modules/categories/category.controller.js'
+import {
+  bannerImageUpload,
+  createAdminBannerController,
+  deleteAdminBannerController,
+  getAdminBannerController,
+  listAdminBannersController,
+  updateAdminBannerController,
+  updateAdminBannerStatusController,
+} from '../modules/banners/banner.controller.js'
 
 export const adminRoutes = Router()
 
@@ -46,6 +54,12 @@ adminRoutes.get('/categories/:id', getAdminCategoryController)
 adminRoutes.patch('/categories/:id/status', updateAdminCategoryStatusController)
 adminRoutes.patch('/categories/:id', categoryImageUpload, updateAdminCategoryController)
 adminRoutes.delete('/categories/:id', deleteAdminCategoryController)
+adminRoutes.get('/banners', listAdminBannersController)
+adminRoutes.post('/banners', bannerImageUpload, createAdminBannerController)
+adminRoutes.get('/banners/:id', getAdminBannerController)
+adminRoutes.patch('/banners/:id/status', updateAdminBannerStatusController)
+adminRoutes.patch('/banners/:id', bannerImageUpload, updateAdminBannerController)
+adminRoutes.delete('/banners/:id', deleteAdminBannerController)
 adminRoutes.get('/products', listAdminProductsController)
 adminRoutes.get('/products/:id', getAdminProductController)
 adminRoutes.post('/products', productImageUpload, createAdminProductController)
@@ -60,7 +74,7 @@ adminRoutes.get('/payments/:id', getAdminPaymentController)
 adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController)
 adminRoutes.post('/payments/:id/reject', rejectAdminPaymentController)
 adminRoutes.get('/settings/store', getAdminStoreInformationController)
-  adminRoutes.put('/settings/store', heroImageUpload, updateAdminStoreInformationController)
+adminRoutes.put('/settings/store', updateAdminStoreInformationController)
 adminRoutes.get('/settings/contact', getAdminContactInformationController)
 adminRoutes.put('/settings/contact', updateAdminContactInformationController)
 adminRoutes.get('/settings/payment', getAdminPaymentSettingsController)

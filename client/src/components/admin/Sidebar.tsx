@@ -12,6 +12,7 @@ const links = [
   { label: 'Orders', to: '/admin/orders' },
   { label: 'Products & inventory', to: '/admin/products' },
   { label: 'Categories', to: '/admin/categories' },
+  { label: 'Promotional banners', to: '/admin/banners' },
   { label: 'Payments', to: '/admin/payments' },
   { label: 'Settings', to: '/admin/settings' },
 ]

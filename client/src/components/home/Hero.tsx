@@ -1,12 +1,9 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, TruckIcon } from '../../assets/icons'
-import { useStoreSettings } from '../../hooks/useStoreSettings'
-import { HeroImage } from './HeroImage'
+import { BannerCarousel } from './BannerCarousel'
 import { PromoBanner } from './PromoBanner'
 
 export function Hero() {
-  const { settings } = useStoreSettings()
-
   return <>
     <PromoBanner />
     <section className="home-hero" id="home" aria-labelledby="home-heading">
@@ -20,7 +17,7 @@ export function Hero() {
             <span className="hero-note"><TruckIcon size={17} /> Simple ordering, helpful service</span>
           </div>
         </div>
-        <HeroImage src={settings?.heroImage} />
+        <BannerCarousel />
       </div>
     </section>
   </>

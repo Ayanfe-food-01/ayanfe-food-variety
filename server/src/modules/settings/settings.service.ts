@@ -19,7 +19,6 @@ const DEFAULT_STORE_SETTINGS = {
   whatsappNumber: '08125595879',
   callToOrderPhone: '08125595879',
   announcementText: 'Quality foodstuff, delivered with care',
-  heroImage: null,
   address: '',
   description: '',
 }
@@ -31,7 +30,6 @@ const toStoreSettings = (settings: PrismaStoreSettings): StoreSettings => ({
   whatsappNumber: settings.whatsappNumber,
   callToOrderPhone: settings.callToOrderPhone,
   announcementText: settings.announcementText,
-  heroImage: settings.heroImage,
   address: settings.address,
   description: settings.description,
 })
@@ -40,7 +38,6 @@ const toStoreInformation = (settings: PrismaStoreSettings): StoreInformation => 
   businessName: settings.businessName,
   callToOrderPhone: settings.callToOrderPhone,
   announcementText: settings.announcementText,
-  heroImage: settings.heroImage,
   address: settings.address,
   description: settings.description,
 })
@@ -72,7 +69,6 @@ export async function getAdminStoreInformation(): Promise<StoreInformation | nul
     businessName: DEFAULT_STORE_SETTINGS.businessName,
     callToOrderPhone: DEFAULT_STORE_SETTINGS.callToOrderPhone,
     announcementText: DEFAULT_STORE_SETTINGS.announcementText,
-    heroImage: DEFAULT_STORE_SETTINGS.heroImage,
     address: DEFAULT_STORE_SETTINGS.address,
     description: DEFAULT_STORE_SETTINGS.description,
   }
@@ -91,7 +87,6 @@ export async function updateAdminStoreInformation(input: UpdateStoreInformationI
       whatsappNumber: DEFAULT_STORE_SETTINGS.whatsappNumber,
       callToOrderPhone: input.callToOrderPhone,
       announcementText: input.announcementText,
-      heroImage: input.heroImage,
     },
     update: input,
   })

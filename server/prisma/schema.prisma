@@ -185,13 +185,30 @@ model StoreSettings {
   whatsappNumber  String   @map("whatsapp_number") @db.VarChar(40)
   callToOrderPhone String  @map("call_to_order_phone") @db.VarChar(40)
   announcementText String  @map("announcement_text") @db.VarChar(2000)
-  heroImage       String?  @map("hero_image") @db.VarChar(1000)
   address         String   @db.VarChar(500)
   description     String   @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("store_settings")
+}
+
+model PromotionalBanner {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String   @db.VarChar(180)
+  imageUrl        String   @map("image_url") @db.VarChar(1000)
+  imagePublicId   String   @map("image_public_id") @db.VarChar(255)
+  promotionalText String?  @map("promotional_text") @db.VarChar(500)
+  buttonText      String?  @map("button_text") @db.VarChar(120)
+  destination     String?  @db.VarChar(500)
+  isActive        Boolean  @default(true) @map("is_active")
+  displayOrder    Int      @default(0) @map("display_order")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([isActive, displayOrder], map: "promotional_banners_active_order_idx")
+  @@index([createdAt], map: "promotional_banners_created_at_idx")
+  @@map("promotional_banners")
 }
 
 model User {

@@ -27,7 +27,6 @@ export interface StoreInformation {
   businessName: string
   callToOrderPhone: string
   announcementText: string
-  heroImage: string | null
   address: string
   description: string
 }
@@ -83,22 +82,98 @@ export async function getStoreInformation(): Promise<StoreInformation | null> {
   return response.data.settings
 }
 
-export async function updateStoreInformation(settings: StoreInformation, heroImage?: File): Promise<StoreInformation> {
-  const formData = new FormData()
-  formData.set('businessName', settings.businessName)
-  formData.set('callToOrderPhone', settings.callToOrderPhone)
-  formData.set('announcementText', settings.announcementText)
-  formData.set('heroImage', settings.heroImage ?? '')
-  formData.set('address', settings.address)
-  formData.set('description', settings.description)
-  if (heroImage) formData.set('heroImage', heroImage)
-
+export async function updateStoreInformation(settings: StoreInformation): Promise<StoreInformation> {
   const response = await request<StoreInformationResponse>('/admin/settings/store', {
     method: 'PUT',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
   })
   if (!response.data.settings) throw new Error('Store information was not returned.')
   return response.data.settings
+}
+
+export interface AdminBanner {
+  id: string
+  title: string
+  imageUrl: string
+  promotionalText: string | null
+  buttonText: string | null
+  destination: string | null
+  isActive: boolean
+  displayOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BannerInput {
+  title: string
+  promotionalText: string
+  buttonText: string
+  destination: string
+  displayOrder: number
+  isActive: boolean
+  image?: File
+}
+
+interface AdminBannersResponse {
+  success: true
+  data: { banners: AdminBanner[] }
+}
+
+interface AdminBannerResponse {
+  success: true
+  data: { banner: AdminBanner }
+}
+
+const bannerFormDataFor = (input: BannerInput): FormData => {
+  const formData = new FormData()
+  formData.set('title', input.title)
+  formData.set('promotionalText', input.promotionalText)
+  formData.set('buttonText', input.buttonText)
+  formData.set('destination', input.destination)
+  formData.set('displayOrder', String(input.displayOrder))
+  formData.set('isActive', String(input.isActive))
+  if (input.image) formData.set('image', input.image)
+  return formData
+}
+
+export async function getAdminBanners(): Promise<AdminBanner[]> {
+  const response = await request<AdminBannersResponse>('/admin/banners')
+  return response.data.banners
+}
+
+export async function getAdminBanner(id: string): Promise<AdminBanner> {
+  const response = await request<AdminBannerResponse>(`/admin/banners/${encodeURIComponent(id)}`)
+  return response.data.banner
+}
+
+export async function createAdminBanner(input: BannerInput): Promise<AdminBanner> {
+  const response = await request<AdminBannerResponse>('/admin/banners', {
+    method: 'POST',
+    body: bannerFormDataFor(input),
+  })
+  return response.data.banner
+}
+
+export async function updateAdminBanner(id: string, input: BannerInput): Promise<AdminBanner> {
+  const response = await request<AdminBannerResponse>(`/admin/banners/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: bannerFormDataFor(input),
+  })
+  return response.data.banner
+}
+
+export async function updateAdminBannerStatus(id: string, isActive: boolean): Promise<AdminBanner> {
+  const response = await request<AdminBannerResponse>(`/admin/banners/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.banner
+}
+
+export async function deleteAdminBanner(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/banners/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
 export async function getContactInformation(): Promise<ContactInformation | null> {

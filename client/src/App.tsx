@@ -22,6 +22,8 @@ import { ProductForm } from './pages/Admin/ProductForm'
 import { ProductView } from './pages/Admin/ProductView'
 import { Categories } from './pages/Admin/Categories'
 import { CategoryForm } from './pages/Admin/CategoryForm'
+import { Banners } from './pages/Admin/Banners'
+import { BannerForm } from './pages/Admin/BannerForm'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 import { useRouteToast } from './hooks/useRouteToast'
 import { Seo } from './seo/Seo'
@@ -131,6 +133,9 @@ function RouteTransition() {
           <Route path="/admin/categories" element={<RequireAdmin><Categories /></RequireAdmin>} />
           <Route path="/admin/categories/new" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
           <Route path="/admin/categories/:id/edit" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
+          <Route path="/admin/banners" element={<RequireAdmin><Banners /></RequireAdmin>} />
+          <Route path="/admin/banners/new" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
+          <Route path="/admin/banners/:id/edit" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
           <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
           <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
         </Routes>

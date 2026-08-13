@@ -1,6 +1,14 @@
 import { RevealOnScroll } from '../ui/RevealOnScroll'
 import { testimonials } from '../../data/testimonials'
 
+const getInitials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+
 export function Testimonials() {
   return (
     <RevealOnScroll>
@@ -31,9 +39,17 @@ export function Testimonials() {
                   )}
                 </div>
                 <p className="mt-5 flex-1 text-base leading-7 text-green-dark">{testimonial.text}</p>
-                <p className="mt-6 border-t border-line pt-4 text-xs font-bold uppercase tracking-[0.14em] text-muted">
-                  {testimonial.name}
-                </p>
+                <div className="mt-6 flex items-center gap-3 border-t border-line pt-4">
+                  <span
+                    className="grid size-10 shrink-0 place-items-center rounded-full bg-sage text-xs font-bold text-green-dark"
+                    aria-hidden="true"
+                  >
+                    {getInitials(testimonial.name)}
+                  </span>
+                  <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                    {testimonial.name}
+                  </p>
+                </div>
               </article>
             ))}
           </div>

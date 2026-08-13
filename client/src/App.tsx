@@ -45,19 +45,19 @@ function RouteTransition() {
   const location = useLocation()
   const locationKey = `${location.pathname}${location.search}${location.hash}`
   const previousLocationKey = useRef(locationKey)
-  const progressTimeout = useRef<number | undefined>(undefined)
-  const [isProgressVisible, setIsProgressVisible] = useState(false)
+  const transitionTimeout = useRef<number | undefined>(undefined)
+  const [isRouteLoading, setIsRouteLoading] = useState(false)
 
-  const startProgress = useCallback(() => {
-    if (progressTimeout.current !== undefined) {
-      window.clearTimeout(progressTimeout.current)
+  const startRouteTransition = useCallback(() => {
+    if (transitionTimeout.current !== undefined) {
+      window.clearTimeout(transitionTimeout.current)
     }
 
-    setIsProgressVisible(true)
-    progressTimeout.current = window.setTimeout(() => {
-      setIsProgressVisible(false)
-      progressTimeout.current = undefined
-    }, 280)
+    setIsRouteLoading(true)
+    transitionTimeout.current = window.setTimeout(() => {
+      setIsRouteLoading(false)
+      transitionTimeout.current = undefined
+    }, 320)
   }, [])
 
   useEffect(() => {
@@ -72,11 +72,11 @@ function RouteTransition() {
       const next = `${destination.pathname}${destination.search}${destination.hash}`
 
       if (destination.origin === window.location.origin && next !== current) {
-        startProgress()
+        startRouteTransition()
       }
     }
 
-    const handleHistoryNavigation = () => startProgress()
+    const handleHistoryNavigation = () => startRouteTransition()
 
     document.addEventListener('click', handleInternalNavigation, true)
     window.addEventListener('popstate', handleHistoryNavigation)
@@ -84,21 +84,28 @@ function RouteTransition() {
     return () => {
       document.removeEventListener('click', handleInternalNavigation, true)
       window.removeEventListener('popstate', handleHistoryNavigation)
-      if (progressTimeout.current !== undefined) window.clearTimeout(progressTimeout.current)
+      if (transitionTimeout.current !== undefined) window.clearTimeout(transitionTimeout.current)
     }
-  }, [startProgress])
+  }, [startRouteTransition])
 
   useEffect(() => {
     if (previousLocationKey.current !== locationKey) {
       previousLocationKey.current = locationKey
-      startProgress()
+      startRouteTransition()
     }
-  }, [locationKey, startProgress])
+  }, [locationKey, startRouteTransition])
 
   return (
     <>
-      {isProgressVisible && <div className="route-progress" role="progressbar" aria-label="Loading page" />}
-      <div className="route-page" key={locationKey}>
+      {isRouteLoading && (
+        <div className="route-loader" role="status" aria-live="polite" aria-label="Loading page">
+          <div className="route-loader-mark">
+            <span className="route-loader-ring" aria-hidden="true" />
+            <img src="/branding/ayanfe-food-variety-logo.png" alt="" />
+          </div>
+        </div>
+      )}
+      <div className="route-content" key={locationKey}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />

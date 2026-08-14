@@ -170,6 +170,7 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
 
   try {
     const result = await loginWithGoogle(code, nonceCookie)
+    response.clearCookie(authCookie.name, authCookie.options)
     setCustomerCookie(response, result.token)
     response.redirect(getOAuthFrontendUrl('success').toString())
   } catch (error: unknown) {

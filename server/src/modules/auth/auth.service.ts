@@ -615,9 +615,6 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity) {
         if (userByEmail.role !== UserRole.CUSTOMER) {
           throw new HttpError(403, 'Google sign-in is available for customer accounts only.')
         }
-        if (!userByEmail.emailVerified) {
-          throw new HttpError(409, 'Verify your existing email account before using Google sign-in.')
-        }
         if (userByEmail.googleSubject && userByEmail.googleSubject !== identity.subject) {
           throw new HttpError(409, 'This email is already linked to another Google account.')
         }

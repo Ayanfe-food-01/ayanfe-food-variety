@@ -39,7 +39,9 @@ const requireGoogleOAuthConfiguration = (): {
 }
 
 export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
-  const frontendOrigin = env.publicAppUrl ?? env.corsOrigins[0]
+  const frontendOrigin = env.nodeEnv === 'production'
+    ? env.publicAppUrl ?? env.corsOrigins[0]
+    : env.corsOrigins[0] ?? env.publicAppUrl
   if (!frontendOrigin) throw new HttpError(503, 'The authentication redirect is not configured.')
   const url = new URL('/login', frontendOrigin)
   if (status !== 'success') url.searchParams.set('oauth_error', `google_${status}`)

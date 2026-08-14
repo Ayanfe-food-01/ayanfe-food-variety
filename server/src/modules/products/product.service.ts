@@ -246,7 +246,6 @@ export async function getFeaturedProducts(query: PublicProductQuery, wishlistUse
   const where: Prisma.ProductWhereInput = {
     isFeatured: true,
     isActive: true,
-    stockQuantity: { gt: 0 },
     category: { isActive: true },
   }
   const products = await prisma.product.findMany({

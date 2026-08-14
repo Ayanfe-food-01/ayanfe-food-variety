@@ -192,7 +192,6 @@ export async function getFeaturedProducts(query, wishlistUserId) {
     const where = {
         isFeatured: true,
         isActive: true,
-        stockQuantity: { gt: 0 },
         category: { isActive: true },
     };
     const products = await prisma.product.findMany({

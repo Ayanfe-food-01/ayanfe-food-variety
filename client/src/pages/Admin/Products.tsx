@@ -33,6 +33,8 @@ interface ProductActionsProps {
 
 function ProductActions({ product, isBusy, onToggleStatus, onToggleFeatured, onDelete }: ProductActionsProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null)
+  const actionButtonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -53,6 +55,40 @@ function ProductActions({ product, isBusy, onToggleStatus, onToggleFeatured, onD
     }
   }, [isOpen])
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    const positionMenu = () => {
+      const button = actionButtonRef.current
+      const menu = menuRef.current
+      if (!button || !menu) return
+
+      const buttonRect = button.getBoundingClientRect()
+      const menuRect = menu.getBoundingClientRect()
+      const gap = 8
+      const hasRoomBelow = window.innerHeight - buttonRect.bottom >= menuRect.height + gap
+      const top = hasRoomBelow
+        ? buttonRect.bottom + gap
+        : Math.max(gap, buttonRect.top - menuRect.height - gap)
+      const right = Math.max(gap, window.innerWidth - buttonRect.right)
+      const nextPosition = { top, right }
+
+      setMenuPosition((current) => (
+        current?.top === nextPosition.top && current.right === nextPosition.right
+          ? current
+          : nextPosition
+      ))
+    }
+
+    positionMenu()
+    window.addEventListener('resize', positionMenu)
+    window.addEventListener('scroll', positionMenu, true)
+    return () => {
+      window.removeEventListener('resize', positionMenu)
+      window.removeEventListener('scroll', positionMenu, true)
+    }
+  }, [isOpen])
+
   const runAction = (action: () => void) => {
     setIsOpen(false)
     action()
@@ -67,14 +103,21 @@ function ProductActions({ product, isBusy, onToggleStatus, onToggleFeatured, onD
         aria-expanded={isOpen}
         aria-haspopup="menu"
         disabled={isBusy}
+        ref={actionButtonRef}
         onClick={() => setIsOpen((current) => !current)}
       >
         <MoreHorizontalIcon size={20} />
       </button>
       {isOpen && (
         <div
-          className="absolute right-0 top-11 z-30 min-w-44 overflow-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10"
+          className="fixed z-50 max-h-[calc(100vh-16px)] min-w-44 overflow-y-auto overflow-x-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10"
           role="menu"
+          ref={menuRef}
+          style={{
+            top: menuPosition?.top ?? 0,
+            right: menuPosition?.right ?? 8,
+            visibility: menuPosition ? 'visible' : 'hidden',
+          }}
         >
           <Link
             className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"

@@ -177,9 +177,10 @@ export function SelectField({
         id={id}
         onClick={() => (isOpen ? closeMenu() : openMenu())}
         onKeyDown={handleKeyDown}
+         title={selectedOption?.label}
         type="button"
       >
-        <span className={!selectedOption ? 'select-field-placeholder' : ''}>
+         <span className={`ui-truncate ${!selectedOption ? 'select-field-placeholder' : ''}`.trim()}>
           {selectedOption?.label ?? 'Select an option'}
         </span>
         <ChevronDownIcon className="select-field-chevron" size={17} aria-hidden="true" />
@@ -201,9 +202,10 @@ export function SelectField({
               key={option.value}
               onClick={() => chooseOption(option)}
               role="option"
+               title={option.label}
               type="button"
             >
-              <span>{option.label}</span>
+               <span className="ui-truncate">{option.label}</span>
               {option.value === value && <span className="select-field-check" aria-hidden="true">✓</span>}
             </button>
           ))}

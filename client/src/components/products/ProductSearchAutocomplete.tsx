@@ -137,8 +137,8 @@ export function ProductSearchAutocomplete({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => selectProduct(product)}
               >
-                <span className="product-search-option-name">{product.name}</span>
-                <span className="product-search-option-meta">{product.category}{product.unit ? ` · ${product.unit}` : ''}</span>
+                 <span className="product-search-option-name ui-truncate" title={product.name}>{product.name}</span>
+                 <span className="product-search-option-meta ui-truncate" title={`${product.category}${product.unit ? ` · ${product.unit}` : ''}`}>{product.category}{product.unit ? ` · ${product.unit}` : ''}</span>
               </button>
             ))
           ) : (

@@ -264,7 +264,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
                 />
               ) : (
                 <span className="filter-pill">
-                  Newest first
+                   <span className="ui-truncate">Newest first</span>
                 </span>
               )}
             </div>

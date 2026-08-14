@@ -65,7 +65,9 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [hasLoaded, user, wishlistIds])
 
   const toggleWishlist = useCallback(async (product: Product) => {
-    const wasWishlisted = wishlistIds.has(product.id)
+    const wasWishlisted = hasLoaded
+      ? wishlistIds.has(product.id)
+      : wishlistIds.has(product.id) || product.isWishlisted
     setPendingProductIds((current) => new Set(current).add(product.id))
     setWishlistIds((current) => {
       const next = new Set(current)
@@ -78,7 +80,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       : current.some((item) => item.id === product.id) ? current : [product, ...current])
 
     try {
-      return wasWishlisted ? !(await removeFromWishlist(product.id)) : await addToWishlist(product.id)
+      return wasWishlisted ? await removeFromWishlist(product.id) : await addToWishlist(product.id)
     } catch (error: unknown) {
       setWishlistIds((current) => {
         const next = new Set(current)
@@ -97,7 +99,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         return next
       })
     }
-  }, [wishlistIds])
+  }, [hasLoaded, wishlistIds])
 
   const value = useMemo<WishlistContextValue>(() => ({
     products,

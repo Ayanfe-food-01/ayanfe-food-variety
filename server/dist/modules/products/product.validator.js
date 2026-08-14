@@ -94,6 +94,7 @@ export function validateProductFields(body) {
         unit: requiredText(body.unit, 'Unit', 1, 80),
         description: requiredText(body.description, 'Description', 10, 4000),
         isActive: booleanValue(body.isActive, 'Availability', true),
+        isFeatured: booleanValue(body.isFeatured, 'Featured', false),
         stockQuantity: integerValue(body.stockQuantity, 'Stock quantity'),
     };
 }
@@ -101,6 +102,11 @@ export function validateProductStatusInput(body) {
     if (!isRecord(body))
         throw new HttpError(400, 'Availability is required.');
     return booleanValue(body.isActive, 'Availability', false);
+}
+export function validateProductFeaturedInput(body) {
+    if (!isRecord(body))
+        throw new HttpError(400, 'Featured status is required.');
+    return booleanValue(body.isFeatured, 'Featured', false);
 }
 export function validateAdminProductsQuery(query) {
     const page = Number(query.page ?? 1);

@@ -16,6 +16,7 @@ export interface Product {
   unit: string
   image: string
   isActive: boolean
+  isFeatured: boolean
   stockQuantity: number
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
@@ -64,6 +65,7 @@ export interface ProductInput {
   unit: string
   description: string
   isActive: boolean
+  isFeatured: boolean
   stockQuantity: number
   image?: string
 }

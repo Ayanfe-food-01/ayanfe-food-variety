@@ -25,6 +25,7 @@ import {
   listAdminProductsController,
   productImageUpload,
   updateAdminProductController,
+  updateAdminProductFeaturedController,
   updateAdminProductStatusController,
 } from '../modules/products/admin-product.controller.js'
 import {
@@ -67,6 +68,7 @@ adminRoutes.get('/products/:id', getAdminProductController)
 adminRoutes.post('/products', productImageUpload, createAdminProductController)
 adminRoutes.patch('/products/:id', productImageUpload, updateAdminProductController)
 adminRoutes.patch('/products/:id/status', updateAdminProductStatusController)
+adminRoutes.patch('/products/:id/featured', updateAdminProductFeaturedController)
 adminRoutes.delete('/products/:id', deleteAdminProductController)
 adminRoutes.get('/dashboard', getDashboardController)
 adminRoutes.get('/orders', listAdminOrdersController)

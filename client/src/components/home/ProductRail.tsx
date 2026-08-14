@@ -12,9 +12,12 @@ interface ProductRailProps {
   onRetry: () => void
   href?: string
   tone?: 'cream' | 'yellow'
+  hideWhenEmpty?: boolean
 }
 
-export function ProductRail({ title, eyebrow, products, isLoading, hasError, onRetry, href = '/shop', tone = 'cream' }: ProductRailProps) {
+export function ProductRail({ title, eyebrow, products, isLoading, hasError, onRetry, href = '/shop', tone = 'cream', hideWhenEmpty = false }: ProductRailProps) {
+  if (hideWhenEmpty && !isLoading && !hasError && products.length === 0) return null
+
   return (
     <section className={`home-section product-section product-section-${tone}`} aria-labelledby={`${title}-heading`}>
       <div className="container">

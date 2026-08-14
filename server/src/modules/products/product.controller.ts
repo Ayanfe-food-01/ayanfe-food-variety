@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express'
 import { HttpError } from '../../utils/http.js'
-import { getNewArrivals, getPopularProducts, getProductById, getProducts } from './product.service.js'
+import { getFeaturedProducts, getNewArrivals, getPopularProducts, getProductById, getProducts } from './product.service.js'
 import { requireProductIdentifier, validatePublicProductsQuery } from './product.validator.js'
 
 export const getProductsController: RequestHandler = async (request, response) => {
@@ -15,6 +15,11 @@ export const getNewArrivalsController: RequestHandler = async (request, response
 
 export const getPopularProductsController: RequestHandler = async (request, response) => {
   const page = await getPopularProducts(validatePublicProductsQuery(request.query as Record<string, unknown>), request.authenticatedUser?.id)
+  response.json({ data: page })
+}
+
+export const getFeaturedProductsController: RequestHandler = async (request, response) => {
+  const page = await getFeaturedProducts(validatePublicProductsQuery(request.query as Record<string, unknown>), request.authenticatedUser?.id)
   response.json({ data: page })
 }
 

@@ -9,6 +9,7 @@ import {
   getAdminCategories,
   getAdminProducts,
   deleteAdminProduct,
+  updateAdminProductFeatured,
   updateAdminProductStatus,
   type AdminProductsPage,
   type AdminProductsQuery,
@@ -26,10 +27,11 @@ interface ProductActionsProps {
   product: AdminProductsPage['products'][number]
   isBusy: boolean
   onToggleStatus: () => void
+  onToggleFeatured: () => void
   onDelete: () => void
 }
 
-function ProductActions({ product, isBusy, onToggleStatus, onDelete }: ProductActionsProps) {
+function ProductActions({ product, isBusy, onToggleStatus, onToggleFeatured, onDelete }: ProductActionsProps) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -97,6 +99,14 @@ function ProductActions({ product, isBusy, onToggleStatus, onDelete }: ProductAc
             onClick={() => runAction(onToggleStatus)}
           >
             {product.isActive ? 'Deactivate' : 'Activate'}
+          </button>
+          <button
+            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
+            type="button"
+            role="menuitem"
+            onClick={() => runAction(onToggleFeatured)}
+          >
+            {product.isFeatured ? 'Remove from featured' : 'Mark as featured'}
           </button>
           <button
             className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted transition-colors hover:bg-orange/10 hover:text-orange"
@@ -184,6 +194,20 @@ export function Products() {
       setQuery((current) => ({ ...current }))
     } catch (caught: unknown) {
       showToast(caught instanceof ApiError ? caught.message : 'Product availability could not be updated.', 'error')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const toggleFeatured = async (id: string, isFeatured: boolean) => {
+    setUpdatingId(id)
+    setError(null)
+    try {
+      await updateAdminProductFeatured(id, !isFeatured)
+      showToast(`Product ${isFeatured ? 'removed from' : 'marked as'} featured.`, 'success')
+      setQuery((current) => ({ ...current }))
+    } catch (caught: unknown) {
+      showToast(caught instanceof ApiError ? caught.message : 'Featured status could not be updated.', 'error')
     } finally {
       setUpdatingId(null)
     }
@@ -319,6 +343,14 @@ export function Products() {
                          </span>
                        </dd>
                      </div>
+                      <div>
+                        <dt className="uppercase tracking-[0.12em] text-muted">Featured</dt>
+                        <dd className="mt-1">
+                          <span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${product.isFeatured ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
+                            {product.isFeatured ? 'Featured' : 'Not featured'}
+                          </span>
+                        </dd>
+                      </div>
                      <div>
                        <dt className="uppercase tracking-[0.12em] text-muted">Created</dt>
                        <dd className="mt-1 text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</dd>
@@ -329,6 +361,7 @@ export function Products() {
                         product={product}
                         isBusy={updatingId === product.id || deletingId === product.id}
                         onToggleStatus={() => void toggleStatus(product.id, product.isActive)}
+                        onToggleFeatured={() => void toggleFeatured(product.id, product.isFeatured)}
                         onDelete={() => openDeleteConfirmation(product)}
                       />
                    </div>
@@ -345,6 +378,7 @@ export function Products() {
                      <th className="px-4 py-4 font-bold">Delivery fee</th>
                     <th className="px-4 py-4 font-bold">Stock</th>
                     <th className="px-4 py-4 font-bold">Availability</th>
+                     <th className="px-4 py-4 font-bold">Featured</th>
                     <th className="px-4 py-4 font-bold">Created</th>
                     <th className="px-4 py-4 font-bold">Actions</th>
                   </tr>
@@ -367,12 +401,18 @@ export function Products() {
                           {!product.isActive ? 'Inactive' : product.isAvailable ? 'Available' : 'Out of stock'}
                         </span>
                       </td>
+                       <td className="px-4 py-4">
+                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.isFeatured ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
+                           {product.isFeatured ? 'Featured' : 'Not featured'}
+                         </span>
+                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-xs text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</td>
                        <td className="px-4 py-4 text-right">
                          <ProductActions
                            product={product}
                            isBusy={updatingId === product.id || deletingId === product.id}
                            onToggleStatus={() => void toggleStatus(product.id, product.isActive)}
+                           onToggleFeatured={() => void toggleFeatured(product.id, product.isFeatured)}
                            onDelete={() => openDeleteConfirmation(product)}
                          />
                        </td>

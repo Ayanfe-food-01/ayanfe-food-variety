@@ -17,6 +17,7 @@ export interface Product {
   categorySlug?: string
   stockQuantity: number
   isActive: boolean
+  isFeatured: boolean
   isAvailable: boolean
   isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'

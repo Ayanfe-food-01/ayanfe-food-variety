@@ -366,6 +366,7 @@ interface AdminProductApiResponse {
   unit: string
   image: string
   isActive: boolean
+  isFeatured: boolean
   stockQuantity: number
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
@@ -384,6 +385,7 @@ export interface ProductFormInput {
   description: string
   stockQuantity: string
   isActive: boolean
+  isFeatured: boolean
   image?: File
 }
 
@@ -410,6 +412,7 @@ const formDataFor = (input: ProductFormInput): FormData => {
   formData.set('description', input.description)
   formData.set('stockQuantity', input.stockQuantity)
   formData.set('isActive', String(input.isActive))
+  formData.set('isFeatured', String(input.isFeatured))
   if (input.image) formData.set('image', input.image)
   return formData
 }
@@ -429,6 +432,7 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   description: product.description,
   stockQuantity: product.stockQuantity,
   isActive: product.isActive,
+  isFeatured: product.isFeatured,
   availabilityStatus: product.availabilityStatus,
   isAvailable: product.isAvailable,
     isWishlisted: false,
@@ -467,6 +471,15 @@ export async function updateAdminProductStatus(id: string, isActive: boolean): P
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isActive }),
+  })
+  return toProduct(response.data.product)
+}
+
+export async function updateAdminProductFeatured(id: string, isFeatured: boolean): Promise<Product> {
+  const response = await request<AdminProductResponse>(`/admin/products/${encodeURIComponent(id)}/featured`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isFeatured }),
   })
   return toProduct(response.data.product)
 }

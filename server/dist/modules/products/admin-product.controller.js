@@ -1,7 +1,7 @@
 import multer from 'multer';
 import { HttpError } from '../../utils/http.js';
-import { createProduct, deleteProduct, getAdminProduct, listAdminProducts, updateProduct, updateProductStatus, validateProductCategory, } from './product.service.js';
-import { validateAdminProductId, validateAdminProductsQuery, validateProductFields, validateProductStatusInput, } from './product.validator.js';
+import { createProduct, deleteProduct, getAdminProduct, listAdminProducts, updateProduct, updateProductFeatured, updateProductStatus, validateProductCategory, } from './product.service.js';
+import { validateAdminProductId, validateAdminProductsQuery, validateProductFeaturedInput, validateProductFields, validateProductStatusInput, } from './product.validator.js';
 import { deleteProductImage, uploadProductImage } from './product.storage.js';
 const routeParam = (value) => Array.isArray(value) ? value[0] : value;
 const upload = multer({
@@ -84,6 +84,13 @@ export const updateAdminProductStatusController = async (request, response) => {
         success: true,
         message: 'Product availability updated.',
         data: { product: await updateProductStatus(validateAdminProductId(routeParam(request.params.id)), validateProductStatusInput(request.body)) },
+    });
+};
+export const updateAdminProductFeaturedController = async (request, response) => {
+    response.json({
+        success: true,
+        message: 'Featured status updated.',
+        data: { product: await updateProductFeatured(validateAdminProductId(routeParam(request.params.id)), validateProductFeaturedInput(request.body)) },
     });
 };
 export const deleteAdminProductController = async (request, response) => {

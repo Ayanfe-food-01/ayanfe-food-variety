@@ -20,6 +20,7 @@ const toProduct = (product, isWishlisted = false) => ({
     unit: product.unit,
     image: product.image,
     isActive: product.isActive,
+    isFeatured: product.isFeatured,
     stockQuantity: product.stockQuantity,
     availabilityStatus: product.stockQuantity === 0
         ? 'OUT_OF_STOCK'
@@ -50,6 +51,7 @@ const toPopularProduct = (product) => ({
     unit: product.unit,
     image: product.image,
     isActive: product.isActive,
+    isFeatured: product.isFeatured,
     stockQuantity: product.stockQuantity,
     availabilityStatus: product.stockQuantity === 0
         ? 'OUT_OF_STOCK'
@@ -130,6 +132,7 @@ export async function getPopularProducts(query, wishlistUserId) {
       p.unit,
       p.image,
       p.is_active AS "isActive",
+      p.is_featured AS "isFeatured",
       p.stock_quantity AS "stockQuantity",
       p.created_at AS "createdAt",
       p.updated_at AS "updatedAt",
@@ -158,6 +161,7 @@ export async function getPopularProducts(query, wishlistUserId) {
       p.unit,
       p.image,
       p.is_active,
+      p.is_featured,
       p.stock_quantity,
       p.created_at,
       p.updated_at
@@ -183,6 +187,36 @@ export async function getPopularProducts(query, wishlistUserId) {
 }
 export async function getNewArrivals(query, wishlistUserId) {
     return getProducts({ ...query, sort: 'newest' }, wishlistUserId);
+}
+export async function getFeaturedProducts(query, wishlistUserId) {
+    const where = {
+        isFeatured: true,
+        isActive: true,
+        stockQuantity: { gt: 0 },
+        category: { isActive: true },
+    };
+    const products = await prisma.product.findMany({
+        where,
+        include: { category: true },
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+    });
+    const wishlistProductIds = wishlistUserId
+        ? new Set((await prisma.wishlistItem.findMany({
+            where: { userId: wishlistUserId, productId: { in: products.map((product) => product.id) } },
+            select: { productId: true },
+        })).map((item) => item.productId))
+        : new Set();
+    return {
+        products: products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
+        pagination: {
+            page: query.page,
+            limit: query.limit,
+            total: products.length,
+            totalPages: 1,
+        },
+    };
 }
 export async function getProductById(identifier, wishlistUserId) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
@@ -290,6 +324,7 @@ export async function createProduct(input, adminId) {
                     unit: input.unit,
                     image: input.image ?? '',
                     isActive: input.isActive,
+                    isFeatured: input.isFeatured,
                     stockQuantity: input.stockQuantity,
                 },
                 include: productInclude,
@@ -339,6 +374,7 @@ export async function updateProduct(input, adminId, id) {
                     unit: input.unit,
                     ...(input.image ? { image: input.image } : {}),
                     isActive: input.isActive,
+                    isFeatured: input.isFeatured,
                     stockQuantity: input.stockQuantity,
                 },
                 include: productInclude,
@@ -367,6 +403,19 @@ export async function updateProductStatus(id, isActive) {
     const product = await prisma.product.update({
         where: { id },
         data: { isActive },
+        include: productInclude,
+    }).catch((error) => {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            throw new HttpError(404, 'Product not found.');
+        }
+        throw error;
+    });
+    return toAdminProduct(product);
+}
+export async function updateProductFeatured(id, isFeatured) {
+    const product = await prisma.product.update({
+        where: { id },
+        data: { isFeatured },
         include: productInclude,
     }).catch((error) => {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

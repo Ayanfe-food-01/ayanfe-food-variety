@@ -34,6 +34,7 @@ const toProduct = (product: ProductWithCategory, isWishlisted = false): Product 
   unit: product.unit,
   image: product.image,
   isActive: product.isActive,
+  isFeatured: product.isFeatured,
   stockQuantity: product.stockQuantity,
   availabilityStatus: product.stockQuantity === 0
     ? 'OUT_OF_STOCK'
@@ -66,6 +67,7 @@ interface PopularProductRow {
   unit: string
   image: string
   isActive: boolean
+  isFeatured: boolean
   stockQuantity: number
   createdAt: Date
   updatedAt: Date
@@ -92,6 +94,7 @@ const toPopularProduct = (product: PopularProductRow): PublicProduct => ({
   unit: product.unit,
   image: product.image,
   isActive: product.isActive,
+  isFeatured: product.isFeatured,
   stockQuantity: product.stockQuantity,
   availabilityStatus: product.stockQuantity === 0
     ? 'OUT_OF_STOCK'
@@ -179,6 +182,7 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
       p.unit,
       p.image,
       p.is_active AS "isActive",
+      p.is_featured AS "isFeatured",
       p.stock_quantity AS "stockQuantity",
       p.created_at AS "createdAt",
       p.updated_at AS "updatedAt",
@@ -207,6 +211,7 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
       p.unit,
       p.image,
       p.is_active,
+      p.is_featured,
       p.stock_quantity,
       p.created_at,
       p.updated_at
@@ -235,6 +240,38 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
 
 export async function getNewArrivals(query: PublicProductQuery, wishlistUserId?: string): Promise<PublicProductPage> {
   return getProducts({ ...query, sort: 'newest' }, wishlistUserId)
+}
+
+export async function getFeaturedProducts(query: PublicProductQuery, wishlistUserId?: string): Promise<PublicProductPage> {
+  const where: Prisma.ProductWhereInput = {
+    isFeatured: true,
+    isActive: true,
+    stockQuantity: { gt: 0 },
+    category: { isActive: true },
+  }
+  const products = await prisma.product.findMany({
+    where,
+    include: { category: true },
+    orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+    skip: (query.page - 1) * query.limit,
+    take: query.limit,
+  })
+  const wishlistProductIds = wishlistUserId
+    ? new Set((await prisma.wishlistItem.findMany({
+        where: { userId: wishlistUserId, productId: { in: products.map((product) => product.id) } },
+        select: { productId: true },
+      })).map((item) => item.productId))
+    : new Set<string>()
+
+  return {
+    products: products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total: products.length,
+      totalPages: 1,
+    },
+  }
 }
 
 export async function getProductById(identifier: string, wishlistUserId?: string): Promise<PublicProduct | null> {
@@ -347,6 +384,7 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
           unit: input.unit,
           image: input.image ?? '',
           isActive: input.isActive,
+          isFeatured: input.isFeatured,
           stockQuantity: input.stockQuantity,
         },
         include: productInclude,
@@ -397,6 +435,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           unit: input.unit,
           ...(input.image ? { image: input.image } : {}),
           isActive: input.isActive,
+          isFeatured: input.isFeatured,
           stockQuantity: input.stockQuantity,
         },
         include: productInclude,
@@ -425,6 +464,20 @@ export async function updateProductStatus(id: string, isActive: boolean): Promis
   const product = await prisma.product.update({
     where: { id },
     data: { isActive },
+    include: productInclude,
+  }).catch((error: unknown) => {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new HttpError(404, 'Product not found.')
+    }
+    throw error
+  })
+  return toAdminProduct(product)
+}
+
+export async function updateProductFeatured(id: string, isFeatured: boolean): Promise<Product> {
+  const product = await prisma.product.update({
+    where: { id },
+    data: { isFeatured },
     include: productInclude,
   }).catch((error: unknown) => {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

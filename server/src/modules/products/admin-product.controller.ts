@@ -7,12 +7,14 @@ import {
   getAdminProduct,
   listAdminProducts,
   updateProduct,
+  updateProductFeatured,
   updateProductStatus,
   validateProductCategory,
 } from './product.service.js'
 import {
   validateAdminProductId,
   validateAdminProductsQuery,
+  validateProductFeaturedInput,
   validateProductFields,
   validateProductStatusInput,
 } from './product.validator.js'
@@ -102,6 +104,14 @@ export const updateAdminProductStatusController: RequestHandler = async (request
     success: true,
     message: 'Product availability updated.',
     data: { product: await updateProductStatus(validateAdminProductId(routeParam(request.params.id)), validateProductStatusInput(request.body)) },
+  })
+}
+
+export const updateAdminProductFeaturedController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'Featured status updated.',
+    data: { product: await updateProductFeatured(validateAdminProductId(routeParam(request.params.id)), validateProductFeaturedInput(request.body)) },
   })
 }
 

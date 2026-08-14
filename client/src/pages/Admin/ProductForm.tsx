@@ -6,7 +6,7 @@ import { SelectField } from '../../components/ui/SelectField'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
-const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', discountType: '', discountValue: '', deliveryFee: '0', unit: '', description: '', stockQuantity: '0', isActive: true }
+const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', discountType: '', discountValue: '', deliveryFee: '0', unit: '', description: '', stockQuantity: '0', isActive: true, isFeatured: false }
 type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'discountType' | 'discountValue' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
 
 export function ProductForm() {
@@ -38,7 +38,7 @@ export function ProductForm() {
       })
     if (!id) return
     getAdminProduct(id).then((product) => {
-      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), discountType: product.discountType ?? '', discountValue: product.discountValue === null ? '' : String(product.discountValue), deliveryFee: String(product.deliveryFee), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive })
+      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), discountType: product.discountType ?? '', discountValue: product.discountValue === null ? '' : String(product.discountValue), deliveryFee: String(product.deliveryFee), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive, isFeatured: product.isFeatured })
       setCurrentImage(product.image)
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
     return () => { current = false }
@@ -179,6 +179,7 @@ export function ProductForm() {
              onChange={chooseImage}
            />
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
+           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isFeatured} onChange={(event) => update('isFeatured', event.target.checked)} />Featured on homepage</label>
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
           {isSaving && <p className="text-sm font-semibold text-muted" role="status">{saveStatus === 'uploading' ? 'Uploading image…' : 'Saving product…'}</p>}
           <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSaving || isCategoriesLoading}>{isSaving ? saveStatus === 'uploading' ? 'Uploading image…' : 'Saving product…' : isEditing ? 'Save changes' : 'Create product'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>

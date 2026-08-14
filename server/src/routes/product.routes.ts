@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import {
   getNewArrivalsController,
+  getFeaturedProductsController,
   getPopularProductsController,
   getProductByIdController,
   getProductsController,
@@ -11,5 +12,6 @@ export const productRoutes = Router()
 
 productRoutes.get('/', optionalCustomerAuthentication, getProductsController)
 productRoutes.get('/new-arrivals', optionalCustomerAuthentication, getNewArrivalsController)
+productRoutes.get('/featured', optionalCustomerAuthentication, getFeaturedProductsController)
 productRoutes.get('/popular', optionalCustomerAuthentication, getPopularProductsController)
 productRoutes.get('/:id', optionalCustomerAuthentication, getProductByIdController)

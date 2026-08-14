@@ -1,5 +1,5 @@
 import { HttpError } from '../../utils/http.js';
-import { getNewArrivals, getPopularProducts, getProductById, getProducts } from './product.service.js';
+import { getFeaturedProducts, getNewArrivals, getPopularProducts, getProductById, getProducts } from './product.service.js';
 import { requireProductIdentifier, validatePublicProductsQuery } from './product.validator.js';
 export const getProductsController = async (request, response) => {
     const page = await getProducts(validatePublicProductsQuery(request.query), request.authenticatedUser?.id);
@@ -11,6 +11,10 @@ export const getNewArrivalsController = async (request, response) => {
 };
 export const getPopularProductsController = async (request, response) => {
     const page = await getPopularProducts(validatePublicProductsQuery(request.query), request.authenticatedUser?.id);
+    response.json({ data: page });
+};
+export const getFeaturedProductsController = async (request, response) => {
+    const page = await getFeaturedProducts(validatePublicProductsQuery(request.query), request.authenticatedUser?.id);
     response.json({ data: page });
 };
 export const getProductByIdController = async (request, response) => {

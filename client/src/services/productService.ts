@@ -18,6 +18,7 @@ interface ProductApiResponse {
   image: string
   stockQuantity: number
   isActive: boolean
+  isFeatured: boolean
   isAvailable: boolean
   isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
@@ -94,6 +95,7 @@ const toProduct = (product: ProductApiResponse): Product => {
     stockQuantity,
     availabilityStatus: product.availabilityStatus,
     isActive: product.isActive,
+    isFeatured: product.isFeatured,
     isAvailable: product.isAvailable,
     isWishlisted: product.isWishlisted,
     createdAt: product.createdAt,
@@ -140,6 +142,20 @@ export async function getPopularProducts(query: Omit<ProductQuery, 'sort'> = {})
   if (query.limit && query.limit !== 20) params.set('limit', String(query.limit))
   const queryString = params.toString()
   const response = await request<ProductListResponse>(`/products/popular${queryString ? `?${queryString}` : ''}`, {
+    signal: query.signal,
+  })
+  return {
+    products: response.data.products.map(toProduct),
+    pagination: response.data.pagination,
+  }
+}
+
+export async function getFeaturedProducts(query: Omit<ProductQuery, 'sort'> = {}): Promise<ProductPage> {
+  const params = new URLSearchParams()
+  if (query.page && query.page > 1) params.set('page', String(query.page))
+  if (query.limit && query.limit !== 20) params.set('limit', String(query.limit))
+  const queryString = params.toString()
+  const response = await request<ProductListResponse>(`/products/featured${queryString ? `?${queryString}` : ''}`, {
     signal: query.signal,
   })
   return {

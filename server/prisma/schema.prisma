@@ -89,6 +89,7 @@ model Product {
   unit        String      @db.VarChar(80)
   image       String
   isActive    Boolean     @default(true) @map("is_active")
+  isFeatured  Boolean     @default(false) @map("is_featured")
   stockQuantity Int        @default(0) @map("stock_quantity")
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -100,6 +101,7 @@ model Product {
 
   @@index([categoryId], map: "products_category_id_idx")
   @@index([isActive], map: "products_active_idx")
+  @@index([isFeatured, isActive], map: "products_featured_active_idx")
   @@index([stockQuantity], map: "products_stock_quantity_idx")
   @@map("products")
 }

@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { HttpError } from '../../utils/http.js';
-import { createProduct, getAdminProduct, listAdminProducts, updateProduct, updateProductStatus, validateProductCategory, } from './product.service.js';
+import { createProduct, deleteProduct, getAdminProduct, listAdminProducts, updateProduct, updateProductStatus, validateProductCategory, } from './product.service.js';
 import { validateAdminProductId, validateAdminProductsQuery, validateProductFields, validateProductStatusInput, } from './product.validator.js';
 import { deleteProductImage, uploadProductImage } from './product.storage.js';
 const routeParam = (value) => Array.isArray(value) ? value[0] : value;
@@ -85,4 +85,17 @@ export const updateAdminProductStatusController = async (request, response) => {
         message: 'Product availability updated.',
         data: { product: await updateProductStatus(validateAdminProductId(routeParam(request.params.id)), validateProductStatusInput(request.body)) },
     });
+};
+export const deleteAdminProductController = async (request, response) => {
+    const deletedProduct = await deleteProduct(validateAdminProductId(routeParam(request.params.id)));
+    if (deletedProduct.image) {
+        const removed = await deleteProductImage(deletedProduct.image);
+        if (!removed) {
+            console.warn(JSON.stringify({
+                event: 'product_cloudinary_delete_failed',
+                productName: deletedProduct.name,
+            }));
+        }
+    }
+    response.json({ success: true, message: 'Product deleted.' });
 };

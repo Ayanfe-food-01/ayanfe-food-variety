@@ -4,6 +4,8 @@ import type {
   CustomerEmailVerificationInput,
   CustomerSignupInput,
   CustomerVerificationEmailInput,
+  PasswordResetInput,
+  PasswordResetRequestInput,
 } from './auth.types.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -60,4 +62,30 @@ export function validateCustomerVerificationEmailInput(body: unknown): CustomerV
     throw new HttpError(400, 'Enter a valid email address.')
   }
   return { email: body.email.trim().toLowerCase() }
+}
+
+export function validatePasswordResetRequestInput(body: unknown): PasswordResetRequestInput {
+  if (!isRecord(body)) throw new HttpError(400, 'Email is required.')
+  if (typeof body.email !== 'string' || !body.email.trim() || !EMAIL_PATTERN.test(body.email.trim())) {
+    throw new HttpError(400, 'Enter a valid email address.')
+  }
+  return { email: body.email.trim().toLowerCase() }
+}
+
+export function validatePasswordResetInput(body: unknown): PasswordResetInput {
+  if (!isRecord(body)) throw new HttpError(400, 'The reset link and a new password are required.')
+  if (typeof body.token !== 'string' || !body.token.trim() || body.token.length > 256) {
+    throw new HttpError(400, 'This password reset link is invalid or has expired.')
+  }
+  if (typeof body.newPassword !== 'string' || body.newPassword.length < 12 || body.newPassword.length > 256) {
+    throw new HttpError(400, 'Password must be at least 12 characters.')
+  }
+  if (typeof body.confirmPassword !== 'string' || body.confirmPassword !== body.newPassword) {
+    throw new HttpError(400, 'Passwords do not match.')
+  }
+  return {
+    token: body.token,
+    newPassword: body.newPassword,
+    confirmPassword: body.confirmPassword,
+  }
 }

@@ -6,6 +6,7 @@ import { ApiError } from '../../services/api'
 import {
   getAdminCategories,
   getAdminProducts,
+  deleteAdminProduct,
   updateAdminProductStatus,
   type AdminProductsPage,
   type AdminProductsQuery,
@@ -35,6 +36,9 @@ export function Products() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [productToDelete, setProductToDelete] = useState<AdminProductsPage['products'][number] | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     getAdminCategories().then(setCategories).catch(() => undefined)
@@ -93,6 +97,42 @@ export function Products() {
     }
   }
 
+  const openDeleteConfirmation = (product: AdminProductsPage['products'][number]) => {
+    setDeleteError(null)
+    setProductToDelete(product)
+  }
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return
+    const product = productToDelete
+    setDeletingId(product.id)
+    setDeleteError(null)
+    try {
+      await deleteAdminProduct(product.id)
+      setResult((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          products: current.products.filter((item) => item.id !== product.id),
+          pagination: {
+            ...current.pagination,
+            total: Math.max(0, current.pagination.total - 1),
+            totalPages: Math.max(1, Math.ceil(Math.max(0, current.pagination.total - 1) / pageSize)),
+          },
+        }
+      })
+      const nextTotal = Math.max(0, (result?.pagination.total ?? 1) - 1)
+      const nextTotalPages = Math.max(1, Math.ceil(nextTotal / pageSize))
+      setQuery((current) => ({ ...current, page: Math.min(current.page, nextTotalPages) }))
+      setProductToDelete(null)
+      showToast('Product deleted permanently.', 'success')
+    } catch (caught: unknown) {
+      setDeleteError(caught instanceof ApiError ? caught.message : 'Product could not be deleted.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   const currentPage = result?.pagination.page ?? query.page
   const totalPages = result?.pagination.totalPages ?? 1
 
@@ -102,7 +142,7 @@ export function Products() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Store operations</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Products & inventory</h1>
-          <p className="mt-3 text-sm text-muted">Manage your catalog, availability, prices, and stock levels.</p>
+          <p className="mt-3 max-w-2xl text-sm text-muted">Manage your catalog, availability, prices, and stock levels. Deactivate products to preserve history; permanent deletion is only available when no protected records exist.</p>
         </div>
         <Link className="inline-flex w-fit rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/products/new">
           Add product
@@ -195,7 +235,8 @@ export function Products() {
                    <div className="mt-4 flex flex-wrap gap-3 border-t border-line pt-3 text-xs font-bold">
                      <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}`}>View</Link>
                      <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}/edit`}>Edit</Link>
-                     <button className="text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id} onClick={() => void toggleStatus(product.id, product.isActive)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
+                      <button className="text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => void toggleStatus(product.id, product.isActive)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
+                      <button className="text-muted hover:text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => openDeleteConfirmation(product)}>Delete</button>
                    </div>
                  </article>
                ))}
@@ -237,7 +278,8 @@ export function Products() {
                         <div className="flex flex-wrap gap-2 text-xs font-bold">
                           <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}`}>View</Link>
                           <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}/edit`}>Edit</Link>
-                          <button className="text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id} onClick={() => void toggleStatus(product.id, product.isActive)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
+                          <button className="text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => void toggleStatus(product.id, product.isActive)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
+                          <button className="text-muted hover:text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => openDeleteConfirmation(product)}>Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -253,6 +295,26 @@ export function Products() {
           <h2 className="text-xl font-bold text-green-dark">No products found</h2>
           <p className="mt-2 text-sm text-muted">Try a different filter or add your first product.</p>
           <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add product</Link>
+        </div>
+      )}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-green-dark/45 px-5 py-8" role="presentation">
+          <div
+            className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-2xl shadow-green-dark/20 sm:p-8"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-product-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Permanent deletion</p>
+            <h2 id="delete-product-title" className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">Delete “{productToDelete.name}”?</h2>
+            <p className="mt-4 text-sm leading-6 text-muted">This permanently removes the product from the catalog. This action cannot be undone. Products with order or inventory history must be deactivated instead.</p>
+            {deleteError && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{deleteError}</p>}
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={deletingId === productToDelete.id} onClick={() => setProductToDelete(null)}>Cancel</button>
+              <button className="rounded-xl bg-orange px-5 py-3 text-sm font-bold text-white hover:bg-orange/90 disabled:cursor-wait disabled:opacity-50" type="button" disabled={deletingId === productToDelete.id} onClick={() => void confirmDelete()}>{deletingId === productToDelete.id ? 'Deleting…' : 'Delete permanently'}</button>
+            </div>
+          </div>
         </div>
       )}
     </>

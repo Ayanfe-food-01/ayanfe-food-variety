@@ -11,6 +11,8 @@ import {
   customerSignupController,
   customerVerifyEmailController,
   customerResendVerificationController,
+  passwordResetRequestController,
+  passwordResetController,
 } from '../modules/auth/auth.controller.js'
 
 export const authRoutes = Router()
@@ -25,3 +27,5 @@ authRoutes.post('/customer/verify-email', createRateLimit(20, 15 * 60 * 1000), c
 authRoutes.post('/customer/resend-verification', createRateLimit(5, 15 * 60 * 1000), customerResendVerificationController)
 authRoutes.post('/customer/logout', customerLogoutController)
 authRoutes.get('/customer/me', customerMeController)
+authRoutes.post('/forgot-password', createRateLimit(5, 15 * 60 * 1000), passwordResetRequestController)
+authRoutes.post('/reset-password', createRateLimit(10, 15 * 60 * 1000), passwordResetController)

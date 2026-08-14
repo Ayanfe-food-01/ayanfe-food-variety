@@ -13,6 +13,8 @@ import {
   signupCustomer,
   isGoogleOAuthConfigured,
   resendCustomerVerificationEmail,
+  requestPasswordReset,
+  resetPassword,
   verifyCustomerEmail,
 } from './auth.service.js'
 import {
@@ -20,6 +22,8 @@ import {
   validateCustomerSignupInput,
   validateCustomerVerificationEmailInput,
   validateLoginInput,
+  validatePasswordResetInput,
+  validatePasswordResetRequestInput,
 } from './auth.validator.js'
 
 export const loginController: RequestHandler = async (request, response) => {
@@ -117,5 +121,20 @@ export const customerResendVerificationController: RequestHandler = async (reque
       verificationExpiresInSeconds: result.verificationExpiresInSeconds,
       message: 'If the account requires verification, a new code has been sent.',
     },
+  })
+}
+
+export const passwordResetRequestController: RequestHandler = async (request, response) => {
+  const result = await requestPasswordReset(validatePasswordResetRequestInput(request.body))
+  response.json({ success: true, data: result })
+}
+
+export const passwordResetController: RequestHandler = async (request, response) => {
+  await resetPassword(validatePasswordResetInput(request.body))
+  response.clearCookie(authCookie.name, authCookie.options)
+  response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
+  response.json({
+    success: true,
+    data: { message: 'Your password has been reset. You can now sign in.' },
   })
 }

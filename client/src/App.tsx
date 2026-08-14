@@ -17,6 +17,8 @@ import { Payments } from './pages/Admin/Payments'
 import { Settings } from './pages/Admin/Settings'
 import { Login } from './pages/Login'
 import { VerifyEmail } from './pages/VerifyEmail'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { Products } from './pages/Admin/Products'
 import { ProductForm } from './pages/Admin/ProductForm'
 import { ProductView } from './pages/Admin/ProductView'
@@ -121,6 +123,8 @@ function RouteTransition() {
           <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
           <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/admin/login" element={<Navigate replace to="/login" />} />
           <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
@@ -148,6 +152,8 @@ function PrivateRouteSeo() {
   const { pathname } = useLocation()
   const isPrivateRoute =
     pathname === '/login'
+    || pathname === '/forgot-password'
+    || pathname === '/reset-password'
     || pathname === '/verify-email'
     || pathname === '/cart'
     || pathname === '/checkout'
@@ -159,6 +165,10 @@ function PrivateRouteSeo() {
 
   const title = pathname === '/login'
     ? 'Sign in | Ayanfe Food Variety'
+    : pathname === '/forgot-password'
+      ? 'Forgot password | Ayanfe Food Variety'
+      : pathname === '/reset-password'
+        ? 'Reset password | Ayanfe Food Variety'
     : pathname === '/verify-email'
       ? 'Verify your email | Ayanfe Food Variety'
     : pathname.startsWith('/admin')

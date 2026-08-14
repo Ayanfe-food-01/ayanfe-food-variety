@@ -20,6 +20,7 @@ import {
 } from '../modules/settings/settings.controller.js'
 import {
   createAdminProductController,
+  deleteAdminProductController,
   getAdminProductController,
   listAdminProductsController,
   productImageUpload,
@@ -65,6 +66,7 @@ adminRoutes.get('/products/:id', getAdminProductController)
 adminRoutes.post('/products', productImageUpload, createAdminProductController)
 adminRoutes.patch('/products/:id', productImageUpload, updateAdminProductController)
 adminRoutes.patch('/products/:id/status', updateAdminProductStatusController)
+adminRoutes.delete('/products/:id', deleteAdminProductController)
 adminRoutes.get('/dashboard', getDashboardController)
 adminRoutes.get('/orders', listAdminOrdersController)
 adminRoutes.get('/orders/:orderNumber', getAdminOrderController)

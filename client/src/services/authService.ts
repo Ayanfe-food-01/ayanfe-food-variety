@@ -118,3 +118,31 @@ export async function resendCustomerVerification(email: string): Promise<{
   })
   return response.data
 }
+
+export async function requestPasswordReset(email: string): Promise<string> {
+  const response = await request<{
+    success: true
+    data: { message: string }
+  }>('/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  return response.data.message
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+  confirmPassword: string,
+): Promise<string> {
+  const response = await request<{
+    success: true
+    data: { message: string }
+  }>('/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword, confirmPassword }),
+  })
+  return response.data.message
+}

@@ -449,3 +449,7 @@ export async function updateAdminProductStatus(id: string, isActive: boolean): P
   })
   return toProduct(response.data.product)
 }
+
+export async function deleteAdminProduct(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}

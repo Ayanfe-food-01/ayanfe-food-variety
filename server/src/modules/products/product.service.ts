@@ -412,3 +412,55 @@ export async function updateProductStatus(id: string, isActive: boolean): Promis
   })
   return toAdminProduct(product)
 }
+
+export async function deleteProduct(id: string): Promise<{ name: string; image: string }> {
+  try {
+    return await prisma.$transaction(async (transaction) => {
+      const lockedProducts = await transaction.$queryRaw<Array<{ id: string; name: string; image: string }>>(
+        Prisma.sql`SELECT id, name, image
+          FROM products
+          WHERE id = ${id}::uuid
+          FOR UPDATE`,
+      )
+      const product = lockedProducts[0]
+      if (!product) throw new HttpError(404, 'Product not found.')
+
+      const [orderItemCount, stockAdjustmentCount] = await Promise.all([
+        transaction.orderItem.count({ where: { productId: id } }),
+        transaction.productStockAdjustment.count({ where: { productId: id } }),
+      ])
+
+      if (orderItemCount > 0) {
+        throw new HttpError(
+          409,
+          'This product has historical order records and must be deactivated or archived instead.',
+        )
+      }
+
+      if (stockAdjustmentCount > 0) {
+        throw new HttpError(
+          409,
+          'This product has inventory history and must be deactivated or archived instead.',
+        )
+      }
+
+      // Cart items are disposable and are safe to remove only after the
+      // protected historical relationships above have been checked.
+      await transaction.customerCartItem.deleteMany({ where: { productId: id } })
+      await transaction.product.delete({ where: { id } })
+      return { name: product.name, image: product.image }
+    })
+  } catch (error: unknown) {
+    if (error instanceof HttpError) throw error
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') throw new HttpError(404, 'Product not found.')
+      if (error.code === 'P2003') {
+        throw new HttpError(
+          409,
+          'This product has protected records and must be deactivated or archived instead.',
+        )
+      }
+    }
+    throw error
+  }
+}

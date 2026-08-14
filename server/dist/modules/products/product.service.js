@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { recordStockAdjustment } from '../inventory/inventory.service.js';
@@ -33,6 +33,32 @@ const toProduct = (product) => ({
 const toPublicProduct = (product) => {
     return toProduct(product);
 };
+const toPopularProduct = (product) => ({
+    id: product.id,
+    categoryId: product.categoryId,
+    categoryName: product.categoryName,
+    categorySlug: product.categorySlug,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    price: product.price.toString(),
+    discountType: product.discountType,
+    discountValue: product.discountValue?.toString() ?? null,
+    discountedPrice: calculateDiscountedPrice(product.price, product.discountType, product.discountValue).toString(),
+    deliveryFee: product.deliveryFee.toString(),
+    unit: product.unit,
+    image: product.image,
+    isActive: product.isActive,
+    stockQuantity: product.stockQuantity,
+    availabilityStatus: product.stockQuantity === 0
+        ? 'OUT_OF_STOCK'
+        : product.stockQuantity <= 5
+            ? 'LOW_STOCK'
+            : 'IN_STOCK',
+    isAvailable: product.isActive && product.stockQuantity > 0,
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+});
 export async function getProducts(query) {
     const where = {
         isActive: true,
@@ -76,6 +102,68 @@ export async function getProducts(query) {
             limit: query.limit,
             total,
             totalPages: Math.max(1, Math.ceil(total / query.limit)),
+        },
+    };
+}
+export async function getPopularProducts(query) {
+    const products = await prisma.$queryRaw(Prisma.sql `
+    SELECT
+      p.id,
+      p.category_id AS "categoryId",
+      c.name AS "categoryName",
+      c.slug AS "categorySlug",
+      p.name,
+      p.slug,
+      p.description,
+      p.price,
+      p.discount_type AS "discountType",
+      p.discount_value AS "discountValue",
+      p.delivery_fee AS "deliveryFee",
+      p.unit,
+      p.image,
+      p.is_active AS "isActive",
+      p.stock_quantity AS "stockQuantity",
+      p.created_at AS "createdAt",
+      p.updated_at AS "updatedAt",
+      COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END), 0)::bigint AS "orderedQuantity"
+    FROM products p
+    INNER JOIN categories c ON c.id = p.category_id
+    LEFT JOIN order_items oi ON oi.product_id = p.id
+    LEFT JOIN orders o
+      ON o.id = oi.order_id
+      AND o.payment_status = ${PaymentStatus.PAID}::"PaymentStatus"
+      AND o.order_status <> ${OrderStatus.CANCELLED}::"OrderStatus"
+    WHERE p.is_active = true
+      AND c.is_active = true
+    GROUP BY
+      p.id,
+      p.category_id,
+      c.name,
+      c.slug,
+      p.name,
+      p.slug,
+      p.description,
+      p.price,
+      p.discount_type,
+      p.discount_value,
+      p.delivery_fee,
+      p.unit,
+      p.image,
+      p.is_active,
+      p.stock_quantity,
+      p.created_at,
+      p.updated_at
+    ORDER BY "orderedQuantity" DESC, p.created_at DESC, p.id DESC
+    LIMIT ${query.limit}
+    OFFSET ${(query.page - 1) * query.limit}
+  `);
+    return {
+        products: products.map(toPopularProduct),
+        pagination: {
+            page: query.page,
+            limit: query.limit,
+            total: products.length,
+            totalPages: 1,
         },
     };
 }
@@ -267,4 +355,44 @@ export async function updateProductStatus(id, isActive) {
         throw error;
     });
     return toAdminProduct(product);
+}
+export async function deleteProduct(id) {
+    try {
+        return await prisma.$transaction(async (transaction) => {
+            const lockedProducts = await transaction.$queryRaw(Prisma.sql `SELECT id, name, image
+          FROM products
+          WHERE id = ${id}::uuid
+          FOR UPDATE`);
+            const product = lockedProducts[0];
+            if (!product)
+                throw new HttpError(404, 'Product not found.');
+            const [orderItemCount, stockAdjustmentCount] = await Promise.all([
+                transaction.orderItem.count({ where: { productId: id } }),
+                transaction.productStockAdjustment.count({ where: { productId: id } }),
+            ]);
+            if (orderItemCount > 0) {
+                throw new HttpError(409, 'This product has historical order records and must be deactivated or archived instead.');
+            }
+            if (stockAdjustmentCount > 0) {
+                throw new HttpError(409, 'This product has inventory history and must be deactivated or archived instead.');
+            }
+            // Cart items are disposable and are safe to remove only after the
+            // protected historical relationships above have been checked.
+            await transaction.customerCartItem.deleteMany({ where: { productId: id } });
+            await transaction.product.delete({ where: { id } });
+            return { name: product.name, image: product.image };
+        });
+    }
+    catch (error) {
+        if (error instanceof HttpError)
+            throw error;
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2025')
+                throw new HttpError(404, 'Product not found.');
+            if (error.code === 'P2003') {
+                throw new HttpError(409, 'This product has protected records and must be deactivated or archived instead.');
+            }
+        }
+        throw error;
+    }
 }

@@ -83,7 +83,14 @@ export function Login() {
             <label className="block text-sm font-bold text-green-dark">Name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} required /></label>
           )}
           <label className="block text-sm font-bold text-green-dark">Email<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
-          <label className="block text-sm font-bold text-green-dark">Password<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={12} required /><span className="mt-1 block text-xs font-normal text-muted">At least 12 characters.</span></label>
+          <div>
+            <div className="flex items-center justify-between gap-4 text-sm font-bold text-green-dark">
+              <label htmlFor="login-password">Password</label>
+              {mode === 'login' && <Link className="text-xs text-green hover:text-orange" to="/forgot-password">Forgot Password?</Link>}
+            </div>
+            <input id="login-password" className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={12} required />
+            <span className="mt-1 block text-xs font-normal text-muted">At least 12 characters.</span>
+          </div>
           {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
           <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}

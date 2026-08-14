@@ -20,6 +20,16 @@ export interface CustomerVerificationEmailInput {
   email: string
 }
 
+export interface PasswordResetRequestInput {
+  email: string
+}
+
+export interface PasswordResetInput {
+  token: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface AuthenticatedUser {
   id: string
   name: string

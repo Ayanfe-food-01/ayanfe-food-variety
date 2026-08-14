@@ -4,7 +4,7 @@ import { useWishlist } from '../../hooks/useWishlist'
 import { useToast } from '../ui/Toast'
 import type { Product } from '../../types/product'
 
-export function WishlistButton({ product }: { product: Product }) {
+export function WishlistButton({ product, className = '' }: { product: Product; className?: string }) {
   const { user, openAuth } = useCustomerAuth()
   const { isWishlisted, pendingProductIds, toggleWishlist } = useWishlist()
   const { showToast } = useToast()
@@ -27,7 +27,7 @@ export function WishlistButton({ product }: { product: Product }) {
 
   return (
     <button
-      className={`wishlist-button ${saved ? 'is-saved' : ''}`}
+      className={`wishlist-button ${className} ${saved ? 'is-saved' : ''}`.trim()}
       type="button"
       aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
       aria-pressed={saved}

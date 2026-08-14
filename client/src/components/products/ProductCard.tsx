@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ProductPrice } from './ProductPrice'
+import { WishlistButton } from './WishlistButton'
 import type { Product } from '../../types/product'
 
 interface ProductCardProps {
@@ -28,6 +29,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </strong>
         </div>
       </Link>
+      <WishlistButton product={product} className="product-card-wishlist" />
     </article>
   )
 }

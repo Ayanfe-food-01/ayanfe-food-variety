@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MoreHorizontalIcon } from '../../assets/icons'
 import { useToast } from '../../components/ui/Toast'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { ApiError } from '../../services/api'
 import {
   deleteAdminBanner,
@@ -52,6 +53,9 @@ export function Banners() {
   const [banners, setBanners] = useState<AdminBanner[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [bannerToDelete, setBannerToDelete] = useState<AdminBanner | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useToast()
 
@@ -83,17 +87,25 @@ export function Banners() {
     }
   }
 
-  const removeBanner = async (banner: AdminBanner) => {
-    if (!window.confirm(`Delete “${banner.title}”? This also removes its stored image.`)) return
-    setBusyId(banner.id)
+  const openDeleteConfirmation = (banner: AdminBanner) => {
+    setDeleteError(null)
+    setBannerToDelete(banner)
+  }
+
+  const confirmDelete = async () => {
+    if (!bannerToDelete) return
+    const banner = bannerToDelete
+    setDeletingId(banner.id)
+    setDeleteError(null)
     try {
       await deleteAdminBanner(banner.id)
       setBanners((current) => current.filter((item) => item.id !== banner.id))
+      setBannerToDelete(null)
       showToast('Banner deleted successfully.', 'success')
     } catch (caught: unknown) {
-      showToast(caught instanceof ApiError ? caught.message : 'Banner could not be deleted.', 'error')
+      setDeleteError(caught instanceof ApiError ? caught.message : 'Banner could not be deleted.')
     } finally {
-      setBusyId(null)
+      setDeletingId(null)
     }
   }
 
@@ -132,7 +144,7 @@ export function Banners() {
                     <p className="font-bold text-green-dark">{banner.title}</p>
                     <p className="mt-1 line-clamp-2 text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p>
                   </div>
-                  <BannerActions banner={banner} isBusy={busyId === banner.id} onToggle={() => void toggleStatus(banner)} onDelete={() => void removeBanner(banner)} />
+              <BannerActions banner={banner} isBusy={busyId === banner.id || deletingId === banner.id} onToggle={() => void toggleStatus(banner)} onDelete={() => openDeleteConfirmation(banner)} />
                 </div>
                 <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3 text-xs">
                   <div><dt className="uppercase tracking-[0.12em] text-muted">Status</dt><dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></dd></div>
@@ -154,13 +166,26 @@ export function Banners() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 font-bold text-green-dark">{banner.displayOrder}</td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-muted">{formatDate(banner.createdAt)}</td>
-                    <td className="px-5 py-4"><BannerActions banner={banner} isBusy={busyId === banner.id} onToggle={() => void toggleStatus(banner)} onDelete={() => void removeBanner(banner)} /></td>
+                    <td className="px-5 py-4"><BannerActions banner={banner} isBusy={busyId === banner.id || deletingId === banner.id} onToggle={() => void toggleStatus(banner)} onDelete={() => openDeleteConfirmation(banner)} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+      {bannerToDelete && (
+        <ConfirmDialog
+          eyebrow="Delete banner"
+          title={`Delete “${bannerToDelete.title}”?`}
+          description="This also removes the stored banner image and cannot be undone."
+          error={deleteError}
+          isBusy={deletingId === bannerToDelete.id}
+          confirmLabel="Delete banner"
+          busyLabel="Deleting…"
+          onCancel={() => setBannerToDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
     </>
   )

@@ -30,14 +30,16 @@ export function ProductSearchAutocomplete({
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [isDismissed, setIsDismissed] = useState(false)
   const { suggestions, isLoading, hasError } = useProductSearchAutocomplete(value)
   const query = value.trim()
   const canShowSuggestions = query.length >= 2
 
   useEffect(() => {
     setActiveIndex(-1)
+    if (isDismissed) return
     setIsOpen(canShowSuggestions)
-  }, [canShowSuggestions, query])
+  }, [canShowSuggestions, isDismissed, query])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -51,10 +53,16 @@ export function ProductSearchAutocomplete({
   }, [])
 
   const selectProduct = (product: Product) => {
+    setIsDismissed(true)
     onChange(product.name)
     setIsOpen(false)
     setActiveIndex(-1)
     onSelectProduct(product)
+  }
+
+  const handleChange = (nextValue: string) => {
+    setIsDismissed(false)
+    onChange(nextValue)
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -80,6 +88,7 @@ export function ProductSearchAutocomplete({
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    setIsDismissed(true)
     setIsOpen(false)
     setActiveIndex(-1)
     onSubmit(event)
@@ -92,8 +101,13 @@ export function ProductSearchAutocomplete({
         <input
           id={inputId}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onFocus={() => { if (canShowSuggestions) setIsOpen(true) }}
+          onChange={(event) => handleChange(event.target.value)}
+          onFocus={() => {
+            if (canShowSuggestions) {
+              setIsDismissed(false)
+              setIsOpen(true)
+            }
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           aria-label={ariaLabel}

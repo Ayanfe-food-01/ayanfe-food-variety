@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { MoreHorizontalIcon } from '../../assets/icons'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { ApiError } from '../../services/api'
 import {
   getAdminCategories,
@@ -391,24 +392,17 @@ export function Products() {
         </div>
       )}
       {productToDelete && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-green-dark/45 px-5 py-8" role="presentation">
-          <div
-            className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-2xl shadow-green-dark/20 sm:p-8"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-product-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Permanent deletion</p>
-            <h2 id="delete-product-title" className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">Delete “{productToDelete.name}”?</h2>
-            <p className="mt-4 text-sm leading-6 text-muted">This permanently removes the product from the catalog. This action cannot be undone. Products with order or inventory history must be deactivated instead.</p>
-            {deleteError && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{deleteError}</p>}
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={deletingId === productToDelete.id} onClick={() => setProductToDelete(null)}>Cancel</button>
-              <button className="rounded-xl bg-orange px-5 py-3 text-sm font-bold text-white hover:bg-orange/90 disabled:cursor-wait disabled:opacity-50" type="button" disabled={deletingId === productToDelete.id} onClick={() => void confirmDelete()}>{deletingId === productToDelete.id ? 'Deleting…' : 'Delete permanently'}</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          eyebrow="Permanent deletion"
+          title={`Delete “${productToDelete.name}”?`}
+          description="This permanently removes the product from the catalog. This action cannot be undone. Products with order or inventory history must be deactivated instead."
+          error={deleteError}
+          isBusy={deletingId === productToDelete.id}
+          confirmLabel="Delete permanently"
+          busyLabel="Deleting…"
+          onCancel={() => setProductToDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
     </>
   )

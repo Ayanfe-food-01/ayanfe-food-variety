@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { MoreHorizontalIcon } from '../../assets/icons'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { ApiError } from '../../services/api'
 import {
   deleteAdminCategory,
@@ -109,6 +110,9 @@ export function Categories() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -159,18 +163,25 @@ export function Categories() {
     }
   }
 
-  const deleteCategory = async (category: Category) => {
-    if (!window.confirm(`Delete “${category.name}”? This is only allowed when the category has no products.`)) return
-    setBusyId(category.id)
-    setError(null)
+  const openDeleteConfirmation = (category: Category) => {
+    setDeleteError(null)
+    setCategoryToDelete(category)
+  }
+
+  const confirmDelete = async () => {
+    if (!categoryToDelete) return
+    const category = categoryToDelete
+    setDeletingId(category.id)
+    setDeleteError(null)
     try {
       await deleteAdminCategory(category.id)
       showToast('Category deleted successfully.', 'success')
+      setCategoryToDelete(null)
       setQuery((current) => ({ ...current, page: Math.min(current.page, result?.pagination.totalPages ?? 1) }))
     } catch (caught: unknown) {
-      showToast(caught instanceof ApiError ? caught.message : 'Category could not be deleted.', 'error')
+      setDeleteError(caught instanceof ApiError ? caught.message : 'Category could not be deleted.')
     } finally {
-      setBusyId(null)
+      setDeletingId(null)
     }
   }
 
@@ -241,9 +252,9 @@ export function Categories() {
                   </div>
                   <CategoryActions
                     category={category}
-                    isBusy={busyId === category.id}
+                    isBusy={busyId === category.id || deletingId === category.id}
                     onToggleStatus={() => void toggleStatus(category)}
-                    onDelete={() => void deleteCategory(category)}
+                    onDelete={() => openDeleteConfirmation(category)}
                   />
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
@@ -284,7 +295,7 @@ export function Categories() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${category.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{category.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.createdAt)}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.updatedAt)}</td>
-                     <td className="px-5 py-4"><CategoryActions category={category} isBusy={busyId === category.id} onToggleStatus={() => void toggleStatus(category)} onDelete={() => void deleteCategory(category)} /></td>
+                      <td className="px-5 py-4"><CategoryActions category={category} isBusy={busyId === category.id || deletingId === category.id} onToggleStatus={() => void toggleStatus(category)} onDelete={() => openDeleteConfirmation(category)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -292,6 +303,19 @@ export function Categories() {
           </div>
           {totalPages > 1 && <div className="flex items-center justify-between gap-4 border-t border-line px-5 py-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
         </div>
+      )}
+      {categoryToDelete && (
+        <ConfirmDialog
+          eyebrow="Delete category"
+          title={`Delete “${categoryToDelete.name}”?`}
+          description="This is only allowed when the category has no products."
+          error={deleteError}
+          isBusy={deletingId === categoryToDelete.id}
+          confirmLabel="Delete category"
+          busyLabel="Deleting…"
+          onCancel={() => setCategoryToDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
     </>
   )

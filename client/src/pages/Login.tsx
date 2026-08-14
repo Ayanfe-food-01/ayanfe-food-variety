@@ -4,9 +4,15 @@ import { ArrowRight, EyeIcon, EyeOffIcon } from '../assets/icons'
 import { Button } from '../components/ui/Button'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { login, signupCustomer, getCurrentUser, type AuthenticatedUser } from '../services/authService'
+import { getGoogleSignInUrl, login, signupCustomer, getCurrentUser, type AuthenticatedUser } from '../services/authService'
 
 type Mode = 'login' | 'signup'
+
+const googleErrorMessages: Record<string, string> = {
+  google_cancelled: 'Google sign-in was cancelled.',
+  google_unavailable: 'Google sign-in is not available right now. Please use email and password.',
+  google_failed: 'Google sign-in could not be completed. Please try again or use email and password.',
+}
 
 export function Login() {
   const navigate = useNavigate()
@@ -21,6 +27,8 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const oauthError = new URLSearchParams(location.search).get('oauth_error')
+    if (oauthError && googleErrorMessages[oauthError]) setError(googleErrorMessages[oauthError])
     getCurrentUser()
       .then((currentUser) => {
         navigate(currentUser.role === 'ADMIN' ? '/admin' : '/', { replace: true })
@@ -28,7 +36,7 @@ export function Login() {
       .catch((caught: unknown) => {
         if (!(caught instanceof ApiError && caught.status === 401)) setError('We could not check your existing session.')
       })
-  }, [navigate])
+  }, [location.search, navigate])
 
   const getDestination = (user: AuthenticatedUser) => {
     const from = location.state && typeof location.state === 'object' && 'from' in location.state && typeof location.state.from === 'string'
@@ -63,6 +71,12 @@ export function Login() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const continueWithGoogle = () => {
+    setError(null)
+    setIsSubmitting(true)
+    window.location.assign(getGoogleSignInUrl())
   }
 
   return (
@@ -108,6 +122,24 @@ export function Login() {
             {isSubmitting ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
           </Button>
         </form>
+        <div className="mt-6">
+          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+            <span className="h-px flex-1 bg-line" />
+            <span>or</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
+          <Button
+            className="mt-5 w-full"
+            variant="outline"
+            size="lg"
+            type="button"
+            disabled={isSubmitting}
+            onClick={continueWithGoogle}
+          >
+            <span className="grid size-5 place-items-center rounded-full border border-line bg-white text-xs font-bold text-[#4285F4]" aria-hidden="true">G</span>
+            Continue with Google
+          </Button>
+        </div>
         {mode === 'login' && error?.toLowerCase().includes('verify your email') && (
           <Button
             className="mt-4 w-full"

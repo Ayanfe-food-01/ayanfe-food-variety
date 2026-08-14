@@ -56,6 +56,11 @@ enum UserRole {
   CUSTOMER
 }
 
+enum AuthProvider {
+  PASSWORD
+  GOOGLE
+}
+
 model Category {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name           String    @unique @db.VarChar(120)
@@ -258,6 +263,8 @@ model User {
   email        String         @unique @db.VarChar(255)
   passwordHash String?        @map("password_hash") @db.VarChar(255)
   role         UserRole       @default(ADMIN)
+  authProvider AuthProvider   @default(PASSWORD) @map("auth_provider")
+  googleSubject String?       @unique @map("google_subject") @db.VarChar(255)
   emailVerified Boolean       @default(true) @map("email_verified")
   phone        String?        @db.VarChar(40)
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)

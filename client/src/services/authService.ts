@@ -1,4 +1,4 @@
-import { request } from './api'
+import { getApiUrl, request } from './api'
 
 export interface AuthenticatedUser {
   id: string
@@ -91,6 +91,8 @@ export async function getCustomerProviders(): Promise<{ google: boolean; message
   const response = await request<{ success: true; data: { google: boolean; message: string } }>('/auth/customer/providers')
   return response.data
 }
+
+export const getGoogleSignInUrl = (): string => getApiUrl('/auth/customer/google')
 
 export async function verifyCustomerEmail(email: string, otp: string): Promise<void> {
   await request<{ success: true; data: { verified: true; email: string } }>('/auth/customer/verify-email', {

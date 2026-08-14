@@ -26,6 +26,11 @@ import type {
   PasswordResetInput,
   PasswordResetRequestInput,
 } from './auth.types.js'
+import {
+  isGoogleOAuthConfigured,
+  verifyGoogleAuthorizationCode,
+  type GoogleIdentity,
+} from './auth.google.js'
 
 const scrypt = promisify(nodeScrypt)
 const SESSION_COOKIE_NAME = 'ayanfe_admin_session'
@@ -590,9 +595,73 @@ export async function revokeCustomerSession(token: string | null): Promise<void>
   })
 }
 
-export const isGoogleOAuthConfigured = Boolean(
-  env.googleOAuth.clientId && env.googleOAuth.clientSecret && env.googleOAuth.redirectUri,
-)
+async function findOrCreateGoogleCustomer(identity: GoogleIdentity) {
+  try {
+    return await prisma.$transaction(async (transaction) => {
+      const userBySubject = await transaction.user.findUnique({
+        where: { googleSubject: identity.subject },
+      })
+      if (userBySubject) {
+        if (userBySubject.role !== UserRole.CUSTOMER || userBySubject.email !== identity.email) {
+          throw new HttpError(409, 'This Google account cannot be used for this customer account.')
+        }
+        return userBySubject
+      }
+
+      const userByEmail = await transaction.user.findUnique({
+        where: { email: identity.email },
+      })
+      if (userByEmail) {
+        if (userByEmail.role !== UserRole.CUSTOMER) {
+          throw new HttpError(403, 'Google sign-in is available for customer accounts only.')
+        }
+        if (!userByEmail.emailVerified) {
+          throw new HttpError(409, 'Verify your existing email account before using Google sign-in.')
+        }
+        if (userByEmail.googleSubject && userByEmail.googleSubject !== identity.subject) {
+          throw new HttpError(409, 'This email is already linked to another Google account.')
+        }
+        return transaction.user.update({
+          where: { id: userByEmail.id },
+          data: {
+            authProvider: 'GOOGLE',
+            googleSubject: identity.subject,
+            emailVerified: true,
+            name: userByEmail.name || identity.name,
+          },
+        })
+      }
+
+      return transaction.user.create({
+        data: {
+          name: identity.name,
+          email: identity.email,
+          passwordHash: null,
+          role: UserRole.CUSTOMER,
+          authProvider: 'GOOGLE',
+          googleSubject: identity.subject,
+          emailVerified: true,
+        },
+      })
+    })
+  } catch (error: unknown) {
+    if (error instanceof HttpError) throw error
+    console.error(JSON.stringify({
+      event: 'google_customer_account_upsert_failed',
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+    }))
+    throw new HttpError(409, 'This Google account could not be linked safely.')
+  }
+}
+
+export async function loginWithGoogle(code: string, nonce: string): Promise<{ user: AuthenticatedUser; token: string }> {
+  const identity = await verifyGoogleAuthorizationCode(code, nonce)
+  const user = await findOrCreateGoogleCustomer(identity)
+  return {
+    user: toUser(user),
+    token: (await createSession(user, 'customer')).token,
+  }
+}
 
 export async function createInitialAdmin(input: {
   name: string

@@ -8,6 +8,8 @@ import {
   customerLogoutController,
   customerMeController,
   customerProvidersController,
+  customerGoogleStartController,
+  customerGoogleCallbackController,
   customerSignupController,
   customerVerifyEmailController,
   customerResendVerificationController,
@@ -21,6 +23,8 @@ authRoutes.post('/login', createRateLimit(10, 15 * 60 * 1000), loginController)
 authRoutes.post('/logout', logoutController)
 authRoutes.get('/me', meController)
 authRoutes.get('/customer/providers', customerProvidersController)
+authRoutes.get('/customer/google', createRateLimit(10, 15 * 60 * 1000), customerGoogleStartController)
+authRoutes.get('/customer/google/callback', customerGoogleCallbackController)
 authRoutes.post('/customer/signup', createRateLimit(10, 15 * 60 * 1000), customerSignupController)
 authRoutes.post('/customer/login', createRateLimit(10, 15 * 60 * 1000), customerLoginController)
 authRoutes.post('/customer/verify-email', createRateLimit(20, 15 * 60 * 1000), customerVerifyEmailController)

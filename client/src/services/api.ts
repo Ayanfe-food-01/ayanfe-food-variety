@@ -28,6 +28,8 @@ const networkErrorMessage = () => import.meta.env.DEV
   ? `Unable to reach the local API at ${apiBaseUrl}. The Start API workflow may still be starting; try again in a moment.`
   : `Unable to reach the production API at ${apiBaseUrl}. Verify the Vercel VITE_API_URL and Render CORS_ORIGINS settings.`
 
+export const getApiUrl = (path: string): string => `${apiBaseUrl}${path}`
+
 export class ApiError extends Error {
   readonly status: number
 

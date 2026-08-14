@@ -45,6 +45,7 @@ import {
   updateAdminBannerController,
   updateAdminBannerStatusController,
 } from '../modules/banners/banner.controller.js'
+import { changeAdminPasswordController } from '../modules/auth/auth.controller.js'
 
 export const adminRoutes = Router()
 
@@ -81,3 +82,4 @@ adminRoutes.get('/settings/contact', getAdminContactInformationController)
 adminRoutes.put('/settings/contact', updateAdminContactInformationController)
 adminRoutes.get('/settings/payment', getAdminPaymentSettingsController)
 adminRoutes.put('/settings/payment', updateAdminPaymentSettingsController)
+adminRoutes.post('/settings/password', changeAdminPasswordController)

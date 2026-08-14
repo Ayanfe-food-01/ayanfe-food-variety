@@ -21,6 +21,7 @@ import type {
   CustomerEmailVerificationInput,
   CustomerSignupInput,
   CustomerVerificationEmailInput,
+  AdminPasswordChangeInput,
   LoginInput,
   PasswordResetInput,
   PasswordResetRequestInput,
@@ -374,6 +375,40 @@ export async function resetPassword(input: PasswordResetInput): Promise<void> {
     await transaction.passwordResetToken.updateMany({
       where: { userId: resetToken.userId, usedAt: null },
       data: { usedAt: now },
+    })
+  })
+}
+
+export async function changeAdminPassword(
+  userId: string,
+  currentSessionToken: string | null,
+  input: AdminPasswordChangeInput,
+): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, passwordHash: true },
+  })
+  if (!user || user.role !== UserRole.ADMIN || !user.passwordHash || !(await verifyPassword(input.currentPassword, user.passwordHash))) {
+    throw new HttpError(400, 'Current password is incorrect.')
+  }
+  if (await verifyPassword(input.newPassword, user.passwordHash)) {
+    throw new HttpError(400, 'New password must be different from your current password.')
+  }
+
+  const passwordHash = await hashPassword(input.newPassword)
+  const currentTokenHash = currentSessionToken ? hashSessionToken(currentSessionToken) : null
+  await prisma.$transaction(async (transaction) => {
+    await transaction.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    })
+    await transaction.adminSession.updateMany({
+      where: {
+        userId: user.id,
+        revokedAt: null,
+        ...(currentTokenHash ? { tokenHash: { not: currentTokenHash } } : {}),
+      },
+      data: { revokedAt: new Date() },
     })
   })
 }

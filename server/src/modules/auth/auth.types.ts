@@ -30,6 +30,12 @@ export interface PasswordResetInput {
   confirmPassword: string
 }
 
+export interface AdminPasswordChangeInput {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface AuthenticatedUser {
   id: string
   name: string

@@ -3,6 +3,7 @@ import { ApiError } from '../../services/api'
 import { useToast } from '../../components/ui/Toast'
 import {
   getContactInformation,
+  changeAdminPassword,
   getPaymentSettings,
   getStoreInformation,
   updateContactInformation,
@@ -23,6 +24,7 @@ const emptyPayment: PaymentSettings = {
   instructions: '',
   isActive: true,
 }
+const emptyPassword = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
 interface SettingsSectionProps {
   eyebrow: string
@@ -76,6 +78,7 @@ export function Settings() {
   const [store, setStore] = useState(emptyStore)
   const [contact, setContact] = useState(emptyContact)
   const [payment, setPayment] = useState(emptyPayment)
+  const [password, setPassword] = useState(emptyPassword)
   const [isLoading, setIsLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -119,6 +122,16 @@ export function Settings() {
   const submitPayment = (event: FormEvent) => {
     event.preventDefault()
     void save('payment', () => updatePaymentSettings(payment), setPayment, 'Payment settings saved. Customer checkout now uses these details.')
+  }
+  const submitPassword = (event: FormEvent) => {
+    event.preventDefault()
+    if (password.newPassword !== password.confirmPassword) {
+      showToast('New passwords do not match.', 'error')
+      return
+    }
+    void save('password', () => changeAdminPassword(password), () => {
+      setPassword(emptyPassword)
+    }, 'Admin password changed. Other admin sessions were signed out.')
   }
 
   return (
@@ -177,6 +190,18 @@ export function Settings() {
               <SaveButton saving={saving === 'contact'} label="Save contact information" />
             </form>
           </SettingsSection>
+
+           <SettingsSection eyebrow="Security" title="Change admin password" description="Update the password used to access this admin portal. Your current session will stay active while other admin sessions are signed out.">
+             <form className="space-y-5" onSubmit={submitPassword}>
+               <Field label="Current password" type="password" autoComplete="current-password" value={password.currentPassword} onChange={(event) => setPassword({ ...password, currentPassword: event.target.value })} minLength={6} maxLength={256} required />
+               <div className="grid gap-5 sm:grid-cols-2">
+                 <Field label="New password" type="password" autoComplete="new-password" value={password.newPassword} onChange={(event) => setPassword({ ...password, newPassword: event.target.value })} minLength={6} maxLength={256} required />
+                 <Field label="Confirm new password" type="password" autoComplete="new-password" value={password.confirmPassword} onChange={(event) => setPassword({ ...password, confirmPassword: event.target.value })} minLength={6} maxLength={256} required />
+               </div>
+               <p className="-mt-2 text-xs leading-5 text-muted">Use at least 6 characters. You will need the new password the next time you sign in.</p>
+               <SaveButton saving={saving === 'password'} label="Change admin password" />
+             </form>
+           </SettingsSection>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express'
 import {
   authCookie,
+  changeAdminPassword,
   getAuthenticatedUser,
   getAuthenticatedCustomer,
   getCustomerSessionToken,
@@ -21,6 +22,7 @@ import {
   validateCustomerEmailVerificationInput,
   validateCustomerSignupInput,
   validateCustomerVerificationEmailInput,
+  validateAdminPasswordChangeInput,
   validateLoginInput,
   validatePasswordResetInput,
   validatePasswordResetRequestInput,
@@ -136,5 +138,17 @@ export const passwordResetController: RequestHandler = async (request, response)
   response.json({
     success: true,
     data: { message: 'Your password has been reset. You can now sign in.' },
+  })
+}
+
+export const changeAdminPasswordController: RequestHandler = async (request, response) => {
+  await changeAdminPassword(
+    request.authenticatedUser!.id,
+    getSessionToken(request.headers.cookie),
+    validateAdminPasswordChangeInput(request.body),
+  )
+  response.json({
+    success: true,
+    data: { message: 'Admin password changed successfully.' },
   })
 }

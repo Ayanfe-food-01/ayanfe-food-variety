@@ -191,6 +191,26 @@ export async function updateContactInformation(settings: ContactInformation): Pr
   return response.data.settings
 }
 
+export interface AdminPasswordChangeInput {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+interface AdminPasswordChangeResponse {
+  success: true
+  data: { message: string }
+}
+
+export async function changeAdminPassword(input: AdminPasswordChangeInput): Promise<string> {
+  const response = await request<AdminPasswordChangeResponse>('/admin/settings/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.message
+}
+
 export interface AdminProductsQuery {
   page: number
   pageSize: number

@@ -3,7 +3,7 @@ import type { PaymentRejectionReason, PaymentSubmissionStatus } from '@prisma/cl
 export interface SubmitPaymentInput {
   orderId: string
   senderName: string
-  transactionReference: string
+  transactionReference: string | null
   amount: string
   transferredAt: string
 }
@@ -17,7 +17,7 @@ export interface PaymentSubmissionResponse {
   id: string
   orderId: string
   senderName: string
-  transactionReference: string
+  transactionReference: string | null
   amount: string
   transferredAt: string
   proofUrl: string

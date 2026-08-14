@@ -16,7 +16,7 @@ const toResponse = (submission: {
   id: string
   orderId: string
   senderName: string
-  transactionReference: string
+  transactionReference: string | null
   amount: Prisma.Decimal
   transferredAt: Date
   proofUrl: string

@@ -7,6 +7,14 @@ const requiredString = (value, field, maxLength) => {
     }
     return value.trim();
 };
+const optionalString = (value, field, maxLength) => {
+    if (value === undefined || value === null || (typeof value === 'string' && !value.trim()))
+        return null;
+    if (typeof value !== 'string' || value.trim().length > maxLength) {
+        throw new HttpError(400, `${field} must be valid.`);
+    }
+    return value.trim();
+};
 export const validateOrderId = (value) => {
     const orderId = requiredString(value, 'Order ID', 36);
     if (!uuidPattern.test(orderId))
@@ -19,7 +27,7 @@ export const validateSubmitPaymentInput = (body) => {
     const input = body;
     const orderId = validateOrderId(input.orderId);
     const senderName = requiredString(input.senderName, 'Sender name', 180);
-    const transactionReference = requiredString(input.transactionReference, 'Transaction reference', 180);
+    const transactionReference = optionalString(input.transactionReference, 'Transaction reference', 180);
     const amount = requiredString(input.amount, 'Amount', 30);
     const transferredAt = requiredString(input.transferredAt, 'Transfer date', 80);
     try {

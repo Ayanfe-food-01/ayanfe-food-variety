@@ -70,7 +70,7 @@ export interface OrderPaymentResponse {
 export interface CustomerPaymentSubmissionResponse {
   id: string
   senderName: string
-  transactionReference: string
+  transactionReference: string | null
   amount: string
   transferredAt: string
   proofUrl: string

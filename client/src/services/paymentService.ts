@@ -11,7 +11,7 @@ export interface PaymentSubmission {
   id: string
   orderId: string
   senderName: string
-  transactionReference: string
+  transactionReference: string | null
   amount: string
   transferredAt: string
   proofUrl: string

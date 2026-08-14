@@ -159,7 +159,7 @@ model PaymentSubmission {
   id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderId              String                  @map("order_id") @db.Uuid
   senderName           String                  @map("sender_name") @db.VarChar(180)
-  transactionReference String                  @map("transaction_reference") @db.VarChar(180)
+  transactionReference String?                 @map("transaction_reference") @db.VarChar(180)
   amount               Decimal                 @db.Decimal(12, 2)
   transferredAt        DateTime                @map("transferred_at") @db.Timestamptz(6)
   proofUrl             String                  @map("proof_url")

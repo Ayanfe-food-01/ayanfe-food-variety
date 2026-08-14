@@ -69,7 +69,7 @@ export interface AdminPaymentListItem {
   orderStatus: OrderStatus
   orderPaymentStatus: PaymentStatus
   senderName: string
-  transactionReference: string
+  transactionReference: string | null
   transferredAt: string
   createdAt: string
   status: PaymentSubmissionStatus

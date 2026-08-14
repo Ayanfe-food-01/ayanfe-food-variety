@@ -23,6 +23,12 @@ function ProofBadge({ payment }: { payment: AdminPayment }) {
     : <span className="rounded-full bg-orange/10 px-2.5 py-1 text-[11px] font-bold text-orange">Missing</span>
 }
 
+function ReferenceValue({ reference }: { reference: string | null }) {
+  return reference
+    ? <span className="break-all font-semibold text-green-dark">{reference}</span>
+    : <span className="text-muted">Not provided</span>
+}
+
 export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
   if (payments.length === 0) {
     return <div className="rounded-2xl border border-dashed border-line bg-white px-5 py-14 text-center text-sm text-muted">No payment submissions match these filters.</div>
@@ -48,6 +54,7 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
               <div><dt className="uppercase tracking-[0.12em] text-muted">Expected total</dt><dd className="mt-1 font-bold text-green-dark">{formatPrice(payment.expectedAmount)}</dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Submitted amount</dt><dd className="mt-1 font-bold text-green-dark">{formatPrice(payment.amount)}</dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Method</dt><dd className="mt-1 text-muted">Bank transfer</dd></div>
+               <div><dt className="uppercase tracking-[0.12em] text-muted">Transaction reference</dt><dd className="mt-1"><ReferenceValue reference={payment.transactionReference} /></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Proof</dt><dd className="mt-1"><ProofBadge payment={payment} /></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Submitted</dt><dd className="mt-1 text-muted">{formatDate(payment.createdAt, true)}</dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Status</dt><dd className="mt-1"><span className={`rounded-full px-2.5 py-1 font-bold ${statusClass(payment.status)}`}>{payment.status}</span></dd></div>
@@ -63,6 +70,7 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
               <th className="px-5 py-4 font-bold">Order / customer</th>
               <th className="px-5 py-4 font-bold">Amount</th>
               <th className="px-5 py-4 font-bold">Method</th>
+              <th className="px-5 py-4 font-bold">Transaction reference</th>
               <th className="px-5 py-4 font-bold">Proof</th>
               <th className="px-5 py-4 font-bold">Submitted</th>
               <th className="px-5 py-4 font-bold">Status</th>
@@ -82,6 +90,7 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
                   <p className="mt-1 text-xs text-muted">Expected {formatPrice(payment.expectedAmount)}</p>
                 </td>
                 <td className="px-5 py-4 text-muted">Bank transfer</td>
+                <td className="px-5 py-4"><ReferenceValue reference={payment.transactionReference} /></td>
                 <td className="px-5 py-4"><ProofBadge payment={payment} /></td>
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(payment.createdAt, true)}</td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(payment.status)}`}>{payment.status}</span></td>

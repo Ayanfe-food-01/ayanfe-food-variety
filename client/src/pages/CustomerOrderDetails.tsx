@@ -271,7 +271,7 @@ export function CustomerOrderDetails() {
                   {order.paymentSubmissions.map((submission) => (
                     <div className="flex flex-wrap justify-between gap-3 py-4 text-sm" key={submission.id}>
                       <div>
-                        <p className="font-bold text-green-dark">{submission.transactionReference}</p>
+                        <p className="font-bold text-green-dark">{submission.transactionReference || 'No transaction reference provided'}</p>
                          <p className="mt-1 text-xs text-muted">Submitted {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(submission.createdAt))}</p>
                          {submission.reviewNote && (
                            <p className={`mt-3 rounded-xl px-3 py-2 text-xs leading-5 ${submission.status === 'REJECTED' ? 'bg-orange/10 text-orange' : 'bg-sage/45 text-muted'}`}>
@@ -279,7 +279,7 @@ export function CustomerOrderDetails() {
                              {submission.reviewNote}
                            </p>
                          )}
-                        <ImagePreview className="mt-3 inline-flex text-xs font-bold text-green hover:text-orange" src={submission.proofUrl} alt={`Payment proof for ${submission.transactionReference}`} label="View payment proof" />
+                         <ImagePreview className="mt-3 inline-flex text-xs font-bold text-green hover:text-orange" src={submission.proofUrl} alt={`Payment proof for ${submission.transactionReference || 'payment submission'}`} label="View payment proof" />
                       </div>
                       <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{submission.status}</span>
                     </div>

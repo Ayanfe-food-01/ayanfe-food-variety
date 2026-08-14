@@ -33,7 +33,7 @@ export interface CreatedOrder {
   paymentSubmissions: Array<{
     id: string
     senderName: string
-    transactionReference: string
+    transactionReference: string | null
     amount: string
     transferredAt: string
     proofUrl: string
@@ -152,7 +152,7 @@ export interface AdminOrder {
   paymentSubmissions: Array<{
     id: string
     senderName: string
-    transactionReference: string
+    transactionReference: string | null
     amount: string
     transferredAt: string
     proofUrl: string

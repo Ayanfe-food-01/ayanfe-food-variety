@@ -136,7 +136,7 @@ export function Login() {
             disabled={isSubmitting}
             onClick={continueWithGoogle}
           >
-            <span className="grid size-5 place-items-center rounded-full border border-line bg-white text-xs font-bold text-[#4285F4]" aria-hidden="true">G</span>
+            <img className="size-5" src="/branding/google-icon.svg" alt="" aria-hidden="true" />
             Continue with Google
           </Button>
         </div>

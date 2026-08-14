@@ -24,7 +24,7 @@ export async function notifyPaymentSubmitted(order) {
             <tr><td style="padding:14px 16px 5px;">Order</td><td align="right" style="padding:14px 16px 5px;color:#173b2b;font-weight:bold;">${escapeHtml(order.id)}</td></tr>
             <tr><td style="padding:5px 16px;">Customer</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(order.customerName)}</td></tr>
             <tr><td style="padding:5px 16px;">Amount</td><td align="right" style="padding:5px 16px;color:#173b2b;font-weight:bold;">${escapeHtml(formatPrice(order.total))}</td></tr>
-            <tr><td style="padding:5px 16px;">Transaction reference</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(order.transactionReference ?? 'Not provided')}</td></tr>
+            <tr><td style="padding:5px 16px;">Transaction reference</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(order.transactionReference || 'Not provided')}</td></tr>
             <tr><td style="padding:5px 16px 14px;">Transfer date</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(order.transferredAt)}</td></tr>
           </table>
           <p style="margin:24px 0 0;color:#58695e;font-size:14px;line-height:1.7;">Review this payment proof from the admin payment review area.</p>
@@ -35,7 +35,7 @@ export async function notifyPaymentSubmitted(order) {
                 `Order: ${order.id}`,
                 `Customer: ${order.customerName}`,
                 `Amount: ${formatPrice(order.total)}`,
-                `Transaction reference: ${order.transactionReference ?? 'Not provided'}`,
+                `Transaction reference: ${order.transactionReference || 'Not provided'}`,
                 `Transfer date: ${order.transferredAt}`,
             ].join('\n'),
         });

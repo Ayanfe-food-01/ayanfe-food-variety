@@ -94,7 +94,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Payment method</p><p className="mt-1 font-bold text-green-dark">Bank transfer</p></div>
           <div className={`rounded-2xl p-4 ${amountMatches ? 'bg-sage/45' : 'bg-orange/10'}`}><p className="text-xs text-muted">Amount entered with proof</p><p className="mt-1 text-lg font-bold text-green-dark">{formatPrice(payment.amount)}</p><p className="mt-1 text-xs text-muted">Customer-provided amount; verify against your bank records.</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Sender name</p><p className="mt-1 font-bold text-green-dark">{payment.senderName}</p></div>
-          <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transaction reference</p><p className={`mt-1 break-all font-bold ${payment.transactionReference ? 'text-green-dark' : 'text-muted'}`}>{payment.transactionReference || 'Not provided — review the uploaded proof'}</p></div>
+          <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transaction reference</p><p className={`mt-1 break-all font-bold ${payment.transactionReference ? 'text-green-dark' : 'text-muted'}`}>{payment.transactionReference || 'Not provided — verify using the uploaded proof'}</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Submitted</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.createdAt)}</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transfer date</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.transferredAt)}</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Current status</p><p className="mt-1 font-bold text-green-dark">{payment.status} · Order payment {payment.orderPaymentStatus}</p>{payment.reviewedAt && <p className="mt-1 text-xs text-muted">Reviewed {formatDate(payment.reviewedAt)}</p>}</div>
@@ -110,7 +110,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
 
         <section className="mt-6 rounded-2xl border border-line bg-white p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><h3 className="font-bold text-green-dark">Payment proof</h3><p className="mt-1 text-sm text-muted">An uploaded image is evidence for review only; it does not prove funds were received.</p></div>
+            <div><h3 className="font-bold text-green-dark">Payment proof</h3><p className="mt-1 text-sm text-muted">The uploaded image is the primary customer-provided proof for review; verify it against your bank records.</p></div>
             {payment.proofAvailable && <span className="text-xs font-bold text-green">Uploaded {formatDate(payment.createdAt)}</span>}
           </div>
           {payment.proofAvailable ? (

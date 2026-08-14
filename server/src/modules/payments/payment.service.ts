@@ -90,7 +90,7 @@ export async function submitPayment(
         data: {
           orderId: order.id,
           senderName: input.senderName,
-          transactionReference: input.transactionReference,
+          transactionReference: input.transactionReference?.trim() || null,
           amount,
           transferredAt: new Date(input.transferredAt),
           proofUrl: uploadedProof.url,
@@ -118,7 +118,7 @@ export async function submitPayment(
     id: order.id,
     customerName: order.customerName,
     total: order.total.toString(),
-    transactionReference: input.transactionReference,
+    transactionReference: input.transactionReference?.trim() || null,
     transferredAt: new Date(input.transferredAt).toISOString(),
   }).catch((error: unknown) => console.error('Payment submission email failed', error))
 

@@ -74,7 +74,7 @@ export async function getBankDetails(): Promise<BankDetails> {
 export async function submitPaymentProof(input: {
   orderId: string
   senderName: string
-  transactionReference: string
+  transactionReference?: string | null
   amount: string
   transferredAt: string
   proof: File
@@ -82,7 +82,8 @@ export async function submitPaymentProof(input: {
   const formData = new FormData()
   formData.append('orderId', input.orderId)
   formData.append('senderName', input.senderName)
-  formData.append('transactionReference', input.transactionReference)
+  const transactionReference = input.transactionReference?.trim()
+  if (transactionReference) formData.append('transactionReference', transactionReference)
   formData.append('amount', input.amount)
   formData.append('transferredAt', new Date(input.transferredAt).toISOString())
   formData.append('proof', input.proof)

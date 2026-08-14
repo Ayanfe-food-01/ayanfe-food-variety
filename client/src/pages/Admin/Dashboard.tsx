@@ -28,14 +28,14 @@ export function Dashboard() {
         <div className="mt-8 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Total orders" value={stats?.totalOrders ?? '—'} detail="All orders recorded" />
-          <StatCard label="Order placed" value={stats?.orderPlacedOrders ?? '—'} detail="Awaiting fulfillment" accent="orange" />
-          <StatCard label="Processing orders" value={stats?.processingOrders ?? '—'} detail="Being prepared" />
-          <StatCard label="Delivered orders" value={stats?.deliveredOrders ?? '—'} detail="Fulfillment complete" />
-          <StatCard label="Cancelled orders" value={stats?.cancelledOrders ?? '—'} detail="Cancelled orders" accent="orange" />
-          <StatCard label="Payment review" value={stats?.pendingPaymentVerification ?? '—'} detail="Receipts awaiting review" accent="orange" />
-          <StatCard label="Verified payments" value={stats?.verifiedPayments ?? '—'} detail="Approved payment proofs" />
-          <StatCard label="Total sales" value={stats ? formatPrice(stats.totalSales) : '—'} detail="Verified payment orders" />
+          <StatCard label="Total orders" value={stats?.totalOrders ?? 0} detail="All orders recorded" isLoading={!stats} />
+          <StatCard label="Order placed" value={stats?.orderPlacedOrders ?? 0} detail="Awaiting fulfillment" accent="orange" isLoading={!stats} />
+          <StatCard label="Processing orders" value={stats?.processingOrders ?? 0} detail="Being prepared" isLoading={!stats} />
+          <StatCard label="Delivered orders" value={stats?.deliveredOrders ?? 0} detail="Fulfillment complete" isLoading={!stats} />
+          <StatCard label="Cancelled orders" value={stats?.cancelledOrders ?? 0} detail="Cancelled orders" accent="orange" isLoading={!stats} />
+          <StatCard label="Payment review" value={stats?.pendingPaymentVerification ?? 0} detail="Receipts awaiting review" accent="orange" isLoading={!stats} />
+          <StatCard label="Verified payments" value={stats?.verifiedPayments ?? 0} detail="Approved payment proofs" isLoading={!stats} />
+          <StatCard label="Total sales" value={stats ? formatPrice(stats.totalSales) : ''} detail="Verified payment orders" isLoading={!stats} />
         </div>
       )}
 

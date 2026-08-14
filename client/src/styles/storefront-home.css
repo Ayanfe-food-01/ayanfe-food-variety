@@ -50,7 +50,7 @@
 .category-placeholder { background: linear-gradient(135deg, var(--color-sage), #f1c48e); }
 .category-tile:hover span { color: var(--color-orange); }
 .product-rail { display: flex; align-items: stretch; gap: 16px; }
-.product-rail > .product-card, .product-rail > .product-skeleton { flex: 0 0 min(44vw, 220px); }
+.product-rail > .product-card, .product-rail > .product-skeleton { flex: 0 0 min(40vw, 200px); }
 .product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .product-card { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--color-line); border-radius: 14px; background: white; }
 .product-card:hover { box-shadow: 0 10px 24px rgb(32 60 36 / 11%); }

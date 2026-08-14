@@ -595,7 +595,20 @@ export async function revokeCustomerSession(token: string | null): Promise<void>
   })
 }
 
-async function findOrCreateGoogleCustomer(identity: GoogleIdentity) {
+type GoogleCustomerResult = {
+  user: {
+    id: string
+    name: string
+    email: string
+    role: UserRole
+    phone: string | null
+    emailVerified: boolean
+  }
+  verificationCode: string | null
+  createdForVerification: boolean
+}
+
+async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<GoogleCustomerResult> {
   try {
     return await prisma.$transaction(async (transaction) => {
       const userBySubject = await transaction.user.findUnique({
@@ -605,7 +618,11 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity) {
         if (userBySubject.role !== UserRole.CUSTOMER || userBySubject.email !== identity.email) {
           throw new HttpError(409, 'This Google account cannot be used for this customer account.')
         }
-        return userBySubject
+        return {
+          user: userBySubject,
+          verificationCode: null,
+          createdForVerification: false,
+        }
       }
 
       const userByEmail = await transaction.user.findUnique({
@@ -618,18 +635,25 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity) {
         if (userByEmail.googleSubject && userByEmail.googleSubject !== identity.subject) {
           throw new HttpError(409, 'This email is already linked to another Google account.')
         }
-        return transaction.user.update({
+        const linkedUser = await transaction.user.update({
           where: { id: userByEmail.id },
           data: {
             authProvider: 'GOOGLE',
             googleSubject: identity.subject,
-            emailVerified: true,
+            emailVerified: userByEmail.emailVerified,
             name: userByEmail.name || identity.name,
           },
         })
+        return {
+          user: linkedUser,
+          verificationCode: null,
+          createdForVerification: false,
+        }
       }
 
-      return transaction.user.create({
+      const code = generateVerificationCode()
+      const now = new Date()
+      const createdUser = await transaction.user.create({
         data: {
           name: identity.name,
           email: identity.email,
@@ -637,9 +661,22 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity) {
           role: UserRole.CUSTOMER,
           authProvider: 'GOOGLE',
           googleSubject: identity.subject,
-          emailVerified: true,
+          emailVerified: false,
         },
       })
+      await transaction.customerEmailVerification.create({
+        data: {
+          userId: createdUser.id,
+          otpHash: hashVerificationCode(createdUser.id, code),
+          expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
+          requestWindowStart: now,
+        },
+      })
+      return {
+        user: createdUser,
+        verificationCode: code,
+        createdForVerification: true,
+      }
     })
   } catch (error: unknown) {
     if (error instanceof HttpError) throw error
@@ -651,12 +688,83 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity) {
   }
 }
 
-export async function loginWithGoogle(code: string, nonce: string): Promise<{ user: AuthenticatedUser; token: string }> {
+const getVerificationSecondsRemaining = (expiresAt: Date): number =>
+  Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 1000))
+
+async function cleanupNewGoogleCustomer(userId: string, googleSubject: string): Promise<void> {
+  try {
+    await prisma.user.deleteMany({
+      where: {
+        id: userId,
+        googleSubject,
+        emailVerified: false,
+      },
+    })
+  } catch (error: unknown) {
+    console.error(JSON.stringify({
+      event: 'google_customer_verification_cleanup_failed',
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+    }))
+  }
+}
+
+async function ensureGoogleCustomerVerification(
+  result: GoogleCustomerResult,
+  googleSubject: string,
+): Promise<number> {
+  if (result.verificationCode) {
+    try {
+      await sendCustomerVerificationEmail({
+        recipient: result.user.email,
+        code: result.verificationCode,
+      })
+    } catch (error: unknown) {
+      if (result.createdForVerification) {
+        await cleanupNewGoogleCustomer(result.user.id, googleSubject)
+      }
+      logVerificationEvent('google_email_verification_delivery_failed', result.user.email)
+      throw getEmailDeliveryError(error)
+    }
+
+    const pending = await prisma.customerEmailVerification.findUnique({
+      where: { userId: result.user.id },
+      select: { expiresAt: true },
+    })
+    return pending ? getVerificationSecondsRemaining(pending.expiresAt) : VERIFICATION_TTL_MS / 1000
+  }
+
+  const pending = await prisma.customerEmailVerification.findUnique({
+    where: { userId: result.user.id },
+    select: { expiresAt: true },
+  })
+  if (pending && pending.expiresAt > new Date()) {
+    return getVerificationSecondsRemaining(pending.expiresAt)
+  }
+
+  const resent = await resendCustomerVerificationEmail({ email: result.user.email })
+  return resent.verificationExpiresInSeconds
+}
+
+export async function loginWithGoogle(
+  code: string,
+  nonce: string,
+): Promise<
+  | { user: AuthenticatedUser; token: string }
+  | { verificationRequired: true; email: string; verificationExpiresInSeconds: number }
+> {
   const identity = await verifyGoogleAuthorizationCode(code, nonce)
-  const user = await findOrCreateGoogleCustomer(identity)
+  const result = await findOrCreateGoogleCustomer(identity)
+  if (!result.user.emailVerified) {
+    const verificationExpiresInSeconds = await ensureGoogleCustomerVerification(result, identity.subject)
+    return {
+      verificationRequired: true,
+      email: result.user.email,
+      verificationExpiresInSeconds,
+    }
+  }
   return {
-    user: toUser(user),
-    token: (await createSession(user, 'customer')).token,
+    user: toUser(result.user),
+    token: (await createSession(result.user, 'customer')).token,
   }
 }
 

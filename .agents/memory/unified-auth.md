@@ -14,3 +14,9 @@ Google OIDC sign-in belongs in the same customer session architecture. A verifie
 **Why:** This preserves one account per verified email without giving the public OAuth flow a path to create or access administrator sessions.
 
 **How to apply:** Validate Google issuer, audience, signature, email verification, nonce, and OAuth state server-side before creating or linking a customer.
+
+New Google customer accounts still pass through the app's email-verification step before any customer session is created. Existing verified customer accounts may link their matching Google identity and sign in immediately; existing unverified customer accounts reuse the one pending verification record instead of creating another.
+
+**Why:** Google validates the provider identity, while the storefront's own verification gate keeps signup behavior consistent and prevents duplicate active verification codes or pre-verification sessions.
+
+**How to apply:** Route pending Google signups to `/verify-email`; only the normal verification endpoint can make the customer eligible for a session.

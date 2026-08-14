@@ -170,6 +170,16 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
 
   try {
     const result = await loginWithGoogle(code, nonceCookie)
+    if ('verificationRequired' in result) {
+      response.clearCookie(authCookie.name, authCookie.options)
+      response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
+      response.redirect(getOAuthFrontendUrl(
+        'verification',
+        result.email,
+        result.verificationExpiresInSeconds,
+      ).toString())
+      return
+    }
     response.clearCookie(authCookie.name, authCookie.options)
     setCustomerCookie(response, result.token)
     response.redirect(getOAuthFrontendUrl('success').toString())
@@ -183,6 +193,10 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
       return
     }
     if (error instanceof HttpError && error.statusCode === 401) {
+      response.redirect(getOAuthFrontendUrl('failed').toString())
+      return
+    }
+    if (error instanceof HttpError) {
       response.redirect(getOAuthFrontendUrl('failed').toString())
       return
     }

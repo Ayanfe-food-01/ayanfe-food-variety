@@ -26,19 +26,26 @@ export function VerifyEmail() {
   const navigate = useNavigate()
   const location = useLocation()
   const locationState = useMemo(() => readLocationState(location.state), [location.state])
-  const [email, setEmail] = useState(typeof locationState.email === 'string' ? locationState.email : '')
+  const verificationQuery = useMemo(() => new URLSearchParams(location.search), [location.search])
+  const queryEmail = verificationQuery.get('email') ?? ''
+  const queryExpiry = Number(verificationQuery.get('verification_expires_in'))
+  const initialEmail = typeof locationState.email === 'string' ? locationState.email : queryEmail
+  const initialExpiry = typeof locationState.verificationExpiresInSeconds === 'number'
+    ? locationState.verificationExpiresInSeconds
+    : Number.isFinite(queryExpiry) && queryExpiry > 0 ? queryExpiry : DEFAULT_EXPIRY_SECONDS
+  const [email, setEmail] = useState(initialEmail)
   const [otp, setOtp] = useState('')
-  const [secondsRemaining, setSecondsRemaining] = useState(
-    typeof locationState.verificationExpiresInSeconds === 'number'
-      ? locationState.verificationExpiresInSeconds
-      : DEFAULT_EXPIRY_SECONDS,
-  )
+  const [secondsRemaining, setSecondsRemaining] = useState(initialExpiry)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(
+    verificationQuery.get('oauth') === 'google'
+      ? 'Your Google account was created. Enter the verification code sent to your email.'
+      : null,
+  )
 
   useEffect(() => {
     if (secondsRemaining <= 0) return

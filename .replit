@@ -61,6 +61,6 @@ externalPort = 8000
 ADMIN_INITIAL_NAME = "Ayanfe-food-variety"
 ADMIN_INITIAL_EMAIL = "ayanfefoodvariety01@gmail.com"
 PUBLIC_APP_URL = "https://food-variety.vercel.app"
-CORS_ORIGINS = "http://localhost:5000,https://51257a69-73e7-4d73-8084-992b659780f1-00-1f5abejog383q.kirk.replit.dev"
+CORS_ORIGINS = "http://localhost:5000,https://2be300bf-6b8c-4991-9d5a-1659de3d1c25-00-cn05itfdvhyq.janeway.replit.dev"
 
 [userenv.development]

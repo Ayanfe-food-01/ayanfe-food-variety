@@ -32,7 +32,7 @@ export function ProductRail({ title, eyebrow, products, isLoading, hasError, onR
           </div>
         ) : products.length ? (
           <div className="product-rail">
-            {products.map((product) => <ProductCard key={product.id} product={product} compact />)}
+            {products.map((product) => <ProductCard key={product.id} product={product} />)}
           </div>
         ) : <div className="section-message">No products are available on this shelf yet.</div>}
       </div>

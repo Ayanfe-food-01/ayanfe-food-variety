@@ -198,22 +198,22 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
       <Navbar />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
-          <div className="container py-14 sm:py-20 lg:py-24">
-            <Breadcrumb className="mb-8" items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
+          <div className="container py-8 sm:py-10 lg:py-12">
+            <Breadcrumb className="mb-4" items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
             <div className="max-w-2xl">
-              <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
+              <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
                 <span className="inline-block size-2 rounded-full bg-orange" />
                 {newArrivalsOnly ? 'Fresh on the shelf' : 'The full collection'}
               </p>
-              <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">
-                {newArrivalsOnly ? 'New Nigerian Foodstuff Arrivals' : selectedCategory?.name ?? 'Buy Nigerian Foodstuff Online'}
+              <h1 className="m-0 text-4xl font-bold leading-none tracking-[-0.05em] text-green-dark sm:text-5xl">
+                {newArrivalsOnly ? 'New arrivals' : selectedCategory?.name ?? 'Shop'}
               </h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted sm:text-lg">
+              <p className="mt-3 max-w-xl text-sm leading-6 text-muted sm:text-base">
                 {newArrivalsOnly
-                  ? 'Explore the latest natural, preservative-free Nigerian foodstuff added to our collection, with reliable delivery across Nigeria.'
+                  ? 'Fresh Nigerian foodstuff, added recently and delivered with care.'
                   : selectedCategory
-                    ? `${selectedCategory.description || `Shop ${selectedCategory.name.toLowerCase()} online.`} Find quality Nigerian foodstuff with convenient delivery.`
-                    : 'Shop quality, natural Nigerian foodstuff, pantry staples and everyday essentials with reliable delivery.'}
+                    ? `${selectedCategory.description || `Quality ${selectedCategory.name.toLowerCase()} for your pantry.`} Delivered with care.`
+                    : 'Quality Nigerian foodstuff for your pantry, delivered with care.'}
               </p>
             </div>
           </div>
@@ -293,7 +293,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
             </div>
           ) : products.length > 0 ? (
             <>
-              <ProductGrid products={products} showDetails />
+              <ProductGrid products={products} />
               {pagination && pagination.totalPages > 1 && (
                 <nav className="mt-12 flex items-center justify-center gap-4" aria-label="Product pages">
                   <button

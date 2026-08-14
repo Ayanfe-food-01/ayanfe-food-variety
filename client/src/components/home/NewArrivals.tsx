@@ -73,7 +73,7 @@ export function NewArrivals() {
               </button>
             </div>
           ) : products.length > 0 ? (
-            <ProductGrid products={products} showDetails />
+            <ProductGrid products={products} />
           ) : (
             <div className="rounded-2xl border border-dashed border-green/25 bg-white/60 px-6 py-10 text-center">
               <p className="m-0 text-sm text-muted">No new products are available right now. Please check back soon.</p>

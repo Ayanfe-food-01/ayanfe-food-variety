@@ -45,11 +45,11 @@ export function Wishlist() {
           <section className="mx-auto max-w-xl rounded-3xl border border-line bg-sage/30 px-6 py-16 text-center sm:px-10">
              <span className="wishlist-empty-icon"><HeartIcon size={36} /></span>
             <h2 className="mt-5 text-2xl font-bold text-green-dark">Nothing saved yet</h2>
-            <p className="mt-3 leading-7 text-muted">Tap the heart on any product you want to keep for later.</p>
+             <p className="mt-3 leading-7 text-muted">Save products from their detail pages and they will appear here for later.</p>
             <Link className="mt-7 inline-flex rounded-xl bg-orange px-6 py-3 font-bold text-white" to="/shop">Browse the shop</Link>
           </section>
         ) : (
-          <ProductGrid products={products} showDetails />
+          <ProductGrid products={products} />
         )}
       </main>
       <Footer />

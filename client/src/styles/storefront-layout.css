@@ -4,16 +4,31 @@
   z-index: 50;
   background: rgba(248, 248, 243, .97);
   border-bottom: 1px solid var(--color-line);
+  transition: box-shadow .2s ease;
+}
+
+.store-header.is-scrolled {
+  box-shadow: 0 8px 24px rgb(20 33 22 / 10%);
 }
 
 .header-utility {
   overflow: hidden;
+  max-height: 30px;
   padding: 7px 0;
   background: var(--color-green-dark);
   color: var(--color-cream);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .04em;
+  opacity: 1;
+  transition: max-height .2s ease, opacity .2s ease, padding .2s ease;
+}
+
+.store-header.is-scrolled .header-utility {
+  max-height: 0;
+  padding-block: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .ticker-viewport {
@@ -59,12 +74,12 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  min-height: 76px;
+  min-height: 64px;
 }
 
 .brand-mark img {
-  width: 68px;
-  height: 58px;
+  width: 62px;
+  height: 52px;
   object-fit: contain;
 }
 
@@ -98,7 +113,7 @@
 .account-link, .cart-link { display: flex; align-items: center; gap: 6px; color: var(--color-green-dark); font-size: 13px; font-weight: 700; }
 .cart-link { position: relative; }
 .cart-link b { display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 99px; background: var(--color-orange); color: white; font-size: 10px; }
-.desktop-nav { position: relative; display: flex; align-items: center; gap: 27px; min-height: 42px; border-top: 0; color: var(--color-muted); font-size: 12px; font-weight: 600; }
+.desktop-nav { position: relative; display: flex; align-items: center; gap: 27px; min-height: 36px; border-top: 0; color: var(--color-muted); font-size: 12px; font-weight: 600; }
 .desktop-nav::before { position: absolute; top: 0; left: 50%; width: 100vw; border-top: 1px solid var(--color-line); content: ''; transform: translateX(-50%); }
 .desktop-nav a:hover, .desktop-nav button:hover { color: var(--color-orange); }
 .wishlist-nav-link { display: inline-flex; align-items: center; gap: 5px; }
@@ -108,10 +123,10 @@
 .mobile-only, .mobile-menu, .menu-backdrop { display: none; }
 
 @media (max-width: 767px) {
-  .header-utility { font-size: 10px; }
-  .store-nav { width: calc(100% - 24px); flex-wrap: wrap; min-height: 0; gap: 10px; padding: 7px 6px 12px; }
+  .header-utility { max-height: 26px; padding: 5px 0; font-size: 10px; }
+  .store-nav { width: calc(100% - 24px); flex-wrap: wrap; min-height: 0; gap: 8px; padding: 5px 6px 9px; }
   .mobile-only { display: grid; flex: 0 0 auto; width: 36px; height: 36px; border: 0; }
-  .brand-mark img { width: 57px; height: 47px; }
+  .brand-mark img { width: 54px; height: 43px; }
   .store-nav > .product-search-autocomplete { order: 3; position: static; flex: 0 0 100%; width: 100%; }
   .search-form button { display: none; }
   .store-actions { margin-left: auto; gap: 11px; }

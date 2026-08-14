@@ -5,6 +5,7 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { ProductPrice } from '../components/products/ProductPrice'
+import { WishlistButton } from '../components/products/WishlistButton'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
 import { useToast } from '../components/ui/Toast'
@@ -296,9 +297,12 @@ export function ProductDetails() {
                 <span className="inline-block size-2 rounded-full bg-orange" />
                 Product details
               </p>
-              <h1 className="m-0 max-w-xl text-4xl font-bold leading-[1.05] tracking-[-0.05em] text-green-dark sm:text-5xl lg:text-6xl">
-                {product.name}
-              </h1>
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="m-0 max-w-xl text-4xl font-bold leading-[1.05] tracking-[-0.05em] text-green-dark sm:text-5xl lg:text-6xl">
+                  {product.name}
+                </h1>
+                <WishlistButton product={product} />
+              </div>
               <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
                 <ProductPrice
                   className="text-2xl font-bold text-green-dark"
@@ -389,7 +393,7 @@ export function ProductDetails() {
               </Link>
             </div>
             {relatedProducts.length > 0 ? (
-              <ProductGrid products={relatedProducts} showDetails />
+              <ProductGrid products={relatedProducts} />
             ) : (
               <div className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-10 text-center">
                 <p className="m-0 text-sm text-muted">

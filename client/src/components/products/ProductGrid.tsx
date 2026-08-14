@@ -3,13 +3,12 @@ import { ProductCard } from './ProductCard'
 
 interface ProductGridProps {
   products: Product[]
-  showDetails?: boolean
 }
 
-export function ProductGrid({ products, showDetails = false }: ProductGridProps) {
+export function ProductGrid({ products }: ProductGridProps) {
   return (
     <div className="product-grid">
-      {products.map((product) => <ProductCard key={product.id} product={product} showDetails={showDetails} />)}
+      {products.map((product) => <ProductCard key={product.id} product={product} />)}
     </div>
   )
 }

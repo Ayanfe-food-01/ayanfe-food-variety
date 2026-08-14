@@ -17,6 +17,7 @@ const links = [
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const navigate = useNavigate()
@@ -34,6 +35,13 @@ export function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [isMenuOpen])
 
+  useEffect(() => {
+    const updateScrollState = () => setIsScrolled(window.scrollY > 8)
+    updateScrollState()
+    window.addEventListener('scroll', updateScrollState, { passive: true })
+    return () => window.removeEventListener('scroll', updateScrollState)
+  }, [])
+
   const submitSearch = (event: FormEvent) => {
     event.preventDefault()
     const value = search.trim()
@@ -42,7 +50,7 @@ export function Navbar() {
   }
 
   return (
-    <header className="store-header">
+    <header className={`store-header ${isScrolled ? 'is-scrolled' : ''}`}>
       <div className="header-utility" aria-label="Store announcements">
         {announcementMessages.length > 0 && (
           <div className="ticker-viewport">

@@ -1,4 +1,5 @@
-import { Prisma, ProductDiscountType } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import type { ProductDiscountType } from '@prisma/client'
 
 export function calculateDiscountedPrice(
   price: Prisma.Decimal,
@@ -10,7 +11,7 @@ export function calculateDiscountedPrice(
     throw new Error('Product discount data is invalid.')
   }
 
-  if (discountType === ProductDiscountType.PERCENTAGE) {
+  if (discountType === 'PERCENTAGE') {
     if (discountValue.gt(100)) throw new Error('Product percentage discount is invalid.')
     return price
       .sub(price.mul(discountValue).div(100))

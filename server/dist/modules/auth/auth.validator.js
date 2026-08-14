@@ -78,3 +78,21 @@ export function validatePasswordResetInput(body) {
         confirmPassword: body.confirmPassword,
     };
 }
+export function validateAdminPasswordChangeInput(body) {
+    if (!isRecord(body))
+        throw new HttpError(400, 'Current password and new password are required.');
+    if (typeof body.currentPassword !== 'string' || body.currentPassword.length < 6 || body.currentPassword.length > 256) {
+        throw new HttpError(400, 'Enter your current password.');
+    }
+    if (typeof body.newPassword !== 'string' || body.newPassword.length < 6 || body.newPassword.length > 256) {
+        throw new HttpError(400, 'New password must be at least 6 characters.');
+    }
+    if (typeof body.confirmPassword !== 'string' || body.confirmPassword !== body.newPassword) {
+        throw new HttpError(400, 'New passwords do not match.');
+    }
+    return {
+        currentPassword: body.currentPassword,
+        newPassword: body.newPassword,
+        confirmPassword: body.confirmPassword,
+    };
+}

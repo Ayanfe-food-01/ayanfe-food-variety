@@ -1,5 +1,5 @@
-import { authCookie, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, revokeCustomerSession, revokeSession, signupCustomer, isGoogleOAuthConfigured, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, } from './auth.service.js';
-import { validateCustomerEmailVerificationInput, validateCustomerSignupInput, validateCustomerVerificationEmailInput, validateLoginInput, validatePasswordResetInput, validatePasswordResetRequestInput, } from './auth.validator.js';
+import { authCookie, changeAdminPassword, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, revokeCustomerSession, revokeSession, signupCustomer, isGoogleOAuthConfigured, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, } from './auth.service.js';
+import { validateCustomerEmailVerificationInput, validateCustomerSignupInput, validateCustomerVerificationEmailInput, validateAdminPasswordChangeInput, validateLoginInput, validatePasswordResetInput, validatePasswordResetRequestInput, } from './auth.validator.js';
 export const loginController = async (request, response) => {
     const result = await login(validateLoginInput(request.body));
     const cookie = result.sessionType === 'admin' ? authCookie : customerAuthCookie;
@@ -98,5 +98,12 @@ export const passwordResetController = async (request, response) => {
     response.json({
         success: true,
         data: { message: 'Your password has been reset. You can now sign in.' },
+    });
+};
+export const changeAdminPasswordController = async (request, response) => {
+    await changeAdminPassword(request.authenticatedUser.id, getSessionToken(request.headers.cookie), validateAdminPasswordChangeInput(request.body));
+    response.json({
+        success: true,
+        data: { message: 'Admin password changed successfully.' },
     });
 };

@@ -5,6 +5,7 @@ import { getAdminContactInformationController, getAdminPaymentSettingsController
 import { createAdminProductController, deleteAdminProductController, getAdminProductController, listAdminProductsController, productImageUpload, updateAdminProductController, updateAdminProductStatusController, } from '../modules/products/admin-product.controller.js';
 import { createAdminCategoryController, deleteAdminCategoryController, getAdminCategoryController, listAdminCategoriesController, updateAdminCategoryController, updateAdminCategoryStatusController, categoryImageUpload, } from '../modules/categories/category.controller.js';
 import { bannerImageUpload, createAdminBannerController, deleteAdminBannerController, getAdminBannerController, listAdminBannersController, updateAdminBannerController, updateAdminBannerStatusController, } from '../modules/banners/banner.controller.js';
+import { changeAdminPasswordController } from '../modules/auth/auth.controller.js';
 export const adminRoutes = Router();
 adminRoutes.use(...requireAdminAccess);
 adminRoutes.get('/categories', listAdminCategoriesController);
@@ -39,3 +40,4 @@ adminRoutes.get('/settings/contact', getAdminContactInformationController);
 adminRoutes.put('/settings/contact', updateAdminContactInformationController);
 adminRoutes.get('/settings/payment', getAdminPaymentSettingsController);
 adminRoutes.put('/settings/payment', updateAdminPaymentSettingsController);
+adminRoutes.post('/settings/password', changeAdminPasswordController);

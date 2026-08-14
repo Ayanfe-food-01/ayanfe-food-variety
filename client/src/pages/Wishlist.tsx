@@ -36,14 +36,14 @@ export function Wishlist() {
           <div className="rounded-3xl border border-line bg-sage/30 px-6 py-16 text-center text-muted" role="status">Loading your wishlist…</div>
         ) : !user ? (
           <section className="mx-auto max-w-xl rounded-3xl border border-line bg-sage/30 px-6 py-16 text-center sm:px-10">
-            <HeartIcon size={36} />
+             <span className="wishlist-empty-icon"><HeartIcon size={36} /></span>
             <h2 className="mt-5 text-2xl font-bold text-green-dark">Sign in to save favourites</h2>
             <p className="mt-3 leading-7 text-muted">Your wishlist is saved to your account, so it stays with you on every device.</p>
             <button className="mt-7 rounded-xl bg-orange px-6 py-3 font-bold text-white" type="button" onClick={() => openAuth()}>Sign in to continue</button>
           </section>
         ) : products.length === 0 ? (
           <section className="mx-auto max-w-xl rounded-3xl border border-line bg-sage/30 px-6 py-16 text-center sm:px-10">
-            <HeartIcon size={36} />
+             <span className="wishlist-empty-icon"><HeartIcon size={36} /></span>
             <h2 className="mt-5 text-2xl font-bold text-green-dark">Nothing saved yet</h2>
             <p className="mt-3 leading-7 text-muted">Tap the heart on any product you want to keep for later.</p>
             <Link className="mt-7 inline-flex rounded-xl bg-orange px-6 py-3 font-bold text-white" to="/shop">Browse the shop</Link>

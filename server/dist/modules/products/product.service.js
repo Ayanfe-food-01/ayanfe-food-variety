@@ -4,7 +4,7 @@ import { HttpError } from '../../utils/http.js';
 import { recordStockAdjustment } from '../inventory/inventory.service.js';
 import { calculateDiscountedPrice } from './product.pricing.js';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const toProduct = (product) => ({
+const toProduct = (product, isWishlisted = false) => ({
     id: product.id,
     categoryId: product.categoryId,
     categoryName: product.category.name,
@@ -27,11 +27,12 @@ const toProduct = (product) => ({
             ? 'LOW_STOCK'
             : 'IN_STOCK',
     isAvailable: product.isActive && product.stockQuantity > 0,
+    isWishlisted,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
 });
-const toPublicProduct = (product) => {
-    return toProduct(product);
+export const toPublicProduct = (product, isWishlisted = false) => {
+    return toProduct(product, isWishlisted);
 };
 const toPopularProduct = (product) => ({
     id: product.id,
@@ -56,10 +57,11 @@ const toPopularProduct = (product) => ({
             ? 'LOW_STOCK'
             : 'IN_STOCK',
     isAvailable: product.isActive && product.stockQuantity > 0,
+    isWishlisted: false,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
 });
-export async function getProducts(query) {
+export async function getProducts(query, wishlistUserId) {
     const where = {
         isActive: true,
         category: { isActive: true },
@@ -95,8 +97,14 @@ export async function getProducts(query) {
             take: query.limit,
         }),
     ]);
+    const wishlistProductIds = wishlistUserId
+        ? new Set((await prisma.wishlistItem.findMany({
+            where: { userId: wishlistUserId, productId: { in: products.map((product) => product.id) } },
+            select: { productId: true },
+        })).map((item) => item.productId))
+        : new Set();
     return {
-        products: products.map(toPublicProduct),
+        products: products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
         pagination: {
             page: query.page,
             limit: query.limit,
@@ -105,7 +113,7 @@ export async function getProducts(query) {
         },
     };
 }
-export async function getPopularProducts(query) {
+export async function getPopularProducts(query, wishlistUserId) {
     const products = await prisma.$queryRaw(Prisma.sql `
     SELECT
       p.id,
@@ -157,8 +165,14 @@ export async function getPopularProducts(query) {
     LIMIT ${query.limit}
     OFFSET ${(query.page - 1) * query.limit}
   `);
+    const wishlistProductIds = wishlistUserId
+        ? new Set((await prisma.wishlistItem.findMany({
+            where: { userId: wishlistUserId, productId: { in: products.map((product) => product.id) } },
+            select: { productId: true },
+        })).map((item) => item.productId))
+        : new Set();
     return {
-        products: products.map(toPopularProduct),
+        products: products.map((product) => ({ ...toPopularProduct(product), isWishlisted: wishlistProductIds.has(product.id) })),
         pagination: {
             page: query.page,
             limit: query.limit,
@@ -167,10 +181,10 @@ export async function getPopularProducts(query) {
         },
     };
 }
-export async function getNewArrivals(query) {
-    return getProducts({ ...query, sort: 'newest' });
+export async function getNewArrivals(query, wishlistUserId) {
+    return getProducts({ ...query, sort: 'newest' }, wishlistUserId);
 }
-export async function getProductById(identifier) {
+export async function getProductById(identifier, wishlistUserId) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
     const product = await prisma.product.findFirst({
         where: isUuid
@@ -180,7 +194,13 @@ export async function getProductById(identifier) {
     });
     if (!product)
         return null;
-    return toPublicProduct(product);
+    const isWishlisted = wishlistUserId
+        ? Boolean(await prisma.wishlistItem.findUnique({
+            where: { userId_productId: { userId: wishlistUserId, productId: product.id } },
+            select: { id: true },
+        }))
+        : false;
+    return toPublicProduct(product, isWishlisted);
 }
 const productInclude = { category: true };
 const slugify = (value) => {

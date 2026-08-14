@@ -1,4 +1,6 @@
-import { authCookie, changeAdminPassword, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, revokeCustomerSession, revokeSession, signupCustomer, isGoogleOAuthConfigured, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, } from './auth.service.js';
+import { authCookie, changeAdminPassword, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, loginWithGoogle, revokeCustomerSession, revokeSession, signupCustomer, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, } from './auth.service.js';
+import { createGoogleOAuthState, getGoogleAuthorizationUrl, getOAuthFrontendUrl, googleOAuthStateCookie, isGoogleOAuthConfigured, } from './auth.google.js';
+import { HttpError } from '../../utils/http.js';
 import { validateCustomerEmailVerificationInput, validateCustomerSignupInput, validateCustomerVerificationEmailInput, validateAdminPasswordChangeInput, validateLoginInput, validatePasswordResetInput, validatePasswordResetRequestInput, } from './auth.validator.js';
 export const loginController = async (request, response) => {
     const result = await login(validateLoginInput(request.body));
@@ -67,10 +69,80 @@ export const customerProvidersController = (_request, response) => {
         data: {
             google: isGoogleOAuthConfigured,
             message: isGoogleOAuthConfigured
-                ? 'Google OAuth credentials are configured; an OAuth callback must be enabled before use.'
+                ? 'Google OAuth is ready for customer sign-in.'
                 : 'Google sign-in is unavailable. Configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI to enable it.',
         },
     });
+};
+export const customerGoogleStartController = (_request, response, next) => {
+    try {
+        if (!isGoogleOAuthConfigured) {
+            response.redirect(getOAuthFrontendUrl('unavailable').toString());
+            return;
+        }
+        const { state, nonce } = createGoogleOAuthState();
+        response.cookie(googleOAuthStateCookie.name, state, {
+            ...googleOAuthStateCookie.options,
+            maxAge: googleOAuthStateCookie.maxAge,
+        });
+        response.cookie(`${googleOAuthStateCookie.name}_nonce`, nonce, {
+            ...googleOAuthStateCookie.options,
+            maxAge: googleOAuthStateCookie.maxAge,
+        });
+        response.redirect(getGoogleAuthorizationUrl(state, nonce));
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const customerGoogleCallbackController = async (request, response, next) => {
+    const stateCookie = request.headers.cookie?.split(';')
+        .map((part) => part.trim().split('='))
+        .find(([key]) => key === googleOAuthStateCookie.name)?.[1];
+    const nonceCookie = request.headers.cookie?.split(';')
+        .map((part) => part.trim().split('='))
+        .find(([key]) => key === `${googleOAuthStateCookie.name}_nonce`)?.[1];
+    const state = typeof request.query.state === 'string' ? request.query.state : null;
+    const clearStateCookie = () => {
+        response.clearCookie(googleOAuthStateCookie.name, googleOAuthStateCookie.options);
+        response.clearCookie(`${googleOAuthStateCookie.name}_nonce`, googleOAuthStateCookie.options);
+    };
+    if (!stateCookie || !nonceCookie || !state || stateCookie !== state) {
+        clearStateCookie();
+        response.redirect(getOAuthFrontendUrl('failed').toString());
+        return;
+    }
+    clearStateCookie();
+    if (request.query.error === 'access_denied') {
+        response.redirect(getOAuthFrontendUrl('cancelled').toString());
+        return;
+    }
+    const code = typeof request.query.code === 'string' ? request.query.code : null;
+    if (!code) {
+        response.redirect(getOAuthFrontendUrl('failed').toString());
+        return;
+    }
+    try {
+        const result = await loginWithGoogle(code, nonceCookie);
+        response.clearCookie(authCookie.name, authCookie.options);
+        setCustomerCookie(response, result.token);
+        response.redirect(getOAuthFrontendUrl('success').toString());
+    }
+    catch (error) {
+        if (error instanceof HttpError && [403, 409].includes(error.statusCode)) {
+            response.redirect(getOAuthFrontendUrl('failed').toString());
+            return;
+        }
+        if (error instanceof HttpError && error.statusCode === 503) {
+            response.redirect(getOAuthFrontendUrl('unavailable').toString());
+            return;
+        }
+        if (error instanceof HttpError && error.statusCode === 401) {
+            response.redirect(getOAuthFrontendUrl('failed').toString());
+            return;
+        }
+        next(error);
+    }
 };
 export const customerVerifyEmailController = async (request, response) => {
     const result = await verifyCustomerEmail(validateCustomerEmailVerificationInput(request.body));

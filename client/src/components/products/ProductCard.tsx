@@ -36,10 +36,13 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
 
   return (
     <article className={cardClass}>
-      <Link className="product-image-wrap" to={`/product/${product.slug ?? product.id}`} aria-label={`View ${product.name}`}>
-        {product.image && !imageError ? <img src={product.image} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
-        {product.availabilityStatus === 'LOW_STOCK' && <span className="product-badge">Low stock</span>}
-      </Link>
+      <div className="product-image-wrap">
+        <Link className="product-image-link" to={`/product/${product.slug ?? product.id}`} aria-label={`View ${product.name}`}>
+          {product.image && !imageError ? <img src={product.image} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
+          {product.availabilityStatus === 'LOW_STOCK' && <span className="product-badge">Low stock</span>}
+        </Link>
+        <WishlistButton product={product} />
+      </div>
       <div className="product-card-body">
         <p className="product-category">{product.category}</p>
         <Link className="product-name" to={`/product/${product.slug ?? product.id}`}>{product.name}</Link>
@@ -55,7 +58,6 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
         {!compact && <div className="product-actions">
            {product.isAvailable ? <Button className="product-add-button" size="sm" fullWidth={!showDetails} variant="primary" onClick={handleAddToCart} disabled={isAdding}><CartIcon size={15} /> {isAdding ? 'Adding…' : 'Add to cart'}</Button> : <p className="out-of-stock">{product.isActive ? 'Out of stock' : 'Unavailable'}</p>}
            <div className="product-card-action-tools">
-             <WishlistButton product={product} />
              {showDetails && <Link className="details-button" to={`/product/${product.slug ?? product.id}`} aria-label={`View details for ${product.name}`}><EyeIcon size={17} /></Link>}
            </div>
         </div>}

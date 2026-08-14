@@ -111,7 +111,7 @@ export function Navbar() {
         />
         <div className="mobile-links">
           {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
-          <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}><HeartIcon size={16} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+           <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
         </div>
         {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <Link className="logout-link" to="/login" onClick={() => setIsMenuOpen(false)}>Sign in</Link>}
       </aside>

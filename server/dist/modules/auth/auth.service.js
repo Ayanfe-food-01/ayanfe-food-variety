@@ -5,6 +5,7 @@ import { env } from '../../config/env.js';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { assertVerificationEmailConfigured, sendPasswordResetEmail, sendCustomerVerificationEmail, VerificationEmailError, } from './auth.email.js';
+import { verifyGoogleAuthorizationCode, } from './auth.google.js';
 const scrypt = promisify(nodeScrypt);
 const SESSION_COOKIE_NAME = 'ayanfe_admin_session';
 const CUSTOMER_SESSION_COOKIE_NAME = 'ayanfe_customer_session';
@@ -479,7 +480,69 @@ export async function revokeCustomerSession(token) {
         data: { revokedAt: new Date() },
     });
 }
-export const isGoogleOAuthConfigured = Boolean(env.googleOAuth.clientId && env.googleOAuth.clientSecret && env.googleOAuth.redirectUri);
+async function findOrCreateGoogleCustomer(identity) {
+    try {
+        return await prisma.$transaction(async (transaction) => {
+            const userBySubject = await transaction.user.findUnique({
+                where: { googleSubject: identity.subject },
+            });
+            if (userBySubject) {
+                if (userBySubject.role !== UserRole.CUSTOMER || userBySubject.email !== identity.email) {
+                    throw new HttpError(409, 'This Google account cannot be used for this customer account.');
+                }
+                return userBySubject;
+            }
+            const userByEmail = await transaction.user.findUnique({
+                where: { email: identity.email },
+            });
+            if (userByEmail) {
+                if (userByEmail.role !== UserRole.CUSTOMER) {
+                    throw new HttpError(403, 'Google sign-in is available for customer accounts only.');
+                }
+                if (userByEmail.googleSubject && userByEmail.googleSubject !== identity.subject) {
+                    throw new HttpError(409, 'This email is already linked to another Google account.');
+                }
+                return transaction.user.update({
+                    where: { id: userByEmail.id },
+                    data: {
+                        authProvider: 'GOOGLE',
+                        googleSubject: identity.subject,
+                        emailVerified: true,
+                        name: userByEmail.name || identity.name,
+                    },
+                });
+            }
+            return transaction.user.create({
+                data: {
+                    name: identity.name,
+                    email: identity.email,
+                    passwordHash: null,
+                    role: UserRole.CUSTOMER,
+                    authProvider: 'GOOGLE',
+                    googleSubject: identity.subject,
+                    emailVerified: true,
+                },
+            });
+        });
+    }
+    catch (error) {
+        if (error instanceof HttpError)
+            throw error;
+        console.error(JSON.stringify({
+            event: 'google_customer_account_upsert_failed',
+            errorName: error instanceof Error ? error.name : 'UnknownError',
+        }));
+        throw new HttpError(409, 'This Google account could not be linked safely.');
+    }
+}
+export async function loginWithGoogle(code, nonce) {
+    const identity = await verifyGoogleAuthorizationCode(code, nonce);
+    const user = await findOrCreateGoogleCustomer(identity);
+    return {
+        user: toUser(user),
+        token: (await createSession(user, 'customer')).token,
+    };
+}
 export async function createInitialAdmin(input) {
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (!existing) {

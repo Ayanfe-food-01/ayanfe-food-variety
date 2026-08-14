@@ -68,3 +68,9 @@
     @apply mx-auto;
   }
 }
+
+@media (max-width: 767px) {
+  .container {
+    width: calc(100% - 32px);
+  }
+}

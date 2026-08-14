@@ -41,6 +41,7 @@
   display: flex;
   width: max-content;
   animation: announcement-ticker 28s linear infinite;
+  -webkit-animation: announcement-ticker 28s linear infinite;
   will-change: transform;
 }
 
@@ -62,12 +63,13 @@
 }
 
 @keyframes announcement-ticker {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ticker-track { animation-play-state: paused; }
+@-webkit-keyframes announcement-ticker {
+  from { -webkit-transform: translate3d(0, 0, 0); }
+  to { -webkit-transform: translate3d(-50%, 0, 0); }
 }
 
 .store-nav {
@@ -124,7 +126,7 @@
 
 @media (max-width: 767px) {
   .header-utility { max-height: 26px; padding: 5px 0; font-size: 10px; }
-  .store-nav { width: calc(100% - 24px); flex-wrap: wrap; min-height: 0; gap: 8px; padding: 5px 6px 9px; }
+  .store-nav { flex-wrap: wrap; min-height: 0; gap: 8px; padding: 5px 0 9px; }
   .mobile-only { display: grid; flex: 0 0 auto; width: 36px; height: 36px; border: 0; }
   .brand-mark img { width: 54px; height: 43px; }
   .store-nav > .product-search-autocomplete { order: 3; position: static; flex: 0 0 100%; width: 100%; }

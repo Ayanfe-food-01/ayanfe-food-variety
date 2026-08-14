@@ -425,12 +425,19 @@ export async function deleteProduct(id: string): Promise<{ name: string; image: 
       const product = lockedProducts[0]
       if (!product) throw new HttpError(404, 'Product not found.')
 
-      const [orderItemCount, stockAdjustmentCount] = await Promise.all([
+      const [orderItemCount, cartItemCount, stockAdjustmentCount] = await Promise.all([
         transaction.orderItem.count({ where: { productId: id } }),
+        transaction.customerCartItem.count({ where: { productId: id } }),
         transaction.productStockAdjustment.count({ where: { productId: id } }),
       ])
 
       if (orderItemCount > 0) {
+        console.warn(JSON.stringify({
+          event: 'product_delete_blocked',
+          reason: 'historical_order_items',
+          productId: id,
+          dependencyCount: orderItemCount,
+        }))
         throw new HttpError(
           409,
           'This product has historical order records and must be deactivated or archived instead.',
@@ -438,6 +445,12 @@ export async function deleteProduct(id: string): Promise<{ name: string; image: 
       }
 
       if (stockAdjustmentCount > 0) {
+        console.warn(JSON.stringify({
+          event: 'product_delete_blocked',
+          reason: 'inventory_history',
+          productId: id,
+          dependencyCount: stockAdjustmentCount,
+        }))
         throw new HttpError(
           409,
           'This product has inventory history and must be deactivated or archived instead.',
@@ -446,8 +459,15 @@ export async function deleteProduct(id: string): Promise<{ name: string; image: 
 
       // Cart items are disposable and are safe to remove only after the
       // protected historical relationships above have been checked.
-      await transaction.customerCartItem.deleteMany({ where: { productId: id } })
+      if (cartItemCount > 0) {
+        await transaction.customerCartItem.deleteMany({ where: { productId: id } })
+      }
       await transaction.product.delete({ where: { id } })
+      console.info(JSON.stringify({
+        event: 'product_deleted',
+        productId: id,
+        removedCartItemCount: cartItemCount,
+      }))
       return { name: product.name, image: product.image }
     })
   } catch (error: unknown) {

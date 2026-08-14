@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { MoreHorizontalIcon } from '../../assets/icons'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ApiError } from '../../services/api'
@@ -19,6 +20,96 @@ const pageSize = 10
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(value))
+
+interface ProductActionsProps {
+  product: AdminProductsPage['products'][number]
+  isBusy: boolean
+  onToggleStatus: () => void
+  onDelete: () => void
+}
+
+function ProductActions({ product, isBusy, onToggleStatus, onDelete }: ProductActionsProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isOpen])
+
+  const runAction = (action: () => void) => {
+    setIsOpen(false)
+    action()
+  }
+
+  return (
+    <div className="relative inline-block" ref={menuRef}>
+      <button
+        className="grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50"
+        type="button"
+        aria-label={`Actions for ${product.name}`}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        disabled={isBusy}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <MoreHorizontalIcon size={20} />
+      </button>
+      {isOpen && (
+        <div
+          className="absolute right-0 top-11 z-30 min-w-44 overflow-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10"
+          role="menu"
+        >
+          <Link
+            className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
+            role="menuitem"
+            to={`/admin/products/${product.id}`}
+            onClick={() => setIsOpen(false)}
+          >
+            View
+          </Link>
+          <Link
+            className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
+            role="menuitem"
+            to={`/admin/products/${product.id}/edit`}
+            onClick={() => setIsOpen(false)}
+          >
+            Edit
+          </Link>
+          <button
+            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-orange transition-colors hover:bg-orange/10"
+            type="button"
+            role="menuitem"
+            onClick={() => runAction(onToggleStatus)}
+          >
+            {product.isActive ? 'Deactivate' : 'Activate'}
+          </button>
+          <button
+            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted transition-colors hover:bg-orange/10 hover:text-orange"
+            type="button"
+            role="menuitem"
+            onClick={() => runAction(onDelete)}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -232,11 +323,13 @@ export function Products() {
                        <dd className="mt-1 text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</dd>
                      </div>
                    </dl>
-                   <div className="mt-4 flex flex-wrap gap-3 border-t border-line pt-3 text-xs font-bold">
-                     <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}`}>View</Link>
-                     <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}/edit`}>Edit</Link>
-                      <button className="text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => void toggleStatus(product.id, product.isActive)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
-                      <button className="text-muted hover:text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => openDeleteConfirmation(product)}>Delete</button>
+                    <div className="mt-4 flex justify-end border-t border-line pt-3">
+                      <ProductActions
+                        product={product}
+                        isBusy={updatingId === product.id || deletingId === product.id}
+                        onToggleStatus={() => void toggleStatus(product.id, product.isActive)}
+                        onDelete={() => openDeleteConfirmation(product)}
+                      />
                    </div>
                  </article>
                ))}
@@ -274,14 +367,14 @@ export function Products() {
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-xs text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap gap-2 text-xs font-bold">
-                          <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}`}>View</Link>
-                          <Link className="text-green hover:text-orange" to={`/admin/products/${product.id}/edit`}>Edit</Link>
-                          <button className="text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => void toggleStatus(product.id, product.isActive)}>{product.isActive ? 'Deactivate' : 'Activate'}</button>
-                          <button className="text-muted hover:text-orange disabled:opacity-50" type="button" disabled={updatingId === product.id || deletingId === product.id} onClick={() => openDeleteConfirmation(product)}>Delete</button>
-                        </div>
-                      </td>
+                       <td className="px-4 py-4 text-right">
+                         <ProductActions
+                           product={product}
+                           isBusy={updatingId === product.id || deletingId === product.id}
+                           onToggleStatus={() => void toggleStatus(product.id, product.isActive)}
+                           onDelete={() => openDeleteConfirmation(product)}
+                         />
+                       </td>
                     </tr>
                   ))}
                 </tbody>

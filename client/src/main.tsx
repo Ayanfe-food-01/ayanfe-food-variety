@@ -5,17 +5,20 @@ import './styles/globals.css'
 import App from './App.tsx'
 import { CartProvider } from './context/CartContext'
 import { CustomerAuthProvider } from './context/CustomerAuthContext'
+import { WishlistProvider } from './context/WishlistContext'
 import { ToastProvider } from './components/ui/Toast'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <CustomerAuthProvider>
-        <ToastProvider>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </ToastProvider>
+        <WishlistProvider>
+          <ToastProvider>
+            <CartProvider>
+              <App />
+            </CartProvider>
+          </ToastProvider>
+        </WishlistProvider>
       </CustomerAuthProvider>
     </BrowserRouter>
   </StrictMode>,

@@ -19,6 +19,7 @@ export interface Product {
   stockQuantity: number
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
+  isWishlisted: boolean
   createdAt: string
   updatedAt: string
 }

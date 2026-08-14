@@ -18,6 +18,7 @@ export interface Product {
   stockQuantity: number
   isActive: boolean
   isAvailable: boolean
+  isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   createdAt?: string
   updatedAt?: string

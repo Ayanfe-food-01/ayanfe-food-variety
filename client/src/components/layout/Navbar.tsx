@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { CartIcon, CloseIcon, MenuIcon, UserIcon } from '../../assets/icons'
+import { CartIcon, CloseIcon, HeartIcon, MenuIcon, UserIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete'
+import { useWishlist } from '../../hooks/useWishlist'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -21,6 +22,7 @@ export function Navbar() {
   const navigate = useNavigate()
   const { totalQuantity } = useCart()
   const { user, logout } = useCustomerAuth()
+  const { count: wishlistCount } = useWishlist()
   const { settings } = useStoreSettings()
   const announcementMessages = (settings?.announcementText ?? '')
     .split(/\r?\n|\|/)
@@ -86,6 +88,7 @@ export function Navbar() {
       </nav>
       <div className="desktop-nav container">
         {links.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
+        <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
         {user && <button type="button" onClick={() => void logout()}>Log out</button>}
       </div>
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} />
@@ -106,7 +109,10 @@ export function Navbar() {
           placeholder="Search the store"
           ariaLabel="Search the store"
         />
-        <div className="mobile-links">{links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}</div>
+        <div className="mobile-links">
+          {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
+          <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}><HeartIcon size={16} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+        </div>
         {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <Link className="logout-link" to="/login" onClick={() => setIsMenuOpen(false)}>Sign in</Link>}
       </aside>
     </header>

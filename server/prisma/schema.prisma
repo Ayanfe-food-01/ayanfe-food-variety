@@ -96,6 +96,7 @@ model Product {
   orderItems  OrderItem[]
   cartItems   CustomerCartItem[]
   stockAdjustments ProductStockAdjustment[]
+  wishlistItems WishlistItem[]
 
   @@index([categoryId], map: "products_category_id_idx")
   @@index([isActive], map: "products_active_idx")
@@ -278,6 +279,7 @@ model User {
   orderStatusChanges OrderStatusHistory[]
   cart         CustomerCart?
   paymentAuditEvents PaymentAuditEvent[] @relation("PaymentAuditActor")
+  wishlistItems WishlistItem[]
 
   @@map("users")
 }
@@ -365,6 +367,20 @@ model CustomerCartItem {
   @@unique([cartId, productId], map: "customer_cart_items_cart_product_key")
   @@index([productId], map: "customer_cart_items_product_id_idx")
   @@map("customer_cart_items")
+}
+
+model WishlistItem {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, productId], map: "wishlist_items_user_product_key")
+  @@index([userId, createdAt], map: "wishlist_items_user_created_idx")
+  @@index([productId], map: "wishlist_items_product_id_idx")
+  @@map("wishlist_items")
 }
 
 model OrderItem {

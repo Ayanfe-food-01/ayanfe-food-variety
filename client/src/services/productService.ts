@@ -19,6 +19,7 @@ interface ProductApiResponse {
   stockQuantity: number
   isActive: boolean
   isAvailable: boolean
+  isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   createdAt: string
   updatedAt: string
@@ -94,6 +95,7 @@ const toProduct = (product: ProductApiResponse): Product => {
     availabilityStatus: product.availabilityStatus,
     isActive: product.isActive,
     isAvailable: product.isAvailable,
+    isWishlisted: product.isWishlisted,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   }

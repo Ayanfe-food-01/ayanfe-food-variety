@@ -17,6 +17,7 @@ export const products: Product[] = [
     stockQuantity: 50,
     isActive: true,
     isAvailable: true,
+  isWishlisted: false,
     availabilityStatus: 'IN_STOCK',
   },
   {
@@ -35,6 +36,7 @@ export const products: Product[] = [
     stockQuantity: 40,
     isActive: true,
     isAvailable: true,
+  isWishlisted: false,
     availabilityStatus: 'IN_STOCK',
   },
   {
@@ -53,6 +55,7 @@ export const products: Product[] = [
     stockQuantity: 30,
     isActive: true,
     isAvailable: true,
+  isWishlisted: false,
     availabilityStatus: 'IN_STOCK',
   },
   {
@@ -71,6 +74,7 @@ export const products: Product[] = [
     stockQuantity: 25,
     isActive: true,
     isAvailable: true,
+  isWishlisted: false,
     availabilityStatus: 'IN_STOCK',
   },
 ]

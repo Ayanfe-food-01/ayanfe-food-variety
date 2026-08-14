@@ -7,6 +7,7 @@ import { useToast } from '../ui/Toast'
 import { Button } from '../ui/Button'
 import { ProductPrice } from './ProductPrice'
 import type { Product } from '../../types/product'
+import { WishlistButton } from './WishlistButton'
 
 interface ProductCardProps {
   product: Product
@@ -52,8 +53,11 @@ export function ProductCard({ product, showDetails = false, compact = false }: P
           />
         </strong>
         {!compact && <div className="product-actions">
-          {product.isAvailable ? <Button className="product-add-button" size="sm" fullWidth={!showDetails} variant="primary" onClick={handleAddToCart} disabled={isAdding}><CartIcon size={15} /> {isAdding ? 'Adding…' : 'Add to cart'}</Button> : <p className="out-of-stock">Out of stock</p>}
-          {showDetails && <Link className="details-button" to={`/product/${product.slug ?? product.id}`} aria-label={`View details for ${product.name}`}><EyeIcon size={17} /></Link>}
+           {product.isAvailable ? <Button className="product-add-button" size="sm" fullWidth={!showDetails} variant="primary" onClick={handleAddToCart} disabled={isAdding}><CartIcon size={15} /> {isAdding ? 'Adding…' : 'Add to cart'}</Button> : <p className="out-of-stock">{product.isActive ? 'Out of stock' : 'Unavailable'}</p>}
+           <div className="product-card-action-tools">
+             <WishlistButton product={product} />
+             {showDetails && <Link className="details-button" to={`/product/${product.slug ?? product.id}`} aria-label={`View details for ${product.name}`}><EyeIcon size={17} /></Link>}
+           </div>
         </div>}
       </div>
     </article>

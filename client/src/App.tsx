@@ -5,6 +5,7 @@ import { About } from './pages/About'
 import { Shop } from './pages/Shop'
 import { ProductDetails } from './pages/ProductDetails'
 import { Cart } from './pages/Cart'
+import { Wishlist } from './pages/Wishlist'
 import { Checkout } from './pages/Checkout'
 import { OrderConfirmation } from './pages/OrderConfirmation'
 import { CustomerOrders } from './pages/CustomerOrders'
@@ -117,6 +118,7 @@ function RouteTransition() {
           <Route path="/new-arrivals" element={<Shop newArrivalsOnly />} />
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
           <Route path="/orders" element={<CustomerOrders />} />
@@ -156,6 +158,7 @@ function PrivateRouteSeo() {
     || pathname === '/reset-password'
     || pathname === '/verify-email'
     || pathname === '/cart'
+    || pathname === '/wishlist'
     || pathname === '/checkout'
     || pathname.startsWith('/admin')
     || pathname.startsWith('/orders')
@@ -175,6 +178,8 @@ function PrivateRouteSeo() {
       ? 'Admin area | Ayanfe Food Variety'
       : pathname === '/cart'
         ? 'Your cart | Ayanfe Food Variety'
+          : pathname === '/wishlist'
+            ? 'Wishlist | Ayanfe Food Variety'
         : pathname === '/checkout'
           ? 'Checkout | Ayanfe Food Variety'
           : 'Your orders | Ayanfe Food Variety'

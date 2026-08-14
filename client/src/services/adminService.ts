@@ -431,6 +431,7 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   isActive: product.isActive,
   availabilityStatus: product.availabilityStatus,
   isAvailable: product.isAvailable,
+    isWishlisted: false,
   createdAt: product.createdAt,
   updatedAt: product.updatedAt,
 })

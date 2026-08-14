@@ -18,8 +18,8 @@ export function validateLoginInput(body: unknown): LoginInput {
   if (typeof body.email !== 'string' || !body.email.trim() || !EMAIL_PATTERN.test(body.email.trim())) {
     throw new HttpError(400, 'Enter a valid email address.')
   }
-  if (typeof body.password !== 'string' || body.password.length === 0 || body.password.length > 256) {
-    throw new HttpError(400, 'Password is required.')
+  if (typeof body.password !== 'string' || body.password.length < 6 || body.password.length > 256) {
+    throw new HttpError(400, 'Password must be at least 6 characters.')
   }
   return { email: body.email.trim().toLowerCase(), password: body.password }
 }
@@ -32,8 +32,8 @@ export function validateCustomerSignupInput(body: unknown): CustomerSignupInput 
   if (typeof body.email !== 'string' || !body.email.trim() || !EMAIL_PATTERN.test(body.email.trim())) {
     throw new HttpError(400, 'Enter a valid email address.')
   }
-  if (typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 256) {
-    throw new HttpError(400, 'Password must be at least 12 characters.')
+  if (typeof body.password !== 'string' || body.password.length < 6 || body.password.length > 256) {
+    throw new HttpError(400, 'Password must be at least 6 characters.')
   }
   return {
     name: body.name.trim(),
@@ -77,8 +77,8 @@ export function validatePasswordResetInput(body: unknown): PasswordResetInput {
   if (typeof body.token !== 'string' || !body.token.trim() || body.token.length > 256) {
     throw new HttpError(400, 'This password reset link is invalid or has expired.')
   }
-  if (typeof body.newPassword !== 'string' || body.newPassword.length < 12 || body.newPassword.length > 256) {
-    throw new HttpError(400, 'Password must be at least 12 characters.')
+  if (typeof body.newPassword !== 'string' || body.newPassword.length < 6 || body.newPassword.length > 256) {
+    throw new HttpError(400, 'Password must be at least 6 characters.')
   }
   if (typeof body.confirmPassword !== 'string' || body.confirmPassword !== body.newPassword) {
     throw new HttpError(400, 'Passwords do not match.')

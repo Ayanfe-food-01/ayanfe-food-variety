@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowRight } from '../assets/icons'
+import { ArrowRight, EyeIcon, EyeOffIcon } from '../assets/icons'
 import { Button } from '../components/ui/Button'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
@@ -16,6 +16,7 @@ export function Login() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -88,8 +89,19 @@ export function Login() {
               <label htmlFor="login-password">Password</label>
               {mode === 'login' && <Link className="text-xs text-green hover:text-orange" to="/forgot-password">Forgot Password?</Link>}
             </div>
-            <input id="login-password" className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={12} required />
-            <span className="mt-1 block text-xs font-normal text-muted">At least 12 characters.</span>
+            <div className="relative mt-2">
+              <input id="login-password" className="w-full rounded-xl border border-line px-4 py-3 pr-12 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />
+              <button
+                className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center rounded-lg p-1.5 text-muted transition-colors hover:bg-sage/40 hover:text-green-dark focus:outline-none focus:ring-2 focus:ring-green/20"
+                type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? <EyeOffIcon size={19} /> : <EyeIcon size={19} />}
+              </button>
+            </div>
+            <span className="mt-1 block text-xs font-normal text-muted">At least 6 characters.</span>
           </div>
           {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
           <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>

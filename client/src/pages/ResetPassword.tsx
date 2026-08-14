@@ -69,11 +69,11 @@ export function ResetPassword() {
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
-                  minLength={12}
+                  minLength={6}
                   maxLength={256}
                   required
                 />
-                <span className="mt-1 block text-xs font-normal text-muted">At least 12 characters.</span>
+                <span className="mt-1 block text-xs font-normal text-muted">At least 6 characters.</span>
               </label>
               <label className="block text-sm font-bold text-green-dark">
                 Confirm new password
@@ -83,7 +83,7 @@ export function ResetPassword() {
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  minLength={12}
+                  minLength={6}
                   maxLength={256}
                   required
                 />

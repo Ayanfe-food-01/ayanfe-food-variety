@@ -29,7 +29,6 @@ export function ProductRail({ title, eyebrow, products, isLoading, hasError, onR
           <div><p className="eyebrow">{eyebrow}</p><h2 id={`${title}-heading`}>{title}</h2></div>
           <div className="home-section-heading-actions">
             <Link className="section-link" to={href}>See all <ArrowRight size={16} /></Link>
-            <HorizontalRailControls railRef={railRef} label={title} />
           </div>
         </div>
         {isLoading ? <ProductSkeleton /> : hasError ? (
@@ -38,8 +37,11 @@ export function ProductRail({ title, eyebrow, products, isLoading, hasError, onR
             <button type="button" onClick={onRetry}>Try again</button>
           </div>
         ) : products.length ? (
-          <div className="product-rail" ref={railRef}>
-            {products.map((product) => <ProductCard key={product.id} product={product} />)}
+          <div className="horizontal-rail-frame">
+            <div className="product-rail" ref={railRef}>
+              {products.map((product) => <ProductCard key={product.id} product={product} />)}
+            </div>
+            <HorizontalRailControls railRef={railRef} label={title} />
           </div>
         ) : <div className="section-message">No products are available on this shelf yet.</div>}
       </div>

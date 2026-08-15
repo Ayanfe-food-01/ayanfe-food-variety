@@ -1,8 +1,8 @@
 export const SITE_NAME = 'Ayanfe Food Variety'
-export const HOMEPAGE_TITLE = 'Ayanfe Food Variety | Buy Nigerian Foodstuff Online'
-export const BRAND_MESSAGE = 'Quality Nigerian Foodstuff, Delivered to Your Doorstep.'
+export const HOMEPAGE_TITLE = 'Ayanfe Food Variety | Quality Gluten-Free Foods'
+export const BRAND_MESSAGE = 'Quality Gluten-Free Foods, Made for Your Everyday Needs.'
 export const DEFAULT_SITE_DESCRIPTION =
-  `${BRAND_MESSAGE} Shop swallow flours, grains, oils and more.`
+  'Shop quality food essentials, carefully selected for your everyday needs, with convenient pickup and delivery options.'
 export const ABOUT_TITLE = 'About Ayanfe Food Variety | Nigerian Foodstuff'
 export const ABOUT_DESCRIPTION =
   `Ayanfe Food Variety brings quality, natural Nigerian foodstuff to your kitchen with reliable online delivery.`

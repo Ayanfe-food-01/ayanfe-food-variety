@@ -5,10 +5,18 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { BreadcrumbBar } from '../components/ui/Breadcrumb'
 import { ProductPrice } from '../components/products/ProductPrice'
+import {
+  ContactDetailsSection,
+  FulfillmentSection,
+  PaymentMethodSection,
+} from '../components/checkout/CheckoutFormSections'
+import { calculateCheckoutTotals } from '../components/checkout/checkoutCalculations'
+import { initialCheckoutForm, validateCheckoutForm } from '../components/checkout/checkoutValidation'
+import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../components/checkout/types'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart, type FulfillmentMethod, type PaymentMethod } from '../services/orderService'
+import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
 
 const formatPrice = (price: number) =>
@@ -17,62 +25,6 @@ const formatPrice = (price: number) =>
     currency: 'NGN',
     maximumFractionDigits: 0,
   }).format(price)
-
-interface CheckoutFormData {
-  fullName: string
-  phone: string
-  email: string
-  fulfillmentMethod: FulfillmentMethod | ''
-  address: string
-  city: string
-  deliveryInstructions: string
-  paymentMethod: PaymentMethod
-}
-
-type CheckoutField = keyof CheckoutFormData
-type FormErrors = Partial<Record<CheckoutField, string>>
-
-const initialForm: CheckoutFormData = {
-  fullName: '',
-  phone: '',
-  email: '',
-  fulfillmentMethod: '',
-  address: '',
-  city: '',
-  deliveryInstructions: '',
-  paymentMethod: 'BANK_TRANSFER',
-}
-
-const inputClassName = (hasError: boolean) =>
-  `mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-muted/60 focus:border-green focus:ring-2 focus:ring-green/10 ${
-    hasError ? 'border-orange' : 'border-line'
-  }`
-
-function validateForm(form: CheckoutFormData): FormErrors {
-  const errors: FormErrors = {}
-
-  if (!form.fullName.trim()) errors.fullName = 'Please enter your full name.'
-  if (!form.phone.trim()) {
-    errors.phone = 'Please enter your phone number.'
-  } else if (form.phone.replace(/\D/g, '').length < 7) {
-    errors.phone = 'Please enter a valid phone number.'
-  }
-  if (!form.fulfillmentMethod) errors.fulfillmentMethod = 'Please choose pickup or delivery.'
-  if (form.fulfillmentMethod === 'DELIVERY') {
-    if (!form.address.trim()) errors.address = 'Please enter your delivery address.'
-    if (!form.city.trim()) errors.city = 'Please enter your city or location.'
-  }
-
-  return errors
-}
-
-function FieldError({ id, message }: { id: CheckoutField; message?: string }) {
-  return message ? (
-    <p className="mt-1.5 text-xs font-medium text-orange" id={`${id}-error`} role="alert">
-      {message}
-    </p>
-  ) : null
-}
 
 function EmptyCheckout() {
   return (
@@ -111,8 +63,8 @@ export function Checkout() {
   } = useCart()
   const { user, isLoading: isCustomerAuthLoading, openAuth } = useCustomerAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState<CheckoutFormData>(initialForm)
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [form, setForm] = useState<CheckoutFormData>(initialCheckoutForm)
+  const [errors, setErrors] = useState<CheckoutFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [needsCartReview, setNeedsCartReview] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -166,7 +118,7 @@ export function Checkout() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const nextErrors = validateForm(form)
+    const nextErrors = validateCheckoutForm(form)
     setErrors(nextErrors)
     setSubmitError(null)
     setNeedsCartReview(false)
@@ -219,9 +171,11 @@ export function Checkout() {
   }
 
   const paymentSettings = paymentMethods.find((method) => method.paymentMethod === form.paymentMethod) ?? null
-  const isPickup = form.fulfillmentMethod === 'PICKUP'
-  const checkoutDeliveryFee = isPickup ? 0 : deliveryFee
-  const checkoutTotal = subtotal + checkoutDeliveryFee
+  const { deliveryFee: checkoutDeliveryFee, total: checkoutTotal } = calculateCheckoutTotals(
+    subtotal,
+    deliveryFee,
+    form.fulfillmentMethod,
+  )
 
   if (!isCustomerAuthLoading && !user) {
     return (
@@ -313,151 +267,21 @@ export function Checkout() {
                 </div>
               )}
 
-              <fieldset className="m-0 border-0 p-0">
-                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">How should we fulfil your order?</legend>
-                <p className="mt-2 text-sm leading-6 text-muted">Choose pickup or delivery. This selection is saved with your order and cannot change after it is placed.</p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {([
-                    ['PICKUP', 'Pickup', 'Collect your order from the store. No delivery fee.'],
-                    ['DELIVERY', 'Delivery', 'Have your order brought to your delivery address.'],
-                  ] as const).map(([value, label, description]) => (
-                    <label
-                      className={`block cursor-pointer rounded-2xl border p-4 transition-colors ${
-                        form.fulfillmentMethod === value
-                          ? 'border-green bg-sage/30'
-                          : 'border-line bg-white hover:border-green/40'
-                      }`}
-                      key={value}
-                    >
-                      <span className="flex items-start gap-3">
-                        <input
-                          className="mt-1 size-4 accent-green"
-                          type="radio"
-                          name="fulfillmentMethod"
-                          value={value}
-                          checked={form.fulfillmentMethod === value}
-                          onChange={() => updateField('fulfillmentMethod', value)}
-                          aria-describedby="fulfillmentMethod-error"
-                        />
-                        <span>
-                          <span className="block text-sm font-bold text-green-dark">{label}</span>
-                          <span className="mt-1 block text-xs leading-5 text-muted">{description}</span>
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                <FieldError id="fulfillmentMethod" message={errors.fulfillmentMethod} />
-              </fieldset>
-
-              <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">{isPickup ? 'Pickup contact details' : 'Delivery information'}</legend>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  {isPickup ? 'Keep your phone number available so we can contact you when your order is ready for collection.' : 'These details are saved with this order as a delivery snapshot.'}
-                </p>
-
-                <div className="mt-7 grid gap-5 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="fullName">
-                      Full name <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <input className={inputClassName(Boolean(errors.fullName))} id="fullName" name="fullName" type="text" autoComplete="name" value={form.fullName} onChange={(event) => updateField('fullName', event.target.value)} aria-invalid={Boolean(errors.fullName)} aria-describedby={errors.fullName ? 'fullName-error' : undefined} required />
-                    <FieldError id="fullName" message={errors.fullName} />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-bold text-green-dark" htmlFor="phone">
-                      Phone number <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <input className={inputClassName(Boolean(errors.phone))} id="phone" name="phone" type="tel" autoComplete="tel" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'phone-error' : undefined} required />
-                    <FieldError id="phone" message={errors.phone} />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-bold text-green-dark" htmlFor="email">Account email</label>
-                    <input className={inputClassName(false)} id="email" name="email" type="email" readOnly value={form.email} aria-describedby="email-help" />
-                    <p className="mt-1.5 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
-                  </div>
-
-                  {!isPickup && (
-                    <>
-                      <div className="sm:col-span-2">
-                        <label className="text-sm font-bold text-green-dark" htmlFor="address">
-                          Delivery address <span className="text-orange" aria-hidden="true">*</span>
-                        </label>
-                        <textarea className={`${inputClassName(Boolean(errors.address))} min-h-28 resize-y`} id="address" name="address" autoComplete="street-address" placeholder="House number, street name, landmark" value={form.address} onChange={(event) => updateField('address', event.target.value)} aria-invalid={Boolean(errors.address)} aria-describedby={errors.address ? 'address-error' : undefined} required />
-                        <FieldError id="address" message={errors.address} />
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="text-sm font-bold text-green-dark" htmlFor="city">
-                          City or location <span className="text-orange" aria-hidden="true">*</span>
-                        </label>
-                        <input className={inputClassName(Boolean(errors.city))} id="city" name="city" type="text" autoComplete="address-level2" placeholder="e.g. Ibadan" value={form.city} onChange={(event) => updateField('city', event.target.value)} aria-invalid={Boolean(errors.city)} aria-describedby={errors.city ? 'city-error' : undefined} required />
-                        <FieldError id="city" message={errors.city} />
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="text-sm font-bold text-green-dark" htmlFor="deliveryInstructions">
-                          Delivery instructions <span className="font-normal text-muted">(optional)</span>
-                        </label>
-                        <textarea className={`${inputClassName(false)} min-h-24 resize-y`} id="deliveryInstructions" name="deliveryInstructions" placeholder="Landmark, preferred delivery time, or other helpful details" value={form.deliveryInstructions} onChange={(event) => updateField('deliveryInstructions', event.target.value)} />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </fieldset>
-
-               <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-                 <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment method</legend>
-                 <p className="mt-2 text-sm leading-6 text-muted">Choose how you will pay. Your payment will remain pending until the store confirms it.</p>
-                 {isPaymentLoading ? (
-                   <div className="mt-5 rounded-2xl border border-line bg-cream/60 p-4 text-sm text-muted">Loading available payment methods…</div>
-                 ) : paymentError ? (
-                   <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">{paymentError}</div>
-                 ) : paymentMethods.length === 0 ? (
-                   <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">No payment methods are currently available. Please contact the store.</div>
-                 ) : (
-                   <div className="mt-5 space-y-3">
-                     {paymentMethods.map((method) => (
-                       <label
-                         className={`block cursor-pointer rounded-2xl border p-4 transition-colors ${
-                           form.paymentMethod === method.paymentMethod
-                             ? 'border-green bg-sage/30'
-                             : 'border-line bg-white hover:border-green/40'
-                         }`}
-                         key={method.paymentMethod}
-                       >
-                         <span className="flex items-start gap-3">
-                           <input
-                             className="mt-1 size-4 accent-green"
-                             type="radio"
-                             name="paymentMethod"
-                             value={method.paymentMethod}
-                             checked={form.paymentMethod === method.paymentMethod}
-                             onChange={() => updateField('paymentMethod', method.paymentMethod)}
-                           />
-                           <span>
-                             <span className="block text-sm font-bold text-green-dark">{method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod}</span>
-                             <span className="mt-1 block text-xs leading-5 text-muted">Transfer the order total using the account details below.</span>
-                           </span>
-                         </span>
-                       </label>
-                     ))}
-                   </div>
-                 )}
-                 {paymentSettings?.paymentMethod === 'BANK_TRANSFER' && (
-                   <div className="mt-4 rounded-2xl border border-green/20 bg-sage/20 p-4">
-                     <p className="text-sm font-bold text-green-dark">Bank transfer instructions</p>
-                     <dl className="mt-3 space-y-2 text-sm">
-                       <div className="flex justify-between gap-4"><dt className="text-muted">Bank</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.bankName}</dd></div>
-                       <div className="flex justify-between gap-4"><dt className="text-muted">Account name</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.accountName}</dd></div>
-                       <div className="flex justify-between gap-4"><dt className="text-muted">Account number</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.accountNumber}</dd></div>
-                     </dl>
-                     <p className="mt-3 whitespace-pre-line text-xs leading-5 text-muted">{paymentSettings.instructions}</p>
-                   </div>
-                 )}
-               </fieldset>
+              <ContactDetailsSection form={form} errors={errors} onChange={updateField} />
+              <PaymentMethodSection
+                methods={paymentMethods}
+                selectedMethod={form.paymentMethod}
+                selectedSettings={paymentSettings}
+                isLoading={isPaymentLoading}
+                error={paymentError}
+                onChange={(method) => updateField('paymentMethod', method)}
+              />
+              <FulfillmentSection
+                form={form}
+                errors={errors}
+                fulfillmentMethod={form.fulfillmentMethod}
+                onChange={updateField}
+              />
 
               <div className="mt-5">
                 <button
@@ -510,11 +334,11 @@ export function Checkout() {
               <div className="my-6 space-y-3 border-y border-line py-5 text-sm">
                 <div className="flex justify-between gap-4 text-muted"><span>Items</span><span>{totalQuantity}</span></div>
                 <div className="flex justify-between gap-4 text-muted"><span>Subtotal</span><span className="font-bold text-green-dark">{formatPrice(subtotal)}</span></div>
-                 <div className="flex justify-between gap-4 text-muted"><span>{isPickup ? 'Pickup fee' : 'Delivery fee'}</span><span className="font-bold text-green-dark">{checkoutDeliveryFee === 0 ? 'Free' : formatPrice(checkoutDeliveryFee)}</span></div>
+                 <div className="flex justify-between gap-4 text-muted"><span>{form.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery fee'}</span><span className="font-bold text-green-dark">{checkoutDeliveryFee === 0 ? 'Free' : formatPrice(checkoutDeliveryFee)}</span></div>
               </div>
                <div className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
-                 <strong className="text-green-dark">{isPickup ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
-                 {isPickup ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? 'Your delivery fee is calculated from the products in your cart.' : 'The final total will appear after you select a fulfillment option.'}
+                 <strong className="text-green-dark">{form.fulfillmentMethod === 'PICKUP' ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
+                 {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? 'Your delivery fee is calculated from the products in your cart.' : 'The final total will appear after you select a fulfillment option.'}
                </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>

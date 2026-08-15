@@ -162,15 +162,15 @@ export function Cart() {
         ) : (
           <>
             <section className="border-b border-line/70 bg-sage/35">
-              <div className="container py-12 sm:py-16">
-                <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
+              <div className="container py-8 sm:py-10 lg:py-12">
+                <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
                   <span className="inline-block size-2 rounded-full bg-orange" />
                   Your order
                 </p>
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                   <div>
-                    <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Cart</h1>
-                    <p className="mt-4 text-base text-muted">
+                    <h1 className="m-0 text-4xl font-bold leading-none tracking-[-0.05em] text-green-dark sm:text-5xl">Cart</h1>
+                    <p className="mt-3 text-sm leading-6 text-muted sm:text-base">
                       {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} ready for your kitchen.
                     </p>
                   </div>

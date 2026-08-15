@@ -86,7 +86,7 @@ export function BannerForm() {
     }
   }
 
-  const progressLabel = getSaveProgressLabel('banner', isEditing ? 'update' : 'create')
+  const progressLabel = getSaveProgressLabel(isEditing ? 'update' : 'create')
 
   return (
     <>

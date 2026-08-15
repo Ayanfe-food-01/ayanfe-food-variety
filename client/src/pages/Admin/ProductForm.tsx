@@ -122,7 +122,7 @@ export function ProductForm() {
     'aria-describedby': fieldErrors[field] ? `${field}-error` : undefined,
   })
 
-  const progressLabel = getSaveProgressLabel('product', isEditing ? 'update' : 'create')
+  const progressLabel = getSaveProgressLabel(isEditing ? 'update' : 'create')
 
   return (
     <>

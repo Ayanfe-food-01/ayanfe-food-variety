@@ -69,7 +69,7 @@ export function CategoryForm() {
     }
   }
 
-  const progressLabel = getSaveProgressLabel('category', isEditing ? 'update' : 'create')
+  const progressLabel = getSaveProgressLabel(isEditing ? 'update' : 'create')
 
   return (
     <>

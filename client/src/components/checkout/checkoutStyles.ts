@@ -4,7 +4,7 @@ export const checkoutInputClassName = (hasError: boolean) =>
   }`
 
 export const checkoutFieldsetClassName = 'm-0 border-0 p-0'
-export const checkoutSeparatedFieldsetClassName = `${checkoutFieldsetClassName} border-t border-line pt-10`
-export const checkoutLegendClassName = 'mt-2 block text-2xl font-bold tracking-[-0.03em] text-green-dark'
-export const checkoutDescriptionClassName = 'mt-3 text-sm leading-6 text-muted'
+export const checkoutSeparatedFieldsetClassName = `${checkoutFieldsetClassName} border-t border-line pt-8`
+export const checkoutLegendClassName = 'block leading-tight text-2xl font-bold tracking-[-0.03em] text-green-dark'
+export const checkoutDescriptionClassName = 'mt-2 text-sm leading-6 text-muted'
 export const checkoutFieldGridClassName = 'mt-6 grid gap-6 sm:grid-cols-2'

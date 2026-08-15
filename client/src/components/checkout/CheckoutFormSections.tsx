@@ -7,7 +7,7 @@ import {
   checkoutFieldsetClassName,
   checkoutInputClassName,
   checkoutLegendClassName,
-  checkoutSeparatedFieldsetClassName,
+  checkoutSectionClassName,
 } from './checkoutStyles'
 
 interface FieldErrorProps {
@@ -130,79 +130,81 @@ export function PaymentMethodSection({
   onChange,
 }: PaymentMethodSectionProps) {
   return (
-    <fieldset className={checkoutSeparatedFieldsetClassName}>
-      <CheckoutSectionHeader
-        title="Payment method"
-        description="Choose how you will pay. Your payment will remain pending until the store confirms it."
-      />
+    <section className={checkoutSectionClassName}>
+      <fieldset className={checkoutFieldsetClassName}>
+        <CheckoutSectionHeader
+          title="Payment method"
+          description="Choose how you will pay. Your payment will remain pending until the store confirms it."
+        />
 
-      {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-5 text-sm text-muted">
-          Loading available payment methods…
-        </div>
-      ) : error ? (
-        <div className="mt-6 rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
-          {error}
-        </div>
-      ) : methods.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
-          No payment methods are currently available. Please contact the store.
-        </div>
-      ) : (
-        <div className="mt-6 space-y-4">
-          {methods.map((method) => (
-            <label
-              className={`block cursor-pointer rounded-2xl border p-5 transition-colors ${
-                selectedMethod === method.paymentMethod
-                  ? 'border-green bg-sage/30'
-                  : 'border-line bg-white hover:border-green/40'
-              }`}
-              key={method.paymentMethod}
-            >
-              <span className="flex items-start gap-3">
-                <input
-                  className="mt-1 size-4 accent-green"
-                  type="radio"
-                  name="paymentMethod"
-                  value={method.paymentMethod}
-                  checked={selectedMethod === method.paymentMethod}
-                  onChange={() => onChange(method.paymentMethod)}
-                />
-                <span>
-                  <span className="block text-sm font-bold text-green-dark">
-                    {method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-muted">
-                    Transfer the order total using the account details below.
+        {isLoading ? (
+          <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-5 text-sm text-muted">
+            Loading available payment methods…
+          </div>
+        ) : error ? (
+          <div className="mt-6 rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
+            {error}
+          </div>
+        ) : methods.length === 0 ? (
+          <div className="mt-6 rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
+            No payment methods are currently available. Please contact the store.
+          </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            {methods.map((method) => (
+              <label
+                className={`block cursor-pointer rounded-2xl border p-5 transition-colors ${
+                  selectedMethod === method.paymentMethod
+                    ? 'border-green bg-sage/30'
+                    : 'border-line bg-white hover:border-green/40'
+                }`}
+                key={method.paymentMethod}
+              >
+                <span className="flex items-start gap-3">
+                  <input
+                    className="mt-1 size-4 accent-green"
+                    type="radio"
+                    name="paymentMethod"
+                    value={method.paymentMethod}
+                    checked={selectedMethod === method.paymentMethod}
+                    onChange={() => onChange(method.paymentMethod)}
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-green-dark">
+                      {method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-muted">
+                      Transfer the order total using the account details below.
+                    </span>
                   </span>
                 </span>
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
+              </label>
+            ))}
+          </div>
+        )}
 
-      {selectedSettings?.paymentMethod === 'BANK_TRANSFER' && (
-        <div className="mt-5 rounded-2xl border border-green/20 bg-sage/20 p-5">
-          <p className="text-sm font-bold text-green-dark">Bank transfer instructions</p>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Bank</dt>
-              <dd className="text-right font-bold text-green-dark">{selectedSettings.bankName}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Account name</dt>
-              <dd className="text-right font-bold text-green-dark">{selectedSettings.accountName}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Account number</dt>
-              <dd className="text-right font-bold text-green-dark">{selectedSettings.accountNumber}</dd>
-            </div>
-          </dl>
-          <p className="mt-3 whitespace-pre-line text-xs leading-5 text-muted">{selectedSettings.instructions}</p>
-        </div>
-      )}
-    </fieldset>
+        {selectedSettings?.paymentMethod === 'BANK_TRANSFER' && (
+          <div className="mt-5 rounded-2xl border border-green/20 bg-sage/20 p-5">
+            <p className="text-sm font-bold text-green-dark">Bank transfer instructions</p>
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">Bank</dt>
+                <dd className="text-right font-bold text-green-dark">{selectedSettings.bankName}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">Account name</dt>
+                <dd className="text-right font-bold text-green-dark">{selectedSettings.accountName}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">Account number</dt>
+                <dd className="text-right font-bold text-green-dark">{selectedSettings.accountNumber}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 whitespace-pre-line text-xs leading-5 text-muted">{selectedSettings.instructions}</p>
+          </div>
+        )}
+      </fieldset>
+    </section>
   )
 }
 
@@ -210,98 +212,100 @@ export function FulfillmentSection({ form, errors, fulfillmentMethod, onChange }
   const isDelivery = fulfillmentMethod === 'DELIVERY'
 
   return (
-    <fieldset className={checkoutSeparatedFieldsetClassName}>
-      <CheckoutSectionHeader
-        title="Delivery option"
-        description="Choose pickup or delivery. This selection is saved with your order and cannot change after it is placed."
-      />
+    <section className={checkoutSectionClassName}>
+      <fieldset className={checkoutFieldsetClassName}>
+        <CheckoutSectionHeader
+          title="Delivery option"
+          description="Choose pickup or delivery. This selection is saved with your order and cannot change after it is placed."
+        />
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {fulfillmentOptions.map(([value, label, description]) => (
-          <label
-            className={`block cursor-pointer rounded-2xl border p-5 transition-colors ${
-              fulfillmentMethod === value
-                ? 'border-green bg-sage/30'
-                : 'border-line bg-white hover:border-green/40'
-            }`}
-            key={value}
-          >
-            <span className="flex items-start gap-3">
-              <input
-                className="mt-1 size-4 accent-green"
-                type="radio"
-                name="fulfillmentMethod"
-                value={value}
-                checked={fulfillmentMethod === value}
-                onChange={() => onChange('fulfillmentMethod', value)}
-                aria-describedby="fulfillmentMethod-error"
-              />
-              <span>
-                <span className="block text-sm font-bold text-green-dark">{label}</span>
-                <span className="mt-1 block text-xs leading-5 text-muted">{description}</span>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {fulfillmentOptions.map(([value, label, description]) => (
+            <label
+              className={`block cursor-pointer rounded-2xl border p-5 transition-colors ${
+                fulfillmentMethod === value
+                  ? 'border-green bg-sage/30'
+                  : 'border-line bg-white hover:border-green/40'
+              }`}
+              key={value}
+            >
+              <span className="flex items-start gap-3">
+                <input
+                  className="mt-1 size-4 accent-green"
+                  type="radio"
+                  name="fulfillmentMethod"
+                  value={value}
+                  checked={fulfillmentMethod === value}
+                  onChange={() => onChange('fulfillmentMethod', value)}
+                  aria-describedby="fulfillmentMethod-error"
+                />
+                <span>
+                  <span className="block text-sm font-bold text-green-dark">{label}</span>
+                  <span className="mt-1 block text-xs leading-5 text-muted">{description}</span>
+                </span>
               </span>
-            </span>
-          </label>
-        ))}
-      </div>
-      <CheckoutFieldError id="fulfillmentMethod" message={errors.fulfillmentMethod} />
-
-      {isDelivery && (
-        <div className="mt-8 grid gap-6">
-          <div>
-            <label className="text-sm font-bold text-green-dark" htmlFor="address">
-              Delivery address <span className="text-orange" aria-hidden="true">*</span>
             </label>
-            <textarea
-              className={`${checkoutInputClassName(Boolean(errors.address))} min-h-28 resize-y`}
-              id="address"
-              name="address"
-              autoComplete="street-address"
-              placeholder="House number, street name, landmark"
-              value={form.address}
-              onChange={(event) => onChange('address', event.target.value)}
-              aria-invalid={Boolean(errors.address)}
-              aria-describedby={errors.address ? 'address-error' : undefined}
-              required
-            />
-            <CheckoutFieldError id="address" message={errors.address} />
-          </div>
-
-          <div>
-            <label className="text-sm font-bold text-green-dark" htmlFor="city">
-              City or location <span className="text-orange" aria-hidden="true">*</span>
-            </label>
-            <input
-              className={checkoutInputClassName(Boolean(errors.city))}
-              id="city"
-              name="city"
-              type="text"
-              autoComplete="address-level2"
-              placeholder="e.g. Ibadan"
-              value={form.city}
-              onChange={(event) => onChange('city', event.target.value)}
-              aria-invalid={Boolean(errors.city)}
-              aria-describedby={errors.city ? 'city-error' : undefined}
-              required
-            />
-            <CheckoutFieldError id="city" message={errors.city} />
-          </div>
-
-          <div>
-            <label className="text-sm font-bold text-green-dark" htmlFor="deliveryInstructions">
-              Delivery instructions <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <textarea
-              className={`${checkoutInputClassName(false)} min-h-24 resize-y`}
-              id="deliveryInstructions"
-              name="deliveryInstructions"
-              placeholder="Landmark, preferred delivery time, or other helpful details"
-              value={form.deliveryInstructions}
-              onChange={(event) => onChange('deliveryInstructions', event.target.value)}
-            />
-          </div>
+          ))}
         </div>
-      )}
-    </fieldset>
+        <CheckoutFieldError id="fulfillmentMethod" message={errors.fulfillmentMethod} />
+
+        {isDelivery && (
+          <div className="mt-8 grid gap-6">
+            <div>
+              <label className="text-sm font-bold text-green-dark" htmlFor="address">
+                Delivery address <span className="text-orange" aria-hidden="true">*</span>
+              </label>
+              <textarea
+                className={`${checkoutInputClassName(Boolean(errors.address))} min-h-28 resize-y`}
+                id="address"
+                name="address"
+                autoComplete="street-address"
+                placeholder="House number, street name, landmark"
+                value={form.address}
+                onChange={(event) => onChange('address', event.target.value)}
+                aria-invalid={Boolean(errors.address)}
+                aria-describedby={errors.address ? 'address-error' : undefined}
+                required
+              />
+              <CheckoutFieldError id="address" message={errors.address} />
+            </div>
+
+            <div>
+              <label className="text-sm font-bold text-green-dark" htmlFor="city">
+                City or location <span className="text-orange" aria-hidden="true">*</span>
+              </label>
+              <input
+                className={checkoutInputClassName(Boolean(errors.city))}
+                id="city"
+                name="city"
+                type="text"
+                autoComplete="address-level2"
+                placeholder="e.g. Ibadan"
+                value={form.city}
+                onChange={(event) => onChange('city', event.target.value)}
+                aria-invalid={Boolean(errors.city)}
+                aria-describedby={errors.city ? 'city-error' : undefined}
+                required
+              />
+              <CheckoutFieldError id="city" message={errors.city} />
+            </div>
+
+            <div>
+              <label className="text-sm font-bold text-green-dark" htmlFor="deliveryInstructions">
+                Delivery instructions <span className="font-normal text-muted">(optional)</span>
+              </label>
+              <textarea
+                className={`${checkoutInputClassName(false)} min-h-24 resize-y`}
+                id="deliveryInstructions"
+                name="deliveryInstructions"
+                placeholder="Landmark, preferred delivery time, or other helpful details"
+                value={form.deliveryInstructions}
+                onChange={(event) => onChange('deliveryInstructions', event.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </fieldset>
+    </section>
   )
 }

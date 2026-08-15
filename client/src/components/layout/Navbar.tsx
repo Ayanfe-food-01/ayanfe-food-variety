@@ -12,6 +12,7 @@ const links = [
   { label: 'Shop', href: '/shop' },
   { label: 'New arrivals', href: '/new-arrivals' },
   { label: 'About us', href: '/about' },
+  { label: 'Contact', href: '/contact' },
   { label: 'Orders', href: '/orders' },
 ]
 

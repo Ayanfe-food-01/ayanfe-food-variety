@@ -6,6 +6,9 @@ export const DEFAULT_SITE_DESCRIPTION =
 export const ABOUT_TITLE = 'About Ayanfe Food Variety | Gluten-Free Foodstuff'
 export const ABOUT_DESCRIPTION =
   `Ayanfe Food Variety offers carefully selected gluten-free foodstuff and pantry essentials for everyday cooking, with convenient online delivery.`
+export const CONTACT_TITLE = 'Contact Ayanfe Food Variety'
+export const CONTACT_DESCRIPTION =
+  'Contact Ayanfe Food Variety for gluten-free foodstuff, pickup information, and delivery support. Find the business contact details and pickup location.'
 export const SHOP_TITLE = 'Buy Nigerian Foodstuff Online | Ayanfe Food Variety'
 export const SHOP_DESCRIPTION =
   'Shop Nigerian foodstuff online, including natural pantry staples, grains, oils and everyday essentials with reliable delivery.'

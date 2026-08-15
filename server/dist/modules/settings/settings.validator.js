@@ -21,6 +21,19 @@ const validatePhone = (value, field) => {
         throw new HttpError(400, `${field} must be a valid phone number.`);
     return phone;
 };
+const optionalUrl = (value, field, maxLength) => {
+    const url = optionalText(value ?? '', field, maxLength);
+    if (!url)
+        return '';
+    try {
+        if (new URL(url).protocol !== 'https:')
+            throw new Error('protocol');
+    }
+    catch {
+        throw new HttpError(400, `${field} must be a valid HTTPS URL.`);
+    }
+    return url;
+};
 export function validateStoreInformationInput(body) {
     if (!isRecord(body))
         throw new HttpError(400, 'Store information is required.');
@@ -42,6 +55,10 @@ export function validateContactInformationInput(body) {
         businessEmail,
         businessPhone: validatePhone(body.businessPhone, 'Business phone'),
         whatsappNumber: validatePhone(body.whatsappNumber, 'WhatsApp number'),
+        openingHours: optionalText(body.openingHours ?? '', 'Opening hours', 500),
+        pickupInformation: optionalText(body.pickupInformation ?? '', 'Pickup information', 1000),
+        deliveryInformation: optionalText(body.deliveryInformation ?? '', 'Delivery information', 1000),
+        mapEmbedUrl: optionalUrl(body.mapEmbedUrl, 'Map embed URL', 2000),
     };
 }
 export function validatePaymentSettingsInput(body) {

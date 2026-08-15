@@ -9,6 +9,10 @@ export interface StoreSettings {
   announcementText: string
   address: string
   description: string
+  openingHours: string
+  pickupInformation: string
+  deliveryInformation: string
+  mapEmbedUrl: string
 }
 
 export interface StoreInformation {
@@ -23,6 +27,10 @@ export interface ContactInformation {
   businessEmail: string
   businessPhone: string
   whatsappNumber: string
+  openingHours: string
+  pickupInformation: string
+  deliveryInformation: string
+  mapEmbedUrl: string
 }
 
 export interface PaymentSettings {

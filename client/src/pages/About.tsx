@@ -80,7 +80,7 @@ export function About() {
           </div>
         </section>
 
-        <section className="bg-green-dark py-14 text-cream sm:py-18 lg:py-24" aria-labelledby="commitments-heading">
+        <section className="mb-12 bg-green-dark py-14 text-cream sm:mb-16 sm:py-18 lg:mb-20 lg:py-24" aria-labelledby="commitments-heading">
           <div className="container">
             <div className="max-w-2xl">
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-orange">What we stand for</p>

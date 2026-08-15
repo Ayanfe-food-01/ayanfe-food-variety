@@ -25,7 +25,7 @@ export function Footer() {
           <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/">Home</Link>
           <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/shop">Shop</Link>
           <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/about">About us</Link>
-          <a className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" href="/#contact">Contact</a>
+          <Link className="mb-3 block text-sm text-cream/65 transition-colors hover:text-cream" to="/contact">Contact</Link>
         </div>
         <div>
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-sage">Categories</h3>

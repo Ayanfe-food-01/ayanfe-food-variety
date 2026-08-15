@@ -21,6 +21,10 @@ const DEFAULT_STORE_SETTINGS = {
   announcementText: 'Quality foodstuff, delivered with care',
   address: '',
   description: '',
+  openingHours: '',
+  pickupInformation: '',
+  deliveryInformation: '',
+  mapEmbedUrl: '',
 }
 
 const toStoreSettings = (settings: PrismaStoreSettings): StoreSettings => ({
@@ -32,6 +36,10 @@ const toStoreSettings = (settings: PrismaStoreSettings): StoreSettings => ({
   announcementText: settings.announcementText,
   address: settings.address,
   description: settings.description,
+  openingHours: settings.openingHours,
+  pickupInformation: settings.pickupInformation,
+  deliveryInformation: settings.deliveryInformation,
+  mapEmbedUrl: settings.mapEmbedUrl,
 })
 
 const toStoreInformation = (settings: PrismaStoreSettings): StoreInformation => ({
@@ -46,6 +54,10 @@ const toContactInformation = (settings: PrismaStoreSettings): ContactInformation
   businessEmail: settings.businessEmail,
   businessPhone: settings.businessPhone,
   whatsappNumber: settings.whatsappNumber,
+  openingHours: settings.openingHours,
+  pickupInformation: settings.pickupInformation,
+  deliveryInformation: settings.deliveryInformation,
+  mapEmbedUrl: settings.mapEmbedUrl,
 })
 
 const toPaymentSettings = (settings: PrismaPaymentSettings): PaymentSettings => ({
@@ -99,6 +111,10 @@ export async function getAdminContactInformation(): Promise<ContactInformation |
     businessEmail: DEFAULT_STORE_SETTINGS.businessEmail,
     businessPhone: DEFAULT_STORE_SETTINGS.businessPhone,
     whatsappNumber: DEFAULT_STORE_SETTINGS.whatsappNumber,
+    openingHours: DEFAULT_STORE_SETTINGS.openingHours,
+    pickupInformation: DEFAULT_STORE_SETTINGS.pickupInformation,
+    deliveryInformation: DEFAULT_STORE_SETTINGS.deliveryInformation,
+    mapEmbedUrl: DEFAULT_STORE_SETTINGS.mapEmbedUrl,
   }
 }
 

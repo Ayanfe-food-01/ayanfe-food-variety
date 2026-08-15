@@ -35,6 +35,10 @@ export interface ContactInformation {
   businessEmail: string
   businessPhone: string
   whatsappNumber: string
+  openingHours: string
+  pickupInformation: string
+  deliveryInformation: string
+  mapEmbedUrl: string
 }
 
 interface DashboardResponse {

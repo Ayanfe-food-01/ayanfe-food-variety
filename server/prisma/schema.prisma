@@ -246,6 +246,10 @@ model StoreSettings {
   announcementText String  @map("announcement_text") @db.VarChar(2000)
   address         String   @db.VarChar(500)
   description     String   @db.VarChar(500)
+  openingHours    String   @default("") @map("opening_hours") @db.VarChar(500)
+  pickupInformation String @default("") @map("pickup_information") @db.VarChar(1000)
+  deliveryInformation String @default("") @map("delivery_information") @db.VarChar(1000)
+  mapEmbedUrl     String   @default("") @map("map_embed_url") @db.VarChar(2000)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

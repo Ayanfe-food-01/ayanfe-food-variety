@@ -87,6 +87,10 @@ async function main() {
       announcementText: 'Quality foodstuff, delivered with care',
       address: '',
       description: '',
+      openingHours: '',
+      pickupInformation: '',
+      deliveryInformation: '',
+      mapEmbedUrl: '',
     },
   })
 

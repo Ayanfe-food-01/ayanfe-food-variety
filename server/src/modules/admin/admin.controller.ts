@@ -6,6 +6,7 @@ import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../paym
 import {
   getAdminOrder,
   getAdminPayment,
+  getAdminAnalytics,
   getDashboardStats,
   archiveAdminOrder,
   deleteAdminOrder,
@@ -19,10 +20,21 @@ import {
   validateOrderNumber,
   validateOrderStatusInput,
 } from './admin.validator.js'
-import type { AdminPaymentsQuery } from './admin.types.js'
+import type { AdminPaymentsQuery, AnalyticsRange } from './admin.types.js'
 
 export const getDashboardController: RequestHandler = async (_request, response) => {
   response.json({ success: true, data: { stats: await getDashboardStats() } })
+}
+
+export const getAnalyticsController: RequestHandler = async (request, response) => {
+  const range = request.query.range
+  if (range !== undefined && range !== 'today' && range !== 'week' && range !== 'month' && range !== 'year') {
+    throw new HttpError(400, 'Analytics range is invalid.')
+  }
+  response.json({
+    success: true,
+    data: { analytics: await getAdminAnalytics((range ?? 'month') as AnalyticsRange) },
+  })
 }
 
 export const listAdminOrdersController: RequestHandler = async (request, response) => {

@@ -13,6 +13,7 @@ import { CustomerOrders } from './pages/CustomerOrders'
 import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
 import { Dashboard } from './pages/Admin/Dashboard'
+import { Analytics } from './pages/Admin/Analytics'
 import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
@@ -132,6 +133,7 @@ function RouteTransition() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/admin/login" element={<Navigate replace to="/login" />} />
           <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
+          <Route path="/admin/analytics" element={<RequireAdmin><Analytics /></RequireAdmin>} />
           <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
           <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
           <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />

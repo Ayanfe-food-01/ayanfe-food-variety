@@ -136,6 +136,7 @@ export interface AdminOrder {
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
+  archivedAt: string | null
   cancellationReason: string | null
   cancelledAt: string | null
   createdAt: string
@@ -186,6 +187,7 @@ export interface AdminOrderListItem {
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
+  archivedAt: string | null
   createdAt: string
 }
 
@@ -207,6 +209,7 @@ export interface AdminOrdersQuery {
   search?: string
   paymentStatus?: PaymentStatus
   orderStatus?: OrderStatus
+  archive?: 'active' | 'archived' | 'all'
   sort?: 'newest' | 'oldest'
   page?: number
   pageSize?: number
@@ -238,4 +241,22 @@ export async function updateAdminOrderStatus(orderNumber: string, orderStatus: O
     body: JSON.stringify({ orderStatus, note }),
   })
   return response.data.order
+}
+
+export async function archiveAdminOrder(orderNumber: string): Promise<AdminOrder> {
+  const response = await request<AdminOrderResponse>(`/admin/orders/${encodeURIComponent(orderNumber)}/archive`, {
+    method: 'PATCH',
+  })
+  return response.data.order
+}
+
+export async function restoreAdminOrder(orderNumber: string): Promise<AdminOrder> {
+  const response = await request<AdminOrderResponse>(`/admin/orders/${encodeURIComponent(orderNumber)}/restore`, {
+    method: 'PATCH',
+  })
+  return response.data.order
+}
+
+export async function deleteAdminOrder(orderNumber: string): Promise<void> {
+  await request<{ success: true }>(`/admin/orders/${encodeURIComponent(orderNumber)}`, { method: 'DELETE' })
 }

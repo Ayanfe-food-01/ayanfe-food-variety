@@ -16,9 +16,14 @@ const statusClass = (status: string) => {
 
 interface OrderTableProps {
   orders: AdminOrderListItem[]
+  archiveView: 'active' | 'archived'
+  busyOrderNumber?: string | null
+  onArchive: (orderNumber: string) => void
+  onRestore: (orderNumber: string) => void
+  onDelete: (order: AdminOrderListItem) => void
 }
 
-export function OrderTable({ orders }: OrderTableProps) {
+export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, onRestore, onDelete }: OrderTableProps) {
   if (orders.length === 0) {
     return <div className="rounded-2xl border border-dashed border-line bg-white px-5 py-14 text-center text-sm text-muted">No orders found.</div>
   }
@@ -63,6 +68,23 @@ export function OrderTable({ orders }: OrderTableProps) {
                  <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></dd>
               </div>
             </dl>
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
+              <Link className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View details</Link>
+              {archiveView === 'active' ? (
+                <button className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onArchive(order.orderNumber)}>
+                  {busyOrderNumber === order.orderNumber ? 'Archiving…' : 'Archive'}
+                </button>
+              ) : (
+                <>
+                  <button className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onRestore(order.orderNumber)}>
+                    {busyOrderNumber === order.orderNumber ? 'Restoring…' : 'Restore'}
+                  </button>
+                  <button className="rounded-lg border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onDelete(order)}>
+                    Delete permanently
+                  </button>
+                </>
+              )}
+            </div>
           </article>
         ))}
       </div>
@@ -77,7 +99,7 @@ export function OrderTable({ orders }: OrderTableProps) {
               <th className="px-5 py-4 font-bold">Total</th>
               <th className="px-5 py-4 font-bold">Payment</th>
               <th className="px-5 py-4 font-bold">Order status</th>
-              <th className="px-5 py-4" />
+               <th className="px-5 py-4 font-bold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -93,7 +115,25 @@ export function OrderTable({ orders }: OrderTableProps) {
                 <td className="whitespace-nowrap px-5 py-4 font-semibold text-green-dark">{formatPrice(order.total)}</td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></td>
-                <td className="px-5 py-4 text-right"><Link className="font-bold text-green hover:text-orange" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View</Link></td>
+                <td className="px-5 py-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    <Link className="rounded-lg border border-line px-3 py-2 text-xs font-bold text-green hover:border-green" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View</Link>
+                    {archiveView === 'active' ? (
+                      <button className="rounded-lg border border-line px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onArchive(order.orderNumber)}>
+                        {busyOrderNumber === order.orderNumber ? 'Archiving…' : 'Archive'}
+                      </button>
+                    ) : (
+                      <>
+                        <button className="rounded-lg border border-line px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onRestore(order.orderNumber)}>
+                          {busyOrderNumber === order.orderNumber ? 'Restoring…' : 'Restore'}
+                        </button>
+                        <button className="rounded-lg border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onDelete(order)}>
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

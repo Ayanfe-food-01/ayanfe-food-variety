@@ -22,6 +22,7 @@ const toOrderListItem = (order: {
   total: Prisma.Decimal
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
+  archivedAt: Date | null
   createdAt: Date
 }): AdminOrderListItem => ({
   orderNumber: order.orderNumber,
@@ -31,6 +32,7 @@ const toOrderListItem = (order: {
   total: order.total.toString(),
   paymentStatus: order.paymentStatus,
   orderStatus: order.orderStatus,
+  archivedAt: order.archivedAt?.toISOString() ?? null,
   createdAt: order.createdAt.toISOString(),
 })
 
@@ -142,6 +144,8 @@ export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrd
     ...(search ?? {}),
     ...(query.paymentStatus ? { paymentStatus: query.paymentStatus } : {}),
     ...(query.orderStatus ? { orderStatus: query.orderStatus } : {}),
+    ...(query.archive === 'active' ? { archivedAt: null } : {}),
+    ...(query.archive === 'archived' ? { NOT: { archivedAt: null } } : {}),
   }
   const [total, orders] = await Promise.all([
     prisma.order.count({ where }),
@@ -158,6 +162,7 @@ export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrd
       total: true,
       paymentStatus: true,
       orderStatus: true,
+       archivedAt: true,
       createdAt: true,
     },
     }),
@@ -225,6 +230,7 @@ export async function getAdminOrder(orderNumber: string) {
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     cancelledAt: order.cancelledAt?.toISOString() ?? null,
+    archivedAt: order.archivedAt?.toISOString() ?? null,
     orderItems: order.orderItems.map((item) => ({
       ...item,
       unitPrice: item.unitPrice.toString(),
@@ -357,6 +363,56 @@ export async function updateAdminOrderStatus(orderNumber: string, input: UpdateO
   }).catch((error: unknown) => console.error('Order status email failed', error))
 
   return getAdminOrder(orderNumber)
+}
+
+export async function archiveAdminOrder(orderNumber: string, adminId: string) {
+  const result = await prisma.order.updateMany({
+    where: { orderNumber, archivedAt: null },
+    data: { archivedAt: new Date(), archivedById: adminId },
+  })
+  if (result.count === 0) {
+    const existing = await prisma.order.findUnique({ where: { orderNumber }, select: { id: true } })
+    if (!existing) throw new HttpError(404, 'Order not found.')
+  }
+  return getAdminOrder(orderNumber)
+}
+
+export async function restoreAdminOrder(orderNumber: string) {
+  const result = await prisma.order.updateMany({
+    where: { orderNumber, archivedAt: { not: null } },
+    data: { archivedAt: null, archivedById: null },
+  })
+  if (result.count === 0) {
+    const existing = await prisma.order.findUnique({ where: { orderNumber }, select: { id: true, archivedAt: true } })
+    if (!existing) throw new HttpError(404, 'Order not found.')
+  }
+  return getAdminOrder(orderNumber)
+}
+
+export async function deleteAdminOrder(orderNumber: string) {
+  await prisma.$transaction(async (transaction) => {
+    const existing = await transaction.order.findUnique({
+      where: { orderNumber },
+      select: {
+        id: true,
+        archivedAt: true,
+        paymentStatus: true,
+        orderStatus: true,
+        stockDeductedAt: true,
+        stockRestoredAt: true,
+        paymentSubmissions: { select: { id: true }, take: 1 },
+      },
+    })
+    if (!existing) throw new HttpError(404, 'Order not found.')
+    if (!existing.archivedAt) throw new HttpError(409, 'Only archived orders can be permanently deleted.')
+    if (existing.paymentStatus !== PaymentStatus.PENDING || existing.paymentSubmissions.length > 0) {
+      throw new HttpError(409, 'Orders with payment records cannot be permanently deleted.')
+    }
+    if (existing.orderStatus !== OrderStatus.CANCELLED || (existing.stockDeductedAt && !existing.stockRestoredAt)) {
+      throw new HttpError(409, 'Only cancelled orders with reconciled stock can be permanently deleted.')
+    }
+    await transaction.order.delete({ where: { id: existing.id } })
+  })
 }
 
 export async function listAdminPayments(query: AdminPaymentsQuery): Promise<AdminPaymentsPage> {

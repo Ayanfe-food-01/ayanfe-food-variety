@@ -1,6 +1,6 @@
 import { OrderStatus, PaymentStatus } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
-import type { AdminOrdersQuery, UpdateOrderStatusInput } from './admin.types.js'
+import type { AdminOrderArchiveView, AdminOrdersQuery, UpdateOrderStatusInput } from './admin.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -49,10 +49,18 @@ export function validateAdminOrdersQuery(query: Record<string, unknown>): AdminO
   if (!Number.isInteger(page) || page < 1) throw new HttpError(400, 'Page must be a positive integer.')
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) throw new HttpError(400, 'Page size must be between 1 and 50.')
   const search = typeof query.search === 'string' ? query.search.trim().slice(0, 120) : undefined
+  const archiveValue = query.archive ?? query.archived
+  let archive: AdminOrderArchiveView = 'active'
+  if (archiveValue === 'archived' || archiveValue === 'true') archive = 'archived'
+  else if (archiveValue === 'all') archive = 'all'
+  else if (archiveValue !== undefined && archiveValue !== '' && archiveValue !== 'active' && archiveValue !== 'false') {
+    throw new HttpError(400, 'Archive view is invalid.')
+  }
   return {
     search: search || undefined,
     paymentStatus: parseEnum(query.paymentStatus, Object.values(PaymentStatus), 'Payment status'),
     orderStatus: parseEnum(query.orderStatus, Object.values(OrderStatus), 'Order status'),
+    archive,
     sort: query.sort === 'oldest' ? 'oldest' : 'newest',
     page,
     pageSize,

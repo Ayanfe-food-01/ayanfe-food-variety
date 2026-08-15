@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
-import { getAdminOrder, updateAdminOrderStatus, type AdminOrder, type OrderStatus } from '../../services/orderService'
+import {
+  archiveAdminOrder,
+  deleteAdminOrder,
+  getAdminOrder,
+  restoreAdminOrder,
+  updateAdminOrderStatus,
+  type AdminOrder,
+  type OrderStatus,
+} from '../../services/orderService'
 import { formatOrderStatus, getOrderStatusOptions } from '../../utils/orderStatus'
 import { useToast } from '../../components/ui/Toast'
 import { ImagePreview } from '../../components/ui/ImagePreview'
@@ -27,8 +35,13 @@ export function OrderDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isCancelConfirmationOpen, setIsCancelConfirmationOpen] = useState(false)
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isArchiveSaving, setIsArchiveSaving] = useState(false)
+  const [isDeleteSaving, setIsDeleteSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useToast()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!orderNumber) return
@@ -64,6 +77,35 @@ export function OrderDetail() {
     void persistStatus()
   }
 
+  const toggleArchive = async () => {
+    if (!order) return
+    setIsArchiveSaving(true)
+    try {
+      const updated = order.archivedAt ? await restoreAdminOrder(order.orderNumber) : await archiveAdminOrder(order.orderNumber)
+      setOrder(updated)
+      showToast(order.archivedAt ? 'Order restored to the active list.' : 'Order archived. It remains available in Archived orders.', 'success')
+    } catch (caught: unknown) {
+      showToast(caught instanceof ApiError ? caught.message : 'The order archive state could not be changed.', 'error')
+    } finally {
+      setIsArchiveSaving(false)
+    }
+  }
+
+  const permanentlyDelete = async () => {
+    if (!order) return
+    setIsDeleteSaving(true)
+    setDeleteError(null)
+    try {
+      await deleteAdminOrder(order.orderNumber)
+      showToast('Order permanently deleted.', 'success')
+      navigate('/admin/orders')
+    } catch (caught: unknown) {
+      setDeleteError(caught instanceof ApiError ? caught.message : 'The order could not be deleted.')
+    } finally {
+      setIsDeleteSaving(false)
+    }
+  }
+
   if (isLoading) return <div className="rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading order…</div>
   if (!order) return <div><div className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error ?? 'Order not found.'}</div><Link className="mt-5 inline-block font-bold text-green" to="/admin/orders">Back to orders</Link></div>
 
@@ -71,7 +113,15 @@ export function OrderDetail() {
     <div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div><Link className="text-sm font-bold text-green hover:text-orange" to="/admin/orders">← Back to orders</Link><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Order detail</p><h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{order.orderNumber}</h1><p className="mt-3 text-sm text-muted">Placed {formatDate(order.createdAt)}</p></div>
-         <div className="flex flex-wrap gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span><span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span>
+            <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>
+            {order.archivedAt && <span className="rounded-full bg-orange/10 px-3 py-2 text-xs font-bold text-orange">Archived</span>}
+            <button className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={isArchiveSaving || isDeleteSaving} onClick={() => void toggleArchive()}>
+              {isArchiveSaving ? 'Saving…' : order.archivedAt ? 'Restore order' : 'Archive order'}
+            </button>
+            {order.archivedAt && <button className="rounded-xl border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={isArchiveSaving || isDeleteSaving} onClick={() => { setDeleteError(null); setIsDeleteConfirmationOpen(true) }}>Delete permanently</button>}
+          </div>
       </div>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
@@ -155,6 +205,24 @@ export function OrderDetail() {
             setIsCancelConfirmationOpen(false)
             void persistStatus()
           }}
+        />
+      )}
+      {isDeleteConfirmationOpen && (
+        <ConfirmDialog
+          eyebrow="Permanent deletion"
+          title={`Delete ${order.orderNumber} permanently?`}
+          description="This permanently removes the archived order and its order-specific records. This cannot be undone. Orders with payment records or unreconciled stock are protected from deletion."
+          error={deleteError}
+          isBusy={isDeleteSaving}
+          confirmLabel="Delete permanently"
+          busyLabel="Deleting order…"
+          onCancel={() => {
+            if (!isDeleteSaving) {
+              setIsDeleteConfirmationOpen(false)
+              setDeleteError(null)
+            }
+          }}
+          onConfirm={() => void permanentlyDelete()}
         />
       )}
     </div>

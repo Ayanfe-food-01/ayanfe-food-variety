@@ -2,21 +2,33 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import {
+  archiveAdminOrder,
+  deleteAdminOrder,
   getAdminOrders,
+  restoreAdminOrder,
+  type AdminOrderListItem,
   type AdminOrdersPage,
   type AdminOrdersQuery,
 } from '../../services/orderService'
 import { OrderTable } from '../../components/admin/OrderTable'
 import { SelectField } from '../../components/ui/SelectField'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { useToast } from '../../components/ui/Toast'
 
 const pageSize = 10
 
 export function Orders() {
   const [searchInput, setSearchInput] = useState('')
-  const [query, setQuery] = useState<AdminOrdersQuery>({ page: 1, pageSize, sort: 'newest' })
+  const [query, setQuery] = useState<AdminOrdersQuery>({ archive: 'active', page: 1, pageSize, sort: 'newest' })
   const [result, setResult] = useState<AdminOrdersPage | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState(0)
+  const [busyOrderNumber, setBusyOrderNumber] = useState<string | null>(null)
+  const [deleteOrder, setDeleteOrder] = useState<AdminOrderListItem | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { showToast } = useToast()
 
   useEffect(() => {
     let current = true
@@ -38,7 +50,7 @@ export function Orders() {
     return () => {
       current = false
     }
-  }, [query])
+  }, [query, refreshToken])
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -51,6 +63,44 @@ export function Orders() {
       [key]: value || undefined,
       page: 1,
     }))
+  }
+
+  const updateArchiveView = (archive: 'active' | 'archived') => {
+    setQuery((current) => ({ ...current, archive, page: 1 }))
+  }
+
+  const changeArchiveState = async (orderNumber: string, action: 'archive' | 'restore') => {
+    setBusyOrderNumber(orderNumber)
+    try {
+      if (action === 'archive') {
+        await archiveAdminOrder(orderNumber)
+        showToast('Order archived. It remains available in Archived orders.', 'success')
+      } else {
+        await restoreAdminOrder(orderNumber)
+        showToast('Order restored to the active order list.', 'success')
+      }
+      setRefreshToken((current) => current + 1)
+    } catch (caught: unknown) {
+      showToast(caught instanceof ApiError ? caught.message : 'The order could not be updated.', 'error')
+    } finally {
+      setBusyOrderNumber(null)
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteOrder) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteAdminOrder(deleteOrder.orderNumber)
+      setDeleteOrder(null)
+      showToast('Order permanently deleted.', 'success')
+      setRefreshToken((current) => current + 1)
+    } catch (caught: unknown) {
+      setDeleteError(caught instanceof ApiError ? caught.message : 'The order could not be deleted.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const total = result?.pagination.total ?? 0
@@ -66,6 +116,23 @@ export function Orders() {
           <p className="mt-3 text-sm text-muted">Search, review, and move orders through fulfillment.</p>
         </div>
         <Link className="text-sm font-bold text-green hover:text-orange" to="/admin">Back to dashboard</Link>
+      </div>
+
+      <div className="mt-8 flex flex-wrap gap-2" aria-label="Order archive view">
+        {([
+          ['active', 'Active orders'],
+          ['archived', 'Archived orders'],
+        ] as const).map(([value, label]) => (
+          <button
+            className={`rounded-xl px-4 py-2.5 text-sm font-bold ${query.archive === value ? 'bg-green text-cream' : 'border border-line bg-white text-green-dark hover:border-green'}`}
+            type="button"
+            key={value}
+            aria-pressed={query.archive === value}
+            onClick={() => updateArchiveView(value)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Order filters">
@@ -131,7 +198,19 @@ export function Orders() {
       ) : (
         <>
           <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{total} {total === 1 ? 'order' : 'orders'}</span><span>Page {currentPage} of {totalPages}</span></div>
-          <div className="mt-3"><OrderTable orders={result?.orders ?? []} /></div>
+          <div className="mt-3">
+            <OrderTable
+              orders={result?.orders ?? []}
+              archiveView={query.archive === 'archived' ? 'archived' : 'active'}
+              busyOrderNumber={busyOrderNumber}
+              onArchive={(orderNumber) => void changeArchiveState(orderNumber, 'archive')}
+              onRestore={(orderNumber) => void changeArchiveState(orderNumber, 'restore')}
+              onDelete={(order) => {
+                setDeleteError(null)
+                setDeleteOrder(order)
+              }}
+            />
+          </div>
           {totalPages > 1 && (
             <div className="mt-5 flex items-center justify-between gap-4">
               <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button>
@@ -140,6 +219,24 @@ export function Orders() {
             </div>
           )}
         </>
+      )}
+      {deleteOrder && (
+        <ConfirmDialog
+          eyebrow="Permanent deletion"
+          title={`Delete ${deleteOrder.orderNumber} permanently?`}
+          description="This permanently removes the archived order and its order-specific records. This cannot be undone. Orders with payment records or unreconciled stock are protected from deletion."
+          error={deleteError}
+          isBusy={isDeleting}
+          confirmLabel="Delete permanently"
+          busyLabel="Deleting order…"
+          onCancel={() => {
+            if (!isDeleting) {
+              setDeleteOrder(null)
+              setDeleteError(null)
+            }
+          }}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
     </div>
   )

@@ -44,10 +44,20 @@ export function validateAdminOrdersQuery(query) {
     if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50)
         throw new HttpError(400, 'Page size must be between 1 and 50.');
     const search = typeof query.search === 'string' ? query.search.trim().slice(0, 120) : undefined;
+    const archiveValue = query.archive ?? query.archived;
+    let archive = 'active';
+    if (archiveValue === 'archived' || archiveValue === 'true')
+        archive = 'archived';
+    else if (archiveValue === 'all')
+        archive = 'all';
+    else if (archiveValue !== undefined && archiveValue !== '' && archiveValue !== 'active' && archiveValue !== 'false') {
+        throw new HttpError(400, 'Archive view is invalid.');
+    }
     return {
         search: search || undefined,
         paymentStatus: parseEnum(query.paymentStatus, Object.values(PaymentStatus), 'Payment status'),
         orderStatus: parseEnum(query.orderStatus, Object.values(OrderStatus), 'Order status'),
+        archive,
         sort: query.sort === 'oldest' ? 'oldest' : 'newest',
         page,
         pageSize,

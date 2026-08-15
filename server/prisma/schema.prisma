@@ -128,6 +128,8 @@ model Order {
   cancelledAt      DateTime?     @map("cancelled_at") @db.Timestamptz(6)
   stockDeductedAt  DateTime?   @map("stock_deducted_at") @db.Timestamptz(6)
   stockRestoredAt  DateTime?   @map("stock_restored_at") @db.Timestamptz(6)
+  archivedAt       DateTime?     @map("archived_at") @db.Timestamptz(6)
+  archivedById     String?       @map("archived_by_id") @db.Uuid
   createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   orderItems          OrderItem[]
@@ -136,8 +138,10 @@ model Order {
   statusHistory       OrderStatusHistory[]
   stockAdjustments    ProductStockAdjustment[]
   user                User?       @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  archivedBy          User?       @relation("OrderArchiveActor", fields: [archivedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([userId], map: "orders_user_id_idx")
+  @@index([archivedAt], map: "orders_archived_at_idx")
   @@map("orders")
 }
 
@@ -278,6 +282,7 @@ model User {
   emailVerification CustomerEmailVerification?
   passwordResetTokens PasswordResetToken[]
   orders       Order[]
+  archivedOrders Order[] @relation("OrderArchiveActor")
   orderStatusChanges OrderStatusHistory[]
   cart         CustomerCart?
   paymentAuditEvents PaymentAuditEvent[] @relation("PaymentAuditActor")

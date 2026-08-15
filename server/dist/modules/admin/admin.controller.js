@@ -2,7 +2,7 @@ import { PaymentMethod, PaymentSubmissionStatus } from '@prisma/client';
 import { HttpError } from '../../utils/http.js';
 import { reviewPayment } from '../payments/payment.service.js';
 import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../payments/payment.validator.js';
-import { getAdminOrder, getAdminPayment, getDashboardStats, listAdminOrders, listAdminPayments, updateAdminOrderStatus, } from './admin.service.js';
+import { getAdminOrder, getAdminPayment, getDashboardStats, archiveAdminOrder, deleteAdminOrder, listAdminOrders, listAdminPayments, restoreAdminOrder, updateAdminOrderStatus, } from './admin.service.js';
 import { validateAdminOrdersQuery, validateOrderNumber, validateOrderStatusInput, } from './admin.validator.js';
 export const getDashboardController = async (_request, response) => {
     response.json({ success: true, data: { stats: await getDashboardStats() } });
@@ -21,6 +21,27 @@ export const updateAdminOrderStatusController = async (request, response) => {
         message: 'Order status updated.',
         data: { order: await updateAdminOrderStatus(orderNumber, validateOrderStatusInput(request.body), request.authenticatedUser.id) },
     });
+};
+export const archiveAdminOrderController = async (request, response) => {
+    const orderNumber = validateOrderNumber(request.params.orderNumber);
+    response.json({
+        success: true,
+        message: 'Order archived.',
+        data: { order: await archiveAdminOrder(orderNumber, request.authenticatedUser.id) },
+    });
+};
+export const restoreAdminOrderController = async (request, response) => {
+    const orderNumber = validateOrderNumber(request.params.orderNumber);
+    response.json({
+        success: true,
+        message: 'Order restored.',
+        data: { order: await restoreAdminOrder(orderNumber) },
+    });
+};
+export const deleteAdminOrderController = async (request, response) => {
+    const orderNumber = validateOrderNumber(request.params.orderNumber);
+    await deleteAdminOrder(orderNumber);
+    response.json({ success: true, message: 'Order permanently deleted.' });
 };
 const parsePaymentStatus = (value) => {
     if (value === undefined || value === '' || value === 'ALL')

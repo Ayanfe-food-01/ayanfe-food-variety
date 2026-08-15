@@ -25,13 +25,17 @@ export interface AdminOrderListItem {
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
+  archivedAt: string | null
   createdAt: string
 }
+
+export type AdminOrderArchiveView = 'active' | 'archived' | 'all'
 
 export interface AdminOrdersQuery {
   search?: string
   paymentStatus?: PaymentStatus
   orderStatus?: OrderStatus
+  archive: AdminOrderArchiveView
   sort: 'newest' | 'oldest'
   page: number
   pageSize: number

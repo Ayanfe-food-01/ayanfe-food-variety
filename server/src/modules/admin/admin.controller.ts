@@ -7,8 +7,11 @@ import {
   getAdminOrder,
   getAdminPayment,
   getDashboardStats,
+  archiveAdminOrder,
+  deleteAdminOrder,
   listAdminOrders,
   listAdminPayments,
+  restoreAdminOrder,
   updateAdminOrderStatus,
 } from './admin.service.js'
 import {
@@ -38,6 +41,30 @@ export const updateAdminOrderStatusController: RequestHandler = async (request, 
     message: 'Order status updated.',
     data: { order: await updateAdminOrderStatus(orderNumber, validateOrderStatusInput(request.body), request.authenticatedUser!.id) },
   })
+}
+
+export const archiveAdminOrderController: RequestHandler = async (request, response) => {
+  const orderNumber = validateOrderNumber(request.params.orderNumber)
+  response.json({
+    success: true,
+    message: 'Order archived.',
+    data: { order: await archiveAdminOrder(orderNumber, request.authenticatedUser!.id) },
+  })
+}
+
+export const restoreAdminOrderController: RequestHandler = async (request, response) => {
+  const orderNumber = validateOrderNumber(request.params.orderNumber)
+  response.json({
+    success: true,
+    message: 'Order restored.',
+    data: { order: await restoreAdminOrder(orderNumber) },
+  })
+}
+
+export const deleteAdminOrderController: RequestHandler = async (request, response) => {
+  const orderNumber = validateOrderNumber(request.params.orderNumber)
+  await deleteAdminOrder(orderNumber)
+  response.json({ success: true, message: 'Order permanently deleted.' })
 }
 
 const parsePaymentStatus = (value: unknown): PaymentSubmissionStatus | undefined => {

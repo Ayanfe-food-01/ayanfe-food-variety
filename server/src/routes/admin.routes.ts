@@ -4,9 +4,12 @@ import {
   getAdminOrderController,
   getAdminPaymentController,
   getDashboardController,
+  archiveAdminOrderController,
+  deleteAdminOrderController,
   listAdminOrdersController,
   listAdminPaymentsController,
   rejectAdminPaymentController,
+  restoreAdminOrderController,
   updateAdminOrderStatusController,
   verifyAdminPaymentController,
 } from '../modules/admin/admin.controller.js'
@@ -74,6 +77,9 @@ adminRoutes.get('/dashboard', getDashboardController)
 adminRoutes.get('/orders', listAdminOrdersController)
 adminRoutes.get('/orders/:orderNumber', getAdminOrderController)
 adminRoutes.patch('/orders/:orderNumber/status', updateAdminOrderStatusController)
+adminRoutes.patch('/orders/:orderNumber/archive', archiveAdminOrderController)
+adminRoutes.patch('/orders/:orderNumber/restore', restoreAdminOrderController)
+adminRoutes.delete('/orders/:orderNumber', deleteAdminOrderController)
 adminRoutes.get('/payments', listAdminPaymentsController)
 adminRoutes.get('/payments/:id', getAdminPaymentController)
 adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController)

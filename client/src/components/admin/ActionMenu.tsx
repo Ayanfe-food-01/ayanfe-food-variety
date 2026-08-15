@@ -6,10 +6,19 @@ interface ActionMenuProps {
   ariaLabel: string
   isBusy?: boolean
   fixedPosition?: boolean
+  triggerVariant?: 'default' | 'plain'
+  triggerOrientation?: 'horizontal' | 'vertical'
   children: (close: () => void) => ReactNode
 }
 
-export function ActionMenu({ ariaLabel, isBusy = false, fixedPosition = false, children }: ActionMenuProps) {
+export function ActionMenu({
+  ariaLabel,
+  isBusy = false,
+  fixedPosition = false,
+  triggerVariant = 'default',
+  triggerOrientation = 'horizontal',
+  children,
+}: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -65,7 +74,9 @@ export function ActionMenu({ ariaLabel, isBusy = false, fixedPosition = false, c
   return (
     <div className="relative inline-block" ref={containerRef}>
       <button
-        className="grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50"
+        className={triggerVariant === 'plain'
+          ? 'grid size-9 place-items-center rounded-full text-muted transition-colors hover:bg-transparent hover:text-green-dark disabled:cursor-wait disabled:opacity-50'
+          : 'grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50'}
         type="button"
         aria-label={ariaLabel}
         aria-expanded={isOpen}
@@ -74,7 +85,9 @@ export function ActionMenu({ ariaLabel, isBusy = false, fixedPosition = false, c
         ref={buttonRef}
         onClick={() => setIsOpen((current) => !current)}
       >
-        <MoreHorizontalIcon size={20} />
+        <span className={triggerOrientation === 'vertical' ? 'rotate-90' : undefined}>
+          <MoreHorizontalIcon size={20} />
+        </span>
       </button>
       {isOpen && (
         <div

@@ -5,6 +5,8 @@ interface OrderActionsMenuProps {
   order: AdminOrderListItem
   archiveView: 'active' | 'archived'
   isBusy?: boolean
+  plainTrigger?: boolean
+  verticalTrigger?: boolean
   onArchive: (orderNumber: string) => void
   onRestore: (orderNumber: string) => void
   onDelete: (order: AdminOrderListItem) => void
@@ -14,6 +16,8 @@ export function OrderActionsMenu({
   order,
   archiveView,
   isBusy = false,
+  plainTrigger = false,
+  verticalTrigger = false,
   onArchive,
   onRestore,
   onDelete,
@@ -25,6 +29,8 @@ export function OrderActionsMenu({
       ariaLabel={`Actions for order ${order.orderNumber}`}
       fixedPosition
       isBusy={isBusy}
+      triggerVariant={plainTrigger ? 'plain' : 'default'}
+      triggerOrientation={verticalTrigger ? 'vertical' : 'horizontal'}
     >
       {(close) => (
         <>

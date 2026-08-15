@@ -1,5 +1,4 @@
 import type { AdminOrderListItem } from '../../services/orderService'
-import { Link } from 'react-router-dom'
 import { formatOrderStatus } from '../../utils/orderStatus'
 import { OrderActionsMenu } from './OrderActionsMenu'
 
@@ -111,22 +110,17 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></td>
                 <td className="px-5 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <Link className="rounded-lg border border-line px-3 py-2 text-xs font-bold text-green hover:border-green" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View</Link>
-                    {archiveView === 'active' ? (
-                      <button className="rounded-lg border border-line px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onArchive(order.orderNumber)}>
-                        {busyOrderNumber === order.orderNumber ? 'Archiving…' : 'Archive'}
-                      </button>
-                    ) : (
-                      <>
-                        <button className="rounded-lg border border-line px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onRestore(order.orderNumber)}>
-                          {busyOrderNumber === order.orderNumber ? 'Restoring…' : 'Restore'}
-                        </button>
-                        <button className="rounded-lg border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onDelete(order)}>
-                          {busyOrderNumber === order.orderNumber ? 'Deleting…' : 'Delete'}
-                        </button>
-                      </>
-                    )}
+                  <div className="flex justify-end">
+                    <OrderActionsMenu
+                      order={order}
+                      archiveView={archiveView}
+                      isBusy={busyOrderNumber === order.orderNumber}
+                      plainTrigger
+                      verticalTrigger
+                      onArchive={onArchive}
+                      onRestore={onRestore}
+                      onDelete={onDelete}
+                    />
                   </div>
                 </td>
               </tr>

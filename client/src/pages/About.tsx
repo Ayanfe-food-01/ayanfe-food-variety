@@ -9,23 +9,23 @@ import { Link } from 'react-router-dom'
 const commitments = [
   {
     icon: ShieldIcon,
-    title: 'Natural and carefully selected',
-    text: 'We source foodstuff with everyday Nigerian cooking in mind, from pantry staples to nourishing family favourites.',
+    title: 'Gluten-free by focus',
+    text: 'Our collection is focused on gluten-free foodstuff, helping you shop with greater confidence for everyday meals.',
   },
   {
     icon: CheckIcon,
-    title: 'Preservative-free options',
-    text: 'Our collection makes it easier to find wholesome, clearly presented ingredients for the meals you already love.',
+    title: 'Simple, dependable choices',
+    text: 'We present practical gluten-free staples and pantry essentials clearly, so choosing what belongs in your kitchen feels easy.',
   },
   {
     icon: HeartIcon,
-    title: 'Made for your kitchen',
-    text: 'Ayanfe Food Variety helps households shop confidently for quality staples, grains, oils and more.',
+    title: 'Made for everyday kitchens',
+    text: 'Ayanfe Food Variety helps households find gluten-free ingredients for familiar meals, family recipes and daily cooking.',
   },
   {
     icon: TruckIcon,
     title: 'Reliable online delivery',
-    text: 'Order Nigerian foodstuff online and let our team bring your essentials closer to home, wherever you are in Nigeria.',
+    text: 'Order your gluten-free foodstuff online and let our team bring your essentials closer to home with convenient delivery.',
   },
 ]
 
@@ -48,11 +48,11 @@ export function About() {
                 <span className="inline-block size-2 rounded-full bg-orange" />
                 Why Ayanfe
               </p>
-              <h1 className="m-0 text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-6xl">
-                Quality, natural Nigerian foodstuff for every kitchen.
+              <h1 className="m-0 text-4xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-5xl">
+                Quality gluten-free foodstuff for every kitchen.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-                Ayanfe Food Variety Limited is a Nigerian food processing and foodstuff delivery brand making natural, preservative-free staples easier to find and order online.
+                Ayanfe Food Variety Limited offers carefully selected gluten-free foodstuff for households that want simple, dependable ingredients for everyday meals.
               </p>
             </div>
           </div>
@@ -63,15 +63,15 @@ export function About() {
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-orange">Our purpose</p>
               <h2 id="about-story-heading" className="m-0 max-w-md text-3xl font-bold leading-tight tracking-[-0.04em] text-green-dark sm:text-4xl">
-                Good food starts with ingredients you can trust.
+                Gluten-free food for everyday cooking.
               </h2>
             </div>
             <div className="space-y-5 text-base leading-8 text-muted">
               <p>
-                We believe stocking your kitchen should feel simple, dependable and close to home. That is why we bring together quality Nigerian foodstuff, pantry essentials and everyday groceries in one easy-to-use online shop.
+                We believe finding gluten-free foodstuff for your kitchen should feel simple and dependable. That is why we bring carefully selected gluten-free staples and pantry essentials together in one easy-to-use online shop.
               </p>
               <p>
-                From swallow flours and grains to cooking oils and everyday pantry choices, our growing range is selected to support real family meals. We pair that care with clear product information, friendly service and reliable delivery.
+                From gluten-free flours and grains to cooking oils and other everyday pantry choices, our range is selected to support real family meals. We pair that focus with clear product information, friendly service and reliable delivery.
               </p>
               <Link className="inline-flex items-center gap-2 font-bold text-green transition-all hover:gap-3" to="/shop">
                 Shop our Nigerian foodstuff <ArrowRight size={16} />

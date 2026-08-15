@@ -7,9 +7,9 @@ import { BreadcrumbBar } from '../components/ui/Breadcrumb'
 import { ProductPrice } from '../components/products/ProductPrice'
 import {
   ContactDetailsSection,
-  FulfillmentSection,
   PaymentMethodSection,
 } from '../components/checkout/CheckoutFormSections'
+import { DeliveryOptionsSection } from '../components/checkout/DeliveryOptionsSection'
 import { calculateCheckoutTotals } from '../components/checkout/checkoutCalculations'
 import { initialCheckoutForm, validateCheckoutForm } from '../components/checkout/checkoutValidation'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../components/checkout/types'
@@ -276,7 +276,7 @@ export function Checkout() {
                 error={paymentError}
                 onChange={(method) => updateField('paymentMethod', method)}
               />
-              <FulfillmentSection
+              <DeliveryOptionsSection
                 form={form}
                 errors={errors}
                 fulfillmentMethod={form.fulfillmentMethod}

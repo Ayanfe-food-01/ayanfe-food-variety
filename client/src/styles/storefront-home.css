@@ -49,11 +49,19 @@
 .horizontal-rail-control { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--color-line); border-radius: 50%; background: white; color: var(--color-green-dark); cursor: pointer; transition: border-color .2s ease, background-color .2s ease, color .2s ease, transform .2s ease; pointer-events: auto; }
 .horizontal-rail-control:hover, .horizontal-rail-control:focus-visible { border-color: var(--color-green); background: var(--color-green); color: white; transform: translateY(-1px); }
 .category-rail, .product-rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(142px, 1fr); gap: 10px; overflow-x: auto; padding: 3px 2px 8px; scrollbar-width: thin; scroll-snap-type: x proximity; }
-.category-tile { display: grid; gap: 9px; color: var(--color-ink); font-size: 12px; font-weight: 700; text-align: center; scroll-snap-align: start; }
-.category-tile img, .category-placeholder { width: 100%; height: 105px; border-radius: 11px; background: var(--color-sage); object-fit: cover; }
-.category-skeleton { display: block; height: 105px; border-radius: 11px; background: var(--color-sage); animation: pulse 1.5s infinite ease-in-out; }
-.category-placeholder { background: linear-gradient(135deg, var(--color-sage), #f1c48e); }
-.category-tile:hover span { color: var(--color-orange); }
+.category-card { display: flex; min-width: 0; flex-direction: column; gap: 9px; color: var(--color-ink); scroll-snap-align: start; }
+.category-card-media { position: relative; display: block; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; border-radius: 14px; background: var(--color-sage); }
+.category-card-media img, .category-card-placeholder { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.category-card-placeholder { display: block; background: linear-gradient(135deg, var(--color-sage), #f1c48e); }
+.category-card-arrow { position: absolute; top: 9px; right: 9px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgb(248 248 243 / 92%); color: var(--color-green); opacity: 0; transform: translateY(-3px); transition: opacity .2s ease, transform .2s ease; }
+.category-card-copy { display: grid; gap: 3px; min-width: 0; padding: 0 2px; }
+.category-card-title { overflow: hidden; color: var(--color-ink); font-size: 12px; font-weight: 800; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.category-card-description { overflow: hidden; color: var(--color-muted); font-size: 11px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.category-card:hover .category-card-media, .category-card:focus-visible .category-card-media { box-shadow: 0 10px 24px rgb(32 60 36 / 12%); }
+.category-card:hover .category-card-media img, .category-card:focus-visible .category-card-media img { transform: scale(1.05); }
+.category-card:hover .category-card-arrow, .category-card:focus-visible .category-card-arrow { opacity: 1; transform: translateY(0); }
+.category-card:hover .category-card-title, .category-card:focus-visible .category-card-title { color: var(--color-orange); }
+.category-skeleton { display: block; width: 100%; aspect-ratio: 1 / 1; border-radius: 14px; background: var(--color-sage); animation: pulse 1.5s infinite ease-in-out; }
 .product-rail { display: flex; align-items: stretch; gap: 16px; }
 .product-rail > .product-card, .product-rail > .product-skeleton { flex: 0 0 min(40vw, 200px); }
 .product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

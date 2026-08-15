@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
+import { FeaturedStatus, getFeaturedActionLabel } from '../../components/admin/FeaturedStatus'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -39,7 +40,7 @@ function ProductActions({ product, isBusy, onToggleStatus, onToggleFeatured, onD
           <ActionMenuLink to={`/admin/products/${product.id}`} onClick={close}>View</ActionMenuLink>
           <ActionMenuLink to={`/admin/products/${product.id}/edit`} onClick={close}>Edit</ActionMenuLink>
           <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{product.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
-          <ActionMenuButton onClick={() => { close(); onToggleFeatured() }}>{product.isFeatured ? 'Remove from featured' : 'Mark as featured'}</ActionMenuButton>
+           <ActionMenuButton onClick={() => { close(); onToggleFeatured() }}>{getFeaturedActionLabel(product.isFeatured)}</ActionMenuButton>
           <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
         </>
       )}
@@ -277,9 +278,7 @@ export function Products() {
                       <div>
                         <dt className="uppercase tracking-[0.12em] text-muted">Featured</dt>
                         <dd className="mt-1">
-                          <span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${product.isFeatured ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
-                            {product.isFeatured ? 'Featured' : 'Not featured'}
-                          </span>
+                           <FeaturedStatus isFeatured={product.isFeatured} />
                         </dd>
                       </div>
                      <div>
@@ -333,9 +332,7 @@ export function Products() {
                         </span>
                       </td>
                        <td className="px-4 py-4">
-                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.isFeatured ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
-                           {product.isFeatured ? 'Featured' : 'Not featured'}
-                         </span>
+                          <FeaturedStatus isFeatured={product.isFeatured} />
                        </td>
                       <td className="px-4 py-4 whitespace-nowrap text-xs text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</td>
                        <td className="px-4 py-4 text-right">

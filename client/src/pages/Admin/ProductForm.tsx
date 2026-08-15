@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
+import { FeaturedToggle } from '../../components/admin/FeaturedToggle'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { SelectField } from '../../components/ui/SelectField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
@@ -23,7 +25,6 @@ export function ProductForm() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'uploading' | 'saving'>('idle')
 
   useEffect(() => {
     let current = true
@@ -101,10 +102,8 @@ export function ProductForm() {
       return
     }
     setIsSaving(true)
-    setSaveStatus(form.image ? 'uploading' : 'saving')
     try {
       // The API performs the Cloudinary upload as part of this request.
-      if (form.image) setSaveStatus('uploading')
       if (id) await updateAdminProduct(id, form)
       else await createAdminProduct(form)
       navigate('/admin/products', {
@@ -115,7 +114,6 @@ export function ProductForm() {
       setError(caught instanceof ApiError ? caught.message : 'Product could not be saved.')
     } finally {
       setIsSaving(false)
-      setSaveStatus('idle')
     }
   }
 
@@ -124,9 +122,7 @@ export function ProductForm() {
     'aria-describedby': fieldErrors[field] ? `${field}-error` : undefined,
   })
 
-  const progressLabel = saveStatus === 'uploading'
-    ? `${isEditing ? 'Uploading image and updating' : 'Uploading image and creating'} product…`
-    : `${isEditing ? 'Updating' : 'Creating'} product…`
+  const progressLabel = getSaveProgressLabel('product', isEditing ? 'update' : 'create', Boolean(form.image))
 
   return (
     <>
@@ -184,7 +180,7 @@ export function ProductForm() {
              onChange={chooseImage}
            />
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
-            <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isFeatured} onChange={(event) => update('isFeatured', event.target.checked)} />Mark as featured</label>
+             <FeaturedToggle checked={form.isFeatured} disabled={isSaving} onChange={(checked) => update('isFeatured', checked)} />
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
            {isSaving && <p className="text-sm font-semibold text-muted" role="status">{progressLabel}</p>}
            <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>

@@ -26,6 +26,8 @@ const routeParam = (value: string | string[] | undefined): string | undefined =>
 const upload = multer({
   storage: multer.memoryStorage(),
   // Product forms send 11 scalar fields before an optional image file.
+  // Keep this above the current form shape so adding a documented product
+  // option cannot be misreported as an image upload failure.
   limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 20, fieldSize: 1 * 1024 * 1024 },
   fileFilter: (_request, file, callback) => {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
@@ -43,6 +45,8 @@ export const productImageUpload: RequestHandler = (request, response, next) => {
         ? 'Product images must be 5 MB or smaller.'
         : error.code === 'LIMIT_FIELD_COUNT'
           ? 'Too many product form fields were submitted.'
+          : error.code === 'LIMIT_UNEXPECTED_FILE'
+            ? 'Only one product image can be uploaded.'
           : 'The product image upload is invalid.'))
       return
     }

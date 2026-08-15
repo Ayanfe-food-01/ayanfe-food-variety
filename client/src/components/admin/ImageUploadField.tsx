@@ -26,13 +26,18 @@ export function ImageUploadField({
 }: ImageUploadFieldProps) {
   const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      onChange(undefined, null, null)
+      return
+    }
 
     if (!acceptedImageTypes.includes(file.type)) {
+      event.currentTarget.value = ''
       onChange(undefined, null, 'Choose a JPG, PNG, or WEBP image.')
       return
     }
     if (file.size > maxImageSize) {
+      event.currentTarget.value = ''
       onChange(undefined, null, 'Images must be 5 MB or smaller.')
       return
     }

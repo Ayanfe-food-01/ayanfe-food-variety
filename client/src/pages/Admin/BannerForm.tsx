@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
+import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import {
   createAdminBanner,
   getAdminBanner,
@@ -85,9 +86,7 @@ export function BannerForm() {
     }
   }
 
-  const progressLabel = form.image
-    ? `Uploading image and ${isEditing ? 'updating' : 'creating'} banner…`
-    : `${isEditing ? 'Updating' : 'Creating'} banner…`
+  const progressLabel = getSaveProgressLabel('banner', isEditing ? 'update' : 'create', Boolean(form.image))
 
   return (
     <>

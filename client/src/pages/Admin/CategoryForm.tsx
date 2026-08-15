@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
+import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { createAdminCategory, getAdminCategory, updateAdminCategory, type CategoryInput } from '../../services/adminService'
 
 const initialForm: CategoryInput = { name: '', description: '', isActive: true }
@@ -68,9 +69,7 @@ export function CategoryForm() {
     }
   }
 
-  const progressLabel = form.image
-    ? `Uploading image and ${isEditing ? 'updating' : 'creating'} category…`
-    : `${isEditing ? 'Updating' : 'Creating'} category…`
+  const progressLabel = getSaveProgressLabel('category', isEditing ? 'update' : 'create', Boolean(form.image))
 
   return (
     <>

@@ -1,6 +1,7 @@
 import type { AdminOrderListItem } from '../../services/orderService'
 import { Link } from 'react-router-dom'
 import { formatOrderStatus } from '../../utils/orderStatus'
+import { OrderActionsMenu } from './OrderActionsMenu'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -38,9 +39,14 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Order number</p>
                 <p className="mt-1 break-words font-bold text-green-dark">{order.orderNumber}</p>
               </div>
-              <Link className="shrink-0 font-bold text-green hover:text-orange" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>
-                View
-              </Link>
+              <OrderActionsMenu
+                order={order}
+                archiveView={archiveView}
+                isBusy={busyOrderNumber === order.orderNumber}
+                onArchive={onArchive}
+                onRestore={onRestore}
+                onDelete={onDelete}
+              />
             </div>
             <div className="mt-4">
               <p className="font-semibold text-green-dark">{order.customerName}</p>
@@ -72,23 +78,6 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                  <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></dd>
               </div>
             </dl>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
-              <Link className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green" to={`/admin/orders/${encodeURIComponent(order.orderNumber)}`}>View details</Link>
-              {archiveView === 'active' ? (
-                <button className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onArchive(order.orderNumber)}>
-                  {busyOrderNumber === order.orderNumber ? 'Archiving…' : 'Archive'}
-                </button>
-              ) : (
-                <>
-                  <button className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onRestore(order.orderNumber)}>
-                    {busyOrderNumber === order.orderNumber ? 'Restoring…' : 'Restore'}
-                  </button>
-                  <button className="rounded-lg border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onDelete(order)}>
-                    {busyOrderNumber === order.orderNumber ? 'Deleting…' : 'Delete permanently'}
-                  </button>
-                </>
-              )}
-            </div>
           </article>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { Prisma, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
+import { FulfillmentMethod, Prisma, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
@@ -94,6 +94,7 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
     customerName: order.customerName,
     phone: order.phone,
     whatsapp: order.whatsapp,
+    fulfillmentMethod: order.fulfillmentMethod,
     email: order.email,
     deliveryAddress: order.deliveryAddress,
     city: order.city,
@@ -196,6 +197,9 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       if (existingOrder.userId !== userId) {
         throw new HttpError(409, 'This checkout request cannot be reused.')
       }
+      if (existingOrder.fulfillmentMethod !== input.fulfillmentMethod) {
+        throw new HttpError(409, 'This checkout request was already completed with a different fulfillment method.')
+      }
       return { order: existingOrder, created: false }
     }
 
@@ -281,7 +285,9 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
          product.discountValue,
        )
        const subtotal = unitPrice.mul(item.quantity)
-      const deliveryFee = product.deliveryFee.mul(item.quantity)
+       const deliveryFee = input.fulfillmentMethod === FulfillmentMethod.DELIVERY
+         ? product.deliveryFee.mul(item.quantity)
+         : new Prisma.Decimal(0)
       return {
         productId: product.id,
         productName: product.name,
@@ -307,9 +313,10 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
         customerName: input.customerName,
         phone: input.phone,
         email: user.email,
-        deliveryAddress: input.deliveryAddress,
-        city: input.city,
-        note: input.deliveryInstructions,
+         fulfillmentMethod: input.fulfillmentMethod,
+         deliveryAddress: input.deliveryAddress ?? '',
+         city: input.city ?? '',
+         note: input.deliveryInstructions ?? null,
         subtotal,
         deliveryFee: totalDeliveryFee,
         total: subtotal.add(totalDeliveryFee),
@@ -386,6 +393,7 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       customerName: result.order.customerName,
       customerEmail: result.order.email,
       phone: result.order.phone,
+      fulfillmentMethod: result.order.fulfillmentMethod,
       deliveryAddress: result.order.deliveryAddress,
       city: result.order.city,
       note: result.order.note,

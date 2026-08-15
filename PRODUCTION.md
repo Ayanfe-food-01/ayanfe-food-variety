@@ -16,13 +16,9 @@ Prisma and the migration scripts use this standard variable. The existing
 fallback; do not add it to Render.
 
 The Render blueprint runs `npm run prisma:migrate` before each deploy. This
-applies the committed Prisma migrations to the production database. Seed the
-catalog only after confirming the production database is empty:
-
-```bash
-cd server
-npm run prisma:seed
-```
+applies the committed Prisma migrations to the production database. Products
+and categories must be managed through the admin portal; there is no production
+seed command.
 
 Do not use development database credentials in Render.
 

@@ -5,6 +5,7 @@ import type {
   AdminProductQuery,
   Product,
   ProductInput,
+  PublicCategoryProductSection,
   PublicProduct,
   PublicProductPage,
   PublicProductQuery,
@@ -163,6 +164,46 @@ export async function getProducts(query: PublicProductQuery, wishlistUserId?: st
       totalPages: Math.max(1, Math.ceil(total / query.limit)),
     },
   }
+}
+
+export async function getCategoryProductSections(
+  limit: number,
+  wishlistUserId?: string,
+): Promise<PublicCategoryProductSection[]> {
+  const categories = await prisma.category.findMany({
+    where: {
+      isActive: true,
+      products: { some: { isActive: true, stockQuantity: { gt: 0 } } },
+    },
+    include: {
+      products: {
+        where: { isActive: true, stockQuantity: { gt: 0 } },
+        include: { category: true },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      },
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  const products = categories.flatMap((category) => category.products)
+  const wishlistProductIds = wishlistUserId
+    ? new Set((await prisma.wishlistItem.findMany({
+        where: { userId: wishlistUserId, productId: { in: products.map((product) => product.id) } },
+        select: { productId: true },
+      })).map((item) => item.productId))
+    : new Set<string>()
+
+  return categories
+    .filter((category) => category.products.length > 0)
+    .map((category) => ({
+      category: {
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+      },
+      products: category.products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
+    }))
 }
 
 export async function getPopularProducts(query: PublicProductQuery, wishlistUserId?: string): Promise<PublicProductPage> {

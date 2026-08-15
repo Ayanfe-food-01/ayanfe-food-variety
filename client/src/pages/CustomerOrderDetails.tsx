@@ -10,6 +10,8 @@ import { cancelCustomerOrder, getCustomerOrder, type CreatedOrder, type OrderSta
 import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
 import { SelectField } from '../components/ui/SelectField'
+import { formatDate } from '../utils/dateFormat'
+import { lockBodyScroll } from '../utils/browserCompatibility'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -84,7 +86,7 @@ function OrderTracker({ order }: { order: CreatedOrder }) {
               )}
             </div>
             <p className={`pt-1 text-sm font-bold ${state === 'complete' ? 'text-green-dark' : state === 'active' ? 'text-orange' : 'text-muted'}`}>{step.label}</p>
-            {timestamp && <p className="mt-1 text-[11px] text-muted">{new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(timestamp))}</p>}
+            {timestamp && <p className="mt-1 text-[11px] text-muted">{formatDate(timestamp)}</p>}
                 </>
               )
             })()}
@@ -123,14 +125,10 @@ export function CustomerOrderDetails() {
   useEffect(() => {
     if (!isCancelDialogOpen) return
 
-    const previousBodyOverflow = document.body.style.overflow
-    const previousDocumentOverflow = document.documentElement.style.overflow
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
+    const releaseBodyScroll = lockBodyScroll()
 
     return () => {
-      document.body.style.overflow = previousBodyOverflow
-      document.documentElement.style.overflow = previousDocumentOverflow
+      releaseBodyScroll()
     }
   }, [isCancelDialogOpen])
 
@@ -182,7 +180,7 @@ export function CustomerOrderDetails() {
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Order details</p>
                 <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark">{order.orderNumber}</h1>
                 <p className="mt-2 text-sm text-muted">
-                  Placed {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(order.createdAt))}
+                   Placed {formatDate(order.createdAt)}
                 </p>
               </div>
               <div className="text-left text-sm sm:text-right">
@@ -210,13 +208,27 @@ export function CustomerOrderDetails() {
             {order.orderStatus === 'CANCELLED' && (
               <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5">
                 <p className="font-bold text-orange">Cancelled</p>
-                {order.cancelledAt && <p className="mt-1 text-sm text-muted">Cancelled {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(order.cancelledAt))}</p>}
+                 {order.cancelledAt && <p className="mt-1 text-sm text-muted">Cancelled {formatDate(order.cancelledAt, true)}</p>}
                 {order.cancellationReason && <p className="mt-2 text-sm text-muted"><strong className="text-green-dark">Reason:</strong> {order.cancellationReason}</p>}
                 {order.paymentStatus === 'PAID' && <p className="mt-3 text-sm leading-6 text-muted">Payment status remains PAID. The store will handle any applicable refund separately.</p>}
               </div>
             )}
             <div className="mt-8">
               <OrderTracker order={order} />
+            </div>
+            <div className="mt-6 rounded-2xl border border-green/20 bg-sage/30 p-6 shadow-sm sm:p-8">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Fulfillment</p>
+              {order.fulfillmentMethod === 'PICKUP' ? (
+                <>
+                  <h2 className="mt-2 text-2xl font-bold text-green-dark">Pickup</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted">You will collect this order from the store. We will contact you using your phone number when it is ready.</p>
+                </>
+              ) : (
+                <>
+                  <h2 className="mt-2 text-2xl font-bold text-green-dark">Delivery</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted">{order.deliveryAddress}, {order.city}</p>
+                </>
+              )}
             </div>
             <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
               <h2 className="text-2xl font-bold text-green-dark">Items</h2>
@@ -225,7 +237,7 @@ export function CustomerOrderDetails() {
                   <div className="flex items-center justify-between gap-4 py-4" key={item.id}>
                     <div>
                       <p className="font-bold text-green-dark">{item.productName}</p>
-                       <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · Delivery {formatPrice(item.deliveryFee)}</p>
+                        <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery'} {formatPrice(item.deliveryFee)}</p>
                     </div>
                     <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
                   </div>
@@ -272,7 +284,7 @@ export function CustomerOrderDetails() {
                     <div className="flex flex-wrap justify-between gap-3 py-4 text-sm" key={submission.id}>
                       <div>
                         <p className="font-bold text-green-dark">{submission.transactionReference || 'No transaction reference provided'}</p>
-                         <p className="mt-1 text-xs text-muted">Submitted {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(submission.createdAt))}</p>
+                         <p className="mt-1 text-xs text-muted">Submitted {formatDate(submission.createdAt)}</p>
                          {submission.reviewNote && (
                            <p className={`mt-3 rounded-xl px-3 py-2 text-xs leading-5 ${submission.status === 'REJECTED' ? 'bg-orange/10 text-orange' : 'bg-sage/45 text-muted'}`}>
                              <strong className={submission.status === 'REJECTED' ? 'text-orange' : 'text-green-dark'}>Review note:</strong>{' '}
@@ -292,7 +304,7 @@ export function CustomerOrderDetails() {
       </main>
       <Footer />
       {isCancelDialogOpen && order && (
-        <div className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-hidden bg-green-dark/50 p-4 sm:p-6" role="presentation" onMouseDown={(event) => {
+        <div className="safe-modal-backdrop fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-hidden bg-green-dark/50" role="presentation" onClick={(event) => {
           if (event.target === event.currentTarget) closeCancellationDialog()
         }}>
           <div className="cancel-order-dialog my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-cream p-6 shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:p-8" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title">

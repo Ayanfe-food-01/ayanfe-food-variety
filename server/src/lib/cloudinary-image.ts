@@ -3,19 +3,24 @@ import { env } from '../config/env.js'
 import { HttpError } from '../utils/http.js'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
-const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
 
-type ImageType = 'jpg' | 'png' | 'webp'
+type ImageType = 'jpg' | 'png' | 'webp' | 'heic'
 
 const imageTypeFor = (buffer: Buffer): ImageType | null => {
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpg'
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return 'png'
   if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'webp'
+  if (
+    buffer.length >= 12
+    && buffer.toString('ascii', 4, 8) === 'ftyp'
+    && ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(buffer.toString('ascii', 8, 12))
+  ) return 'heic'
   return null
 }
 
 const mimeTypeFor = (type: ImageType): string =>
-  type === 'jpg' ? 'image/jpeg' : type === 'png' ? 'image/png' : 'image/webp'
+  type === 'jpg' ? 'image/jpeg' : type === 'png' ? 'image/png' : type === 'webp' ? 'image/webp' : 'image/heic'
 
 const sha1Signature = (parameters: Record<string, string>): string => {
   const payload = Object.entries(parameters)
@@ -37,8 +42,16 @@ export async function uploadCloudinaryImage(
   if (file.size > MAX_IMAGE_BYTES) throw new HttpError(400, `${options.label} images must be 5 MB or smaller.`)
 
   const detectedType = imageTypeFor(file.buffer)
-  if (!detectedType || !allowedMimeTypes.has(file.mimetype) || mimeTypeFor(detectedType) !== file.mimetype) {
-    throw new HttpError(400, `${options.label} image must be a valid JPG, PNG, or WEBP image.`)
+  const hasSupportedExtension = /\.(jpe?g|png|webp|heic|heif)$/i.test(file.originalname)
+  const normalizedMimeType = file.mimetype === 'image/heif'
+    ? 'image/heic'
+    : allowedMimeTypes.has(file.mimetype)
+      ? file.mimetype
+      : hasSupportedExtension
+        ? mimeTypeFor(detectedType ?? 'jpg')
+        : file.mimetype
+  if (!detectedType || (!allowedMimeTypes.has(file.mimetype) && !hasSupportedExtension) || mimeTypeFor(detectedType) !== normalizedMimeType) {
+    throw new HttpError(400, `${options.label} image must be a valid JPG, PNG, WEBP, or HEIC/HEIF image.`)
   }
   if (!env.cloudinary.cloudName || !env.cloudinary.apiKey || !env.cloudinary.apiSecret) {
     throw new HttpError(503, `${options.label} image storage is not configured yet.`)
@@ -48,7 +61,7 @@ export async function uploadCloudinaryImage(
   const publicId = crypto.randomUUID()
   const signature = sha1Signature({ folder: options.folder, public_id: publicId, timestamp })
   const body = new FormData()
-  body.append('file', `data:${file.mimetype};base64,${file.buffer.toString('base64')}`)
+  body.append('file', `data:${normalizedMimeType};base64,${file.buffer.toString('base64')}`)
   body.append('api_key', env.cloudinary.apiKey)
   body.append('timestamp', timestamp)
   body.append('folder', options.folder)
@@ -95,7 +108,7 @@ export function publicIdFromCloudinaryUrl(imageUrl: string, folder: string): str
     const versionIndex = segments.findIndex((segment) => /^v\d+$/.test(segment))
     const publicIdWithExtension = (versionIndex >= 0 ? segments.slice(versionIndex + 1) : segments).join('/')
     if (!publicIdWithExtension.startsWith(`${folder}/`)) return null
-    return publicIdWithExtension.replace(/\.(?:jpe?g|png|webp)$/i, '')
+    return publicIdWithExtension.replace(/\.(?:jpe?g|png|webp|heic|heif)$/i, '')
   } catch {
     return null
   }

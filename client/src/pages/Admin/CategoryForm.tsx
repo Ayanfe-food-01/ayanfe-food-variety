@@ -69,7 +69,7 @@ export function CategoryForm() {
     }
   }
 
-  const progressLabel = getSaveProgressLabel('category', isEditing ? 'update' : 'create', Boolean(form.image))
+  const progressLabel = getSaveProgressLabel(isEditing ? 'update' : 'create')
 
   return (
     <>
@@ -94,7 +94,6 @@ export function CategoryForm() {
            </div>
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />Active and available for products</label>
            {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-            {isSaving && <p className="text-sm font-semibold text-muted" role="status">{progressLabel}</p>}
             <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel}>{isEditing ? 'Save changes' : 'Create category'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/categories">Cancel</Link></div>
         </form>}
       </div>

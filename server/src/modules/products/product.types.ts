@@ -47,6 +47,15 @@ export interface PublicProductPage {
   }
 }
 
+export interface PublicCategoryProductSection {
+  category: {
+    id: string
+    name: string
+    slug: string
+  }
+  products: PublicProduct[]
+}
+
 export interface AdminProductQuery {
   search?: string
   categoryId?: string

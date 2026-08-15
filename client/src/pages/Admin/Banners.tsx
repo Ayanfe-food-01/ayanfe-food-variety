@@ -10,9 +10,10 @@ import {
   updateAdminBannerStatus,
   type AdminBanner,
 } from '../../services/adminService'
+import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 
 const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(value))
+  formatCompatibleDate(value)
 
 function BannerActions({
   banner,
@@ -26,7 +27,7 @@ function BannerActions({
   onDelete: () => void
 }) {
   return (
-    <ActionMenu ariaLabel={`Actions for ${banner.title}`} isBusy={isBusy}>
+    <ActionMenu ariaLabel={`Actions for ${banner.title}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
           <ActionMenuLink to={`/admin/banners/${banner.id}/edit`} onClick={close}>Edit</ActionMenuLink>

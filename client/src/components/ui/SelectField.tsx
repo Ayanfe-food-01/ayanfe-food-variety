@@ -75,8 +75,10 @@ export function SelectField({
       const rect = trigger.getBoundingClientRect()
       const viewportPadding = 8
       const gap = 6
-      const preferredMaxHeight = Math.min(272, window.innerHeight * 0.45)
-      const spaceBelow = window.innerHeight - rect.bottom - viewportPadding
+       const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+       const viewportWidth = window.visualViewport?.width ?? window.innerWidth
+       const preferredMaxHeight = Math.min(272, viewportHeight * 0.45)
+       const spaceBelow = viewportHeight - rect.bottom - viewportPadding
       const spaceAbove = rect.top - viewportPadding
       const openBelow = spaceBelow >= Math.min(180, preferredMaxHeight) || spaceBelow >= spaceAbove
       const maxHeight = Math.max(
@@ -88,7 +90,7 @@ export function SelectField({
         : Math.max(viewportPadding, rect.top - maxHeight - gap)
       const left = Math.min(
         Math.max(viewportPadding, rect.left),
-        Math.max(viewportPadding, window.innerWidth - rect.width - viewportPadding),
+         Math.max(viewportPadding, viewportWidth - rect.width - viewportPadding),
       )
 
       setMenuStyle({
@@ -102,9 +104,13 @@ export function SelectField({
     updateMenuPosition()
     window.addEventListener('resize', updateMenuPosition)
     window.addEventListener('scroll', updateMenuPosition, true)
+    window.visualViewport?.addEventListener('resize', updateMenuPosition)
+    window.visualViewport?.addEventListener('scroll', updateMenuPosition)
     return () => {
       window.removeEventListener('resize', updateMenuPosition)
       window.removeEventListener('scroll', updateMenuPosition, true)
+      window.visualViewport?.removeEventListener('resize', updateMenuPosition)
+      window.visualViewport?.removeEventListener('scroll', updateMenuPosition)
     }
   }, [isOpen])
 

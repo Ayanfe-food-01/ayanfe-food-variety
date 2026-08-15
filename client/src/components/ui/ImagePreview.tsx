@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { CloseIcon } from '../../assets/icons'
+import { lockBodyScroll } from '../../utils/browserCompatibility'
 
 interface ImagePreviewProps {
   src: string
@@ -19,12 +20,11 @@ export function ImagePreview({ src, alt, label = 'View image', children, classNa
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false)
     }
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const releaseBodyScroll = lockBodyScroll()
     window.addEventListener('keydown', closeOnEscape)
 
     return () => {
-      document.body.style.overflow = previousOverflow
+      releaseBodyScroll()
       window.removeEventListener('keydown', closeOnEscape)
     }
   }, [isOpen])
@@ -44,15 +44,15 @@ export function ImagePreview({ src, alt, label = 'View image', children, classNa
       </button>
       {isOpen && (
         <div
-           className="fixed inset-0 z-[100] flex items-center justify-center bg-green-dark/80 p-4 sm:p-8"
+           className="image-preview-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-green-dark/80"
           role="dialog"
           aria-modal="true"
           aria-label={`${alt} preview`}
-          onMouseDown={(event) => {
+           onClick={(event) => {
             if (event.target === event.currentTarget) setIsOpen(false)
           }}
         >
-           <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col items-center overflow-y-auto rounded-2xl bg-cream p-3 shadow-2xl sm:max-h-[calc(100vh-4rem)] sm:p-5">
+           <div className="image-preview-panel relative flex w-full max-w-5xl flex-col items-center overflow-y-auto rounded-2xl bg-cream p-3 shadow-2xl sm:p-5">
             <div className="flex w-full items-center justify-between gap-4 pb-3">
               <p className="truncate text-sm font-bold text-green-dark">{alt}</p>
               <button
@@ -64,7 +64,7 @@ export function ImagePreview({ src, alt, label = 'View image', children, classNa
                 <CloseIcon size={18} />
               </button>
             </div>
-             <div className="flex min-h-48 max-h-[calc(100vh-9rem)] w-full items-center justify-center overflow-auto rounded-xl bg-green-dark/5 sm:max-h-[calc(100vh-11rem)]">
+              <div className="image-preview-content flex min-h-48 w-full items-center justify-center overflow-auto rounded-xl bg-green-dark/5">
               {hasImageError ? (
                 <p className="px-6 py-12 text-center text-sm text-muted">This image could not be previewed.</p>
               ) : (

@@ -3,6 +3,7 @@ import { requireAdminAccess } from '../middleware/admin.middleware.js'
 import {
   getAdminOrderController,
   getAdminPaymentController,
+  getAnalyticsController,
   getDashboardController,
   archiveAdminOrderController,
   deleteAdminOrderController,
@@ -74,6 +75,7 @@ adminRoutes.patch('/products/:id/status', updateAdminProductStatusController)
 adminRoutes.patch('/products/:id/featured', updateAdminProductFeaturedController)
 adminRoutes.delete('/products/:id', deleteAdminProductController)
 adminRoutes.get('/dashboard', getDashboardController)
+adminRoutes.get('/analytics', getAnalyticsController)
 adminRoutes.get('/orders', listAdminOrdersController)
 adminRoutes.get('/orders/:orderNumber', getAdminOrderController)
 adminRoutes.patch('/orders/:orderNumber/status', updateAdminOrderStatusController)

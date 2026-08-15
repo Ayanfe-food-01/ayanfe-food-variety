@@ -163,6 +163,14 @@ export function validatePublicProductsQuery(query: Record<string, unknown>): Pub
   return { page, limit, sort, search, category }
 }
 
+export function validateCategorySectionsQuery(query: Record<string, unknown>): number {
+  const limit = Number(query.limit ?? 6)
+  if (!Number.isInteger(limit) || limit < 4 || limit > 6) {
+    throw new HttpError(400, 'Category section limit must be between 4 and 6.')
+  }
+  return limit
+}
+
 export function requireProductIdentifier(value: string | undefined): string {
   const identifier = value?.trim() ?? ''
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)

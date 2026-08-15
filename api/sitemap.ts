@@ -43,6 +43,9 @@ export default async function handler(request: VercelRequestLike, response: Verc
     const staticUrls = [
       { path: '/', lastmod: undefined },
       { path: '/shop', lastmod: undefined },
+      { path: '/new-arrivals', lastmod: undefined },
+      { path: '/about', lastmod: undefined },
+      { path: '/contact', lastmod: undefined },
     ]
     const productUrls = products
       .filter((product) => product.slug)

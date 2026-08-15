@@ -1,11 +1,29 @@
 import type { RequestHandler } from 'express'
 import { HttpError } from '../../utils/http.js'
-import { getFeaturedProducts, getNewArrivals, getPopularProducts, getProductById, getProducts } from './product.service.js'
-import { requireProductIdentifier, validatePublicProductsQuery } from './product.validator.js'
+import {
+  getCategoryProductSections,
+  getFeaturedProducts,
+  getNewArrivals,
+  getPopularProducts,
+  getProductById,
+  getProducts,
+} from './product.service.js'
+import { requireProductIdentifier, validateCategorySectionsQuery, validatePublicProductsQuery } from './product.validator.js'
 
 export const getProductsController: RequestHandler = async (request, response) => {
   const page = await getProducts(validatePublicProductsQuery(request.query as Record<string, unknown>), request.authenticatedUser?.id)
   response.json({ data: page })
+}
+
+export const getCategoryProductSectionsController: RequestHandler = async (request, response) => {
+  response.json({
+    data: {
+      sections: await getCategoryProductSections(
+        validateCategorySectionsQuery(request.query as Record<string, unknown>),
+        request.authenticatedUser?.id,
+      ),
+    },
+  })
 }
 
 export const getNewArrivalsController: RequestHandler = async (request, response) => {

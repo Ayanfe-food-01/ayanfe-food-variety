@@ -56,6 +56,24 @@ export interface ProductPage {
   }
 }
 
+export interface CategoryProductSection {
+  category: {
+    id: string
+    name: string
+    slug: string
+  }
+  products: Product[]
+}
+
+interface CategoryProductSectionsResponse {
+  data: {
+    sections: Array<{
+      category: CategoryProductSection['category']
+      products: ProductApiResponse[]
+    }>
+  }
+}
+
 const toProduct = (product: ProductApiResponse): Product => {
   const price = Number(product.price)
   const discountedPrice = Number(product.discountedPrice)
@@ -118,6 +136,15 @@ export async function getProducts(query: ProductQuery = {}): Promise<ProductPage
     products: response.data.products.map(toProduct),
     pagination: response.data.pagination,
   }
+}
+
+export async function getCategoryProductSections(limit = 6): Promise<CategoryProductSection[]> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  const response = await request<CategoryProductSectionsResponse>(`/products/category-sections?${params.toString()}`)
+  return response.data.sections.map((section) => ({
+    category: section.category,
+    products: section.products.map(toProduct),
+  }))
 }
 
 export async function getNewArrivals(query: Omit<ProductQuery, 'sort'> = {}): Promise<ProductPage> {

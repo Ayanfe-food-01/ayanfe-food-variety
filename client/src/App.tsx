@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { About } from './pages/About'
+import { Contact } from './pages/Contact'
 import { Shop } from './pages/Shop'
 import { ProductDetails } from './pages/ProductDetails'
 import { Cart } from './pages/Cart'
@@ -12,6 +13,7 @@ import { CustomerOrders } from './pages/CustomerOrders'
 import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
 import { Dashboard } from './pages/Admin/Dashboard'
+import { Analytics } from './pages/Admin/Analytics'
 import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
@@ -114,6 +116,7 @@ function RouteTransition() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/new-arrivals" element={<Shop newArrivalsOnly />} />
           <Route path="/product/:id" element={<ProductDetails />} />
@@ -130,6 +133,7 @@ function RouteTransition() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/admin/login" element={<Navigate replace to="/login" />} />
           <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
+          <Route path="/admin/analytics" element={<RequireAdmin><Analytics /></RequireAdmin>} />
           <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
           <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
           <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />

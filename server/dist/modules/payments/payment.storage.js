@@ -9,9 +9,13 @@ const imageTypeFor = (buffer) => {
         return 'png';
     if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP')
         return 'webp';
+    if (buffer.length >= 12
+        && buffer.toString('ascii', 4, 8) === 'ftyp'
+        && ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(buffer.toString('ascii', 8, 12)))
+        return 'heic';
     return null;
 };
-const mimeTypeFor = (type) => type === 'jpg' ? 'image/jpeg' : type === 'png' ? 'image/png' : 'image/webp';
+const mimeTypeFor = (type) => type === 'jpg' ? 'image/jpeg' : type === 'png' ? 'image/png' : type === 'webp' ? 'image/webp' : 'image/heic';
 const sha1Signature = (parameters) => {
     const payload = Object.entries(parameters)
         .sort(([left], [right]) => left.localeCompare(right))
@@ -26,9 +30,17 @@ export async function uploadPaymentProof(file, orderId) {
         throw new HttpError(400, 'Payment receipt must be 5 MB or smaller.');
     }
     const detectedType = imageTypeFor(file.buffer);
-    const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
-    if (!detectedType || !allowedMimeTypes.has(file.mimetype) || mimeTypeFor(detectedType) !== file.mimetype) {
-        throw new HttpError(400, 'Payment receipt must be a valid JPG, PNG, or WEBP image.');
+    const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+    const hasSupportedExtension = /\.(jpe?g|png|webp|heic|heif)$/i.test(file.originalname);
+    const normalizedMimeType = file.mimetype === 'image/heif'
+        ? 'image/heic'
+        : allowedMimeTypes.has(file.mimetype)
+            ? file.mimetype
+            : hasSupportedExtension
+                ? mimeTypeFor(detectedType ?? 'jpg')
+                : file.mimetype;
+    if (!detectedType || (!allowedMimeTypes.has(file.mimetype) && !hasSupportedExtension) || mimeTypeFor(detectedType) !== normalizedMimeType) {
+        throw new HttpError(400, 'Payment receipt must be a valid JPG, PNG, WEBP, or HEIC/HEIF image.');
     }
     if (!env.cloudinary.cloudName || !env.cloudinary.apiKey || !env.cloudinary.apiSecret) {
         throw new HttpError(503, 'Receipt storage is not configured yet.');
@@ -39,7 +51,7 @@ export async function uploadPaymentProof(file, orderId) {
     const type = 'authenticated';
     const signature = sha1Signature({ folder, public_id: publicId, timestamp, type });
     const body = new FormData();
-    body.append('file', `data:${file.mimetype};base64,${file.buffer.toString('base64')}`);
+    body.append('file', `data:${normalizedMimeType};base64,${file.buffer.toString('base64')}`);
     body.append('api_key', env.cloudinary.apiKey);
     body.append('timestamp', timestamp);
     body.append('folder', folder);

@@ -2,10 +2,20 @@ import { PaymentMethod, PaymentSubmissionStatus } from '@prisma/client';
 import { HttpError } from '../../utils/http.js';
 import { reviewPayment } from '../payments/payment.service.js';
 import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../payments/payment.validator.js';
-import { getAdminOrder, getAdminPayment, getDashboardStats, archiveAdminOrder, deleteAdminOrder, listAdminOrders, listAdminPayments, restoreAdminOrder, updateAdminOrderStatus, } from './admin.service.js';
+import { getAdminOrder, getAdminPayment, getAdminAnalytics, getDashboardStats, archiveAdminOrder, deleteAdminOrder, listAdminOrders, listAdminPayments, restoreAdminOrder, updateAdminOrderStatus, } from './admin.service.js';
 import { validateAdminOrdersQuery, validateOrderNumber, validateOrderStatusInput, } from './admin.validator.js';
 export const getDashboardController = async (_request, response) => {
     response.json({ success: true, data: { stats: await getDashboardStats() } });
+};
+export const getAnalyticsController = async (request, response) => {
+    const range = request.query.range;
+    if (range !== undefined && range !== 'today' && range !== 'week' && range !== 'month' && range !== 'year') {
+        throw new HttpError(400, 'Analytics range is invalid.');
+    }
+    response.json({
+        success: true,
+        data: { analytics: await getAdminAnalytics((range ?? 'month')) },
+    });
 };
 export const listAdminOrdersController = async (request, response) => {
     response.json({ success: true, data: await listAdminOrders(validateAdminOrdersQuery(request.query)) });

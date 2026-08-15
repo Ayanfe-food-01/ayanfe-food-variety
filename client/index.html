@@ -3,11 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="google-site-verification" content="Btp76D_yUaECRUsEVOaQacoYeOS_qJbtiKNFvjPCFnw" />
-    <link rel="icon" type="image/svg+xml" href="/branding/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="/branding/ayanfe-food-variety-logo.png" />
-    <link rel="shortcut icon" href="/branding/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="1254x1254" href="/branding/ayanfe-food-variety-logo.png" />
+    <link rel="shortcut icon" type="image/png" href="/branding/ayanfe-food-variety-logo.png" />
     <link rel="apple-touch-icon" href="/branding/ayanfe-food-variety-logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Shop quality food essentials, carefully selected for your everyday needs, with convenient pickup and delivery options." />
     <meta name="robots" content="index, follow" />
     <meta property="og:site_name" content="Ayanfe Food Variety" />
@@ -41,9 +40,14 @@
                   : path
         const routeMeta = path === '/about'
           ? {
-              title: 'About Ayanfe Food Variety | Nigerian Foodstuff',
-              description: 'Ayanfe Food Variety brings quality, natural Nigerian foodstuff to your kitchen with reliable online delivery.',
+              title: 'About Ayanfe Food Variety | Gluten-Free Foodstuff',
+              description: 'Ayanfe Food Variety offers carefully selected gluten-free foodstuff and pantry essentials for everyday cooking, with convenient online delivery.',
             }
+          : path === '/contact'
+            ? {
+                title: 'Contact Ayanfe Food Variety',
+                description: 'Contact Ayanfe Food Variety for gluten-free foodstuff, pickup information, and delivery support. Find the business contact details and pickup location.',
+              }
           : path === '/new-arrivals'
             ? {
                 title: 'New Nigerian Foodstuff Arrivals | Ayanfe Food Variety',

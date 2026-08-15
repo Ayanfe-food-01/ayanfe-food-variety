@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { AdminPayment, PaymentRejectionReason } from '../../services/paymentService'
 import { ImagePreview } from '../ui/ImagePreview'
+import { formatDate } from '../../utils/dateFormat'
+import { lockBodyScroll } from '../../utils/browserCompatibility'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
-
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 
 const rejectionReasons: Array<{ value: PaymentRejectionReason; label: string }> = [
   { value: 'AMOUNT_MISMATCH', label: 'Amount does not match' },
@@ -19,7 +18,7 @@ const rejectionReasons: Array<{ value: PaymentRejectionReason; label: string }> 
 ]
 
 const rejectionReasonLabel = (value: PaymentRejectionReason): string =>
-  rejectionReasons.find((reason) => reason.value === value)?.label ?? value.replaceAll('_', ' ')
+  rejectionReasons.find((reason) => reason.value === value)?.label ?? value.replace(/_/g, ' ')
 
 const auditActionLabel = (value: string): string =>
   value === 'PROOF_SUBMITTED'
@@ -28,7 +27,7 @@ const auditActionLabel = (value: string): string =>
       ? 'Payment confirmed'
       : value === 'PAYMENT_REJECTED'
         ? 'Payment rejected'
-        : value.replaceAll('_', ' ')
+        : value.replace(/_/g, ' ')
 
 interface PaymentReviewProps {
   payment: AdminPayment
@@ -49,12 +48,11 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !isSaving) onClose()
     }
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const releaseBodyScroll = lockBodyScroll()
     window.addEventListener('keydown', closeOnEscape)
 
     return () => {
-      document.body.style.overflow = previousOverflow
+      releaseBodyScroll()
       window.removeEventListener('keydown', closeOnEscape)
     }
   }, [isSaving, onClose])
@@ -70,15 +68,15 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-green-dark/35 p-0 sm:items-center sm:p-6"
+       className="payment-review-backdrop fixed inset-0 z-50 flex items-end justify-center bg-green-dark/35 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="payment-review-title"
-      onMouseDown={(event) => {
+       onClick={(event) => {
         if (event.target === event.currentTarget && !isSaving) onClose()
       }}
     >
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-cream p-6 shadow-2xl sm:rounded-3xl sm:p-8">
+       <div className="payment-review-panel w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-cream p-6 shadow-2xl sm:rounded-3xl sm:p-8">
         <div className="flex items-start justify-between gap-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Payment review</p>
@@ -95,9 +93,9 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
           <div className={`rounded-2xl p-4 ${amountMatches ? 'bg-sage/45' : 'bg-orange/10'}`}><p className="text-xs text-muted">Amount entered with proof</p><p className="mt-1 text-lg font-bold text-green-dark">{formatPrice(payment.amount)}</p><p className="mt-1 text-xs text-muted">Customer-provided amount; verify against your bank records.</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Sender name</p><p className="mt-1 font-bold text-green-dark">{payment.senderName}</p></div>
           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transaction reference</p><p className={`mt-1 break-all font-bold ${payment.transactionReference ? 'text-green-dark' : 'text-muted'}`}>{payment.transactionReference || 'Not provided — verify using the uploaded proof'}</p></div>
-          <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Submitted</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.createdAt)}</p></div>
-          <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transfer date</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.transferredAt)}</p></div>
-          <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Current status</p><p className="mt-1 font-bold text-green-dark">{payment.status} · Order payment {payment.orderPaymentStatus}</p>{payment.reviewedAt && <p className="mt-1 text-xs text-muted">Reviewed {formatDate(payment.reviewedAt)}</p>}</div>
+           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Submitted</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.createdAt, true)}</p></div>
+           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Transfer date</p><p className="mt-1 font-bold text-green-dark">{formatDate(payment.transferredAt, true)}</p></div>
+           <div className="rounded-2xl bg-white p-4"><p className="text-xs text-muted">Current status</p><p className="mt-1 font-bold text-green-dark">{payment.status} · Order payment {payment.orderPaymentStatus}</p>{payment.reviewedAt && <p className="mt-1 text-xs text-muted">Reviewed {formatDate(payment.reviewedAt, true)}</p>}</div>
         </div>
 
         {payment.rejectionReason && (
@@ -111,7 +109,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
         <section className="mt-6 rounded-2xl border border-line bg-white p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><h3 className="font-bold text-green-dark">Payment proof</h3><p className="mt-1 text-sm text-muted">The uploaded image is the primary customer-provided proof for review; verify it against your bank records.</p></div>
-            {payment.proofAvailable && <span className="text-xs font-bold text-green">Uploaded {formatDate(payment.createdAt)}</span>}
+             {payment.proofAvailable && <span className="text-xs font-bold text-green">Uploaded {formatDate(payment.createdAt, true)}</span>}
           </div>
           {payment.proofAvailable ? (
             <ImagePreview className="mt-4 inline-flex w-full items-center justify-center rounded-2xl border border-green/20 bg-sage/35 px-4 py-4 text-sm font-bold text-green hover:bg-sage" src={payment.proofUrl} alt={`Payment proof for ${payment.orderNumber}`} label="View full payment proof" />
@@ -127,7 +125,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
               {payment.auditHistory.map((event) => (
                 <div className="border-l-2 border-sage pl-4 text-sm" key={event.id}>
                   <p className="font-bold text-green-dark">{auditActionLabel(event.action)}</p>
-                  <p className="mt-1 text-xs text-muted">{formatDate(event.createdAt)} · {event.performedBy?.name ?? 'System'}</p>
+                   <p className="mt-1 text-xs text-muted">{formatDate(event.createdAt, true)} · {event.performedBy?.name ?? 'System'}</p>
                   {event.note && <p className="mt-1 text-xs text-muted">{event.note}</p>}
                 </div>
               ))}
@@ -151,7 +149,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
             {error && <p className="mt-2 text-sm font-medium text-orange" role="alert">{error}</p>}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button className="rounded-xl border border-orange/30 px-5 py-3 text-sm font-bold text-orange hover:bg-orange/5 disabled:opacity-50" type="button" disabled={isSaving} onClick={() => void reject()}>Reject payment</button>
-              <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-50" type="button" disabled={isSaving} onClick={() => void onVerify(note.trim())}>{isSaving ? 'Saving review…' : 'Confirm payment'}</button>
+              <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-50" type="button" disabled={isSaving} onClick={() => void onVerify(note.trim())}>{isSaving ? 'Saving…' : 'Confirm payment'}</button>
             </div>
           </>
         ) : (

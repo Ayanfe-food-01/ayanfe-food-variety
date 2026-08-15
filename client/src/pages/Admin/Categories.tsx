@@ -13,10 +13,11 @@ import {
   updateAdminCategoryStatus,
 } from '../../services/adminService'
 import type { Category } from '../../types/category'
+import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 
 const pageSize = 10
 const formatDate = (value?: string) => value
-  ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(value))
+  ? formatCompatibleDate(value)
   : '—'
 
 interface CategoryActionsProps {
@@ -28,7 +29,7 @@ interface CategoryActionsProps {
 
 function CategoryActions({ category, isBusy, onToggleStatus, onDelete }: CategoryActionsProps) {
   return (
-    <ActionMenu ariaLabel={`Actions for ${category.name}`} isBusy={isBusy}>
+    <ActionMenu ariaLabel={`Actions for ${category.name}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
           <ActionMenuLink to={`/admin/categories/${category.id}/edit`} onClick={close}>Edit</ActionMenuLink>

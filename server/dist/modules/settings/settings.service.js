@@ -10,6 +10,10 @@ const DEFAULT_STORE_SETTINGS = {
     announcementText: 'Quality foodstuff, delivered with care',
     address: '',
     description: '',
+    openingHours: '',
+    pickupInformation: '',
+    deliveryInformation: '',
+    mapEmbedUrl: '',
 };
 const toStoreSettings = (settings) => ({
     businessName: settings.businessName,
@@ -20,6 +24,10 @@ const toStoreSettings = (settings) => ({
     announcementText: settings.announcementText,
     address: settings.address,
     description: settings.description,
+    openingHours: settings.openingHours,
+    pickupInformation: settings.pickupInformation,
+    deliveryInformation: settings.deliveryInformation,
+    mapEmbedUrl: settings.mapEmbedUrl,
 });
 const toStoreInformation = (settings) => ({
     businessName: settings.businessName,
@@ -32,6 +40,10 @@ const toContactInformation = (settings) => ({
     businessEmail: settings.businessEmail,
     businessPhone: settings.businessPhone,
     whatsappNumber: settings.whatsappNumber,
+    openingHours: settings.openingHours,
+    pickupInformation: settings.pickupInformation,
+    deliveryInformation: settings.deliveryInformation,
+    mapEmbedUrl: settings.mapEmbedUrl,
 });
 const toPaymentSettings = (settings) => ({
     paymentMethod: settings.paymentMethod,
@@ -79,6 +91,10 @@ export async function getAdminContactInformation() {
         businessEmail: DEFAULT_STORE_SETTINGS.businessEmail,
         businessPhone: DEFAULT_STORE_SETTINGS.businessPhone,
         whatsappNumber: DEFAULT_STORE_SETTINGS.whatsappNumber,
+        openingHours: DEFAULT_STORE_SETTINGS.openingHours,
+        pickupInformation: DEFAULT_STORE_SETTINGS.pickupInformation,
+        deliveryInformation: DEFAULT_STORE_SETTINGS.deliveryInformation,
+        mapEmbedUrl: DEFAULT_STORE_SETTINGS.mapEmbedUrl,
     };
 }
 export async function updateAdminContactInformation(input) {

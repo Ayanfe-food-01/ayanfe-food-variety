@@ -1,6 +1,7 @@
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { CategoryRail } from '../components/home/CategoryRail'
+import { CategoryProductSections } from '../components/home/CategoryProductSections'
 import { ContactSection } from '../components/home/ContactSection'
 import { Hero } from '../components/home/Hero'
 import { HomeTrustStrip } from '../components/home/HomeTrustStrip'
@@ -26,6 +27,7 @@ export function Home() {
       <ProductRail title="Featured products" eyebrow="Handpicked for you" products={catalog.featuredProducts} isLoading={catalog.isLoading} hasError={catalog.errors.featured} onRetry={catalog.retry} hideWhenEmpty />
       <ProductRail title="Popular right now" eyebrow="Customer favourites" products={catalog.popularProducts} isLoading={catalog.isLoading} hasError={catalog.errors.popular} onRetry={catalog.retry} />
       <ProductRail title="Fresh on the shelf" eyebrow="New arrivals" products={catalog.newArrivals} isLoading={catalog.isLoading} hasError={catalog.errors.newArrivals} onRetry={catalog.retry} href="/new-arrivals" tone="yellow" />
+      <CategoryProductSections categories={catalog.categories} sections={catalog.categorySections} isLoading={catalog.isLoading} hasError={catalog.errors.categorySections} onRetry={catalog.retry} />
       <HomeTrustStrip />
       <Testimonials />
       <ContactSection />

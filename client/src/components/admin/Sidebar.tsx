@@ -9,6 +9,7 @@ interface SidebarProps {
 
 const links = [
   { label: 'Dashboard', to: '/admin' },
+  { label: 'Sales analytics', to: '/admin/analytics' },
   { label: 'Orders', to: '/admin/orders' },
   { label: 'Products & inventory', to: '/admin/products' },
   { label: 'Categories', to: '/admin/categories' },

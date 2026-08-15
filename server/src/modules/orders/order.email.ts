@@ -1,4 +1,4 @@
-import type { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
+import type { FulfillmentMethod, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { env } from '../../config/env.js'
 import {
   escapeHtml,
@@ -19,6 +19,7 @@ type CreatedOrderEmail = {
   customerName: string
   customerEmail: string | null
   phone: string
+  fulfillmentMethod: FulfillmentMethod
   deliveryAddress: string
   city: string
   note: string | null
@@ -41,6 +42,9 @@ const formatPrice = (value: string): string =>
 
 const formatPaymentMethod = (method: PaymentMethod): string =>
   method === 'BANK_TRANSFER' ? 'Bank transfer' : method
+
+const formatFulfillmentMethod = (method: FulfillmentMethod): string =>
+  method === 'PICKUP' ? 'Pickup' : 'Delivery'
 
 const formatStatus = (status: OrderStatus | PaymentStatus): string =>
   status
@@ -100,12 +104,24 @@ const renderOrderDetails = (order: CreatedOrderEmail, includeCustomerEmail: bool
     <tr><td style="padding:14px 16px 5px;">Order number</td><td align="right" style="padding:14px 16px 5px;color:#173b2b;font-weight:bold;">${escapeHtml(order.orderNumber)}</td></tr>
     ${includeCustomerEmail && order.customerEmail ? `<tr><td style="padding:5px 16px;">Customer email</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(order.customerEmail)}</td></tr>` : ''}
     <tr><td style="padding:5px 16px;">Payment method</td><td align="right" style="padding:5px 16px;color:#173b2b;font-weight:bold;">${escapeHtml(formatPaymentMethod(order.paymentMethod))}</td></tr>
+    <tr><td style="padding:5px 16px;">Fulfillment</td><td align="right" style="padding:5px 16px;color:#173b2b;font-weight:bold;">${escapeHtml(formatFulfillmentMethod(order.fulfillmentMethod))}</td></tr>
     <tr><td style="padding:5px 16px;">Payment status</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(formatStatus(order.paymentStatus))}</td></tr>
     <tr><td style="padding:5px 16px 14px;">Order status</td><td align="right" style="padding:5px 16px 14px;color:#173b2b;">${escapeHtml(formatStatus(order.orderStatus))}</td></tr>
   </table>
 `
 
-const renderDeliveryDetails = (order: CreatedOrderEmail, includePhone: boolean): string => `
+const renderDeliveryDetails = (order: CreatedOrderEmail, includePhone: boolean): string => order.fulfillmentMethod === 'PICKUP'
+  ? `
+  <div style="margin-top:24px;padding-top:22px;border-top:1px solid #dfe7dc;">
+    <h2 style="margin:0 0 12px;color:#173b2b;font-size:18px;">Pickup details</h2>
+    <p style="margin:0;color:#58695e;font-size:14px;line-height:1.75;">
+      <strong style="color:#173b2b;">Pickup order</strong><br>
+      ${escapeHtml(order.customerName)}${includePhone ? `<br>${escapeHtml(order.phone)}` : ''}<br>
+      The customer will collect this order from the store.
+    </p>
+  </div>
+`
+  : `
   <div style="margin-top:24px;padding-top:22px;border-top:1px solid #dfe7dc;">
     <h2 style="margin:0 0 12px;color:#173b2b;font-size:18px;">Delivery details</h2>
     <p style="margin:0;color:#58695e;font-size:14px;line-height:1.75;">
@@ -145,7 +161,8 @@ const customerOrderMessage = (order: CreatedOrderEmail): EmailMessage => {
       `Total: ${formatPrice(order.total)}`,
       `Payment method: ${formatPaymentMethod(order.paymentMethod)}`,
       `Order status: ${formatStatus(order.orderStatus)}`,
-      `Delivery: ${order.deliveryAddress}, ${order.city}`,
+       `Fulfillment: ${formatFulfillmentMethod(order.fulfillmentMethod)}`,
+       ...(order.fulfillmentMethod === 'DELIVERY' ? [`Delivery: ${order.deliveryAddress}, ${order.city}`] : ['Pickup: customer will collect the order']),
     ].join('\n'),
   }
 }
@@ -179,7 +196,8 @@ const adminOrderMessage = (order: CreatedOrderEmail): EmailMessage => {
       `Total: ${formatPrice(order.total)}`,
       `Payment method: ${formatPaymentMethod(order.paymentMethod)}`,
       `Payment status: ${formatStatus(order.paymentStatus)}`,
-      `Delivery: ${order.deliveryAddress}, ${order.city}`,
+       `Fulfillment: ${formatFulfillmentMethod(order.fulfillmentMethod)}`,
+       ...(order.fulfillmentMethod === 'DELIVERY' ? [`Delivery: ${order.deliveryAddress}, ${order.city}`] : ['Pickup: customer will collect the order']),
       `Created: ${formatDateTime(order.createdAt)}`,
     ].join('\n'),
   }

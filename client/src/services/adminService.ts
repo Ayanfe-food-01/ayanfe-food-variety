@@ -14,6 +14,31 @@ export interface DashboardStats {
   totalSales: string
 }
 
+export type AnalyticsRange = 'today' | 'week' | 'month' | 'year'
+
+export interface AdminAnalytics {
+  timezone: string
+  range: AnalyticsRange
+  summary: {
+    todayRevenue: string
+    weekRevenue: string
+    monthRevenue: string
+    yearRevenue: string
+    totalOrders: number
+  }
+  metrics: {
+    confirmedOrders: number
+    pendingOrders: number
+    cancelledOrders: number
+    averageOrderValue: string
+  }
+  series: Array<{
+    label: string
+    revenue: string
+    orders: number
+  }>
+}
+
 export interface PaymentSettings {
   paymentMethod: PaymentMethod
   bankName: string
@@ -35,11 +60,20 @@ export interface ContactInformation {
   businessEmail: string
   businessPhone: string
   whatsappNumber: string
+  openingHours: string
+  pickupInformation: string
+  deliveryInformation: string
+  mapEmbedUrl: string
 }
 
 interface DashboardResponse {
   success: true
   data: { stats: DashboardStats }
+}
+
+interface AnalyticsResponse {
+  success: true
+  data: { analytics: AdminAnalytics }
 }
 
 interface SettingsResponse {
@@ -60,6 +94,11 @@ interface ContactInformationResponse {
 export async function getDashboardStats(): Promise<DashboardStats> {
   const response = await request<DashboardResponse>('/admin/dashboard')
   return response.data.stats
+}
+
+export async function getAdminAnalytics(range: AnalyticsRange = 'month'): Promise<AdminAnalytics> {
+  const response = await request<AnalyticsResponse>(`/admin/analytics?range=${range}`)
+  return response.data.analytics
 }
 
 export async function getPaymentSettings(): Promise<PaymentSettings | null> {

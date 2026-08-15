@@ -47,6 +47,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 5001
+externalPort = 3000
+
+[[ports]]
 localPort = 5173
 externalPort = 5173
 
@@ -60,7 +64,7 @@ externalPort = 8000
 [userenv.shared]
 ADMIN_INITIAL_NAME = "Ayanfe-food-variety"
 ADMIN_INITIAL_EMAIL = "ayanfefoodvariety01@gmail.com"
-PUBLIC_APP_URL = "https://food-variety.vercel.app"
-CORS_ORIGINS = "https://ec8b4d42-d7fb-4259-9a91-580bc69f0103-00-1a3fu6at0thsr.picard.replit.dev"
+PUBLIC_APP_URL = "https://www.ayanfefoodvariety.com.ng"
+CORS_ORIGINS = "https://db7e6f99-e013-4ea2-846a-db649f2a33e3-00-2rwnqlce22okg.picard.replit.dev"
 
 [userenv.development]

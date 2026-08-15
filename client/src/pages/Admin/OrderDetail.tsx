@@ -15,11 +15,11 @@ import { useToast } from '../../components/ui/Toast'
 import { ImagePreview } from '../../components/ui/ImagePreview'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { OrderDetailActionsMenu } from '../../components/admin/OrderDetailActionsMenu'
+import { formatDate } from '../../utils/dateFormat'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
-
-const formatDate = (value: string) => new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 
 const statusClass = (status: string) => {
   if (status === 'PAID' || status === 'DELIVERED' || status === 'VERIFIED') return 'bg-green/10 text-green'
@@ -117,10 +117,13 @@ export function OrderDetail() {
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span>
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>
             {order.archivedAt && <span className="rounded-full bg-orange/10 px-3 py-2 text-xs font-bold text-orange">Archived</span>}
-            <button className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={isArchiveSaving || isDeleteSaving} onClick={() => void toggleArchive()}>
-              {isArchiveSaving ? 'Saving…' : order.archivedAt ? 'Restore order' : 'Archive order'}
-            </button>
-            {order.archivedAt && <button className="rounded-xl border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={isArchiveSaving || isDeleteSaving} onClick={() => { setDeleteError(null); setIsDeleteConfirmationOpen(true) }}>Delete permanently</button>}
+            <OrderDetailActionsMenu
+              orderNumber={order.orderNumber}
+              isArchived={Boolean(order.archivedAt)}
+              isBusy={isArchiveSaving || isDeleteSaving}
+              onToggleArchive={() => void toggleArchive()}
+              onDelete={() => { setDeleteError(null); setIsDeleteConfirmationOpen(true) }}
+            />
           </div>
       </div>
 
@@ -133,14 +136,24 @@ export function OrderDetail() {
               <div><p className="text-xs text-muted">Name</p><p className="mt-1 font-bold text-green-dark">{order.customerName}</p></div>
               <div><p className="text-xs text-muted">Email</p><p className="mt-1 font-bold text-green-dark">{order.email ?? 'Not provided'}</p></div>
               <div><p className="text-xs text-muted">Phone</p><p className="mt-1 font-bold text-green-dark">{order.phone}</p></div>
-              <div><p className="text-xs text-muted">Delivery address</p><p className="mt-1 font-bold text-green-dark">{order.deliveryAddress}, {order.city}</p></div>
+              <div><p className="text-xs text-muted">Fulfillment</p><p className="mt-1 font-bold text-green-dark">{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</p></div>
             </div>
+            {order.fulfillmentMethod === 'DELIVERY' ? (
+              <div className="mt-5 rounded-xl bg-sage/35 p-4 text-sm">
+                <p className="text-xs uppercase tracking-[0.12em] text-muted">Delivery details</p>
+                <p className="mt-1 font-bold text-green-dark">{order.deliveryAddress}, {order.city}</p>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-xl border border-orange/20 bg-orange/5 p-4 text-sm text-muted">
+                <strong className="text-orange">Pickup order:</strong> Customer will collect this order from the store. No delivery details are required.
+              </div>
+            )}
             {order.note && <div className="mt-5 rounded-xl bg-sage/35 p-4 text-sm text-muted"><strong className="text-green-dark">Customer note:</strong> {order.note}</div>}
           </section>
 
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Order items</h2>
-             <div className="mt-4 divide-y divide-line">{order.orderItems.map((item) => <div className="flex items-start justify-between gap-4 py-4 text-sm" key={item.id}><div><p className="font-bold text-green-dark">{item.productName}</p><p className="mt-1 text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · Delivery {formatPrice(item.deliveryFee)}</p></div><p className="font-bold text-green-dark">{formatPrice(item.subtotal)}</p></div>)}</div>
+              <div className="mt-4 divide-y divide-line">{order.orderItems.map((item) => <div className="flex items-start justify-between gap-4 py-4 text-sm" key={item.id}><div><p className="font-bold text-green-dark">{item.productName}</p><p className="mt-1 text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery'} {formatPrice(item.deliveryFee)}</p></div><p className="font-bold text-green-dark">{formatPrice(item.subtotal)}</p></div>)}</div>
             <div className="mt-3 space-y-2 border-t border-line pt-4 text-sm"><div className="flex justify-between text-muted"><span>Subtotal</span><span>{formatPrice(order.subtotal)}</span></div><div className="flex justify-between text-muted"><span>Delivery fee</span><span>{formatPrice(order.deliveryFee)}</span></div><div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div></div>
           </section>
 
@@ -183,7 +196,7 @@ export function OrderDetail() {
                value={status}
              /></label>
             <label className="mt-4 block text-sm font-bold text-green-dark">Internal note <textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the audit history" maxLength={1000} /></label>
-             <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={saveStatus}>{isSaving ? 'Updating order status…' : 'Save order status'}</button>
+             <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={saveStatus}>{isSaving ? 'Updating…' : 'Save order status'}</button>
           </section>
 
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
@@ -199,7 +212,7 @@ export function OrderDetail() {
           description="Cancellation cannot be undone. The order will remain in the history with its payment status preserved for audit purposes."
           isBusy={isSaving}
           confirmLabel="Cancel order"
-          busyLabel="Updating order…"
+           busyLabel="Updating…"
           onCancel={() => setIsCancelConfirmationOpen(false)}
           onConfirm={() => {
             setIsCancelConfirmationOpen(false)
@@ -215,7 +228,7 @@ export function OrderDetail() {
           error={deleteError}
           isBusy={isDeleteSaving}
           confirmLabel="Delete permanently"
-          busyLabel="Deleting order…"
+           busyLabel="Deleting…"
           onCancel={() => {
             if (!isDeleteSaving) {
               setIsDeleteConfirmationOpen(false)

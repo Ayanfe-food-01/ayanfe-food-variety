@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react'
 
-const acceptedImageTypes = ['image/jpeg', 'image/png', 'image/webp']
+const acceptedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 const maxImageSize = 5 * 1024 * 1024
 
 interface ImageUploadFieldProps {
@@ -31,9 +31,10 @@ export function ImageUploadField({
       return
     }
 
-    if (!acceptedImageTypes.includes(file.type)) {
+    const hasSupportedExtension = /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)
+    if (!acceptedImageTypes.includes(file.type) && !hasSupportedExtension) {
       event.currentTarget.value = ''
-      onChange(undefined, null, 'Choose a JPG, PNG, or WEBP image.')
+      onChange(undefined, null, 'Choose a JPG, PNG, WEBP, or iPhone HEIC/HEIF image.')
       return
     }
     if (file.size > maxImageSize) {
@@ -52,7 +53,7 @@ export function ImageUploadField({
         <input
           className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold"
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           onChange={chooseImage}
           required={required}
         />

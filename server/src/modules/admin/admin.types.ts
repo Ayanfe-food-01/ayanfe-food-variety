@@ -1,5 +1,6 @@
 import type {
   OrderStatus,
+  FulfillmentMethod,
   PaymentMethod,
   PaymentRejectionReason,
   PaymentSubmissionStatus,
@@ -17,11 +18,39 @@ export interface DashboardStats {
   totalSales: string
 }
 
+export type AnalyticsRange = 'today' | 'week' | 'month' | 'year'
+
+export interface RevenuePoint {
+  label: string
+  revenue: string
+  orders: number
+}
+
+export interface AdminAnalytics {
+  timezone: string
+  range: AnalyticsRange
+  summary: {
+    todayRevenue: string
+    weekRevenue: string
+    monthRevenue: string
+    yearRevenue: string
+    totalOrders: number
+  }
+  metrics: {
+    confirmedOrders: number
+    pendingOrders: number
+    cancelledOrders: number
+    averageOrderValue: string
+  }
+  series: RevenuePoint[]
+}
+
 export interface AdminOrderListItem {
   orderNumber: string
   customerName: string
   email: string | null
   phone: string
+  fulfillmentMethod: FulfillmentMethod
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus

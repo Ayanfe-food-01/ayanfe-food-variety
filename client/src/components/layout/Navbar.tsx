@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CartIcon, CloseIcon, HeartIcon, MenuIcon, UserIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
@@ -6,12 +6,14 @@ import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete'
 import { useWishlist } from '../../hooks/useWishlist'
+import { lockBodyScroll } from '../../utils/browserCompatibility'
 
 const links = [
   { label: 'Home', href: '/' },
   { label: 'Shop', href: '/shop' },
   { label: 'New arrivals', href: '/new-arrivals' },
   { label: 'About us', href: '/about' },
+  { label: 'Contact', href: '/contact' },
   { label: 'Orders', href: '/orders' },
 ]
 
@@ -20,6 +22,8 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
+  const closeMenuButtonRef = useRef<HTMLButtonElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
   const navigate = useNavigate()
   const { totalQuantity } = useCart()
   const { user, logout } = useCustomerAuth()
@@ -31,8 +35,34 @@ export function Navbar() {
     .filter(Boolean)
 
   useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    if (!isMenuOpen) return
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const releaseBodyScroll = lockBodyScroll()
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMenuOpen(false)
+      if (event.key !== 'Tab') return
+      const drawer = document.querySelector<HTMLElement>('.mobile-menu')
+      if (!drawer) return
+      const focusable = Array.from(drawer.querySelectorAll<HTMLElement>('a, button, input, [tabindex]:not([tabindex="-1"])'))
+        .filter((element) => !element.hasAttribute('disabled'))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    window.requestAnimationFrame(() => closeMenuButtonRef.current?.focus())
+    return () => {
+      releaseBodyScroll()
+      document.removeEventListener('keydown', closeOnEscape)
+      previousFocusRef.current?.focus()
+    }
   }, [isMenuOpen])
 
   useEffect(() => {
@@ -99,11 +129,11 @@ export function Navbar() {
         <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
         {user && <button type="button" onClick={() => void logout()}>Log out</button>}
       </div>
-      <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} />
-      <aside className={`mobile-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen}>
+      <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
+      <aside className={`mobile-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
         <div className="mobile-menu-head">
           <img className="mobile-menu-logo" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety" />
-          <button className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>
+          <button ref={closeMenuButtonRef} className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>
         </div>
         <ProductSearchAutocomplete
           className="mobile-search"

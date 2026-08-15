@@ -11,6 +11,10 @@ export interface StoreSettings {
   announcementText: string
   address: string
   description: string
+  openingHours: string
+  pickupInformation: string
+  deliveryInformation: string
+  mapEmbedUrl: string
 }
 
 export interface PublicStoreSettings {

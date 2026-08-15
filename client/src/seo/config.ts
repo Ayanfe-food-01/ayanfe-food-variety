@@ -3,9 +3,12 @@ export const HOMEPAGE_TITLE = 'Ayanfe Food Variety | Quality Gluten-Free Foods'
 export const BRAND_MESSAGE = 'Quality Gluten-Free Foods, Made for Your Everyday Needs.'
 export const DEFAULT_SITE_DESCRIPTION =
   'Shop quality food essentials, carefully selected for your everyday needs, with convenient pickup and delivery options.'
-export const ABOUT_TITLE = 'About Ayanfe Food Variety | Nigerian Foodstuff'
+export const ABOUT_TITLE = 'About Ayanfe Food Variety | Gluten-Free Foodstuff'
 export const ABOUT_DESCRIPTION =
-  `Ayanfe Food Variety brings quality, natural Nigerian foodstuff to your kitchen with reliable online delivery.`
+  `Ayanfe Food Variety offers carefully selected gluten-free foodstuff and pantry essentials for everyday cooking, with convenient online delivery.`
+export const CONTACT_TITLE = 'Contact Ayanfe Food Variety'
+export const CONTACT_DESCRIPTION =
+  'Contact Ayanfe Food Variety for gluten-free foodstuff, pickup information, and delivery support. Find the business contact details and pickup location.'
 export const SHOP_TITLE = 'Buy Nigerian Foodstuff Online | Ayanfe Food Variety'
 export const SHOP_DESCRIPTION =
   'Shop Nigerian foodstuff online, including natural pantry staples, grains, oils and everyday essentials with reliable delivery.'

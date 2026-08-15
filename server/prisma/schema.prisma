@@ -51,6 +51,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum FulfillmentMethod {
+  PICKUP
+  DELIVERY
+}
+
 enum UserRole {
   ADMIN
   CUSTOMER
@@ -121,6 +126,7 @@ model Order {
   subtotal         Decimal     @db.Decimal(12, 2)
   deliveryFee      Decimal     @default(0) @map("delivery_fee") @db.Decimal(12, 2)
   total            Decimal     @db.Decimal(12, 2)
+  fulfillmentMethod FulfillmentMethod @default(DELIVERY) @map("fulfillment_method")
   paymentMethod    PaymentMethod @default(BANK_TRANSFER) @map("payment_method")
   paymentStatus    PaymentStatus @default(PENDING) @map("payment_status")
   orderStatus      OrderStatus   @default(ORDER_PLACED) @map("order_status")
@@ -240,6 +246,10 @@ model StoreSettings {
   announcementText String  @map("announcement_text") @db.VarChar(2000)
   address         String   @db.VarChar(500)
   description     String   @db.VarChar(500)
+  openingHours    String   @default("") @map("opening_hours") @db.VarChar(500)
+  pickupInformation String @default("") @map("pickup_information") @db.VarChar(1000)
+  deliveryInformation String @default("") @map("delivery_information") @db.VarChar(1000)
+  mapEmbedUrl     String   @default("") @map("map_embed_url") @db.VarChar(2000)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

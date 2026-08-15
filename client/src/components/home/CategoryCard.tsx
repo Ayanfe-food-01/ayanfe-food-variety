@@ -4,18 +4,39 @@ import { ArrowUpRight } from '../../assets/icons'
 
 interface CategoryCardProps {
   category: Category
+  className?: string
+  showDescription?: boolean
+  imageLoading?: 'eager' | 'lazy'
 }
 
-export function CategoryCard({ category }: CategoryCardProps) {
+export function CategoryCard({
+  category,
+  className = '',
+  showDescription = false,
+  imageLoading = 'lazy',
+}: CategoryCardProps) {
+  const description = category.description?.trim()
+
   return (
-    <Link className="relative min-h-[180px] overflow-hidden rounded-2xl bg-green transition-transform duration-300 hover:-translate-y-1 sm:min-h-[220px]" to={`/shop?category=${category.slug}`}>
-      {category.imageUrl && <img className="size-full object-cover transition-transform duration-500 hover:scale-105" src={category.imageUrl} alt={`${category.name} Nigerian foodstuff - Ayanfe Food Variety`} width={640} height={480} loading="lazy" />}
-      <span className="absolute inset-0 bg-gradient-to-t from-green-dark/90 via-green-dark/10 to-transparent" />
-      <span className="absolute inset-x-4 bottom-4 text-cream">
-        <span className="mb-1 block text-[11px] uppercase tracking-[0.12em] text-cream/75">{category.description ?? 'Quality essentials'}</span>
-        <strong className="font-display text-2xl font-semibold">{category.name}</strong>
+    <Link className={`category-card group ${className}`.trim()} to={`/shop?category=${category.slug}`}>
+      <span className="category-card-media">
+        {category.imageUrl ? (
+          <img
+            src={category.imageUrl}
+            alt={`${category.name} Nigerian foodstuff - Ayanfe Food Variety`}
+            width={640}
+            height={640}
+            loading={imageLoading}
+          />
+        ) : (
+          <span className="category-card-placeholder" aria-hidden="true" />
+        )}
+        <span className="category-card-arrow" aria-hidden="true"><ArrowUpRight size={16} /></span>
       </span>
-      <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-cream/90 text-green"><ArrowUpRight size={17} /></span>
+      <span className="category-card-copy">
+        <strong className="category-card-title">{category.name}</strong>
+        {showDescription && description && <span className="category-card-description">{description}</span>}
+      </span>
     </Link>
   )
 }

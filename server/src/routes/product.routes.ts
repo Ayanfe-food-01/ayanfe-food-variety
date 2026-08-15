@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   getNewArrivalsController,
   getFeaturedProductsController,
+  getCategoryProductSectionsController,
   getPopularProductsController,
   getProductByIdController,
   getProductsController,
@@ -11,6 +12,7 @@ import { optionalCustomerAuthentication } from '../middleware/auth.middleware.js
 export const productRoutes = Router()
 
 productRoutes.get('/', optionalCustomerAuthentication, getProductsController)
+productRoutes.get('/category-sections', optionalCustomerAuthentication, getCategoryProductSectionsController)
 productRoutes.get('/new-arrivals', optionalCustomerAuthentication, getNewArrivalsController)
 productRoutes.get('/featured', optionalCustomerAuthentication, getFeaturedProductsController)
 productRoutes.get('/popular', optionalCustomerAuthentication, getPopularProductsController)

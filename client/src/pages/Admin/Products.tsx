@@ -18,11 +18,12 @@ import {
 import type { Category } from '../../types/category'
 import { ProductPrice } from '../../components/products/ProductPrice'
 import { formatPrice } from '../../utils/formatPrice'
+import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 
 const pageSize = 10
 
 const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(value))
+  formatCompatibleDate(value)
 
 interface ProductActionsProps {
   product: AdminProductsPage['products'][number]

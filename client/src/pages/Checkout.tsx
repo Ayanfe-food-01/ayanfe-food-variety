@@ -3,13 +3,22 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
-import { Breadcrumb } from '../components/ui/Breadcrumb'
+import { BreadcrumbBar } from '../components/ui/Breadcrumb'
 import { ProductPrice } from '../components/products/ProductPrice'
+import {
+  ContactDetailsSection,
+  PaymentMethodSection,
+} from '../components/checkout/CheckoutFormSections'
+import { DeliveryOptionsSection } from '../components/checkout/DeliveryOptionsSection'
+import { calculateCheckoutTotals } from '../components/checkout/checkoutCalculations'
+import { initialCheckoutForm, validateCheckoutForm } from '../components/checkout/checkoutValidation'
+import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../components/checkout/types'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart, type PaymentMethod } from '../services/orderService'
+import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
+import { createRequestKey } from '../utils/browserCompatibility'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -18,60 +27,9 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 0,
   }).format(price)
 
-interface CheckoutFormData {
-  fullName: string
-  phone: string
-  email: string
-  address: string
-  city: string
-  deliveryInstructions: string
-  paymentMethod: PaymentMethod
-}
-
-type CheckoutField = keyof CheckoutFormData
-type FormErrors = Partial<Record<CheckoutField, string>>
-
-const initialForm: CheckoutFormData = {
-  fullName: '',
-  phone: '',
-  email: '',
-  address: '',
-  city: '',
-  deliveryInstructions: '',
-  paymentMethod: 'BANK_TRANSFER',
-}
-
-const inputClassName = (hasError: boolean) =>
-  `mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-muted/60 focus:border-green focus:ring-2 focus:ring-green/10 ${
-    hasError ? 'border-orange' : 'border-line'
-  }`
-
-function validateForm(form: CheckoutFormData): FormErrors {
-  const errors: FormErrors = {}
-
-  if (!form.fullName.trim()) errors.fullName = 'Please enter your full name.'
-  if (!form.phone.trim()) {
-    errors.phone = 'Please enter your phone number.'
-  } else if (form.phone.replace(/\D/g, '').length < 7) {
-    errors.phone = 'Please enter a valid phone number.'
-  }
-  if (!form.address.trim()) errors.address = 'Please enter your delivery address.'
-  if (!form.city.trim()) errors.city = 'Please enter your city or location.'
-
-  return errors
-}
-
-function FieldError({ id, message }: { id: CheckoutField; message?: string }) {
-  return message ? (
-    <p className="mt-1.5 text-xs font-medium text-orange" id={`${id}-error`} role="alert">
-      {message}
-    </p>
-  ) : null
-}
-
 function EmptyCheckout() {
   return (
-    <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+    <section className="container page-state-section flex items-center justify-center py-16">
       <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
           <CartIcon size={28} />
@@ -97,7 +55,6 @@ export function Checkout() {
     items,
     subtotal,
     deliveryFee,
-    total,
     totalQuantity,
     canCheckout,
     isLoading: isCartLoading,
@@ -107,15 +64,15 @@ export function Checkout() {
   } = useCart()
   const { user, isLoading: isCustomerAuthLoading, openAuth } = useCustomerAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState<CheckoutFormData>(initialForm)
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [form, setForm] = useState<CheckoutFormData>(initialCheckoutForm)
+  const [errors, setErrors] = useState<CheckoutFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [needsCartReview, setNeedsCartReview] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState<PaymentSettings[]>([])
   const [isPaymentLoading, setIsPaymentLoading] = useState(true)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [checkoutKey] = useState(() => crypto.randomUUID())
+  const [checkoutKey] = useState(createRequestKey)
 
   useEffect(() => {
     getPublicStoreSettings()
@@ -162,7 +119,7 @@ export function Checkout() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const nextErrors = validateForm(form)
+    const nextErrors = validateCheckoutForm(form)
     setErrors(nextErrors)
     setSubmitError(null)
     setNeedsCartReview(false)
@@ -183,9 +140,14 @@ export function Checkout() {
         checkoutKey,
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
-        deliveryAddress: form.address.trim(),
-        city: form.city.trim(),
-        deliveryInstructions: form.deliveryInstructions.trim() || undefined,
+        fulfillmentMethod: form.fulfillmentMethod as FulfillmentMethod,
+        ...(form.fulfillmentMethod === 'DELIVERY'
+          ? {
+              deliveryAddress: form.address.trim(),
+              city: form.city.trim(),
+              deliveryInstructions: form.deliveryInstructions.trim() || undefined,
+            }
+          : {}),
         paymentMethod: form.paymentMethod,
       })
 
@@ -210,13 +172,18 @@ export function Checkout() {
   }
 
   const paymentSettings = paymentMethods.find((method) => method.paymentMethod === form.paymentMethod) ?? null
+  const { deliveryFee: checkoutDeliveryFee, total: checkoutTotal } = calculateCheckoutTotals(
+    subtotal,
+    deliveryFee,
+    form.fulfillmentMethod,
+  )
 
   if (!isCustomerAuthLoading && !user) {
     return (
       <>
         <Navbar />
         <main>
-          <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+          <section className="container page-state-section flex items-center justify-center py-16">
             <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
               <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
                 <span className="text-2xl font-bold" aria-hidden="true">A</span>
@@ -260,6 +227,7 @@ export function Checkout() {
     return (
       <>
         <Navbar />
+        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
         <main><EmptyCheckout /></main>
         <Footer />
       </>
@@ -269,31 +237,24 @@ export function Checkout() {
   return (
     <>
       <Navbar />
+      <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
-          <div className="container py-10 sm:py-14">
-            <Breadcrumb
-              className="mb-7"
-              items={[
-                { label: 'Home', href: '/' },
-                { label: 'Cart', href: '/cart' },
-                { label: 'Checkout' },
-              ]}
-            />
-            <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
+           <div className="container py-8 sm:py-10">
+             <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
               <span className="inline-block size-2 rounded-full bg-orange" />
               Almost there
             </p>
-            <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Checkout</h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-              Confirm your delivery details and place your order securely.
+             <h1 className="m-0 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Checkout</h1>
+             <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
+              Choose pickup or delivery, confirm your details, and place your order securely.
             </p>
           </div>
         </section>
 
         <section className="container py-12 sm:py-16 lg:py-24">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
-            <form className="space-y-8" onSubmit={handleSubmit} noValidate>
+            <form className="space-y-0" onSubmit={handleSubmit} noValidate>
               {cartError && (
                 <div className="rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
                   {cartError}
@@ -307,116 +268,29 @@ export function Checkout() {
                 </div>
               )}
 
-              <fieldset className="m-0 border-0 p-0">
-                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Delivery information</legend>
-                <p className="mt-2 text-sm leading-6 text-muted">These details are saved with this order as a delivery snapshot.</p>
+              <ContactDetailsSection form={form} errors={errors} onChange={updateField} />
+              <PaymentMethodSection
+                methods={paymentMethods}
+                selectedMethod={form.paymentMethod}
+                selectedSettings={paymentSettings}
+                isLoading={isPaymentLoading}
+                error={paymentError}
+                onChange={(method) => updateField('paymentMethod', method)}
+              />
+              <DeliveryOptionsSection
+                form={form}
+                errors={errors}
+                fulfillmentMethod={form.fulfillmentMethod}
+                onChange={updateField}
+              />
 
-                <div className="mt-7 grid gap-5 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="fullName">
-                      Full name <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <input className={inputClassName(Boolean(errors.fullName))} id="fullName" name="fullName" type="text" autoComplete="name" value={form.fullName} onChange={(event) => updateField('fullName', event.target.value)} aria-invalid={Boolean(errors.fullName)} aria-describedby={errors.fullName ? 'fullName-error' : undefined} required />
-                    <FieldError id="fullName" message={errors.fullName} />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-bold text-green-dark" htmlFor="phone">
-                      Phone number <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <input className={inputClassName(Boolean(errors.phone))} id="phone" name="phone" type="tel" autoComplete="tel" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'phone-error' : undefined} required />
-                    <FieldError id="phone" message={errors.phone} />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-bold text-green-dark" htmlFor="email">Account email</label>
-                    <input className={inputClassName(false)} id="email" name="email" type="email" readOnly value={form.email} aria-describedby="email-help" />
-                    <p className="mt-1.5 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="address">
-                      Delivery address <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <textarea className={`${inputClassName(Boolean(errors.address))} min-h-28 resize-y`} id="address" name="address" autoComplete="street-address" placeholder="House number, street name, landmark" value={form.address} onChange={(event) => updateField('address', event.target.value)} aria-invalid={Boolean(errors.address)} aria-describedby={errors.address ? 'address-error' : undefined} required />
-                    <FieldError id="address" message={errors.address} />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="city">
-                      City or location <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <input className={inputClassName(Boolean(errors.city))} id="city" name="city" type="text" autoComplete="address-level2" placeholder="e.g. Ibadan" value={form.city} onChange={(event) => updateField('city', event.target.value)} aria-invalid={Boolean(errors.city)} aria-describedby={errors.city ? 'city-error' : undefined} required />
-                    <FieldError id="city" message={errors.city} />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="deliveryInstructions">
-                      Delivery instructions <span className="font-normal text-muted">(optional)</span>
-                    </label>
-                    <textarea className={`${inputClassName(false)} min-h-24 resize-y`} id="deliveryInstructions" name="deliveryInstructions" placeholder="Landmark, preferred delivery time, or other helpful details" value={form.deliveryInstructions} onChange={(event) => updateField('deliveryInstructions', event.target.value)} />
-                  </div>
-                </div>
-              </fieldset>
-
-               <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-                 <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment method</legend>
-                 <p className="mt-2 text-sm leading-6 text-muted">Choose how you will pay. Your payment will remain pending until the store confirms it.</p>
-                 {isPaymentLoading ? (
-                   <div className="mt-5 rounded-2xl border border-line bg-cream/60 p-4 text-sm text-muted">Loading available payment methods…</div>
-                 ) : paymentError ? (
-                   <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">{paymentError}</div>
-                 ) : paymentMethods.length === 0 ? (
-                   <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">No payment methods are currently available. Please contact the store.</div>
-                 ) : (
-                   <div className="mt-5 space-y-3">
-                     {paymentMethods.map((method) => (
-                       <label
-                         className={`block cursor-pointer rounded-2xl border p-4 transition-colors ${
-                           form.paymentMethod === method.paymentMethod
-                             ? 'border-green bg-sage/30'
-                             : 'border-line bg-white hover:border-green/40'
-                         }`}
-                         key={method.paymentMethod}
-                       >
-                         <span className="flex items-start gap-3">
-                           <input
-                             className="mt-1 size-4 accent-green"
-                             type="radio"
-                             name="paymentMethod"
-                             value={method.paymentMethod}
-                             checked={form.paymentMethod === method.paymentMethod}
-                             onChange={() => updateField('paymentMethod', method.paymentMethod)}
-                           />
-                           <span>
-                             <span className="block text-sm font-bold text-green-dark">{method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod}</span>
-                             <span className="mt-1 block text-xs leading-5 text-muted">Transfer the order total using the account details below.</span>
-                           </span>
-                         </span>
-                       </label>
-                     ))}
-                   </div>
-                 )}
-                 {paymentSettings?.paymentMethod === 'BANK_TRANSFER' && (
-                   <div className="mt-4 rounded-2xl border border-green/20 bg-sage/20 p-4">
-                     <p className="text-sm font-bold text-green-dark">Bank transfer instructions</p>
-                     <dl className="mt-3 space-y-2 text-sm">
-                       <div className="flex justify-between gap-4"><dt className="text-muted">Bank</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.bankName}</dd></div>
-                       <div className="flex justify-between gap-4"><dt className="text-muted">Account name</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.accountName}</dd></div>
-                       <div className="flex justify-between gap-4"><dt className="text-muted">Account number</dt><dd className="text-right font-bold text-green-dark">{paymentSettings.accountNumber}</dd></div>
-                     </dl>
-                     <p className="mt-3 whitespace-pre-line text-xs leading-5 text-muted">{paymentSettings.instructions}</p>
-                   </div>
-                 )}
-               </fieldset>
-
-              <div className="mt-5">
+              <div className="mt-10">
                 <button
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-4 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark focus:outline-none focus:ring-2 focus:ring-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   type="submit"
-                   disabled={isSubmitting || !canCheckout || isPaymentLoading || !paymentSettings}
+                   disabled={isSubmitting || !canCheckout || isPaymentLoading || !paymentSettings || !form.fulfillmentMethod}
                 >
-                  {isSubmitting ? 'Processing order…' : 'Place order'} {!isSubmitting && <ArrowRight size={17} />}
+                  {isSubmitting ? 'Processing…' : 'Place order'} {!isSubmitting && <ArrowRight size={17} />}
                 </button>
                 {submitError && !needsCartReview && (
                   <p className="mt-3 text-center text-sm font-medium text-orange" role="alert">{submitError}</p>
@@ -461,11 +335,15 @@ export function Checkout() {
               <div className="my-6 space-y-3 border-y border-line py-5 text-sm">
                 <div className="flex justify-between gap-4 text-muted"><span>Items</span><span>{totalQuantity}</span></div>
                 <div className="flex justify-between gap-4 text-muted"><span>Subtotal</span><span className="font-bold text-green-dark">{formatPrice(subtotal)}</span></div>
-                 <div className="flex justify-between gap-4 text-muted"><span>Delivery fee</span><span className="font-bold text-green-dark">{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span></div>
+                 <div className="flex justify-between gap-4 text-muted"><span>{form.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery fee'}</span><span className="font-bold text-green-dark">{checkoutDeliveryFee === 0 ? 'Free' : formatPrice(checkoutDeliveryFee)}</span></div>
               </div>
+               <div className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
+                 <strong className="text-green-dark">{form.fulfillmentMethod === 'PICKUP' ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
+                 {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? 'Your delivery fee is calculated from the products in your cart.' : 'The final total will appear after you select a fulfillment option.'}
+               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>
-                 <strong className="text-2xl text-green-dark">{formatPrice(total)}</strong>
+                  <strong className="text-2xl text-green-dark">{formatPrice(checkoutTotal)}</strong>
               </div>
             </aside>
           </div>

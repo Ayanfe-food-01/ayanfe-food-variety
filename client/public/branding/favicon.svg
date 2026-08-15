@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title>Ayanfe Food Variety</title>
-  <circle cx="32" cy="32" r="30" fill="#205f36"/>
-  <path d="M18 47 29.2 16h6.1L46.5 47h-6.7l-2.2-6.7H26.7L24.5 47H18Zm10.5-12.1h7.2L32.1 24l-3.6 10.9Z" fill="#fff8ed"/>
-  <path d="M42.5 15.5c5.2-1.5 8.1.4 9.2 3.7-4.4 1.5-7.7.2-9.2-3.7Z" fill="#f27432"/>
-  <path d="M42.5 15.5c.6 4.1-1.2 6.7-4.2 8.1-.7-3.9.9-6.7 4.2-8.1Z" fill="#8bbb42"/>
-</svg>

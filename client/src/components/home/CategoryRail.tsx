@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Category } from '../../types/category'
 import { ArrowRight } from '../../assets/icons'
+import { CategoryCard } from './CategoryCard'
 
 interface CategoryRailProps {
   categories: Category[]
@@ -25,12 +26,7 @@ export function CategoryRail({ categories, isLoading, hasError, onRetry }: Categ
         </div> : hasError ? <div className="section-message" role="alert">
           <span>Categories are temporarily unavailable.</span><button type="button" onClick={onRetry}>Try again</button>
         </div> : categories.length ? <div className="category-rail">
-          {categories.map((category) => (
-            <Link className="category-tile" to={`/shop?category=${category.slug}`} key={category.id}>
-              {category.imageUrl ? <img src={category.imageUrl} alt={`${category.name} Nigerian foodstuff - Ayanfe Food Variety`} loading="lazy" /> : <span className="category-placeholder" aria-hidden="true" />}
-              <span>{category.name}</span>
-            </Link>
-          ))}
+          {categories.map((category) => <CategoryCard category={category} key={category.id} />)}
         </div> : <div className="section-message">No categories are available right now.</div>}
       </div>
     </section>

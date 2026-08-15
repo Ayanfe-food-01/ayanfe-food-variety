@@ -122,7 +122,7 @@ export function ProductForm() {
     'aria-describedby': fieldErrors[field] ? `${field}-error` : undefined,
   })
 
-  const progressLabel = getSaveProgressLabel('product', isEditing ? 'update' : 'create', Boolean(form.image))
+  const progressLabel = getSaveProgressLabel(isEditing ? 'update' : 'create')
 
   return (
     <>
@@ -182,7 +182,6 @@ export function ProductForm() {
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
              <FeaturedToggle checked={form.isFeatured} disabled={isSaving} onChange={(checked) => update('isFeatured', checked)} />
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-           {isSaving && <p className="text-sm font-semibold text-muted" role="status">{progressLabel}</p>}
            <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>
         </form>}
       </div>

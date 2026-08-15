@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { MoreHorizontalIcon } from '../../assets/icons'
 
@@ -11,6 +11,13 @@ interface ActionMenuProps {
   children: (close: () => void) => ReactNode
 }
 
+interface MenuLayout {
+  placement: 'top' | 'bottom'
+  top: number
+  left: number
+  maxHeight: number
+}
+
 export function ActionMenu({
   ariaLabel,
   isBusy = false,
@@ -20,7 +27,7 @@ export function ActionMenu({
   children,
 }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null)
+  const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -43,7 +50,7 @@ export function ActionMenu({
     }
   }, [isOpen])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen || !fixedPosition) return
 
     const positionMenu = () => {
@@ -54,18 +61,78 @@ export function ActionMenu({
       const buttonRect = button.getBoundingClientRect()
       const menuRect = menu.getBoundingClientRect()
       const gap = 8
-      const hasRoomBelow = window.innerHeight - buttonRect.bottom >= menuRect.height + gap
-      const top = hasRoomBelow
-        ? buttonRect.bottom + gap
-        : Math.max(gap, buttonRect.top - menuRect.height - gap)
-      const right = Math.max(gap, window.innerWidth - buttonRect.right)
-      setMenuPosition((current) => current?.top === top && current.right === right ? current : { top, right })
+      const viewportPadding = 12
+      const availableBelow = Math.max(0, window.innerHeight - buttonRect.bottom - viewportPadding)
+      const availableAbove = Math.max(0, buttonRect.top - viewportPadding)
+      const opensAbove = availableBelow < menuRect.height + gap && availableAbove > availableBelow
+      const availableSpace = opensAbove ? availableAbove : availableBelow
+      const maxHeight = Math.max(0, Math.min(window.innerHeight - viewportPadding * 2, availableSpace - gap))
+      const menuHeight = Math.min(menuRect.height, maxHeight || menuRect.height)
+      const top = opensAbove
+        ? buttonRect.top - menuHeight - gap
+        : buttonRect.bottom + gap
+      const clampedTop = Math.min(
+        Math.max(viewportPadding, top),
+        Math.max(viewportPadding, window.innerHeight - viewportPadding - menuHeight),
+      )
+      const desiredLeft = buttonRect.right - menuRect.width
+      const left = Math.min(
+        Math.max(viewportPadding, desiredLeft),
+        Math.max(viewportPadding, window.innerWidth - viewportPadding - menuRect.width),
+      )
+      setMenuLayout((current) => (
+        current?.placement === (opensAbove ? 'top' : 'bottom')
+        && current.top === clampedTop
+        && current.left === left
+        && current.maxHeight === maxHeight
+          ? current
+          : { placement: opensAbove ? 'top' : 'bottom', top: clampedTop, left, maxHeight }
+      ))
     }
 
     positionMenu()
+    const menuResizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(positionMenu)
+    if (menuResizeObserver && menuRef.current) menuResizeObserver.observe(menuRef.current)
     window.addEventListener('resize', positionMenu)
     window.addEventListener('scroll', positionMenu, true)
     return () => {
+      menuResizeObserver?.disconnect()
+      window.removeEventListener('resize', positionMenu)
+      window.removeEventListener('scroll', positionMenu, true)
+    }
+  }, [fixedPosition, isOpen])
+
+  useLayoutEffect(() => {
+    if (!isOpen || fixedPosition) return
+
+    const positionMenu = () => {
+      const button = buttonRef.current
+      const menu = menuRef.current
+      if (!button || !menu) return
+
+      const buttonRect = button.getBoundingClientRect()
+      const menuRect = menu.getBoundingClientRect()
+      const gap = 8
+      const viewportPadding = 12
+      const availableBelow = Math.max(0, window.innerHeight - buttonRect.bottom - viewportPadding)
+      const availableAbove = Math.max(0, buttonRect.top - viewportPadding)
+      const opensAbove = availableBelow < menuRect.height + gap && availableAbove > availableBelow
+      const availableSpace = opensAbove ? availableAbove : availableBelow
+      const maxHeight = Math.max(0, Math.min(window.innerHeight - viewportPadding * 2, availableSpace - gap))
+      setMenuLayout((current) => (
+        current?.placement === (opensAbove ? 'top' : 'bottom') && current.maxHeight === maxHeight
+          ? current
+          : { placement: opensAbove ? 'top' : 'bottom', top: 0, left: 0, maxHeight }
+      ))
+    }
+
+    positionMenu()
+    const menuResizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(positionMenu)
+    if (menuResizeObserver && menuRef.current) menuResizeObserver.observe(menuRef.current)
+    window.addEventListener('resize', positionMenu)
+    window.addEventListener('scroll', positionMenu, true)
+    return () => {
+      menuResizeObserver?.disconnect()
       window.removeEventListener('resize', positionMenu)
       window.removeEventListener('scroll', positionMenu, true)
     }
@@ -83,7 +150,10 @@ export function ActionMenu({
         aria-haspopup="menu"
         disabled={isBusy}
         ref={buttonRef}
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => {
+          setMenuLayout(null)
+          setIsOpen((current) => !current)
+        }}
       >
         <span className={triggerOrientation === 'vertical' ? 'rotate-90' : undefined}>
           <MoreHorizontalIcon size={20} />
@@ -91,14 +161,17 @@ export function ActionMenu({
       </button>
       {isOpen && (
         <div
-          className={`${fixedPosition ? 'fixed' : 'absolute right-0 top-11'} z-50 max-h-[calc(100vh-16px)] min-w-44 overflow-y-auto overflow-x-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10`}
+          className={`${fixedPosition ? 'fixed' : `absolute right-0 ${menuLayout?.placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}`} z-50 min-w-44 overflow-y-auto overflow-x-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10`}
           role="menu"
           ref={menuRef}
-          style={fixedPosition ? {
-            top: menuPosition?.top ?? 0,
-            right: menuPosition?.right ?? 8,
-            visibility: menuPosition ? 'visible' : 'hidden',
-          } : undefined}
+          style={{
+            ...(fixedPosition && menuLayout ? {
+              top: menuLayout.top,
+              left: menuLayout.left,
+            } : {}),
+            maxHeight: menuLayout?.maxHeight || 'calc(100vh - 24px)',
+            visibility: menuLayout ? 'visible' : 'hidden',
+          }}
         >
           {children(() => setIsOpen(false))}
         </div>

@@ -26,7 +26,7 @@ function BannerActions({
   onDelete: () => void
 }) {
   return (
-    <ActionMenu ariaLabel={`Actions for ${banner.title}`} isBusy={isBusy}>
+    <ActionMenu ariaLabel={`Actions for ${banner.title}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
           <ActionMenuLink to={`/admin/banners/${banner.id}/edit`} onClick={close}>Edit</ActionMenuLink>

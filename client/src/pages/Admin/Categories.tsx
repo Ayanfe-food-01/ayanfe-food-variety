@@ -28,7 +28,7 @@ interface CategoryActionsProps {
 
 function CategoryActions({ category, isBusy, onToggleStatus, onDelete }: CategoryActionsProps) {
   return (
-    <ActionMenu ariaLabel={`Actions for ${category.name}`} isBusy={isBusy}>
+    <ActionMenu ariaLabel={`Actions for ${category.name}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
           <ActionMenuLink to={`/admin/categories/${category.id}/edit`} onClick={close}>Edit</ActionMenuLink>

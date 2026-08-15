@@ -15,6 +15,7 @@ import { useToast } from '../../components/ui/Toast'
 import { ImagePreview } from '../../components/ui/ImagePreview'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { OrderDetailActionsMenu } from '../../components/admin/OrderDetailActionsMenu'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -117,10 +118,13 @@ export function OrderDetail() {
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span>
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>
             {order.archivedAt && <span className="rounded-full bg-orange/10 px-3 py-2 text-xs font-bold text-orange">Archived</span>}
-            <button className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-green hover:border-green disabled:cursor-wait disabled:opacity-50" type="button" disabled={isArchiveSaving || isDeleteSaving} onClick={() => void toggleArchive()}>
-              {isArchiveSaving ? 'Saving…' : order.archivedAt ? 'Restore order' : 'Archive order'}
-            </button>
-            {order.archivedAt && <button className="rounded-xl border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={isArchiveSaving || isDeleteSaving} onClick={() => { setDeleteError(null); setIsDeleteConfirmationOpen(true) }}>Delete permanently</button>}
+            <OrderDetailActionsMenu
+              orderNumber={order.orderNumber}
+              isArchived={Boolean(order.archivedAt)}
+              isBusy={isArchiveSaving || isDeleteSaving}
+              onToggleArchive={() => void toggleArchive()}
+              onDelete={() => { setDeleteError(null); setIsDeleteConfirmationOpen(true) }}
+            />
           </div>
       </div>
 

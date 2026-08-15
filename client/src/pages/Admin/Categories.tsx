@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MoreHorizontalIcon } from '../../assets/icons'
+import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -27,73 +27,16 @@ interface CategoryActionsProps {
 }
 
 function CategoryActions({ category, isBusy, onToggleStatus, onDelete }: CategoryActionsProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false)
-    }
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [isOpen])
-
-  const runAction = (action: () => void) => {
-    setIsOpen(false)
-    action()
-  }
-
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        className="grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50"
-        type="button"
-        aria-label={`Actions for ${category.name}`}
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        disabled={isBusy}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <MoreHorizontalIcon size={20} />
-      </button>
-      {isOpen && (
-        <div className="absolute right-0 top-11 z-30 min-w-40 overflow-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10" role="menu">
-          <Link
-            className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
-            role="menuitem"
-            to={`/admin/categories/${category.id}/edit`}
-            onClick={() => setIsOpen(false)}
-          >
-            Edit
-          </Link>
-          <button
-            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-orange transition-colors hover:bg-orange/10"
-            type="button"
-            role="menuitem"
-            onClick={() => runAction(onToggleStatus)}
-          >
-            {category.isActive ? 'Deactivate' : 'Activate'}
-          </button>
-          <button
-            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted transition-colors hover:bg-orange/10 hover:text-orange"
-            type="button"
-            role="menuitem"
-            onClick={() => runAction(onDelete)}
-          >
-            Delete
-          </button>
-        </div>
+    <ActionMenu ariaLabel={`Actions for ${category.name}`} isBusy={isBusy}>
+      {(close) => (
+        <>
+          <ActionMenuLink to={`/admin/categories/${category.id}/edit`} onClick={close}>Edit</ActionMenuLink>
+          <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{category.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
+          <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
+        </>
       )}
-    </div>
+    </ActionMenu>
   )
 }
 
@@ -110,6 +53,7 @@ export function Categories() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [categoryToStatus, setCategoryToStatus] = useState<Category | null>(null)
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -147,13 +91,18 @@ export function Categories() {
     setQuery((current) => ({ ...current, search: searchInput.trim() || undefined, page: 1 }))
   }
 
-  const toggleStatus = async (category: Category) => {
-    const action = category.isActive ? 'deactivate' : 'activate'
-    if (!window.confirm(`Are you sure you want to ${action} “${category.name}”? Existing products will remain unchanged.`)) return
+  const requestStatusChange = (category: Category) => {
+    setCategoryToStatus(category)
+  }
+
+  const confirmStatusChange = async () => {
+    if (!categoryToStatus) return
+    const category = categoryToStatus
     setBusyId(category.id)
     setError(null)
     try {
       const updated = await updateAdminCategoryStatus(category.id, !category.isActive)
+      setCategoryToStatus(null)
       showToast(`Category ${updated.isActive ? 'activated' : 'deactivated'} successfully.`, 'success')
       setQuery((current) => ({ ...current }))
     } catch (caught: unknown) {
@@ -253,7 +202,7 @@ export function Categories() {
                   <CategoryActions
                     category={category}
                     isBusy={busyId === category.id || deletingId === category.id}
-                    onToggleStatus={() => void toggleStatus(category)}
+                    onToggleStatus={() => requestStatusChange(category)}
                     onDelete={() => openDeleteConfirmation(category)}
                   />
                 </div>
@@ -295,7 +244,7 @@ export function Categories() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${category.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{category.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.createdAt)}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.updatedAt)}</td>
-                      <td className="px-5 py-4"><CategoryActions category={category} isBusy={busyId === category.id || deletingId === category.id} onToggleStatus={() => void toggleStatus(category)} onDelete={() => openDeleteConfirmation(category)} /></td>
+                      <td className="px-5 py-4"><CategoryActions category={category} isBusy={busyId === category.id || deletingId === category.id} onToggleStatus={() => requestStatusChange(category)} onDelete={() => openDeleteConfirmation(category)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -303,6 +252,18 @@ export function Categories() {
           </div>
           {totalPages > 1 && <div className="flex items-center justify-between gap-4 border-t border-line px-5 py-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
         </div>
+      )}
+      {categoryToStatus && (
+        <ConfirmDialog
+          eyebrow="Change category status"
+          title={`${categoryToStatus.isActive ? 'Deactivate' : 'Activate'} “${categoryToStatus.name}”?`}
+          description="Existing products will remain unchanged. Inactive categories are hidden from customer shopping and cannot be selected for new products."
+          isBusy={busyId === categoryToStatus.id}
+          confirmLabel={categoryToStatus.isActive ? 'Deactivate category' : 'Activate category'}
+          busyLabel="Updating…"
+          onCancel={() => setCategoryToStatus(null)}
+          onConfirm={() => void confirmStatusChange()}
+        />
       )}
       {categoryToDelete && (
         <ConfirmDialog

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { ApiError } from '../../services/api'
 import { useToast } from '../../components/ui/Toast'
+import { SubmitButton } from '../../components/ui/SubmitButton'
 import {
   getContactInformation,
   changeAdminPassword,
@@ -209,5 +210,5 @@ export function Settings() {
 }
 
 function SaveButton({ saving, label }: { saving: boolean; label: string }) {
-  return <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-50" type="submit" disabled={saving}>{saving ? 'Saving…' : label}</button>
+  return <SubmitButton busy={saving} busyLabel="Saving…">{label}</SubmitButton>
 }

@@ -6,7 +6,8 @@ import { deleteProductImage, uploadProductImage } from './product.storage.js';
 const routeParam = (value) => Array.isArray(value) ? value[0] : value;
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 10, fieldSize: 1 * 1024 * 1024 },
+    // Product forms send 11 scalar fields before an optional image file.
+    limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 20, fieldSize: 1 * 1024 * 1024 },
     fileFilter: (_request, file, callback) => {
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
             callback(new HttpError(400, 'Product image must be a JPG, PNG, or WEBP image.'));
@@ -20,7 +21,9 @@ export const productImageUpload = (request, response, next) => {
         if (error instanceof multer.MulterError) {
             next(new HttpError(400, error.code === 'LIMIT_FILE_SIZE'
                 ? 'Product images must be 5 MB or smaller.'
-                : 'The product image upload is invalid.'));
+                : error.code === 'LIMIT_FIELD_COUNT'
+                    ? 'Too many product form fields were submitted.'
+                    : 'The product image upload is invalid.'));
             return;
         }
         next(error);

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { SubmitButton } from '../../components/ui/SubmitButton'
 import {
   createAdminBanner,
   getAdminBanner,
@@ -84,6 +85,10 @@ export function BannerForm() {
     }
   }
 
+  const progressLabel = form.image
+    ? `Uploading image and ${isEditing ? 'updating' : 'creating'} banner…`
+    : `${isEditing ? 'Updating' : 'Creating'} banner…`
+
   return (
     <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -103,8 +108,8 @@ export function BannerForm() {
           <label className="flex items-start gap-3 rounded-xl border border-line bg-cream/50 p-4 text-sm text-green-dark"><input className="mt-0.5 size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} /><span><span className="block font-bold">Active on homepage</span><span className="mt-1 block text-xs font-normal leading-5 text-muted">Inactive banners remain saved in the admin portal but are hidden from customers.</span></span></label>
           {fieldError && <p className="text-sm font-medium text-orange" role="alert">{fieldError}</p>}
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-          {isSaving && <p className="text-sm font-semibold text-muted" role="status">{form.image ? 'Uploading image and saving banner…' : 'Saving banner…'}</p>}
-          <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSaving}>{isSaving ? 'Saving…' : isEditing ? 'Save changes' : 'Create banner'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/banners">Cancel</Link></div>
+          {isSaving && <p className="text-sm font-semibold text-muted" role="status">{progressLabel}</p>}
+          <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel}>{isEditing ? 'Save changes' : 'Create banner'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/banners">Cancel</Link></div>
         </form>}
       </div>
     </>

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { SubmitButton } from '../../components/ui/SubmitButton'
 import { createAdminCategory, getAdminCategory, updateAdminCategory, type CategoryInput } from '../../services/adminService'
 
 const initialForm: CategoryInput = { name: '', description: '', isActive: true }
@@ -18,7 +19,6 @@ export function CategoryForm() {
   const [imageError, setImageError] = useState<string | null>(null)
   const [currentImage, setCurrentImage] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'uploading' | 'saving'>('idle')
 
   useEffect(() => {
     if (!id) return
@@ -55,7 +55,6 @@ export function CategoryForm() {
     setIsSaving(true)
     try {
       const input = { ...form, name, description }
-      setSaveStatus(form.image ? 'uploading' : 'saving')
       if (id) await updateAdminCategory(id, input)
       else await createAdminCategory(input)
       navigate('/admin/categories', {
@@ -66,9 +65,12 @@ export function CategoryForm() {
       setError(caught instanceof ApiError ? caught.message : `Category could not be ${isEditing ? 'updated' : 'created'}.`)
     } finally {
       setIsSaving(false)
-      setSaveStatus('idle')
     }
   }
+
+  const progressLabel = form.image
+    ? `Uploading image and ${isEditing ? 'updating' : 'creating'} category…`
+    : `${isEditing ? 'Updating' : 'Creating'} category…`
 
   return (
     <>
@@ -93,8 +95,8 @@ export function CategoryForm() {
            </div>
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />Active and available for products</label>
            {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-           {isSaving && <p className="text-sm font-semibold text-muted" role="status">{saveStatus === 'uploading' ? 'Uploading image…' : 'Saving category…'}</p>}
-           <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSaving}>{isSaving ? saveStatus === 'uploading' ? 'Uploading image…' : 'Saving category…' : isEditing ? 'Save changes' : 'Create category'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/categories">Cancel</Link></div>
+            {isSaving && <p className="text-sm font-semibold text-muted" role="status">{progressLabel}</p>}
+            <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel}>{isEditing ? 'Save changes' : 'Create category'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/categories">Cancel</Link></div>
         </form>}
       </div>
     </>

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MoreHorizontalIcon } from '../../assets/icons'
+import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -32,136 +32,18 @@ interface ProductActionsProps {
 }
 
 function ProductActions({ product, isBusy, onToggleStatus, onToggleFeatured, onDelete }: ProductActionsProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null)
-  const actionButtonRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false)
-    }
-
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const positionMenu = () => {
-      const button = actionButtonRef.current
-      const menu = menuRef.current
-      if (!button || !menu) return
-
-      const buttonRect = button.getBoundingClientRect()
-      const menuRect = menu.getBoundingClientRect()
-      const gap = 8
-      const hasRoomBelow = window.innerHeight - buttonRect.bottom >= menuRect.height + gap
-      const top = hasRoomBelow
-        ? buttonRect.bottom + gap
-        : Math.max(gap, buttonRect.top - menuRect.height - gap)
-      const right = Math.max(gap, window.innerWidth - buttonRect.right)
-      const nextPosition = { top, right }
-
-      setMenuPosition((current) => (
-        current?.top === nextPosition.top && current.right === nextPosition.right
-          ? current
-          : nextPosition
-      ))
-    }
-
-    positionMenu()
-    window.addEventListener('resize', positionMenu)
-    window.addEventListener('scroll', positionMenu, true)
-    return () => {
-      window.removeEventListener('resize', positionMenu)
-      window.removeEventListener('scroll', positionMenu, true)
-    }
-  }, [isOpen])
-
-  const runAction = (action: () => void) => {
-    setIsOpen(false)
-    action()
-  }
-
   return (
-    <div className="relative inline-block" ref={menuRef}>
-      <button
-        className="grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50"
-        type="button"
-        aria-label={`Actions for ${product.name}`}
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        disabled={isBusy}
-        ref={actionButtonRef}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <MoreHorizontalIcon size={20} />
-      </button>
-      {isOpen && (
-        <div
-          className="fixed z-50 max-h-[calc(100vh-16px)] min-w-44 overflow-y-auto overflow-x-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10"
-          role="menu"
-          ref={menuRef}
-          style={{
-            top: menuPosition?.top ?? 0,
-            right: menuPosition?.right ?? 8,
-            visibility: menuPosition ? 'visible' : 'hidden',
-          }}
-        >
-          <Link
-            className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
-            role="menuitem"
-            to={`/admin/products/${product.id}`}
-            onClick={() => setIsOpen(false)}
-          >
-            View
-          </Link>
-          <Link
-            className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
-            role="menuitem"
-            to={`/admin/products/${product.id}/edit`}
-            onClick={() => setIsOpen(false)}
-          >
-            Edit
-          </Link>
-          <button
-            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-orange transition-colors hover:bg-orange/10"
-            type="button"
-            role="menuitem"
-            onClick={() => runAction(onToggleStatus)}
-          >
-            {product.isActive ? 'Deactivate' : 'Activate'}
-          </button>
-          <button
-            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-green-dark transition-colors hover:bg-sage/50"
-            type="button"
-            role="menuitem"
-            onClick={() => runAction(onToggleFeatured)}
-          >
-            {product.isFeatured ? 'Remove from featured' : 'Mark as featured'}
-          </button>
-          <button
-            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted transition-colors hover:bg-orange/10 hover:text-orange"
-            type="button"
-            role="menuitem"
-            onClick={() => runAction(onDelete)}
-          >
-            Delete
-          </button>
-        </div>
+    <ActionMenu ariaLabel={`Actions for ${product.name}`} isBusy={isBusy} fixedPosition>
+      {(close) => (
+        <>
+          <ActionMenuLink to={`/admin/products/${product.id}`} onClick={close}>View</ActionMenuLink>
+          <ActionMenuLink to={`/admin/products/${product.id}/edit`} onClick={close}>Edit</ActionMenuLink>
+          <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{product.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
+          <ActionMenuButton onClick={() => { close(); onToggleFeatured() }}>{product.isFeatured ? 'Remove from featured' : 'Mark as featured'}</ActionMenuButton>
+          <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
+        </>
       )}
-    </div>
+    </ActionMenu>
   )
 }
 
@@ -181,6 +63,7 @@ export function Products() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [productToStatus, setProductToStatus] = useState<AdminProductsPage['products'][number] | null>(null)
   const [productToDelete, setProductToDelete] = useState<AdminProductsPage['products'][number] | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -226,14 +109,19 @@ export function Products() {
     setQuery((current) => ({ ...current, [key]: value || undefined, page: 1 }))
   }
 
-  const toggleStatus = async (id: string, isActive: boolean) => {
-    const action = isActive ? 'deactivate' : 'activate'
-    if (!window.confirm(`Are you sure you want to ${action} this product?`)) return
-    setUpdatingId(id)
+  const requestStatusChange = (product: AdminProductsPage['products'][number]) => {
+    setProductToStatus(product)
+  }
+
+  const confirmStatusChange = async () => {
+    if (!productToStatus) return
+    const product = productToStatus
+    setUpdatingId(product.id)
     setError(null)
     try {
-      await updateAdminProductStatus(id, !isActive)
-      showToast(`Product ${isActive ? 'deactivated' : 'activated'} successfully.`, 'success')
+      await updateAdminProductStatus(product.id, !product.isActive)
+      setProductToStatus(null)
+      showToast(`Product ${product.isActive ? 'deactivated' : 'activated'} successfully.`, 'success')
       setQuery((current) => ({ ...current }))
     } catch (caught: unknown) {
       showToast(caught instanceof ApiError ? caught.message : 'Product availability could not be updated.', 'error')
@@ -403,7 +291,7 @@ export function Products() {
                       <ProductActions
                         product={product}
                         isBusy={updatingId === product.id || deletingId === product.id}
-                        onToggleStatus={() => void toggleStatus(product.id, product.isActive)}
+                        onToggleStatus={() => requestStatusChange(product)}
                         onToggleFeatured={() => void toggleFeatured(product.id, product.isFeatured)}
                         onDelete={() => openDeleteConfirmation(product)}
                       />
@@ -454,7 +342,7 @@ export function Products() {
                          <ProductActions
                            product={product}
                            isBusy={updatingId === product.id || deletingId === product.id}
-                           onToggleStatus={() => void toggleStatus(product.id, product.isActive)}
+                            onToggleStatus={() => requestStatusChange(product)}
                            onToggleFeatured={() => void toggleFeatured(product.id, product.isFeatured)}
                            onDelete={() => openDeleteConfirmation(product)}
                          />
@@ -473,6 +361,18 @@ export function Products() {
           <p className="mt-2 text-sm text-muted">Try a different filter or add your first product.</p>
           <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add product</Link>
         </div>
+      )}
+      {productToStatus && (
+        <ConfirmDialog
+          eyebrow="Change product availability"
+          title={`${productToStatus.isActive ? 'Deactivate' : 'Activate'} “${productToStatus.name}”?`}
+          description={productToStatus.isActive ? 'This hides the product from customer shopping and prevents it from being selected for new orders.' : 'This makes the product available for customer shopping again when it has stock.'}
+          isBusy={updatingId === productToStatus.id}
+          confirmLabel={productToStatus.isActive ? 'Deactivate product' : 'Activate product'}
+          busyLabel="Updating…"
+          onCancel={() => setProductToStatus(null)}
+          onConfirm={() => void confirmStatusChange()}
+        />
       )}
       {productToDelete && (
         <ConfirmDialog

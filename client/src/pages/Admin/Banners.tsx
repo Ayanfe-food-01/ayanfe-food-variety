@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MoreHorizontalIcon } from '../../assets/icons'
+import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { useToast } from '../../components/ui/Toast'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { ApiError } from '../../services/api'
@@ -25,27 +25,16 @@ function BannerActions({
   onToggle: () => void
   onDelete: () => void
 }) {
-  const [isOpen, setIsOpen] = useState(false)
   return (
-    <div className="relative">
-      <button
-        className="grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:opacity-50"
-        type="button"
-        aria-label={`Actions for ${banner.title}`}
-        aria-expanded={isOpen}
-        disabled={isBusy}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <MoreHorizontalIcon size={20} />
-      </button>
-      {isOpen && (
-        <div className="absolute right-0 top-11 z-20 min-w-44 overflow-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10">
-          <Link className="block rounded-lg px-3 py-2 text-sm font-semibold text-green-dark hover:bg-sage/50" to={`/admin/banners/${banner.id}/edit`} onClick={() => setIsOpen(false)}>Edit</Link>
-          <button className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-orange hover:bg-orange/10" type="button" onClick={() => { setIsOpen(false); onToggle() }}>{banner.isActive ? 'Deactivate' : 'Activate'}</button>
-          <button className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted hover:bg-orange/10 hover:text-orange" type="button" onClick={() => { setIsOpen(false); onDelete() }}>Delete</button>
-        </div>
+    <ActionMenu ariaLabel={`Actions for ${banner.title}`} isBusy={isBusy}>
+      {(close) => (
+        <>
+          <ActionMenuLink to={`/admin/banners/${banner.id}/edit`} onClick={close}>Edit</ActionMenuLink>
+          <ActionMenuButton tone="accent" onClick={() => { close(); onToggle() }}>{banner.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
+          <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
+        </>
       )}
-    </div>
+    </ActionMenu>
   )
 }
 
@@ -53,6 +42,7 @@ export function Banners() {
   const [banners, setBanners] = useState<AdminBanner[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [bannerToStatus, setBannerToStatus] = useState<AdminBanner | null>(null)
   const [bannerToDelete, setBannerToDelete] = useState<AdminBanner | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -72,13 +62,18 @@ export function Banners() {
     loadBanners()
   }, [])
 
-  const toggleStatus = async (banner: AdminBanner) => {
-    const action = banner.isActive ? 'deactivate' : 'activate'
-    if (!window.confirm(`Are you sure you want to ${action} “${banner.title}”?`)) return
+  const requestStatusChange = (banner: AdminBanner) => {
+    setBannerToStatus(banner)
+  }
+
+  const confirmStatusChange = async () => {
+    if (!bannerToStatus) return
+    const banner = bannerToStatus
     setBusyId(banner.id)
     try {
       const updated = await updateAdminBannerStatus(banner.id, !banner.isActive)
       setBanners((current) => current.map((item) => item.id === updated.id ? updated : item))
+      setBannerToStatus(null)
       showToast(`Banner ${updated.isActive ? 'activated' : 'deactivated'} successfully.`, 'success')
     } catch (caught: unknown) {
       showToast(caught instanceof ApiError ? caught.message : 'Banner status could not be updated.', 'error')
@@ -144,7 +139,7 @@ export function Banners() {
                     <p className="font-bold text-green-dark">{banner.title}</p>
                     <p className="mt-1 line-clamp-2 text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p>
                   </div>
-              <BannerActions banner={banner} isBusy={busyId === banner.id || deletingId === banner.id} onToggle={() => void toggleStatus(banner)} onDelete={() => openDeleteConfirmation(banner)} />
+              <BannerActions banner={banner} isBusy={busyId === banner.id || deletingId === banner.id} onToggle={() => requestStatusChange(banner)} onDelete={() => openDeleteConfirmation(banner)} />
                 </div>
                 <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3 text-xs">
                   <div><dt className="uppercase tracking-[0.12em] text-muted">Status</dt><dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></dd></div>
@@ -159,20 +154,32 @@ export function Banners() {
               <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
                 <tr><th className="px-5 py-4 font-bold">Banner</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
               </thead>
-              <tbody className="divide-y divide-line">
+               <tbody className="divide-y divide-line">
                 {banners.map((banner) => (
                   <tr key={banner.id}>
                     <td className="px-5 py-4"><div className="flex min-w-[320px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="font-bold text-green-dark">{banner.title}</p><p className="mt-1 max-w-md truncate text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 font-bold text-green-dark">{banner.displayOrder}</td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-muted">{formatDate(banner.createdAt)}</td>
-                    <td className="px-5 py-4"><BannerActions banner={banner} isBusy={busyId === banner.id || deletingId === banner.id} onToggle={() => void toggleStatus(banner)} onDelete={() => openDeleteConfirmation(banner)} /></td>
+                    <td className="px-5 py-4"><BannerActions banner={banner} isBusy={busyId === banner.id || deletingId === banner.id} onToggle={() => requestStatusChange(banner)} onDelete={() => openDeleteConfirmation(banner)} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+      {bannerToStatus && (
+        <ConfirmDialog
+          eyebrow="Change banner status"
+          title={`${bannerToStatus.isActive ? 'Deactivate' : 'Activate'} “${bannerToStatus.title}”?`}
+          description="Inactive banners remain saved in the admin portal but are hidden from customers on the homepage."
+          isBusy={busyId === bannerToStatus.id}
+          confirmLabel={bannerToStatus.isActive ? 'Deactivate banner' : 'Activate banner'}
+          busyLabel="Updating…"
+          onCancel={() => setBannerToStatus(null)}
+          onConfirm={() => void confirmStatusChange()}
+        />
       )}
       {bannerToDelete && (
         <ConfirmDialog

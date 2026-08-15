@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { SelectField } from '../../components/ui/SelectField'
+import { SubmitButton } from '../../components/ui/SubmitButton'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
@@ -123,6 +124,10 @@ export function ProductForm() {
     'aria-describedby': fieldErrors[field] ? `${field}-error` : undefined,
   })
 
+  const progressLabel = saveStatus === 'uploading'
+    ? `${isEditing ? 'Uploading image and updating' : 'Uploading image and creating'} product…`
+    : `${isEditing ? 'Updating' : 'Creating'} product…`
+
   return (
     <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -179,10 +184,10 @@ export function ProductForm() {
              onChange={chooseImage}
            />
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
-           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isFeatured} onChange={(event) => update('isFeatured', event.target.checked)} />Featured on homepage</label>
+            <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isFeatured} onChange={(event) => update('isFeatured', event.target.checked)} />Mark as featured</label>
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-          {isSaving && <p className="text-sm font-semibold text-muted" role="status">{saveStatus === 'uploading' ? 'Uploading image…' : 'Saving product…'}</p>}
-          <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSaving || isCategoriesLoading}>{isSaving ? saveStatus === 'uploading' ? 'Uploading image…' : 'Saving product…' : isEditing ? 'Save changes' : 'Create product'}</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>
+           {isSaving && <p className="text-sm font-semibold text-muted" role="status">{progressLabel}</p>}
+           <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>
         </form>}
       </div>
     </>

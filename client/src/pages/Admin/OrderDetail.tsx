@@ -6,6 +6,7 @@ import { formatOrderStatus, getOrderStatusOptions } from '../../utils/orderStatu
 import { useToast } from '../../components/ui/Toast'
 import { ImagePreview } from '../../components/ui/ImagePreview'
 import { SelectField } from '../../components/ui/SelectField'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -25,6 +26,7 @@ export function OrderDetail() {
   const [note, setNote] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isCancelConfirmationOpen, setIsCancelConfirmationOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useToast()
 
@@ -39,9 +41,8 @@ export function OrderDetail() {
       .finally(() => setIsLoading(false))
   }, [orderNumber])
 
-  const saveStatus = async () => {
+  const persistStatus = async () => {
     if (!order || !orderNumber || status === order.orderStatus) return
-    if (status === 'CANCELLED' && !window.confirm(`Cancel ${order.orderNumber}? This cannot be undone.`)) return
     setIsSaving(true)
     setError(null)
     try {
@@ -53,6 +54,14 @@ export function OrderDetail() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const saveStatus = () => {
+    if (status === 'CANCELLED') {
+      setIsCancelConfirmationOpen(true)
+      return
+    }
+    void persistStatus()
   }
 
   if (isLoading) return <div className="rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading order…</div>
@@ -124,7 +133,7 @@ export function OrderDetail() {
                value={status}
              /></label>
             <label className="mt-4 block text-sm font-bold text-green-dark">Internal note <textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the audit history" maxLength={1000} /></label>
-            <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={() => void saveStatus()}>{isSaving ? 'Saving…' : 'Save order status'}</button>
+             <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={saveStatus}>{isSaving ? 'Updating order status…' : 'Save order status'}</button>
           </section>
 
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
@@ -133,6 +142,21 @@ export function OrderDetail() {
           </section>
         </div>
       </div>
+      {isCancelConfirmationOpen && (
+        <ConfirmDialog
+          eyebrow="Cancel order"
+          title={`Cancel ${order.orderNumber}?`}
+          description="Cancellation cannot be undone. The order will remain in the history with its payment status preserved for audit purposes."
+          isBusy={isSaving}
+          confirmLabel="Cancel order"
+          busyLabel="Updating order…"
+          onCancel={() => setIsCancelConfirmationOpen(false)}
+          onConfirm={() => {
+            setIsCancelConfirmationOpen(false)
+            void persistStatus()
+          }}
+        />
+      )}
     </div>
   )
 }

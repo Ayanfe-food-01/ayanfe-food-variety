@@ -114,7 +114,7 @@ export function PaymentMethodSection({
   onChange,
 }: PaymentMethodSectionProps) {
   return (
-    <fieldset className="m-0 border-0 border-t border-line p-0 pt-10">
+    <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
       <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment method</legend>
       <p className="mt-2 text-sm leading-6 text-muted">
         Choose how you will pay. Your payment will remain pending until the store confirms it.
@@ -195,7 +195,7 @@ export function FulfillmentSection({ form, errors, fulfillmentMethod, onChange }
 
   return (
     <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-      <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Delivery option</legend>
+      <legend className="mt-4 block text-2xl font-bold tracking-[-0.03em] text-green-dark">Delivery option</legend>
       <p className="mt-2 text-sm leading-6 text-muted">
         Choose pickup or delivery. This selection is saved with your order and cannot change after it is placed.
       </p>

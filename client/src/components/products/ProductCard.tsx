@@ -5,6 +5,7 @@ import { WishlistButton } from './WishlistButton'
 import type { Product } from '../../types/product'
 import { useCart } from '../../hooks/useCart'
 import { CartIcon } from '../../assets/icons'
+import { useToast } from '../ui/Toast'
 
 interface ProductCardProps {
   product: Product
@@ -12,18 +13,16 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [imageError, setImageError] = useState(false)
-  const [feedback, setFeedback] = useState<string | null>(null)
   const { addToCart, pendingItemIds } = useCart()
+  const { showToast } = useToast()
   const isAdding = pendingItemIds.includes(product.id)
 
   const handleAddToCart = async () => {
-    setFeedback(null)
     try {
       await addToCart(product)
-      setFeedback('Added to cart')
-      window.setTimeout(() => setFeedback(null), 1800)
+      showToast(`${product.name} added to your cart.`, 'success')
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Could not add this product to cart.')
+      showToast(error instanceof Error ? error.message : 'Could not add this product to cart.', 'error')
     }
   }
 
@@ -57,7 +56,6 @@ export function ProductCard({ product }: ProductCardProps) {
           <CartIcon size={15} />
           {isAdding ? 'Adding…' : product.isAvailable ? 'Add to cart' : 'Unavailable'}
         </button>
-        {feedback && <span className={`product-card-feedback ${feedback === 'Added to cart' ? 'is-success' : 'is-error'}`} role="status">{feedback}</span>}
       </div>
     </article>
   )

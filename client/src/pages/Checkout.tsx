@@ -253,7 +253,7 @@ export function Checkout() {
 
         <section className="container py-12 sm:py-16 lg:py-24">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
-            <form className="space-y-8" onSubmit={handleSubmit} noValidate>
+            <form className="space-y-0" onSubmit={handleSubmit} noValidate>
               {cartError && (
                 <div className="rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
                   {cartError}
@@ -283,7 +283,7 @@ export function Checkout() {
                 onChange={updateField}
               />
 
-              <div className="mt-5">
+              <div className="mt-10">
                 <button
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-4 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark focus:outline-none focus:ring-2 focus:ring-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   type="submit"

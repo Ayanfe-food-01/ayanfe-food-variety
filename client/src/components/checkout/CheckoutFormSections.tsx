@@ -1,7 +1,14 @@
 import type { PaymentSettings } from '../../services/storeSettingsService'
 import type { FulfillmentMethod, PaymentMethod } from '../../services/orderService'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from './types'
-import { checkoutInputClassName } from './checkoutStyles'
+import {
+  checkoutDescriptionClassName,
+  checkoutFieldGridClassName,
+  checkoutFieldsetClassName,
+  checkoutInputClassName,
+  checkoutLegendClassName,
+  checkoutSeparatedFieldsetClassName,
+} from './checkoutStyles'
 
 interface FieldErrorProps {
   id: CheckoutField
@@ -32,6 +39,15 @@ const fulfillmentOptions = [
   ['DELIVERY', 'Delivery', 'Have your order brought to your delivery address.'],
 ] as const
 
+function CheckoutSectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <>
+      <legend className={checkoutLegendClassName}>{title}</legend>
+      <p className={checkoutDescriptionClassName}>{description}</p>
+    </>
+  )
+}
+
 export function CheckoutFieldError({ id, message }: FieldErrorProps) {
   return message ? (
     <p className="mt-1.5 text-xs font-medium text-orange" id={`${id}-error`} role="alert">
@@ -42,13 +58,13 @@ export function CheckoutFieldError({ id, message }: FieldErrorProps) {
 
 export function ContactDetailsSection({ form, errors, onChange }: FieldSectionProps) {
   return (
-    <fieldset className="m-0 border-0 p-0">
-      <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Contact details</legend>
-      <p className="mt-2 text-sm leading-6 text-muted">
-        We’ll use these details to confirm your order and contact you when it is ready.
-      </p>
+    <fieldset className={checkoutFieldsetClassName}>
+      <CheckoutSectionHeader
+        title="Contact details"
+        description="We’ll use these details to confirm your order and contact you when it is ready."
+      />
 
-      <div className="mt-7 grid gap-5 sm:grid-cols-2">
+      <div className={checkoutFieldGridClassName}>
         <div className="sm:col-span-2">
           <label className="text-sm font-bold text-green-dark" htmlFor="fullName">
             Full name <span className="text-orange" aria-hidden="true">*</span>
@@ -98,7 +114,7 @@ export function ContactDetailsSection({ form, errors, onChange }: FieldSectionPr
             value={form.email}
             aria-describedby="email-help"
           />
-          <p className="mt-1.5 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
+          <p className="mt-2 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
         </div>
       </div>
     </fieldset>
@@ -114,29 +130,29 @@ export function PaymentMethodSection({
   onChange,
 }: PaymentMethodSectionProps) {
   return (
-    <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-      <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Payment method</legend>
-      <p className="mt-2 text-sm leading-6 text-muted">
-        Choose how you will pay. Your payment will remain pending until the store confirms it.
-      </p>
+    <fieldset className={checkoutSeparatedFieldsetClassName}>
+      <CheckoutSectionHeader
+        title="Payment method"
+        description="Choose how you will pay. Your payment will remain pending until the store confirms it."
+      />
 
       {isLoading ? (
-        <div className="mt-5 rounded-2xl border border-line bg-cream/60 p-4 text-sm text-muted">
+        <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-5 text-sm text-muted">
           Loading available payment methods…
         </div>
       ) : error ? (
-        <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">
+        <div className="mt-6 rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
           {error}
         </div>
       ) : methods.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-orange/30 bg-orange/5 p-4 text-sm leading-6 text-orange" role="alert">
+        <div className="mt-6 rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
           No payment methods are currently available. Please contact the store.
         </div>
       ) : (
-        <div className="mt-5 space-y-3">
+        <div className="mt-6 space-y-4">
           {methods.map((method) => (
             <label
-              className={`block cursor-pointer rounded-2xl border p-4 transition-colors ${
+              className={`block cursor-pointer rounded-2xl border p-5 transition-colors ${
                 selectedMethod === method.paymentMethod
                   ? 'border-green bg-sage/30'
                   : 'border-line bg-white hover:border-green/40'
@@ -167,7 +183,7 @@ export function PaymentMethodSection({
       )}
 
       {selectedSettings?.paymentMethod === 'BANK_TRANSFER' && (
-        <div className="mt-4 rounded-2xl border border-green/20 bg-sage/20 p-4">
+        <div className="mt-5 rounded-2xl border border-green/20 bg-sage/20 p-5">
           <p className="text-sm font-bold text-green-dark">Bank transfer instructions</p>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between gap-4">
@@ -194,16 +210,16 @@ export function FulfillmentSection({ form, errors, fulfillmentMethod, onChange }
   const isDelivery = fulfillmentMethod === 'DELIVERY'
 
   return (
-    <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
-      <legend className="mt-4 block text-2xl font-bold tracking-[-0.03em] text-green-dark">Delivery option</legend>
-      <p className="mt-2 text-sm leading-6 text-muted">
-        Choose pickup or delivery. This selection is saved with your order and cannot change after it is placed.
-      </p>
+    <fieldset className={checkoutSeparatedFieldsetClassName}>
+      <CheckoutSectionHeader
+        title="Delivery option"
+        description="Choose pickup or delivery. This selection is saved with your order and cannot change after it is placed."
+      />
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {fulfillmentOptions.map(([value, label, description]) => (
           <label
-            className={`block cursor-pointer rounded-2xl border p-4 transition-colors ${
+            className={`block cursor-pointer rounded-2xl border p-5 transition-colors ${
               fulfillmentMethod === value
                 ? 'border-green bg-sage/30'
                 : 'border-line bg-white hover:border-green/40'
@@ -231,7 +247,7 @@ export function FulfillmentSection({ form, errors, fulfillmentMethod, onChange }
       <CheckoutFieldError id="fulfillmentMethod" message={errors.fulfillmentMethod} />
 
       {isDelivery && (
-        <div className="mt-7 grid gap-5">
+        <div className="mt-8 grid gap-6">
           <div>
             <label className="text-sm font-bold text-green-dark" htmlFor="address">
               Delivery address <span className="text-orange" aria-hidden="true">*</span>

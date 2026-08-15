@@ -51,6 +51,7 @@ export function PromoBanners({ banners }: PromoBannersProps) {
   const autoScrollingRef = useRef(false)
   const timerRef = useRef<number | null>(null)
   const autoScrollFinishTimerRef = useRef<number | null>(null)
+  const scheduleNextRef = useRef<() => void>(() => undefined)
 
   const clearTimers = useCallback(() => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
@@ -92,10 +93,17 @@ export function PromoBanners({ banners }: PromoBannersProps) {
 
       autoScrollFinishTimerRef.current = window.setTimeout(() => {
         autoScrollingRef.current = false
-        scheduleNext()
+        scheduleNextRef.current()
       }, 700)
     }, 5000)
   }, [banners.length, clearTimers])
+
+  useEffect(() => {
+    scheduleNextRef.current = scheduleNext
+    return () => {
+      scheduleNextRef.current = () => undefined
+    }
+  }, [scheduleNext])
 
   useEffect(() => {
     currentIndexRef.current = 0

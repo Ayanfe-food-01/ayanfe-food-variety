@@ -82,7 +82,7 @@ export function OrderConfirmation() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-green-dark">{item.productName}</p>
-                       <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · Delivery {formatPrice(item.deliveryFee)}</p>
+                        <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery'} {formatPrice(item.deliveryFee)}</p>
                     </div>
                     <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
                   </div>
@@ -96,15 +96,21 @@ export function OrderConfirmation() {
             </div>
 
             <div className="mt-6 grid gap-6 sm:grid-cols-2">
-              <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-                <h2 className="text-xl font-bold text-green-dark">Delivery information</h2>
-                <dl className="mt-4 space-y-3 text-sm">
-                  <div><dt className="text-muted">Name</dt><dd className="mt-1 font-bold text-green-dark">{order.customerName}</dd></div>
-                  <div><dt className="text-muted">Phone</dt><dd className="mt-1 font-bold text-green-dark">{order.phone}</dd></div>
-                  <div><dt className="text-muted">Address</dt><dd className="mt-1 leading-6 text-green-dark">{order.deliveryAddress}, {order.city}</dd></div>
-                  {order.note && <div><dt className="text-muted">Instructions</dt><dd className="mt-1 leading-6 text-green-dark">{order.note}</dd></div>}
-                </dl>
-              </div>
+               <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+                 <h2 className="text-xl font-bold text-green-dark">{order.fulfillmentMethod === 'PICKUP' ? 'Pickup information' : 'Delivery information'}</h2>
+                 <dl className="mt-4 space-y-3 text-sm">
+                   <div><dt className="text-muted">Name</dt><dd className="mt-1 font-bold text-green-dark">{order.customerName}</dd></div>
+                   <div><dt className="text-muted">Phone</dt><dd className="mt-1 font-bold text-green-dark">{order.phone}</dd></div>
+                   {order.fulfillmentMethod === 'DELIVERY' ? (
+                     <>
+                       <div><dt className="text-muted">Address</dt><dd className="mt-1 leading-6 text-green-dark">{order.deliveryAddress}, {order.city}</dd></div>
+                       {order.note && <div><dt className="text-muted">Instructions</dt><dd className="mt-1 leading-6 text-green-dark">{order.note}</dd></div>}
+                     </>
+                   ) : (
+                     <div><dt className="text-muted">Collection</dt><dd className="mt-1 leading-6 text-green-dark">Collect from the store when notified.</dd></div>
+                   )}
+                 </dl>
+               </div>
               <div className="rounded-2xl border border-line bg-cream/60 p-6">
                 <h2 className="text-xl font-bold text-green-dark">What happens next?</h2>
                 <p className="mt-3 text-sm leading-6 text-muted">

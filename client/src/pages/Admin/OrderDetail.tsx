@@ -133,14 +133,24 @@ export function OrderDetail() {
               <div><p className="text-xs text-muted">Name</p><p className="mt-1 font-bold text-green-dark">{order.customerName}</p></div>
               <div><p className="text-xs text-muted">Email</p><p className="mt-1 font-bold text-green-dark">{order.email ?? 'Not provided'}</p></div>
               <div><p className="text-xs text-muted">Phone</p><p className="mt-1 font-bold text-green-dark">{order.phone}</p></div>
-              <div><p className="text-xs text-muted">Delivery address</p><p className="mt-1 font-bold text-green-dark">{order.deliveryAddress}, {order.city}</p></div>
+              <div><p className="text-xs text-muted">Fulfillment</p><p className="mt-1 font-bold text-green-dark">{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</p></div>
             </div>
+            {order.fulfillmentMethod === 'DELIVERY' ? (
+              <div className="mt-5 rounded-xl bg-sage/35 p-4 text-sm">
+                <p className="text-xs uppercase tracking-[0.12em] text-muted">Delivery details</p>
+                <p className="mt-1 font-bold text-green-dark">{order.deliveryAddress}, {order.city}</p>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-xl border border-orange/20 bg-orange/5 p-4 text-sm text-muted">
+                <strong className="text-orange">Pickup order:</strong> Customer will collect this order from the store. No delivery details are required.
+              </div>
+            )}
             {order.note && <div className="mt-5 rounded-xl bg-sage/35 p-4 text-sm text-muted"><strong className="text-green-dark">Customer note:</strong> {order.note}</div>}
           </section>
 
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Order items</h2>
-             <div className="mt-4 divide-y divide-line">{order.orderItems.map((item) => <div className="flex items-start justify-between gap-4 py-4 text-sm" key={item.id}><div><p className="font-bold text-green-dark">{item.productName}</p><p className="mt-1 text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · Delivery {formatPrice(item.deliveryFee)}</p></div><p className="font-bold text-green-dark">{formatPrice(item.subtotal)}</p></div>)}</div>
+              <div className="mt-4 divide-y divide-line">{order.orderItems.map((item) => <div className="flex items-start justify-between gap-4 py-4 text-sm" key={item.id}><div><p className="font-bold text-green-dark">{item.productName}</p><p className="mt-1 text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery'} {formatPrice(item.deliveryFee)}</p></div><p className="font-bold text-green-dark">{formatPrice(item.subtotal)}</p></div>)}</div>
             <div className="mt-3 space-y-2 border-t border-line pt-4 text-sm"><div className="flex justify-between text-muted"><span>Subtotal</span><span>{formatPrice(order.subtotal)}</span></div><div className="flex justify-between text-muted"><span>Delivery fee</span><span>{formatPrice(order.deliveryFee)}</span></div><div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div></div>
           </section>
 

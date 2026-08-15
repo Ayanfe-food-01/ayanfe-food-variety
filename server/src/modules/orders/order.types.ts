@@ -1,11 +1,12 @@
-import type { OrderStatus, PaymentMethod } from '@prisma/client'
+import type { FulfillmentMethod, OrderStatus, PaymentMethod } from '@prisma/client'
 
 export interface CheckoutInput {
   checkoutKey: string
   customerName: string
   phone: string
-  deliveryAddress: string
-  city: string
+  fulfillmentMethod: FulfillmentMethod
+  deliveryAddress?: string
+  city?: string
   deliveryInstructions?: string
   paymentMethod: PaymentMethod
 }
@@ -35,6 +36,7 @@ export interface OrderResponse {
   customerName: string
   phone: string
   whatsapp: string | null
+  fulfillmentMethod: FulfillmentMethod
   email: string | null
   deliveryAddress: string
   city: string

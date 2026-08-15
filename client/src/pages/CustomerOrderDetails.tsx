@@ -218,6 +218,20 @@ export function CustomerOrderDetails() {
             <div className="mt-8">
               <OrderTracker order={order} />
             </div>
+            <div className="mt-6 rounded-2xl border border-green/20 bg-sage/30 p-6 shadow-sm sm:p-8">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Fulfillment</p>
+              {order.fulfillmentMethod === 'PICKUP' ? (
+                <>
+                  <h2 className="mt-2 text-2xl font-bold text-green-dark">Pickup</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted">You will collect this order from the store. We will contact you using your phone number when it is ready.</p>
+                </>
+              ) : (
+                <>
+                  <h2 className="mt-2 text-2xl font-bold text-green-dark">Delivery</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted">{order.deliveryAddress}, {order.city}</p>
+                </>
+              )}
+            </div>
             <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
               <h2 className="text-2xl font-bold text-green-dark">Items</h2>
               <div className="mt-5 divide-y divide-line">
@@ -225,7 +239,7 @@ export function CustomerOrderDetails() {
                   <div className="flex items-center justify-between gap-4 py-4" key={item.id}>
                     <div>
                       <p className="font-bold text-green-dark">{item.productName}</p>
-                       <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · Delivery {formatPrice(item.deliveryFee)}</p>
+                        <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery'} {formatPrice(item.deliveryFee)}</p>
                     </div>
                     <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
                   </div>

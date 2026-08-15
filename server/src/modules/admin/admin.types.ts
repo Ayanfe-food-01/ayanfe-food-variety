@@ -1,5 +1,6 @@
 import type {
   OrderStatus,
+  FulfillmentMethod,
   PaymentMethod,
   PaymentRejectionReason,
   PaymentSubmissionStatus,
@@ -22,6 +23,7 @@ export interface AdminOrderListItem {
   customerName: string
   email: string | null
   phone: string
+  fulfillmentMethod: FulfillmentMethod
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus

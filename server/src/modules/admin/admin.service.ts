@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentSubmissionStatus, PaymentStatus, Prisma } from '@prisma/client'
+import { FulfillmentMethod, OrderStatus, PaymentSubmissionStatus, PaymentStatus, Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
@@ -19,6 +19,7 @@ const toOrderListItem = (order: {
   customerName: string
   email: string | null
   phone: string
+  fulfillmentMethod: FulfillmentMethod
   total: Prisma.Decimal
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus
@@ -29,6 +30,7 @@ const toOrderListItem = (order: {
   customerName: order.customerName,
   email: order.email,
   phone: order.phone,
+  fulfillmentMethod: order.fulfillmentMethod,
   total: order.total.toString(),
   paymentStatus: order.paymentStatus,
   orderStatus: order.orderStatus,
@@ -159,6 +161,7 @@ export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrd
       customerName: true,
       email: true,
       phone: true,
+      fulfillmentMethod: true,
       total: true,
       paymentStatus: true,
       orderStatus: true,

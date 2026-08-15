@@ -6,6 +6,7 @@ export interface CreatedOrder {
   customerName: string
   phone: string
   whatsapp: string | null
+  fulfillmentMethod: FulfillmentMethod
   email: string | null
   deliveryAddress: string
   city: string
@@ -60,6 +61,7 @@ export interface CustomerOrderListItem {
   id: string
   orderNumber: string
   customerName: string
+  fulfillmentMethod: FulfillmentMethod
   total: string
   paymentStatus: CustomerPaymentStatus
   orderStatus: OrderStatus
@@ -80,8 +82,9 @@ export async function checkoutCustomerCart(input: {
   checkoutKey: string
   customerName: string
   phone: string
-  deliveryAddress: string
-  city: string
+  fulfillmentMethod: FulfillmentMethod
+  deliveryAddress?: string
+  city?: string
   deliveryInstructions?: string
   paymentMethod: PaymentMethod
 }): Promise<CreatedOrder> {
@@ -119,6 +122,7 @@ export type OrderStatus = 'ORDER_PLACED' | 'PROCESSING' | 'OUT_FOR_DELIVERY' | '
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
 export type PaymentMethod = 'BANK_TRANSFER'
+export type FulfillmentMethod = 'PICKUP' | 'DELIVERY'
 
 export interface AdminOrder {
   orderNumber: string
@@ -126,6 +130,7 @@ export interface AdminOrder {
   customerName: string
   phone: string
   whatsapp: string | null
+  fulfillmentMethod: FulfillmentMethod
   email: string | null
   deliveryAddress: string
   city: string
@@ -184,6 +189,7 @@ export interface AdminOrderListItem {
   customerName: string
   email: string | null
   phone: string
+  fulfillmentMethod: FulfillmentMethod
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus

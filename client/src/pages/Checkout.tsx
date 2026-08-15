@@ -8,7 +8,7 @@ import { ProductPrice } from '../components/products/ProductPrice'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart, type PaymentMethod } from '../services/orderService'
+import { checkoutCustomerCart, type FulfillmentMethod, type PaymentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
 
 const formatPrice = (price: number) =>
@@ -22,6 +22,7 @@ interface CheckoutFormData {
   fullName: string
   phone: string
   email: string
+  fulfillmentMethod: FulfillmentMethod | ''
   address: string
   city: string
   deliveryInstructions: string
@@ -35,6 +36,7 @@ const initialForm: CheckoutFormData = {
   fullName: '',
   phone: '',
   email: '',
+  fulfillmentMethod: '',
   address: '',
   city: '',
   deliveryInstructions: '',
@@ -55,8 +57,11 @@ function validateForm(form: CheckoutFormData): FormErrors {
   } else if (form.phone.replace(/\D/g, '').length < 7) {
     errors.phone = 'Please enter a valid phone number.'
   }
-  if (!form.address.trim()) errors.address = 'Please enter your delivery address.'
-  if (!form.city.trim()) errors.city = 'Please enter your city or location.'
+  if (!form.fulfillmentMethod) errors.fulfillmentMethod = 'Please choose pickup or delivery.'
+  if (form.fulfillmentMethod === 'DELIVERY') {
+    if (!form.address.trim()) errors.address = 'Please enter your delivery address.'
+    if (!form.city.trim()) errors.city = 'Please enter your city or location.'
+  }
 
   return errors
 }
@@ -97,7 +102,6 @@ export function Checkout() {
     items,
     subtotal,
     deliveryFee,
-    total,
     totalQuantity,
     canCheckout,
     isLoading: isCartLoading,
@@ -183,9 +187,14 @@ export function Checkout() {
         checkoutKey,
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
-        deliveryAddress: form.address.trim(),
-        city: form.city.trim(),
-        deliveryInstructions: form.deliveryInstructions.trim() || undefined,
+        fulfillmentMethod: form.fulfillmentMethod as FulfillmentMethod,
+        ...(form.fulfillmentMethod === 'DELIVERY'
+          ? {
+              deliveryAddress: form.address.trim(),
+              city: form.city.trim(),
+              deliveryInstructions: form.deliveryInstructions.trim() || undefined,
+            }
+          : {}),
         paymentMethod: form.paymentMethod,
       })
 
@@ -210,6 +219,9 @@ export function Checkout() {
   }
 
   const paymentSettings = paymentMethods.find((method) => method.paymentMethod === form.paymentMethod) ?? null
+  const isPickup = form.fulfillmentMethod === 'PICKUP'
+  const checkoutDeliveryFee = isPickup ? 0 : deliveryFee
+  const checkoutTotal = subtotal + checkoutDeliveryFee
 
   if (!isCustomerAuthLoading && !user) {
     return (
@@ -280,7 +292,7 @@ export function Checkout() {
             </p>
             <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Checkout</h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-              Confirm your delivery details and place your order securely.
+              Choose pickup or delivery, confirm your details, and place your order securely.
             </p>
           </div>
         </section>
@@ -302,8 +314,47 @@ export function Checkout() {
               )}
 
               <fieldset className="m-0 border-0 p-0">
-                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">Delivery information</legend>
-                <p className="mt-2 text-sm leading-6 text-muted">These details are saved with this order as a delivery snapshot.</p>
+                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">How should we fulfil your order?</legend>
+                <p className="mt-2 text-sm leading-6 text-muted">Choose pickup or delivery. This selection is saved with your order and cannot change after it is placed.</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {([
+                    ['PICKUP', 'Pickup', 'Collect your order from the store. No delivery fee.'],
+                    ['DELIVERY', 'Delivery', 'Have your order brought to your delivery address.'],
+                  ] as const).map(([value, label, description]) => (
+                    <label
+                      className={`block cursor-pointer rounded-2xl border p-4 transition-colors ${
+                        form.fulfillmentMethod === value
+                          ? 'border-green bg-sage/30'
+                          : 'border-line bg-white hover:border-green/40'
+                      }`}
+                      key={value}
+                    >
+                      <span className="flex items-start gap-3">
+                        <input
+                          className="mt-1 size-4 accent-green"
+                          type="radio"
+                          name="fulfillmentMethod"
+                          value={value}
+                          checked={form.fulfillmentMethod === value}
+                          onChange={() => updateField('fulfillmentMethod', value)}
+                          aria-describedby="fulfillmentMethod-error"
+                        />
+                        <span>
+                          <span className="block text-sm font-bold text-green-dark">{label}</span>
+                          <span className="mt-1 block text-xs leading-5 text-muted">{description}</span>
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <FieldError id="fulfillmentMethod" message={errors.fulfillmentMethod} />
+              </fieldset>
+
+              <fieldset className="m-0 border-0 border-t border-line p-0 pt-8">
+                <legend className="text-2xl font-bold tracking-[-0.03em] text-green-dark">{isPickup ? 'Pickup contact details' : 'Delivery information'}</legend>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  {isPickup ? 'Keep your phone number available so we can contact you when your order is ready for collection.' : 'These details are saved with this order as a delivery snapshot.'}
+                </p>
 
                 <div className="mt-7 grid gap-5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -328,28 +379,32 @@ export function Checkout() {
                     <p className="mt-1.5 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="address">
-                      Delivery address <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <textarea className={`${inputClassName(Boolean(errors.address))} min-h-28 resize-y`} id="address" name="address" autoComplete="street-address" placeholder="House number, street name, landmark" value={form.address} onChange={(event) => updateField('address', event.target.value)} aria-invalid={Boolean(errors.address)} aria-describedby={errors.address ? 'address-error' : undefined} required />
-                    <FieldError id="address" message={errors.address} />
-                  </div>
+                  {!isPickup && (
+                    <>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-bold text-green-dark" htmlFor="address">
+                          Delivery address <span className="text-orange" aria-hidden="true">*</span>
+                        </label>
+                        <textarea className={`${inputClassName(Boolean(errors.address))} min-h-28 resize-y`} id="address" name="address" autoComplete="street-address" placeholder="House number, street name, landmark" value={form.address} onChange={(event) => updateField('address', event.target.value)} aria-invalid={Boolean(errors.address)} aria-describedby={errors.address ? 'address-error' : undefined} required />
+                        <FieldError id="address" message={errors.address} />
+                      </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="city">
-                      City or location <span className="text-orange" aria-hidden="true">*</span>
-                    </label>
-                    <input className={inputClassName(Boolean(errors.city))} id="city" name="city" type="text" autoComplete="address-level2" placeholder="e.g. Ibadan" value={form.city} onChange={(event) => updateField('city', event.target.value)} aria-invalid={Boolean(errors.city)} aria-describedby={errors.city ? 'city-error' : undefined} required />
-                    <FieldError id="city" message={errors.city} />
-                  </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-bold text-green-dark" htmlFor="city">
+                          City or location <span className="text-orange" aria-hidden="true">*</span>
+                        </label>
+                        <input className={inputClassName(Boolean(errors.city))} id="city" name="city" type="text" autoComplete="address-level2" placeholder="e.g. Ibadan" value={form.city} onChange={(event) => updateField('city', event.target.value)} aria-invalid={Boolean(errors.city)} aria-describedby={errors.city ? 'city-error' : undefined} required />
+                        <FieldError id="city" message={errors.city} />
+                      </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-bold text-green-dark" htmlFor="deliveryInstructions">
-                      Delivery instructions <span className="font-normal text-muted">(optional)</span>
-                    </label>
-                    <textarea className={`${inputClassName(false)} min-h-24 resize-y`} id="deliveryInstructions" name="deliveryInstructions" placeholder="Landmark, preferred delivery time, or other helpful details" value={form.deliveryInstructions} onChange={(event) => updateField('deliveryInstructions', event.target.value)} />
-                  </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-bold text-green-dark" htmlFor="deliveryInstructions">
+                          Delivery instructions <span className="font-normal text-muted">(optional)</span>
+                        </label>
+                        <textarea className={`${inputClassName(false)} min-h-24 resize-y`} id="deliveryInstructions" name="deliveryInstructions" placeholder="Landmark, preferred delivery time, or other helpful details" value={form.deliveryInstructions} onChange={(event) => updateField('deliveryInstructions', event.target.value)} />
+                      </div>
+                    </>
+                  )}
                 </div>
               </fieldset>
 
@@ -408,7 +463,7 @@ export function Checkout() {
                 <button
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-4 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-dark focus:outline-none focus:ring-2 focus:ring-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   type="submit"
-                   disabled={isSubmitting || !canCheckout || isPaymentLoading || !paymentSettings}
+                   disabled={isSubmitting || !canCheckout || isPaymentLoading || !paymentSettings || !form.fulfillmentMethod}
                 >
                   {isSubmitting ? 'Processing order…' : 'Place order'} {!isSubmitting && <ArrowRight size={17} />}
                 </button>
@@ -455,11 +510,15 @@ export function Checkout() {
               <div className="my-6 space-y-3 border-y border-line py-5 text-sm">
                 <div className="flex justify-between gap-4 text-muted"><span>Items</span><span>{totalQuantity}</span></div>
                 <div className="flex justify-between gap-4 text-muted"><span>Subtotal</span><span className="font-bold text-green-dark">{formatPrice(subtotal)}</span></div>
-                 <div className="flex justify-between gap-4 text-muted"><span>Delivery fee</span><span className="font-bold text-green-dark">{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span></div>
+                 <div className="flex justify-between gap-4 text-muted"><span>{isPickup ? 'Pickup fee' : 'Delivery fee'}</span><span className="font-bold text-green-dark">{checkoutDeliveryFee === 0 ? 'Free' : formatPrice(checkoutDeliveryFee)}</span></div>
               </div>
+               <div className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
+                 <strong className="text-green-dark">{isPickup ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
+                 {isPickup ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? 'Your delivery fee is calculated from the products in your cart.' : 'The final total will appear after you select a fulfillment option.'}
+               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>
-                 <strong className="text-2xl text-green-dark">{formatPrice(total)}</strong>
+                  <strong className="text-2xl text-green-dark">{formatPrice(checkoutTotal)}</strong>
               </div>
             </aside>
           </div>

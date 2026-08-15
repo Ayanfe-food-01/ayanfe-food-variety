@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
-import { PublicBreadcrumb } from '../components/ui/Breadcrumb'
+import { BreadcrumbBar } from '../components/ui/Breadcrumb'
 import { ProductPrice } from '../components/products/ProductPrice'
 import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
@@ -260,7 +260,7 @@ export function Checkout() {
     return (
       <>
         <Navbar />
-        <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
+        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
         <main><EmptyCheckout /></main>
         <Footer />
       </>
@@ -270,7 +270,7 @@ export function Checkout() {
   return (
     <>
       <Navbar />
-      <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
+      <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-10 sm:py-14">

@@ -6,7 +6,7 @@ import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { ProductPrice } from '../components/products/ProductPrice'
 import { WishlistButton } from '../components/products/WishlistButton'
-import { PublicBreadcrumb } from '../components/ui/Breadcrumb'
+import { BreadcrumbBar } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
 import { useToast } from '../components/ui/Toast'
 import { useCart } from '../hooks/useCart'
@@ -157,7 +157,7 @@ export function ProductDetails() {
           canonicalPath={productPath}
         />
         <Navbar />
-        <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product' }]} />
+        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product' }]} />
         <main className="container py-16 sm:py-24" aria-label="Loading product details">
           <div className="grid animate-pulse items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div className="aspect-square rounded-3xl bg-sage" />
@@ -185,7 +185,7 @@ export function ProductDetails() {
           noIndex
         />
         <Navbar />
-        <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product unavailable' }]} />
+        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product unavailable' }]} />
         <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Something went wrong</p>
@@ -219,7 +219,7 @@ export function ProductDetails() {
           noIndex
         />
         <Navbar />
-        <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product not found' }]} />
+        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product not found' }]} />
         <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10" aria-labelledby="not-found-heading">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Sorry, we couldn’t find that</p>
@@ -262,7 +262,7 @@ export function ProductDetails() {
         ]}
       />
       <Navbar />
-        <PublicBreadcrumb items={[
+        <BreadcrumbBar items={[
           { label: 'Home', href: '/' },
           { label: 'Shop', href: '/shop' },
           { label: product.name },

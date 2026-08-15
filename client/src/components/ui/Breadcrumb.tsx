@@ -33,11 +33,11 @@ export function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
   )
 }
 
-interface PublicBreadcrumbProps {
+interface BreadcrumbBarProps {
   items: BreadcrumbItem[]
 }
 
-export function PublicBreadcrumb({ items }: PublicBreadcrumbProps) {
+export function BreadcrumbBar({ items }: BreadcrumbBarProps) {
   return (
     <div className="border-b border-line/70 bg-white">
       <div className="container py-4 sm:py-5">

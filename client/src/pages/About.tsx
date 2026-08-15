@@ -1,7 +1,7 @@
 import { ArrowRight, CheckIcon, HeartIcon, ShieldIcon, TruckIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
-import { PublicBreadcrumb } from '../components/ui/Breadcrumb'
+import { BreadcrumbBar } from '../components/ui/Breadcrumb'
 import { Seo } from '../seo/Seo'
 import { ABOUT_DESCRIPTION, ABOUT_TITLE, getOrganizationSchema } from '../seo/config'
 import { Link } from 'react-router-dom'
@@ -39,7 +39,7 @@ export function About() {
         jsonLd={getOrganizationSchema()}
       />
       <Navbar />
-      <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'About us' }]} />
+      <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'About us' }]} />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-14 sm:py-20 lg:py-24">

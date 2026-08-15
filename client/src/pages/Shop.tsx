@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
-import { PublicBreadcrumb } from '../components/ui/Breadcrumb'
+import { BreadcrumbBar } from '../components/ui/Breadcrumb'
 import { SelectField } from '../components/ui/SelectField'
 import { getCategories } from '../services/categoryService'
 import { ApiError } from '../services/api'
@@ -196,7 +196,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
         jsonLd={collectionJsonLd}
       />
       <Navbar />
-      <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
+      <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-8 sm:py-10 lg:py-12">

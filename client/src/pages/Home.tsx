@@ -7,6 +7,7 @@ import { HomeTrustStrip } from '../components/home/HomeTrustStrip'
 import { PromoBanners } from '../components/home/PromoBanners'
 import { ProductRail } from '../components/home/ProductRail'
 import { Testimonials } from '../components/home/Testimonials'
+import { PublicBreadcrumb } from '../components/ui/Breadcrumb'
 import { useHomeCatalog } from '../hooks/useHomeCatalog'
 import { usePromotionalBanners } from '../hooks/usePromotionalBanners'
 import { Seo } from '../seo/Seo'
@@ -19,6 +20,7 @@ export function Home() {
   return <>
     <Seo title={HOMEPAGE_TITLE} description={DEFAULT_SITE_DESCRIPTION} canonicalPath="/" jsonLd={getOrganizationSchema()} />
     <Navbar />
+    <PublicBreadcrumb items={[{ label: 'Home' }]} />
     <main>
       <Hero />
       <PromoBanners banners={promotionalBanners} />

@@ -6,7 +6,7 @@ import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { ProductPrice } from '../components/products/ProductPrice'
 import { WishlistButton } from '../components/products/WishlistButton'
-import { Breadcrumb } from '../components/ui/Breadcrumb'
+import { PublicBreadcrumb } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
 import { useToast } from '../components/ui/Toast'
 import { useCart } from '../hooks/useCart'
@@ -157,6 +157,7 @@ export function ProductDetails() {
           canonicalPath={productPath}
         />
         <Navbar />
+        <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product' }]} />
         <main className="container py-16 sm:py-24" aria-label="Loading product details">
           <div className="grid animate-pulse items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div className="aspect-square rounded-3xl bg-sage" />
@@ -184,6 +185,7 @@ export function ProductDetails() {
           noIndex
         />
         <Navbar />
+        <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product unavailable' }]} />
         <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Something went wrong</p>
@@ -217,6 +219,7 @@ export function ProductDetails() {
           noIndex
         />
         <Navbar />
+        <PublicBreadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product not found' }]} />
         <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10" aria-labelledby="not-found-heading">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Sorry, we couldn’t find that</p>
@@ -259,17 +262,12 @@ export function ProductDetails() {
         ]}
       />
       <Navbar />
+        <PublicBreadcrumb items={[
+          { label: 'Home', href: '/' },
+          { label: 'Shop', href: '/shop' },
+          { label: product.name },
+        ]} />
       <main>
-        <section className="border-b border-line/70 bg-sage/35">
-          <div className="container py-8 sm:py-12">
-            <Breadcrumb items={[
-              { label: 'Home', href: '/' },
-              { label: 'Shop', href: '/shop' },
-              { label: product.name },
-            ]} />
-          </div>
-        </section>
-
         <section className="container py-12 sm:py-16 lg:py-24">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <figure className="m-0 overflow-hidden rounded-3xl border border-line bg-sage shadow-sm">

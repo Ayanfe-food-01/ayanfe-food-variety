@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAdminAccess } from '../middleware/admin.middleware.js';
-import { getAdminOrderController, getAdminPaymentController, getDashboardController, archiveAdminOrderController, deleteAdminOrderController, listAdminOrdersController, listAdminPaymentsController, rejectAdminPaymentController, restoreAdminOrderController, updateAdminOrderStatusController, verifyAdminPaymentController, } from '../modules/admin/admin.controller.js';
+import { getAdminOrderController, getAdminPaymentController, getAnalyticsController, getDashboardController, archiveAdminOrderController, deleteAdminOrderController, listAdminOrdersController, listAdminPaymentsController, rejectAdminPaymentController, restoreAdminOrderController, updateAdminOrderStatusController, verifyAdminPaymentController, } from '../modules/admin/admin.controller.js';
 import { getAdminContactInformationController, getAdminPaymentSettingsController, getAdminStoreInformationController, updateAdminContactInformationController, updateAdminPaymentSettingsController, updateAdminStoreInformationController, } from '../modules/settings/settings.controller.js';
 import { createAdminProductController, deleteAdminProductController, getAdminProductController, listAdminProductsController, productImageUpload, updateAdminProductController, updateAdminProductFeaturedController, updateAdminProductStatusController, } from '../modules/products/admin-product.controller.js';
 import { createAdminCategoryController, deleteAdminCategoryController, getAdminCategoryController, listAdminCategoriesController, updateAdminCategoryController, updateAdminCategoryStatusController, categoryImageUpload, } from '../modules/categories/category.controller.js';
@@ -28,6 +28,7 @@ adminRoutes.patch('/products/:id/status', updateAdminProductStatusController);
 adminRoutes.patch('/products/:id/featured', updateAdminProductFeaturedController);
 adminRoutes.delete('/products/:id', deleteAdminProductController);
 adminRoutes.get('/dashboard', getDashboardController);
+adminRoutes.get('/analytics', getAnalyticsController);
 adminRoutes.get('/orders', listAdminOrdersController);
 adminRoutes.get('/orders/:orderNumber', getAdminOrderController);
 adminRoutes.patch('/orders/:orderNumber/status', updateAdminOrderStatusController);

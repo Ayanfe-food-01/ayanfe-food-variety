@@ -35,7 +35,7 @@ export function Dashboard() {
           <StatCard label="Cancelled orders" value={stats?.cancelledOrders ?? 0} detail="Cancelled orders" accent="orange" isLoading={!stats} />
           <StatCard label="Payment review" value={stats?.pendingPaymentVerification ?? 0} detail="Receipts awaiting review" accent="orange" isLoading={!stats} />
           <StatCard label="Verified payments" value={stats?.verifiedPayments ?? 0} detail="Approved payment proofs" isLoading={!stats} />
-           <StatCard label="Revenue" value={stats ? formatPrice(stats.totalSales) : ''} detail="Paid, non-cancelled orders" isLoading={!stats} />
+          <StatCard label="Revenue" value={stats ? formatPrice(stats.totalSales) : ''} detail="Paid, non-cancelled orders" isLoading={!stats} />
         </div>
       )}
 

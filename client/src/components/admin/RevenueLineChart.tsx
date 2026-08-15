@@ -24,6 +24,10 @@ export function RevenueLineChart({ points, isLoading = false }: RevenueLineChart
     return <div className="h-[320px] animate-pulse rounded-xl bg-sage/45" aria-label="Loading revenue chart" />
   }
 
+  if (points.length === 0) {
+    return <div className="flex h-[320px] items-center justify-center rounded-xl bg-cream text-sm text-muted">No revenue data for this period.</div>
+  }
+
   const values = points.map((point) => Number(point.revenue))
   const maxValue = Math.max(...values, 1)
   const plotWidth = chartWidth - chartPadding.left - chartPadding.right

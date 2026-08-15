@@ -22,6 +22,7 @@ export function Analytics() {
   useEffect(() => {
     let current = true
     setError(null)
+    setAnalytics(null)
     getAdminAnalytics(range)
       .then((result) => {
         if (current) setAnalytics(result)

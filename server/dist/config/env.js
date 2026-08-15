@@ -48,11 +48,19 @@ const corsOrigins = corsOriginValue
 if (corsOrigins.length === 0) {
     throw new Error('CORS_ORIGINS must contain at least one origin');
 }
+const businessTimezone = process.env.BUSINESS_TIMEZONE?.trim() || 'Africa/Lagos';
+try {
+    new Intl.DateTimeFormat('en-NG', { timeZone: businessTimezone }).format();
+}
+catch {
+    throw new Error('BUSINESS_TIMEZONE must be a valid IANA timezone');
+}
 export const env = {
     databaseUrl,
     port: parsePort(process.env.PORT),
     nodeEnv,
     sessionSecret,
+    businessTimezone,
     corsOrigins,
     publicAppUrl,
     googleOAuth: {

@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { getNewArrivalsController, getFeaturedProductsController, getPopularProductsController, getProductByIdController, getProductsController, } from '../modules/products/product.controller.js';
+import { getNewArrivalsController, getFeaturedProductsController, getCategoryProductSectionsController, getPopularProductsController, getProductByIdController, getProductsController, } from '../modules/products/product.controller.js';
 import { optionalCustomerAuthentication } from '../middleware/auth.middleware.js';
 export const productRoutes = Router();
 productRoutes.get('/', optionalCustomerAuthentication, getProductsController);
+productRoutes.get('/category-sections', optionalCustomerAuthentication, getCategoryProductSectionsController);
 productRoutes.get('/new-arrivals', optionalCustomerAuthentication, getNewArrivalsController);
 productRoutes.get('/featured', optionalCustomerAuthentication, getFeaturedProductsController);
 productRoutes.get('/popular', optionalCustomerAuthentication, getPopularProductsController);

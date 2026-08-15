@@ -115,6 +115,40 @@ export async function getProducts(query, wishlistUserId) {
         },
     };
 }
+export async function getCategoryProductSections(limit, wishlistUserId) {
+    const categories = await prisma.category.findMany({
+        where: {
+            isActive: true,
+            products: { some: { isActive: true, stockQuantity: { gt: 0 } } },
+        },
+        include: {
+            products: {
+                where: { isActive: true, stockQuantity: { gt: 0 } },
+                include: { category: true },
+                orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+                take: limit,
+            },
+        },
+        orderBy: { name: 'asc' },
+    });
+    const products = categories.flatMap((category) => category.products);
+    const wishlistProductIds = wishlistUserId
+        ? new Set((await prisma.wishlistItem.findMany({
+            where: { userId: wishlistUserId, productId: { in: products.map((product) => product.id) } },
+            select: { productId: true },
+        })).map((item) => item.productId))
+        : new Set();
+    return categories
+        .filter((category) => category.products.length > 0)
+        .map((category) => ({
+        category: {
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+        },
+        products: category.products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
+    }));
+}
 export async function getPopularProducts(query, wishlistUserId) {
     const products = await prisma.$queryRaw(Prisma.sql `
     SELECT

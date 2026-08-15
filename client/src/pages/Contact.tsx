@@ -121,7 +121,7 @@ export function Contact() {
           </div>
         </section>
 
-        <section className="bg-green-dark py-14 text-cream sm:py-18 lg:py-24" aria-labelledby="contact-options-heading">
+        <section className="mb-8 bg-green-dark py-14 text-cream sm:mb-10 sm:py-18 lg:py-24" aria-labelledby="contact-options-heading">
           <div className="container">
             <div className="max-w-2xl">
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-orange">Pickup & delivery</p>

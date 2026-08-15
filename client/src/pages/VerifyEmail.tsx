@@ -158,7 +158,7 @@ export function VerifyEmail() {
               {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
               {notice && <p className="rounded-xl border border-green/20 bg-green/5 px-4 py-3 text-sm text-green-dark" role="status">{notice}</p>}
               <Button fullWidth size="lg" type="submit" disabled={isVerifying || otp.length !== 6}>
-                {isVerifying ? 'Checking code…' : 'Verify email'} {!isVerifying && <ArrowRight size={17} />}
+                {isVerifying ? 'Checking…' : 'Verify email'} {!isVerifying && <ArrowRight size={17} />}
               </Button>
             </form>
             <Button
@@ -170,7 +170,7 @@ export function VerifyEmail() {
               onClick={resend}
             >
               {isResending
-                ? 'Sending new code…'
+                ? 'Sending…'
                 : resendCooldown > 0
                   ? `Resend available in ${formatCountdown(resendCooldown)}`
                   : 'Resend OTP'}

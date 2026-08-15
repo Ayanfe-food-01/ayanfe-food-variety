@@ -193,7 +193,7 @@ export function OrderDetail() {
                value={status}
              /></label>
             <label className="mt-4 block text-sm font-bold text-green-dark">Internal note <textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the audit history" maxLength={1000} /></label>
-             <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={saveStatus}>{isSaving ? 'Updating order status…' : 'Save order status'}</button>
+             <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={saveStatus}>{isSaving ? 'Updating…' : 'Save order status'}</button>
           </section>
 
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
@@ -209,7 +209,7 @@ export function OrderDetail() {
           description="Cancellation cannot be undone. The order will remain in the history with its payment status preserved for audit purposes."
           isBusy={isSaving}
           confirmLabel="Cancel order"
-          busyLabel="Updating order…"
+           busyLabel="Updating…"
           onCancel={() => setIsCancelConfirmationOpen(false)}
           onConfirm={() => {
             setIsCancelConfirmationOpen(false)
@@ -225,7 +225,7 @@ export function OrderDetail() {
           error={deleteError}
           isBusy={isDeleteSaving}
           confirmLabel="Delete permanently"
-          busyLabel="Deleting order…"
+           busyLabel="Deleting…"
           onCancel={() => {
             if (!isDeleteSaving) {
               setIsDeleteConfirmationOpen(false)

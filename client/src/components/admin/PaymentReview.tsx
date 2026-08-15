@@ -151,7 +151,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
             {error && <p className="mt-2 text-sm font-medium text-orange" role="alert">{error}</p>}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button className="rounded-xl border border-orange/30 px-5 py-3 text-sm font-bold text-orange hover:bg-orange/5 disabled:opacity-50" type="button" disabled={isSaving} onClick={() => void reject()}>Reject payment</button>
-              <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-50" type="button" disabled={isSaving} onClick={() => void onVerify(note.trim())}>{isSaving ? 'Saving review…' : 'Confirm payment'}</button>
+              <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-50" type="button" disabled={isSaving} onClick={() => void onVerify(note.trim())}>{isSaving ? 'Saving…' : 'Confirm payment'}</button>
             </div>
           </>
         ) : (

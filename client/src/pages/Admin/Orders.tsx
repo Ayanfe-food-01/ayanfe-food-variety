@@ -228,7 +228,7 @@ export function Orders() {
           error={deleteError}
           isBusy={isDeleting}
           confirmLabel="Delete permanently"
-          busyLabel="Deleting order…"
+           busyLabel="Deleting…"
           onCancel={() => {
             if (!isDeleting) {
               setDeleteOrder(null)

@@ -84,7 +84,7 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                     {busyOrderNumber === order.orderNumber ? 'Restoring…' : 'Restore'}
                   </button>
                   <button className="rounded-lg border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onDelete(order)}>
-                    Delete permanently
+                    {busyOrderNumber === order.orderNumber ? 'Deleting…' : 'Delete permanently'}
                   </button>
                 </>
               )}
@@ -134,7 +134,7 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                           {busyOrderNumber === order.orderNumber ? 'Restoring…' : 'Restore'}
                         </button>
                         <button className="rounded-lg border border-orange/30 bg-orange/5 px-3 py-2 text-xs font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyOrderNumber === order.orderNumber} onClick={() => onDelete(order)}>
-                          Delete
+                          {busyOrderNumber === order.orderNumber ? 'Deleting…' : 'Delete'}
                         </button>
                       </>
                     )}

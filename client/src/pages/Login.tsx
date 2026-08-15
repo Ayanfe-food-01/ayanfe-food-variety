@@ -119,7 +119,7 @@ export function Login() {
           </div>
           {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
           <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
+            {isSubmitting ? (mode === 'login' ? 'Signing in…' : 'Creating…') : mode === 'login' ? 'Login' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
           </Button>
         </form>
         <div className="mt-6">

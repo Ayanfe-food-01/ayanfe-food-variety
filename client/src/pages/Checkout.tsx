@@ -289,7 +289,7 @@ export function Checkout() {
                   type="submit"
                    disabled={isSubmitting || !canCheckout || isPaymentLoading || !paymentSettings || !form.fulfillmentMethod}
                 >
-                  {isSubmitting ? 'Processing order…' : 'Place order'} {!isSubmitting && <ArrowRight size={17} />}
+                  {isSubmitting ? 'Processing…' : 'Place order'} {!isSubmitting && <ArrowRight size={17} />}
                 </button>
                 {submitError && !needsCartReview && (
                   <p className="mt-3 text-center text-sm font-medium text-orange" role="alert">{submitError}</p>

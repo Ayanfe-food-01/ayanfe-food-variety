@@ -17,8 +17,9 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 10, fieldSize: 1 * 1024 * 1024 },
   fileFilter: (_request, file, callback) => {
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
-      callback(new HttpError(400, 'Banner image must be a JPG, PNG, or WEBP image.'))
+    const hasSupportedExtension = /\.(jpe?g|png|webp|heic|heif)$/i.test(file.originalname)
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(file.mimetype) && !hasSupportedExtension) {
+      callback(new HttpError(400, 'Banner image must be a JPG, PNG, WEBP, or HEIC/HEIF image.'))
       return
     }
     callback(null, true)

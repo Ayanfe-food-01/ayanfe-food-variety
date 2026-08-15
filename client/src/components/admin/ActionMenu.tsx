@@ -169,7 +169,7 @@ export function ActionMenu({
               top: menuLayout.top,
               left: menuLayout.left,
             } : {}),
-            maxHeight: menuLayout?.maxHeight || 'calc(100vh - 24px)',
+            maxHeight: menuLayout?.maxHeight || 'calc(100svh - 24px)',
             visibility: menuLayout ? 'visible' : 'hidden',
           }}
         >

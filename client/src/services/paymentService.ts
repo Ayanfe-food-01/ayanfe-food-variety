@@ -1,4 +1,5 @@
 import { ApiError, request } from './api'
+import { localDateTimeToIso } from '../utils/browserCompatibility'
 
 export interface BankDetails {
   bankName: string
@@ -85,7 +86,7 @@ export async function submitPaymentProof(input: {
   const transactionReference = input.transactionReference?.trim()
   if (transactionReference) formData.append('transactionReference', transactionReference)
   formData.append('amount', input.amount)
-  formData.append('transferredAt', new Date(input.transferredAt).toISOString())
+  formData.append('transferredAt', localDateTimeToIso(input.transferredAt))
   formData.append('proof', input.proof)
 
   const response = await request<PaymentSubmissionResponse>('/payments/submit', {

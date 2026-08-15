@@ -10,9 +10,10 @@ import {
   updateAdminBannerStatus,
   type AdminBanner,
 } from '../../services/adminService'
+import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 
 const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(value))
+  formatCompatibleDate(value)
 
 function BannerActions({
   banner,

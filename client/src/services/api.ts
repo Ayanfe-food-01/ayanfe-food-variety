@@ -22,7 +22,17 @@ const apiBaseUrl = normalizeApiBaseUrl(
 )
 const maxNetworkAttempts = 3
 
-const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+const wait = (milliseconds: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
+  if (signal?.aborted) {
+    reject(new DOMException('The request was aborted.', 'AbortError'))
+    return
+  }
+  const timeout = window.setTimeout(resolve, milliseconds)
+  signal?.addEventListener('abort', () => {
+    window.clearTimeout(timeout)
+    reject(new DOMException('The request was aborted.', 'AbortError'))
+  }, { once: true })
+})
 
 const networkErrorMessage = () => import.meta.env.DEV
   ? `Unable to reach the local API at ${apiBaseUrl}. The Start API workflow may still be starting; try again in a moment.`
@@ -46,6 +56,9 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   }
 
   let response: Response | null = null
+  const method = (options?.method ?? 'GET').toUpperCase()
+  const isRetryableRequest = method === 'GET' || method === 'HEAD' || method === 'OPTIONS'
+    || Object.entries(options?.headers ?? {}).some(([key, value]) => key.toLowerCase() === 'x-checkout-request' && value === '1')
 
   for (let attempt = 1; attempt <= maxNetworkAttempts; attempt += 1) {
     try {
@@ -60,8 +73,8 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
       break
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') throw error
-      if (attempt === maxNetworkAttempts) throw new ApiError(networkErrorMessage(), 0)
-      await wait(attempt * 400)
+      if (!isRetryableRequest || attempt === maxNetworkAttempts) throw new ApiError(networkErrorMessage(), 0)
+      await wait(attempt * 400, options?.signal ?? undefined)
     }
   }
   if (!response) throw new ApiError(networkErrorMessage(), 0)

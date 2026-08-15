@@ -4,15 +4,20 @@ import { HttpError } from '../../utils/http.js'
 
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024
 
-const imageTypeFor = (buffer: Buffer): 'jpg' | 'png' | 'webp' | null => {
+const imageTypeFor = (buffer: Buffer): 'jpg' | 'png' | 'webp' | 'heic' | null => {
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpg'
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return 'png'
   if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'webp'
+  if (
+    buffer.length >= 12
+    && buffer.toString('ascii', 4, 8) === 'ftyp'
+    && ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(buffer.toString('ascii', 8, 12))
+  ) return 'heic'
   return null
 }
 
-const mimeTypeFor = (type: 'jpg' | 'png' | 'webp'): string =>
-  type === 'jpg' ? 'image/jpeg' : type === 'png' ? 'image/png' : 'image/webp'
+const mimeTypeFor = (type: 'jpg' | 'png' | 'webp' | 'heic'): string =>
+  type === 'jpg' ? 'image/jpeg' : type === 'png' ? 'image/png' : type === 'webp' ? 'image/webp' : 'image/heic'
 
 const sha1Signature = (parameters: Record<string, string>): string => {
   const payload = Object.entries(parameters)
@@ -38,9 +43,17 @@ export async function uploadPaymentProof(
   }
 
   const detectedType = imageTypeFor(file.buffer)
-  const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
-  if (!detectedType || !allowedMimeTypes.has(file.mimetype) || mimeTypeFor(detectedType) !== file.mimetype) {
-    throw new HttpError(400, 'Payment receipt must be a valid JPG, PNG, or WEBP image.')
+   const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
+   const hasSupportedExtension = /\.(jpe?g|png|webp|heic|heif)$/i.test(file.originalname)
+   const normalizedMimeType = file.mimetype === 'image/heif'
+     ? 'image/heic'
+     : allowedMimeTypes.has(file.mimetype)
+       ? file.mimetype
+       : hasSupportedExtension
+         ? mimeTypeFor(detectedType ?? 'jpg')
+         : file.mimetype
+   if (!detectedType || (!allowedMimeTypes.has(file.mimetype) && !hasSupportedExtension) || mimeTypeFor(detectedType) !== normalizedMimeType) {
+     throw new HttpError(400, 'Payment receipt must be a valid JPG, PNG, WEBP, or HEIC/HEIF image.')
   }
 
   if (!env.cloudinary.cloudName || !env.cloudinary.apiKey || !env.cloudinary.apiSecret) {
@@ -53,7 +66,7 @@ export async function uploadPaymentProof(
   const type = 'authenticated'
   const signature = sha1Signature({ folder, public_id: publicId, timestamp, type })
   const body = new FormData()
-  body.append('file', `data:${file.mimetype};base64,${file.buffer.toString('base64')}`)
+   body.append('file', `data:${normalizedMimeType};base64,${file.buffer.toString('base64')}`)
   body.append('api_key', env.cloudinary.apiKey)
   body.append('timestamp', timestamp)
   body.append('folder', folder)

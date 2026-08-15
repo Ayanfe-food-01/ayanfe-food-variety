@@ -36,7 +36,7 @@ export function ConfirmDialog({
   }, [isBusy, onCancel])
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-green-dark/45 px-5 py-8" role="presentation">
+    <div className="safe-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-green-dark/45" role="presentation">
       <div
         className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-2xl shadow-green-dark/20 sm:p-8"
         role="dialog"

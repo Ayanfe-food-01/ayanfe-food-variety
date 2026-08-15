@@ -18,6 +18,7 @@ import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
+import { createRequestKey } from '../utils/browserCompatibility'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -28,7 +29,7 @@ const formatPrice = (price: number) =>
 
 function EmptyCheckout() {
   return (
-    <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+    <section className="container page-state-section flex items-center justify-center py-16">
       <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
           <CartIcon size={28} />
@@ -71,7 +72,7 @@ export function Checkout() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentSettings[]>([])
   const [isPaymentLoading, setIsPaymentLoading] = useState(true)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [checkoutKey] = useState(() => crypto.randomUUID())
+  const [checkoutKey] = useState(createRequestKey)
 
   useEffect(() => {
     getPublicStoreSettings()
@@ -182,7 +183,7 @@ export function Checkout() {
       <>
         <Navbar />
         <main>
-          <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+          <section className="container page-state-section flex items-center justify-center py-16">
             <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
               <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
                 <span className="text-2xl font-bold" aria-hidden="true">A</span>

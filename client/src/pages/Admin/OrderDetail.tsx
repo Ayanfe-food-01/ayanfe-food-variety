@@ -16,11 +16,10 @@ import { ImagePreview } from '../../components/ui/ImagePreview'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { OrderDetailActionsMenu } from '../../components/admin/OrderDetailActionsMenu'
+import { formatDate } from '../../utils/dateFormat'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
-
-const formatDate = (value: string) => new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 
 const statusClass = (status: string) => {
   if (status === 'PAID' || status === 'DELIVERED' || status === 'VERIFIED') return 'bg-green/10 text-green'

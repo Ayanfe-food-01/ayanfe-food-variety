@@ -73,7 +73,7 @@ function CartImage({ item }: { item: CartItem }) {
 
 function EmptyCart() {
   return (
-    <section className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+    <section className="container page-state-section flex items-center justify-center py-16">
       <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
           <CartIcon size={28} />
@@ -139,7 +139,7 @@ export function Cart() {
     return (
       <>
         <Navbar />
-        <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16">
+        <main className="container page-state-section flex items-center justify-center py-16">
           <div className="w-full max-w-xl rounded-3xl border border-orange/30 bg-orange/5 px-6 py-14 text-center" role="alert">
             <h1 className="m-0 text-3xl font-bold text-green-dark">Your cart could not be loaded</h1>
             <p className="mt-3 text-sm leading-6 text-muted">{error}</p>

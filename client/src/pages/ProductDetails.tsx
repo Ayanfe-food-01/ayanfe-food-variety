@@ -186,7 +186,7 @@ export function ProductDetails() {
         />
         <Navbar />
         <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product unavailable' }]} />
-        <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+        <main className="container page-state-section flex items-center justify-center py-16">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Something went wrong</p>
             <h1 className="m-0 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">
@@ -220,7 +220,7 @@ export function ProductDetails() {
         />
         <Navbar />
         <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product not found' }]} />
-        <main className="container flex min-h-[calc(100vh-68px)] items-center justify-center py-16 md:min-h-[calc(100vh-78px)]">
+        <main className="container page-state-section flex items-center justify-center py-16">
           <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10" aria-labelledby="not-found-heading">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Sorry, we couldn’t find that</p>
             <h1 id="not-found-heading" className="m-0 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">

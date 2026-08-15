@@ -1,13 +1,9 @@
 import { Link } from 'react-router-dom'
 import type { AdminPayment } from '../../services/paymentService'
+import { formatDate } from '../../utils/dateFormat'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
-
-const formatDate = (value: string, includeTime = false) =>
-  new Intl.DateTimeFormat('en-NG', includeTime
-    ? { dateStyle: 'medium', timeStyle: 'short' }
-    : { dateStyle: 'medium' }).format(new Date(value))
 
 const statusClass = (status: AdminPayment['status']) =>
   status === 'VERIFIED' ? 'bg-green/10 text-green' : status === 'REJECTED' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'

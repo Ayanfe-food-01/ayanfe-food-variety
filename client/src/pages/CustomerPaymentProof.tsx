@@ -51,9 +51,11 @@ export function CustomerPaymentProof() {
       setProof(null)
       return
     }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(selected.type)) {
+    const hasSupportedType = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(selected.type)
+    const hasSupportedExtension = /\.(jpe?g|png|webp|heic|heif)$/i.test(selected.name)
+    if (!hasSupportedType && !hasSupportedExtension) {
       setProof(null)
-      setError('Please select a JPG, PNG, or WEBP image.')
+      setError('Please select a JPG, PNG, WEBP, or iPhone HEIC/HEIF image.')
       return
     }
     if (selected.size > 5 * 1024 * 1024) {
@@ -140,7 +142,7 @@ export function CustomerPaymentProof() {
                  <label className="block text-sm font-bold text-green-dark">Transaction reference <span className="font-normal text-muted">(optional)</span><input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-green" value={transactionReference} onChange={(event) => setTransactionReference(event.target.value)} aria-describedby="transaction-reference-help" /><span id="transaction-reference-help" className="mt-1 block text-xs font-normal text-muted">Optional — include it if your bank provides one.</span></label>
                 <label className="block text-sm font-bold text-green-dark">Amount transferred<input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-green" type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></label>
                 <label className="block text-sm font-bold text-green-dark">Transfer date and time<input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-green" type="datetime-local" value={transferredAt} onChange={(event) => setTransferredAt(event.target.value)} required /></label>
-                <label className="block text-sm font-bold text-green-dark">Payment receipt or screenshot<input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleProofChange} required /><span className="mt-1 block text-xs font-normal text-muted">JPG, PNG, or WEBP up to 5 MB.</span></label>
+                 <label className="block text-sm font-bold text-green-dark">Payment receipt or screenshot<input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleProofChange} required /><span className="mt-1 block text-xs font-normal text-muted">JPG, PNG, WEBP, or iPhone HEIC/HEIF up to 5 MB.</span></label>
                 {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
                 <button className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green py-3.5 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={isSubmitting || !proof}>
                   {isSubmitting ? 'Submitting…' : 'Submit payment proof'} {!isSubmitting && <ArrowRight size={17} />}

@@ -7,12 +7,10 @@ import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getCustomerOrders, type CustomerOrderListItem } from '../services/orderService'
 import { formatOrderStatus } from '../utils/orderStatus'
+import { formatDate } from '../utils/dateFormat'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
-
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(date))
 
 const statusClass = (status: string) =>
   status === 'PAID' || status === 'DELIVERED'

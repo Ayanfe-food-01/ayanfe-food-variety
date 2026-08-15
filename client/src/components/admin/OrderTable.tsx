@@ -1,12 +1,10 @@
 import type { AdminOrderListItem } from '../../services/orderService'
 import { formatOrderStatus } from '../../utils/orderStatus'
 import { OrderActionsMenu } from './OrderActionsMenu'
+import { formatDate } from '../../utils/dateFormat'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
-
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 
 const statusClass = (status: string) => {
   if (status === 'PAID' || status === 'DELIVERED') return 'bg-green/10 text-green'
@@ -58,7 +56,7 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
               </div>
               <div>
                 <dt className="uppercase tracking-[0.12em] text-muted">Date</dt>
-                <dd className="mt-1 text-muted">{formatDate(order.createdAt)}</dd>
+                 <dd className="mt-1 text-muted">{formatDate(order.createdAt, true)}</dd>
               </div>
               <div>
                 <dt className="uppercase tracking-[0.12em] text-muted">Total</dt>
@@ -104,7 +102,7 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                   <p className="mt-1 text-xs text-muted">{order.email ?? 'No email provided'}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{order.phone}</td>
-                <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt)}</td>
+                 <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt, true)}</td>
                 <td className="whitespace-nowrap px-5 py-4 font-semibold text-green-dark">{formatPrice(order.total)}</td>
                  <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${order.fulfillmentMethod === 'PICKUP' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</span></td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></td>

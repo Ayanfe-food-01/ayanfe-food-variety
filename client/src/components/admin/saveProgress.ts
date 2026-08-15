@@ -10,11 +10,8 @@ const entityLabels: Record<AdminSaveEntity, string> = {
 export const getSaveProgressLabel = (
   entity: AdminSaveEntity,
   mode: AdminSaveMode,
-  hasImage: boolean,
 ): string => {
   const action = mode === 'create' ? 'Creating' : 'Updating'
   const entityLabel = entityLabels[entity]
-  return hasImage
-    ? `Uploading image and ${action.toLowerCase()} ${entityLabel}…`
-    : `${action} ${entityLabel}…`
+  return `${action} ${entityLabel}…`
 }

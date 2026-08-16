@@ -437,6 +437,7 @@ interface AdminProductApiResponse {
   deliveryFee: string
   unit: string
   image: string
+  images?: string[]
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number
@@ -458,7 +459,9 @@ export interface ProductFormInput {
   stockQuantity: string
   isActive: boolean
   isFeatured: boolean
-  image?: File
+  images: File[]
+  existingImages: string[]
+  imageOrder: string[]
 }
 
 const toQueryString = (query: AdminProductsQuery): string => {
@@ -485,7 +488,9 @@ const formDataFor = (input: ProductFormInput): FormData => {
   formData.set('stockQuantity', input.stockQuantity)
   formData.set('isActive', String(input.isActive))
   formData.set('isFeatured', String(input.isFeatured))
-  if (input.image) formData.set('image', input.image)
+  formData.set('existingImages', JSON.stringify(input.existingImages))
+  formData.set('imageOrder', JSON.stringify(input.imageOrder))
+  input.images.forEach((image) => formData.append('images', image))
   return formData
 }
 
@@ -501,6 +506,11 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   discountValue: product.discountValue === null ? null : Number(product.discountValue),
   deliveryFee: Number(product.deliveryFee),
   image: product.image,
+  images: product.images?.filter(Boolean).length
+    ? product.images.filter(Boolean)
+    : product.image
+      ? [product.image]
+      : [],
   description: product.description,
   stockQuantity: product.stockQuantity,
   isActive: product.isActive,

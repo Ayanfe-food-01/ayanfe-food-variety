@@ -1,3 +1,4 @@
+import { prisma } from '../../lib/prisma.js'
 import { deleteCloudinaryImage, publicIdFromCloudinaryUrl, uploadCloudinaryImage } from '../../lib/cloudinary-image.js'
 
 export async function uploadProductImage(file: Express.Multer.File): Promise<string> {
@@ -10,4 +11,26 @@ export async function uploadProductImage(file: Express.Multer.File): Promise<str
  */
 export async function deleteProductImage(imageUrl: string): Promise<boolean> {
   return deleteCloudinaryImage(publicIdFromCloudinaryUrl(imageUrl, 'product-images'))
+}
+
+export async function deleteProductImageIfUnused(imageUrl: string, excludedProductId?: string): Promise<boolean> {
+  const [legacyReference, imageReference] = await Promise.all([
+    prisma.product.findFirst({
+      where: {
+        image: imageUrl,
+        ...(excludedProductId ? { id: { not: excludedProductId } } : {}),
+      },
+      select: { id: true },
+    }),
+    prisma.productImage.findFirst({
+      where: {
+        url: imageUrl,
+        ...(excludedProductId ? { productId: { not: excludedProductId } } : {}),
+      },
+      select: { id: true },
+    }),
+  ])
+
+  if (legacyReference || imageReference) return false
+  return deleteProductImage(imageUrl)
 }

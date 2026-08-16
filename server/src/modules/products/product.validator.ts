@@ -90,7 +90,7 @@ export function validateAdminProductId(value: string | undefined): string {
   return value.trim()
 }
 
-export function validateProductFields(body: unknown): Omit<ProductInput, 'image'> {
+export function validateProductFields(body: unknown): Omit<ProductInput, 'image' | 'images'> {
   if (!isRecord(body)) throw new HttpError(400, 'Product data is required.')
   const categoryId = requiredText(body.categoryId, 'Category', 1, 40)
   if (!UUID_PATTERN.test(categoryId)) throw new HttpError(400, 'Category is invalid.')
@@ -107,6 +107,22 @@ export function validateProductFields(body: unknown): Omit<ProductInput, 'image'
     isFeatured: booleanValue(body.isFeatured, 'Featured', false),
     stockQuantity: integerValue(body.stockQuantity, 'Stock quantity'),
   }
+}
+
+export function validateProductImageOrder(body: unknown): string[] | null {
+  if (!isRecord(body) || body.imageOrder === undefined || body.imageOrder === '') return null
+  if (typeof body.imageOrder !== 'string') throw new HttpError(400, 'Product image order is invalid.')
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(body.imageOrder)
+  } catch {
+    throw new HttpError(400, 'Product image order is invalid.')
+  }
+  if (!Array.isArray(parsed) || parsed.length > 10 || parsed.some((item) => typeof item !== 'string')) {
+    throw new HttpError(400, 'Product image order is invalid.')
+  }
+  return parsed as string[]
 }
 
 export function validateProductStatusInput(body: unknown): boolean {

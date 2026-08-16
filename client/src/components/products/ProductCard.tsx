@@ -6,6 +6,7 @@ import type { Product } from '../../types/product'
 import { useCart } from '../../hooks/useCart'
 import { CartIcon } from '../../assets/icons'
 import { useToast } from '../ui/Toast'
+import { optimizedImageUrl } from '../../utils/optimizedImageUrl'
 
 interface ProductCardProps {
   product: Product
@@ -30,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <article className="product-card">
       <Link className="product-card-link" to={`/product/${product.slug ?? product.id}`} aria-label={`View ${product.name}`}>
         <div className="product-image-wrap">
-          {product.image && !imageError ? <img src={product.image} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
+          {product.image && !imageError ? <img src={optimizedImageUrl(product.image, 480)} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
         </div>
         <div className="product-card-body">
           <span className="product-name">{product.name}</span>

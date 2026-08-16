@@ -13,6 +13,7 @@ export const products: Product[] = [
     deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=720&q=85',
+    images: ['https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=720&q=85'],
     description: 'Fragrant, long-grain jasmine rice for everyday family meals.',
     stockQuantity: 50,
   isActive: true,
@@ -33,6 +34,7 @@ export const products: Product[] = [
     deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=720&q=85',
+    images: ['https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=720&q=85'],
     description: 'Clean, wholesome honey beans with a rich, satisfying flavour.',
     stockQuantity: 40,
   isActive: true,
@@ -53,6 +55,7 @@ export const products: Product[] = [
     deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=720&q=85',
+    images: ['https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=720&q=85'],
     description: 'Pure vegetable oil for cooking, frying, and family recipes.',
     stockQuantity: 30,
   isActive: true,
@@ -73,6 +76,7 @@ export const products: Product[] = [
     deliveryFee: 0,
     image:
       'https://images.unsplash.com/photo-1596097557993-7c9d65f4c498?auto=format&fit=crop&w=720&q=85',
+    images: ['https://images.unsplash.com/photo-1596097557993-7c9d65f4c498?auto=format&fit=crop&w=720&q=85'],
     description: 'Fresh white yam sourced for hearty, comforting meals.',
     stockQuantity: 25,
   isActive: true,

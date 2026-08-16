@@ -4,7 +4,10 @@ import { HttpError } from '../../utils/http.js'
 import { toPublicProduct } from '../products/product.service.js'
 import type { WishlistResponse } from './wishlist.types.js'
 
-const wishlistProductInclude = { category: true } satisfies Prisma.ProductInclude
+const wishlistProductInclude = {
+  category: true,
+  images: { orderBy: { sortOrder: 'asc' } },
+} satisfies Prisma.ProductInclude
 
 const requireProduct = async (productId: string) => {
   const product = await prisma.product.findUnique({
@@ -18,7 +21,7 @@ const requireProduct = async (productId: string) => {
 export async function getWishlist(userId: string): Promise<WishlistResponse> {
   const items = await prisma.wishlistItem.findMany({
     where: { userId },
-    include: { product: { include: { category: true } } },
+    include: { product: { include: wishlistProductInclude } },
     orderBy: { createdAt: 'desc' },
   })
 

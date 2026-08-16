@@ -2,7 +2,10 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { toPublicProduct } from '../products/product.service.js';
-const wishlistProductInclude = { category: true };
+const wishlistProductInclude = {
+    category: true,
+    images: { orderBy: { sortOrder: 'asc' } },
+};
 const requireProduct = async (productId) => {
     const product = await prisma.product.findUnique({
         where: { id: productId },
@@ -15,7 +18,7 @@ const requireProduct = async (productId) => {
 export async function getWishlist(userId) {
     const items = await prisma.wishlistItem.findMany({
         where: { userId },
-        include: { product: { include: { category: true } } },
+        include: { product: { include: wishlistProductInclude } },
         orderBy: { createdAt: 'desc' },
     });
     const products = items.map((item) => toPublicProduct(item.product));

@@ -41,6 +41,7 @@ outputType = "console"
 
 [nix]
 channel = "stable-25_05"
+packages = ["psmisc"]
 
 [[ports]]
 localPort = 5000
@@ -65,6 +66,6 @@ externalPort = 8000
 ADMIN_INITIAL_NAME = "Ayanfe-food-variety"
 ADMIN_INITIAL_EMAIL = "ayanfefoodvariety01@gmail.com"
 PUBLIC_APP_URL = "https://www.ayanfefoodvariety.com.ng"
-CORS_ORIGINS = "https://4f271cf0-c121-454b-814a-ed070e8bcf45-00-1ryt7ls7haa5i.worf.replit.dev"
+CORS_ORIGINS = "https://b0019c0c-63ea-4f24-99cc-16a11c493336-00-3j4ggewg4jbf3.worf.replit.dev"
 
 [userenv.development]

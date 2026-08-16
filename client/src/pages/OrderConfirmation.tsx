@@ -22,6 +22,9 @@ export function OrderConfirmation() {
   const guestAccessToken = orderNumber
     ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
     : null
+  const guestOrderSuffix = !user && guestAccessToken
+    ? `?access=${encodeURIComponent(guestAccessToken)}`
+    : ''
 
   useEffect(() => {
     if (isAuthLoading || !orderNumber) return
@@ -76,7 +79,7 @@ export function OrderConfirmation() {
                <p className="mt-2 text-sm leading-6 text-muted">
                  After completing the transfer using the details shown during checkout, send your receipt so we can verify your payment.
                </p>
-                <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof`}>
+                <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof${guestOrderSuffix}`}>
                  Submit payment proof <ArrowRight size={16} />
                </Link>
              </div>
@@ -135,7 +138,7 @@ export function OrderConfirmation() {
             </div>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-               <Link className="inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}`}>
+                <Link className="inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}${guestOrderSuffix}`}>
                 View order <ArrowRight size={16} />
               </Link>
               <Link className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-sage" to="/shop">

@@ -1,37 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, EyeIcon, EyeOffIcon } from '../assets/icons'
 import { Button } from '../components/ui/Button'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getGoogleSignInUrl, login, signupCustomer, getCurrentUser, type AuthenticatedUser } from '../services/authService'
+import {
+  clearAuthReturnPath,
+  readInternalReturnPath,
+  storeAuthReturnPath,
+} from '../utils/authReturn'
 
 type Mode = 'login' | 'signup'
 type LoginView = 'gateway' | 'email'
-
-const AUTH_RETURN_STORAGE_KEY = 'ayanfe-auth-return'
-
-const readInternalReturnPath = (locationState: unknown): string => {
-  const fromState = locationState && typeof locationState === 'object' && 'from' in locationState && typeof locationState.from === 'string'
-    ? locationState.from
-    : null
-  let storedPath: string | null = null
-  try {
-    storedPath = window.sessionStorage.getItem(AUTH_RETURN_STORAGE_KEY)
-  } catch {
-    storedPath = null
-  }
-  const candidate = fromState ?? storedPath ?? '/'
-  return candidate.startsWith('/') && !candidate.startsWith('//') ? candidate : '/'
-}
-
-const clearStoredReturnPath = () => {
-  try {
-    window.sessionStorage.removeItem(AUTH_RETURN_STORAGE_KEY)
-  } catch {
-    // Navigation still works when session storage is unavailable.
-  }
-}
 
 const googleErrorMessages: Record<string, string> = {
   google_cancelled: 'Google sign-in was cancelled.',
@@ -42,10 +23,14 @@ const googleErrorMessages: Record<string, string> = {
 export function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { completeAuthentication } = useCustomerAuth()
+  const { completeAuthentication, completeGuestContinuation } = useCustomerAuth()
+  const initialReturnPath = readInternalReturnPath(location.state)
+  const initialGoogleError = new URLSearchParams(location.search).get('oauth_error')
   const [view, setView] = useState<LoginView>(() => {
     const state = location.state
-    return state && typeof state === 'object' && 'email' in state ? 'email' : 'gateway'
+    return (state && typeof state === 'object' && 'email' in state) || initialReturnPath.startsWith('/admin')
+      ? 'email'
+      : 'gateway'
   })
   const [mode, setMode] = useState<Mode>('login')
   const [name, setName] = useState('')
@@ -56,12 +41,21 @@ export function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => (
+    initialGoogleError && googleErrorMessages[initialGoogleError]
+      ? googleErrorMessages[initialGoogleError]
+      : null
+  ))
+
+  const getDestination = useCallback((user: AuthenticatedUser) => {
+    const from = readInternalReturnPath(location.state)
+    clearAuthReturnPath()
+    return user.role === 'ADMIN'
+      ? from.startsWith('/admin') ? from : '/admin'
+      : from.startsWith('/admin') ? '/' : from
+  }, [location.state])
 
   useEffect(() => {
-    const oauthError = new URLSearchParams(location.search).get('oauth_error')
-    if (oauthError && googleErrorMessages[oauthError]) setError(googleErrorMessages[oauthError])
-    if (location.search.includes('oauth=google')) setView('gateway')
     getCurrentUser()
       .then((currentUser) => {
         navigate(getDestination(currentUser), { replace: true })
@@ -69,15 +63,7 @@ export function Login() {
       .catch((caught: unknown) => {
         if (!(caught instanceof ApiError && caught.status === 401)) setError('We could not check your existing session.')
       })
-  }, [location.search, navigate])
-
-  const getDestination = (user: AuthenticatedUser) => {
-    const from = readInternalReturnPath(location.state)
-    clearStoredReturnPath()
-    return user.role === 'ADMIN'
-      ? from.startsWith('/admin') ? from : '/admin'
-      : from.startsWith('/admin') ? '/' : from
-  }
+  }, [getDestination, navigate])
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -85,12 +71,14 @@ export function Login() {
     setError(null)
     try {
       if (mode === 'signup') {
+        storeAuthReturnPath(readInternalReturnPath(location.state))
         const result = await signupCustomer(name, email, password)
         navigate('/verify-email', {
           replace: true,
           state: {
             email: result.user.email,
             verificationExpiresInSeconds: result.verificationExpiresInSeconds,
+            from: readInternalReturnPath(location.state),
           },
         })
         return
@@ -108,17 +96,14 @@ export function Login() {
   const continueWithGoogle = () => {
     setError(null)
     setIsSubmitting(true)
-    try {
-      window.sessionStorage.setItem(AUTH_RETURN_STORAGE_KEY, readInternalReturnPath(location.state))
-    } catch {
-      // The in-memory route state still supports email authentication.
-    }
+    storeAuthReturnPath(readInternalReturnPath(location.state))
     window.location.assign(getGoogleSignInUrl())
   }
 
   const continueAsGuest = () => {
     const destination = readInternalReturnPath(location.state)
-    clearStoredReturnPath()
+    completeGuestContinuation()
+    clearAuthReturnPath()
     navigate(destination, { replace: true, state: { guestCheckout: true } })
   }
 

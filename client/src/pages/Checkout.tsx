@@ -115,10 +115,12 @@ export function Checkout() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [checkoutKey] = useState(() => readSessionValue(CHECKOUT_KEY_STORAGE_KEY) ?? createRequestKey())
   const [guestAccessToken] = useState(() => readSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY) ?? createRequestKey())
-  const [guestCheckout, setGuestCheckout] = useState(() => {
-    const state = location.state
-    return Boolean(state && typeof state === 'object' && 'guestCheckout' in state && state.guestCheckout === true)
-  })
+  const guestCheckout = Boolean(
+    location.state
+    && typeof location.state === 'object'
+    && 'guestCheckout' in location.state
+    && location.state.guestCheckout === true,
+  )
 
   useEffect(() => {
     writeSessionValue(CHECKOUT_KEY_STORAGE_KEY, checkoutKey)
@@ -128,13 +130,6 @@ export function Checkout() {
   useEffect(() => {
     writeSessionValue(CHECKOUT_DRAFT_STORAGE_KEY, JSON.stringify(form))
   }, [form])
-
-  useEffect(() => {
-    const state = location.state
-    if (state && typeof state === 'object' && 'guestCheckout' in state && state.guestCheckout === true) {
-      setGuestCheckout(true)
-    }
-  }, [location.state])
 
   useEffect(() => {
     getPublicStoreSettings()

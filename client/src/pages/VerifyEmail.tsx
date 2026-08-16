@@ -4,10 +4,12 @@ import { ArrowRight } from '../assets/icons'
 import { Button } from '../components/ui/Button'
 import { ApiError } from '../services/api'
 import { resendCustomerVerification, verifyCustomerEmail } from '../services/authService'
+import { readInternalReturnPath } from '../utils/authReturn'
 
 interface VerificationLocationState {
   email?: unknown
   verificationExpiresInSeconds?: unknown
+  from?: unknown
 }
 
 const DEFAULT_EXPIRY_SECONDS = 10 * 60
@@ -116,7 +118,15 @@ export function VerifyEmail() {
             <p className="text-sm font-bold uppercase tracking-[0.14em] text-green">Email verified</p>
             <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em] text-green-dark">You’re all set</h1>
             <p className="mt-3 text-sm leading-6 text-muted">Your email has been verified. Sign in to continue to your Ayanfe Food Variety account.</p>
-            <Button className="mt-8 w-full" size="lg" type="button" onClick={() => navigate('/login', { replace: true, state: { email } })}>
+          <Button
+            className="mt-8 w-full"
+            size="lg"
+            type="button"
+            onClick={() => navigate('/login', {
+              replace: true,
+              state: { email, from: readInternalReturnPath(location.state) },
+            })}
+          >
               Continue to sign in <ArrowRight size={17} />
             </Button>
           </div>

@@ -53,6 +53,12 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
     action?.()
   }, [])
 
+  const completeGuestContinuation = useCallback(() => {
+    const action = afterAuthRef.current
+    afterAuthRef.current = undefined
+    action?.()
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await logoutUser()
@@ -66,6 +72,7 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
     isLoading,
     openAuth,
     completeAuthentication,
+    completeGuestContinuation,
     setUser,
     logout,
   }

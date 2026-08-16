@@ -57,6 +57,7 @@ export const logoutController: RequestHandler = async (request, response) => {
 }
 
 export const meController: RequestHandler = async (request, response) => {
+  response.set('Cache-Control', 'no-store')
   const user = await getAuthenticatedUser(getSessionToken(request.headers.cookie))
     ?? await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (!user) {
@@ -97,6 +98,7 @@ export const customerLogoutController: RequestHandler = async (request, response
 }
 
 export const customerMeController: RequestHandler = async (request, response) => {
+  response.set('Cache-Control', 'no-store')
   const user = await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (!user) {
     response.status(401).json({ error: { message: 'Customer authentication is required.', statusCode: 401 } })

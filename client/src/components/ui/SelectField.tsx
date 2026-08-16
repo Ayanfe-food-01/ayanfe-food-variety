@@ -12,7 +12,7 @@ interface SelectFieldProps {
   options: readonly SelectOption[]
   onChange: (value: string) => void
   className?: string
-  variant?: 'default' | 'filter'
+  variant?: 'default' | 'filter' | 'compact'
   id?: string
   name?: string
   ariaLabel?: string
@@ -167,7 +167,7 @@ export function SelectField({
   }
 
   return (
-    <div className={`select-field ${variant === 'filter' ? 'select-field-filter' : ''} ${className}`} ref={wrapperRef}>
+      <div className={`select-field ${variant === 'filter' ? 'select-field-filter' : ''} ${variant === 'compact' ? 'select-field-compact' : ''} ${className}`} ref={wrapperRef}>
       {name && <input type="hidden" name={name} value={value} />}
       <button
         aria-activedescendant={isOpen && highlightedIndex >= 0 ? `${listboxId}-option-${highlightedIndex}` : undefined}

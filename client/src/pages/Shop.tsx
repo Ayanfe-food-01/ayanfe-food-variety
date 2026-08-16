@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
+import { ProductFilters } from '../components/products/ProductFilters'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { BreadcrumbBar } from '../components/ui/Breadcrumb'
-import { SelectField } from '../components/ui/SelectField'
 import { getCategories } from '../services/categoryService'
 import { ApiError } from '../services/api'
 import { getNewArrivals, getProducts, type ProductPage } from '../services/productService'
@@ -169,64 +169,49 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
       <Navbar />
       <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
       <main>
+        <section className="border-b border-line/70 bg-sage/35">
+          <div className="container py-8 sm:py-10 lg:py-12">
+            <div className="max-w-2xl">
+              <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
+                <span className="inline-block size-2 rounded-full bg-orange" />
+                {newArrivalsOnly ? 'Fresh on the shelf' : 'The full collection'}
+              </p>
+              <h1 className="m-0 text-4xl font-bold leading-none tracking-[-0.05em] text-green-dark sm:text-5xl">
+                {newArrivalsOnly ? 'New arrivals' : selectedCategory?.name ?? 'Shop'}
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-muted sm:text-base">
+                {newArrivalsOnly
+                  ? 'Fresh Nigerian foodstuff, added recently and delivered with care.'
+                  : selectedCategory
+                    ? `${selectedCategory.description || `Quality ${selectedCategory.name.toLowerCase()} for your pantry.`} Delivered with care.`
+                    : 'Quality Nigerian foodstuff for your pantry, delivered with care.'}
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="container py-14 sm:py-18 lg:py-24" aria-labelledby="collection-heading">
           <div className="mb-8">
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Browse our range</p>
-               <h1 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
+               <h2 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
                  {selectedCategory?.name ?? (newArrivalsOnly ? 'Latest additions' : 'Shop by category')}
-               </h1>
+               </h2>
             </div>
           </div>
 
-           <div className="shop-filters mb-10 rounded-2xl border border-line bg-white p-3 sm:p-4">
-             <div className="shop-category-filter">
-               <div className="shop-filter-heading">
-                 <span>Browse categories</span>
-                 {!isCategoriesLoading && categories.length > 0 && <span className="shop-filter-count">{categories.length + 1} options</span>}
-               </div>
-               <div className="shop-category-rail" role="list" aria-label="Product categories" aria-busy={isCategoriesLoading}>
-                 <button
-                   className={`shop-category-chip ${!categoryValue ? 'is-active' : ''}`}
-                   type="button"
-                   aria-pressed={!categoryValue}
-                   onClick={() => updateParams({ category: undefined, page: undefined })}
-                   disabled={isCategoriesLoading}
-                 >
-                   All categories
-                 </button>
-                 {isCategoriesLoading
-                   ? Array.from({ length: 4 }, (_, index) => <span className="shop-category-chip-skeleton" aria-hidden="true" key={index} />)
-                   : categories.map((category) => (
-                     <button
-                       className={`shop-category-chip ${categoryValue === category.slug || categoryValue === category.id ? 'is-active' : ''}`}
-                       type="button"
-                       aria-pressed={categoryValue === category.slug || categoryValue === category.id}
-                       onClick={() => updateParams({ category: category.slug, page: undefined })}
-                       key={category.id}
-                     >
-                       {category.name}
-                     </button>
-                   ))}
-               </div>
-             </div>
-             <div className="shop-filter-controls">
-              {!newArrivalsOnly ? (
-                <SelectField
-                   ariaLabel="Sort products"
-                  className="filter-select-wrap"
-                  options={SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
-                  onChange={(value) => updateParams({ sort: value === 'relevance' ? undefined : value, page: undefined })}
-                  value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
-                  variant="filter"
-                />
-              ) : (
-                <span className="filter-pill">
-                   <span className="ui-truncate">Newest first</span>
-                </span>
-              )}
-            </div>
-          </div>
+           <div className="mb-10">
+             <ProductFilters
+               categories={categories}
+               categoryValue={categoryValue}
+               isCategoriesLoading={isCategoriesLoading}
+               sortOptions={SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+               sortValue={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
+               sortDisabled={newArrivalsOnly}
+               onCategoryChange={(value) => updateParams({ category: value || undefined, page: undefined })}
+               onSortChange={(value) => updateParams({ sort: value === 'relevance' ? undefined : value, page: undefined })}
+             />
+           </div>
 
           {categoriesError && (
             <div className="mb-6 rounded-2xl border border-orange/30 bg-orange/10 px-5 py-4 text-sm text-green-dark" role="alert">

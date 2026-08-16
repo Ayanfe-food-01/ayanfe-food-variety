@@ -169,34 +169,13 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
       <Navbar />
       <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
       <main>
-        <section className="border-b border-line/70 bg-sage/35">
-          <div className="container py-8 sm:py-10 lg:py-12">
-            <div className="max-w-2xl">
-              <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
-                <span className="inline-block size-2 rounded-full bg-orange" />
-                {newArrivalsOnly ? 'Fresh on the shelf' : 'The full collection'}
-              </p>
-              <h1 className="m-0 text-4xl font-bold leading-none tracking-[-0.05em] text-green-dark sm:text-5xl">
-                {newArrivalsOnly ? 'New arrivals' : selectedCategory?.name ?? 'Shop'}
-              </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-muted sm:text-base">
-                {newArrivalsOnly
-                  ? 'Fresh Nigerian foodstuff, added recently and delivered with care.'
-                  : selectedCategory
-                    ? `${selectedCategory.description || `Quality ${selectedCategory.name.toLowerCase()} for your pantry.`} Delivered with care.`
-                    : 'Quality Nigerian foodstuff for your pantry, delivered with care.'}
-              </p>
-            </div>
-          </div>
-        </section>
-
         <section className="container py-14 sm:py-18 lg:py-24" aria-labelledby="collection-heading">
           <div className="mb-8">
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Browse our range</p>
-              <h2 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
+               <h1 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
                  {selectedCategory?.name ?? (newArrivalsOnly ? 'Latest additions' : 'Shop by category')}
-              </h2>
+               </h1>
             </div>
           </div>
 

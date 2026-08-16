@@ -137,7 +137,7 @@ export function StoreSettings() {
             <SettingsSaveButton saving={isSaving} label="Save store information" />
           </form>
         </SettingsPanel>
-        <SettingsPanel className="mt-10" eyebrow="Brand identity" title="Logo and favicon" description="Update the public logo and browser tab icon without changing code. Upload them separately so each asset can use the right proportions.">
+        <SettingsPanel className="mt-10" eyebrow="Brand identity" title="Logo and favicon" description="Choose the images customers see on your storefront and in their browser tabs.">
           <form className="space-y-6" onSubmit={submitBranding}>
             <div className="grid gap-6 lg:grid-cols-2">
               <ImageUploadField

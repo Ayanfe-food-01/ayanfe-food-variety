@@ -68,7 +68,6 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
         </label>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <span className="hidden text-xs text-muted xl:inline">Store operations</span>
           <button
             className="grid size-10 place-items-center rounded-full border border-transparent bg-sage/45 text-green-dark transition-colors hover:border-line hover:bg-white"
             type="button"

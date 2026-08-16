@@ -201,7 +201,7 @@ export function OrderDetail() {
 
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Status history</h2>
-            {order.statusHistory.length === 0 ? <p className="mt-4 text-sm text-muted">No status changes have been recorded.</p> : <div className="mt-4 space-y-4">{order.statusHistory.map((history) => <div className="border-l-2 border-sage pl-4" key={history.id}><p className="text-sm font-bold text-green-dark">{history.previousStatus ? `${formatOrderStatus(history.previousStatus)} → ` : 'Created → '}{formatOrderStatus(history.newStatus)}</p><p className="mt-1 text-xs text-muted">{formatDate(history.createdAt)} · {history.changedBy.name}</p>{history.note && <p className="mt-2 text-sm text-muted">{history.note}</p>}</div>)}</div>}
+            {order.statusHistory.length === 0 ? <p className="mt-4 text-sm text-muted">No status changes have been recorded.</p> : <div className="mt-4 space-y-4">{order.statusHistory.map((history) => <div className="border-l-2 border-sage pl-4" key={history.id}><p className="text-sm font-bold text-green-dark">{history.previousStatus ? `${formatOrderStatus(history.previousStatus)} → ` : 'Created → '}{formatOrderStatus(history.newStatus)}</p><p className="mt-1 text-xs text-muted">{formatDate(history.createdAt)} · {history.changedBy?.name ?? 'Guest checkout'}</p>{history.note && <p className="mt-2 text-sm text-muted">{history.note}</p>}</div>)}</div>}
           </section>
         </div>
       </div>

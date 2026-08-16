@@ -2,13 +2,14 @@ import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { AdminHeader } from './AdminHeader'
-import { logoutAdmin } from '../../services/authService'
+import { logoutAdmin, type AuthenticatedUser } from '../../services/authService'
 
 interface AdminLayoutProps {
   children: ReactNode
+  user: AuthenticatedUser
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout({ children, user }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const navigate = useNavigate()
@@ -35,6 +36,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           isLoggingOut={isLoggingOut}
           onLogout={() => void logout()}
           onOpenNavigation={() => setIsSidebarOpen(true)}
+          user={user}
         />
         <main className="px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
           <div className="mx-auto max-w-7xl">

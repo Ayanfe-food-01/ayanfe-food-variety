@@ -45,5 +45,5 @@ export function RequireAdmin({ children }: RequireAdminProps) {
     return <Navigate replace to="/login" state={{ from: `${location.pathname}${location.search}${location.hash}` }} />
   }
 
-  return <AdminLayout>{children}</AdminLayout>
+  return <AdminLayout user={user}>{children}</AdminLayout>
 }

@@ -35,6 +35,8 @@ export interface StoredBrandingImage {
 export interface UpdateStoreBrandingInput {
   logo?: StoredBrandingImage
   favicon?: StoredBrandingImage
+  removeLogo?: boolean
+  removeFavicon?: boolean
 }
 
 export interface StoreInformation {

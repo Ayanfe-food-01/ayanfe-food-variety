@@ -35,7 +35,12 @@ export const updateAdminBrandingController = async (request, response) => {
     const files = filesFromRequest(request);
     const logoFile = files.logo?.[0];
     const faviconFile = files.favicon?.[0];
-    if (!logoFile && !faviconFile) {
+    const removeLogo = request.body?.removeLogo === 'true';
+    const removeFavicon = request.body?.removeFavicon === 'true';
+    if ((logoFile && removeLogo) || (faviconFile && removeFavicon)) {
+        throw new HttpError(400, 'Upload a new asset or reset it, not both at once.');
+    }
+    if (!logoFile && !faviconFile && !removeLogo && !removeFavicon) {
         throw new HttpError(400, 'Choose a logo or favicon before saving.');
     }
     const existing = await getAdminStoreBrandingAssets();
@@ -46,10 +51,10 @@ export const updateAdminBrandingController = async (request, response) => {
             logo = await uploadBrandingLogo(logoFile);
         if (faviconFile)
             favicon = await uploadBrandingFavicon(faviconFile);
-        const branding = await updateAdminStoreBranding({ logo, favicon });
-        if (logo && existing.logoPublicId)
+        const branding = await updateAdminStoreBranding({ logo, favicon, removeLogo, removeFavicon });
+        if ((logo || removeLogo) && existing.logoPublicId)
             await deleteBrandingImage(existing.logoPublicId);
-        if (favicon && existing.faviconPublicId)
+        if ((favicon || removeFavicon) && existing.faviconPublicId)
             await deleteBrandingImage(existing.faviconPublicId);
         response.json({ success: true, message: 'Branding updated.', data: { branding } });
     }

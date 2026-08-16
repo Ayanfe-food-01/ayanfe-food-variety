@@ -114,7 +114,9 @@ export async function getAdminStoreBrandingAssets() {
 export async function updateAdminStoreBranding(input) {
     const data = {
         ...(input.logo ? { logoUrl: input.logo.url, logoPublicId: input.logo.publicId } : {}),
+        ...(input.removeLogo ? { logoUrl: null, logoPublicId: null } : {}),
         ...(input.favicon ? { faviconUrl: input.favicon.url, faviconPublicId: input.favicon.publicId } : {}),
+        ...(input.removeFavicon ? { faviconUrl: null, faviconPublicId: null } : {}),
     };
     const settings = await getSettings();
     const updated = settings

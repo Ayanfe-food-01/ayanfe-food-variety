@@ -146,10 +146,17 @@ export async function getStoreBranding(): Promise<StoreBranding> {
   return response.data.branding
 }
 
-export async function updateStoreBranding(input: { logo?: File; favicon?: File }): Promise<StoreBranding> {
+export async function updateStoreBranding(input: {
+  logo?: File
+  favicon?: File
+  removeLogo?: boolean
+  removeFavicon?: boolean
+}): Promise<StoreBranding> {
   const formData = new FormData()
   if (input.logo) formData.set('logo', input.logo)
   if (input.favicon) formData.set('favicon', input.favicon)
+  if (input.removeLogo) formData.set('removeLogo', 'true')
+  if (input.removeFavicon) formData.set('removeFavicon', 'true')
   const response = await request<StoreBrandingResponse>('/admin/settings/branding', {
     method: 'PUT',
     body: formData,

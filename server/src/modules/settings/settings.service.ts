@@ -141,7 +141,9 @@ export async function getAdminStoreBrandingAssets(): Promise<StoreBrandingAssets
 export async function updateAdminStoreBranding(input: UpdateStoreBrandingInput): Promise<StoreBranding> {
   const data = {
     ...(input.logo ? { logoUrl: input.logo.url, logoPublicId: input.logo.publicId } : {}),
+    ...(input.removeLogo ? { logoUrl: null, logoPublicId: null } : {}),
     ...(input.favicon ? { faviconUrl: input.favicon.url, faviconPublicId: input.favicon.publicId } : {}),
+    ...(input.removeFavicon ? { faviconUrl: null, faviconPublicId: null } : {}),
   }
   const settings = await getSettings()
   const updated = settings

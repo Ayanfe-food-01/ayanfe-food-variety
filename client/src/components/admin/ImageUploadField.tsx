@@ -15,6 +15,8 @@ interface ImageUploadFieldProps {
   previewClassName?: string
   validateFile?: (file: File) => string | null | Promise<string | null>
   onChange: (file: File | undefined, previewUrl: string | null, error: string | null) => void
+  onReset?: () => void
+  isResetting?: boolean
 }
 
 export function ImageUploadField({
@@ -29,6 +31,8 @@ export function ImageUploadField({
   previewClassName = 'h-40 w-full max-w-md rounded-2xl object-cover',
   validateFile,
   onChange,
+  onReset,
+  isResetting = false,
 }: ImageUploadFieldProps) {
   const chooseImage = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -75,6 +79,16 @@ export function ImageUploadField({
       {error && <p className="mt-1 text-xs font-normal text-orange" role="alert">{error}</p>}
       {(previewUrl || currentUrl) && (
         <img className={`mt-3 ${previewClassName}`} src={previewUrl || currentUrl || ''} alt={alt} />
+      )}
+      {currentUrl && onReset && (
+        <button
+          className="mt-3 rounded-full border border-green/20 px-4 py-2 text-xs font-bold text-green transition-colors hover:border-orange/30 hover:text-orange disabled:cursor-not-allowed disabled:opacity-60"
+          type="button"
+          onClick={onReset}
+          disabled={isResetting}
+        >
+          {isResetting ? 'Resetting…' : 'Reset to default asset'}
+        </button>
       )}
     </div>
   )

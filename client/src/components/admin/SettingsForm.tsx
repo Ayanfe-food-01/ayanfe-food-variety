@@ -28,11 +28,12 @@ interface SettingsPanelProps {
   title: string
   description: string
   children: ReactNode
+  className?: string
 }
 
-export function SettingsPanel({ eyebrow, title, description, children }: SettingsPanelProps) {
+export function SettingsPanel({ eyebrow, title, description, children, className = '' }: SettingsPanelProps) {
   return (
-    <section className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+    <section className={`rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8 ${className}`.trim()}>
       <div className="border-b border-line pb-5">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">{eyebrow}</p>
         <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">{title}</h2>

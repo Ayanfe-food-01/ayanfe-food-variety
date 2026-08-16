@@ -96,6 +96,30 @@ export function StoreSettings() {
     }
   }
 
+  const resetBrandingAsset = async (asset: 'logo' | 'favicon') => {
+    setIsBrandingSaving(true)
+    try {
+      const updatedBranding = await updateStoreBranding(asset === 'logo' ? { removeLogo: true } : { removeFavicon: true })
+      setBranding(updatedBranding)
+      if (asset === 'logo') {
+        if (logoPreview) URL.revokeObjectURL(logoPreview)
+        setLogoFile(undefined)
+        setLogoPreview(null)
+        setLogoError(null)
+      } else {
+        if (faviconPreview) URL.revokeObjectURL(faviconPreview)
+        setFaviconFile(undefined)
+        setFaviconPreview(null)
+        setFaviconError(null)
+      }
+      showToast(`${asset === 'logo' ? 'Logo' : 'Favicon'} reset to the default asset.`, 'success')
+    } catch (caught) {
+      showToast(caught instanceof ApiError ? caught.message : 'Branding could not be reset.', 'error')
+    } finally {
+      setIsBrandingSaving(false)
+    }
+  }
+
   return (
     <div>
       <SettingsPageHeader eyebrow="Configuration" title="Store information" description="Keep the public business identity, header messages, and description current. Address and description may be left blank until they are ready to publish." />
@@ -113,7 +137,7 @@ export function StoreSettings() {
             <SettingsSaveButton saving={isSaving} label="Save store information" />
           </form>
         </SettingsPanel>
-        <SettingsPanel eyebrow="Brand identity" title="Logo and favicon" description="Update the public logo and browser tab icon without changing code. Upload them separately so each asset can use the right proportions.">
+        <SettingsPanel className="mt-10" eyebrow="Brand identity" title="Logo and favicon" description="Update the public logo and browser tab icon without changing code. Upload them separately so each asset can use the right proportions.">
           <form className="space-y-6" onSubmit={submitBranding}>
             <div className="grid gap-6 lg:grid-cols-2">
               <ImageUploadField
@@ -124,6 +148,8 @@ export function StoreSettings() {
                 previewUrl={logoPreview}
                 error={logoError ?? undefined}
                 previewClassName="h-40 w-full max-w-md rounded-2xl bg-sage/30 object-contain p-4"
+                 onReset={() => void resetBrandingAsset('logo')}
+                 isResetting={isBrandingSaving}
                 onChange={(file, previewUrl, uploadError) => {
                   if (logoPreview) URL.revokeObjectURL(logoPreview)
                   setLogoFile(file)
@@ -141,6 +167,8 @@ export function StoreSettings() {
                 accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                 previewClassName="mt-3 size-32 rounded-2xl bg-sage/30 object-contain p-5"
                 validateFile={validateSquareFavicon}
+                 onReset={() => void resetBrandingAsset('favicon')}
+                 isResetting={isBrandingSaving}
                 onChange={(file, previewUrl, uploadError) => {
                   if (faviconPreview) URL.revokeObjectURL(faviconPreview)
                   setFaviconFile(file)

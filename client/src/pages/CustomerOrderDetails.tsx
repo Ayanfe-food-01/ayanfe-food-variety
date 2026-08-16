@@ -116,6 +116,9 @@ export function CustomerOrderDetails() {
     ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
     : null
   const isGuestOrder = !user && Boolean(guestAccessToken)
+  const guestOrderSuffix = isGuestOrder
+    ? `?access=${encodeURIComponent(guestAccessToken!)}`
+    : ''
 
   useEffect(() => {
     if (isAuthLoading || !orderNumber) return
@@ -282,7 +285,7 @@ export function CustomerOrderDetails() {
                       </dl>
                     ) : <p className="mt-3 text-sm text-orange">Payment details are not configured yet. Please contact the store before transferring funds.</p>}
                     {bank && <p className="mt-5 border-t border-line pt-4 text-sm leading-6 text-muted">{bank.instructions}</p>}
-                    {bank && <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof`}>
+                    {bank && <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof${guestOrderSuffix}`}>
                       Submit Payment Proof <ArrowRight size={16} />
                     </Link>}
                   </>

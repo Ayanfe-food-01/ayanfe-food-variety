@@ -7,9 +7,11 @@ import { ApiError } from '../services/api'
 import { getGoogleSignInUrl, login, signupCustomer, getCurrentUser, type AuthenticatedUser } from '../services/authService'
 import {
   clearAuthReturnPath,
+  isCheckoutReturnPath,
   readInternalReturnPath,
   storeAuthReturnPath,
 } from '../utils/authReturn'
+import { markGuestCheckout } from '../utils/guestCheckout'
 
 type Mode = 'login' | 'signup'
 type LoginView = 'gateway' | 'email'
@@ -102,6 +104,11 @@ export function Login() {
 
   const continueAsGuest = () => {
     const destination = readInternalReturnPath(location.state)
+    if (!isCheckoutReturnPath(destination) && destination !== '/') {
+      setError('Guest checkout is only available when placing an order. Please sign in to continue.')
+      return
+    }
+    if (isCheckoutReturnPath(destination)) markGuestCheckout()
     completeGuestContinuation()
     clearAuthReturnPath()
     navigate(destination, { replace: true, state: { guestCheckout: true } })

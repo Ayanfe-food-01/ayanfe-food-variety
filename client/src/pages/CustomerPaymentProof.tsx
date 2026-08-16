@@ -33,6 +33,9 @@ export function CustomerPaymentProof() {
     ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
     : null
   const isGuestOrder = !user && Boolean(guestAccessToken)
+  const guestOrderSuffix = isGuestOrder
+    ? `?access=${encodeURIComponent(guestAccessToken!)}`
+    : ''
 
   useEffect(() => {
     if (isAuthLoading || !orderNumber) return
@@ -124,7 +127,7 @@ export function CustomerPaymentProof() {
           <p className="rounded-2xl bg-white p-8 text-center text-sm text-muted">Loading payment instructions…</p>
         ) : (
           <div className="mx-auto max-w-2xl">
-            <Link className="text-sm font-bold text-green hover:text-orange" to={`/orders/${order.orderNumber}`}>← Back to order</Link>
+            <Link className="text-sm font-bold text-green hover:text-orange" to={`/orders/${order.orderNumber}${guestOrderSuffix}`}>← Back to order</Link>
             <p className="mt-7 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">I have made the transfer</p>
             <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark">Submit payment proof</h1>
             <p className="mt-4 text-sm leading-6 text-muted">Order {order.orderNumber} · Transfer exactly {formatPrice(order.total)}. Payment remains pending until reviewed.</p>

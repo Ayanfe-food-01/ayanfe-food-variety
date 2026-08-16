@@ -84,6 +84,7 @@ export async function checkoutCustomerCart(input: {
   cartItems?: Array<{ productId: string; quantity: number }>
   customerName: string
   phone: string
+  email: string
   fulfillmentMethod: FulfillmentMethod
   deliveryAddress?: string
   city?: string

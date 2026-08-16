@@ -336,7 +336,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         userId: user?.id ?? null,
         customerName: input.customerName,
         phone: input.phone,
-        email: user?.email ?? null,
+         email: user?.email ?? input.email,
          fulfillmentMethod: input.fulfillmentMethod,
          deliveryAddress: input.deliveryAddress ?? '',
          city: input.city ?? '',

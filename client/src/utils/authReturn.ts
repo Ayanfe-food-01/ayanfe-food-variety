@@ -30,3 +30,8 @@ export const clearAuthReturnPath = (): void => {
     // Navigation still works when session storage is unavailable.
   }
 }
+
+export const isCheckoutReturnPath = (path: string): boolean => {
+  const pathname = path.split(/[?#]/, 1)[0]
+  return pathname === '/checkout'
+}

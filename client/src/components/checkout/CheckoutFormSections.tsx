@@ -18,6 +18,7 @@ interface FieldErrorProps {
 interface FieldSectionProps {
   form: CheckoutFormData
   errors: CheckoutFormErrors
+  isAuthenticated: boolean
   onChange: (field: CheckoutField, value: string) => void
 }
 
@@ -47,7 +48,7 @@ export function CheckoutFieldError({ id, message }: FieldErrorProps) {
   ) : null
 }
 
-export function ContactDetailsSection({ form, errors, onChange }: FieldSectionProps) {
+export function ContactDetailsSection({ form, errors, isAuthenticated, onChange }: FieldSectionProps) {
   return (
     <fieldset className={checkoutFieldsetClassName}>
       <CheckoutSectionHeader
@@ -95,17 +96,26 @@ export function ContactDetailsSection({ form, errors, onChange }: FieldSectionPr
         </div>
 
         <div>
-          <label className="text-sm font-bold text-green-dark" htmlFor="email">Account email</label>
+          <label className="text-sm font-bold text-green-dark" htmlFor="email">
+            Email address <span className="text-orange" aria-hidden="true">*</span>
+          </label>
           <input
-            className={checkoutInputClassName(false)}
+            className={checkoutInputClassName(Boolean(errors.email))}
             id="email"
             name="email"
             type="email"
-            readOnly
+            autoComplete="email"
+            readOnly={isAuthenticated}
             value={form.email}
-            aria-describedby="email-help"
+            onChange={(event) => onChange('email', event.target.value)}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? 'email-error' : 'email-help'}
+            required
           />
-          <p className="mt-2 text-xs text-muted" id="email-help">This is the email on your customer account.</p>
+          <CheckoutFieldError id="email" message={errors.email} />
+          <p className="mt-2 text-xs text-muted" id="email-help">
+            {isAuthenticated ? 'This is the email on your customer account.' : 'We’ll use this email to confirm your guest order.'}
+          </p>
         </div>
       </div>
     </fieldset>

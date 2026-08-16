@@ -34,6 +34,14 @@ const optionalText = (value: unknown, field: string, maxLength: number): string 
   return normalizedValue || undefined
 }
 
+const requiredEmail = (value: unknown): string => {
+  const email = requiredText(value, 'email', 255).toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new HttpError(400, 'A valid email address is required.')
+  }
+  return email
+}
+
 const validateGuestAccessToken = (value: unknown): string | undefined => {
   if (value === undefined || value === null || value === '') return undefined
   if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
@@ -79,6 +87,7 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
     cartItems: validateCartItems(body.cartItems),
     customerName: requiredText(body.customerName, 'customerName', 180),
     phone: requiredText(body.phone, 'phone', 40),
+    email: requiredEmail(body.email),
     fulfillmentMethod: body.fulfillmentMethod === FulfillmentMethod.PICKUP || body.fulfillmentMethod === FulfillmentMethod.DELIVERY
       ? body.fulfillmentMethod
       : (() => { throw new HttpError(400, 'A valid fulfillment method is required.') })(),

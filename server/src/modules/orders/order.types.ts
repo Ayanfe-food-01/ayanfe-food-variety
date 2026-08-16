@@ -9,6 +9,7 @@ export interface CheckoutInput {
   }>
   customerName: string
   phone: string
+  email: string
   fulfillmentMethod: FulfillmentMethod
   deliveryAddress?: string
   city?: string

@@ -20,6 +20,7 @@ import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderS
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
 import { createRequestKey } from '../utils/browserCompatibility'
 import { saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
+import { clearGuestCheckout, isGuestCheckoutMarked, markGuestCheckout } from '../utils/guestCheckout'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -116,16 +117,27 @@ export function Checkout() {
   const [checkoutKey] = useState(() => readSessionValue(CHECKOUT_KEY_STORAGE_KEY) ?? createRequestKey())
   const [guestAccessToken] = useState(() => readSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY) ?? createRequestKey())
   const guestCheckout = Boolean(
-    location.state
-    && typeof location.state === 'object'
-    && 'guestCheckout' in location.state
-    && location.state.guestCheckout === true,
+    !user
+    && (
+      isGuestCheckoutMarked()
+      || (
+        location.state
+        && typeof location.state === 'object'
+        && 'guestCheckout' in location.state
+        && location.state.guestCheckout === true
+      )
+    ),
   )
 
   useEffect(() => {
     writeSessionValue(CHECKOUT_KEY_STORAGE_KEY, checkoutKey)
     writeSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY, guestAccessToken)
   }, [checkoutKey, guestAccessToken])
+
+  useEffect(() => {
+    if (guestCheckout) markGuestCheckout()
+    if (user) clearGuestCheckout()
+  }, [guestCheckout, user])
 
   useEffect(() => {
     writeSessionValue(CHECKOUT_DRAFT_STORAGE_KEY, JSON.stringify(form))
@@ -208,6 +220,7 @@ export function Checkout() {
             }),
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
+        email: form.email.trim(),
         fulfillmentMethod: form.fulfillmentMethod as FulfillmentMethod,
         ...(form.fulfillmentMethod === 'DELIVERY'
           ? {
@@ -228,6 +241,7 @@ export function Checkout() {
       clearSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
       clearSessionValue(CHECKOUT_KEY_STORAGE_KEY)
       clearSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY)
+      clearGuestCheckout()
       navigate(`/order-confirmation/${encodeURIComponent(order.orderNumber)}${user ? '' : `?access=${encodeURIComponent(guestAccessToken)}`}`, { replace: true })
     } catch (error) {
       const message = error instanceof ApiError
@@ -312,7 +326,7 @@ export function Checkout() {
                 </div>
               )}
 
-              <ContactDetailsSection form={form} errors={errors} onChange={updateField} />
+              <ContactDetailsSection form={form} errors={errors} isAuthenticated={Boolean(user)} onChange={updateField} />
               <PaymentMethodSection
                 methods={paymentMethods}
                 selectedMethod={form.paymentMethod}

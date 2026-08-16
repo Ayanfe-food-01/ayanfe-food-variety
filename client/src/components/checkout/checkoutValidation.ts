@@ -20,6 +20,11 @@ export function validateCheckoutForm(form: CheckoutFormData): CheckoutFormErrors
   } else if (form.phone.replace(/\D/g, '').length < 7) {
     errors.phone = 'Please enter a valid phone number.'
   }
+  if (!form.email.trim()) {
+    errors.email = 'Please enter your email address.'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    errors.email = 'Please enter a valid email address.'
+  }
   if (!form.fulfillmentMethod) errors.fulfillmentMethod = 'Please choose pickup or delivery.'
   if (form.fulfillmentMethod === 'DELIVERY') {
     if (!form.address.trim()) errors.address = 'Please enter your delivery address.'

@@ -33,12 +33,13 @@ const pruneOldNotifications = async () => {
         },
     });
 };
-export async function listAdminNotifications(adminId) {
+export async function listAdminNotifications(adminId, query) {
     await pruneOldNotifications();
-    const [notifications, unreadCount] = await Promise.all([
+    const [notifications, total, unreadCount] = await Promise.all([
         prisma.adminNotification.findMany({
             orderBy: { createdAt: 'desc' },
-            take: 50,
+            skip: (query.page - 1) * query.pageSize,
+            take: query.pageSize,
             include: {
                 reads: {
                     where: { adminId },
@@ -46,6 +47,7 @@ export async function listAdminNotifications(adminId) {
                 },
             },
         }),
+        prisma.adminNotification.count(),
         prisma.adminNotification.count({
             where: {
                 reads: {
@@ -57,6 +59,12 @@ export async function listAdminNotifications(adminId) {
     return {
         notifications: notifications.map(toResponse),
         unreadCount,
+        pagination: {
+            page: query.page,
+            pageSize: query.pageSize,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+        },
     };
 }
 export async function markAdminNotificationRead(notificationId, adminId) {

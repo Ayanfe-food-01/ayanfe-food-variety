@@ -13,4 +13,15 @@ export interface AdminNotificationResponse {
 export interface AdminNotificationsResponse {
   notifications: AdminNotificationResponse[]
   unreadCount: number
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+export interface AdminNotificationsQuery {
+  page: number
+  pageSize: number
 }

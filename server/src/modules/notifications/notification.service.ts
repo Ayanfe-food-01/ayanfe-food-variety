@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
   AdminNotificationResponse,
+  AdminNotificationsQuery,
   AdminNotificationsResponse,
 } from './notification.types.js'
 
@@ -63,13 +64,17 @@ const pruneOldNotifications = async (): Promise<void> => {
   })
 }
 
-export async function listAdminNotifications(adminId: string): Promise<AdminNotificationsResponse> {
+export async function listAdminNotifications(
+  adminId: string,
+  query: AdminNotificationsQuery,
+): Promise<AdminNotificationsResponse> {
   await pruneOldNotifications()
 
-  const [notifications, unreadCount] = await Promise.all([
+  const [notifications, total, unreadCount] = await Promise.all([
     prisma.adminNotification.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
       include: {
         reads: {
           where: { adminId },
@@ -77,6 +82,7 @@ export async function listAdminNotifications(adminId: string): Promise<AdminNoti
         },
       },
     }),
+    prisma.adminNotification.count(),
     prisma.adminNotification.count({
       where: {
         reads: {
@@ -89,6 +95,12 @@ export async function listAdminNotifications(adminId: string): Promise<AdminNoti
   return {
     notifications: notifications.map(toResponse),
     unreadCount,
+    pagination: {
+      page: query.page,
+      pageSize: query.pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+    },
   }
 }
 

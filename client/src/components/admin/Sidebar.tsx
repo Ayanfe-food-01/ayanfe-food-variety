@@ -17,6 +17,7 @@ const links = [
   { label: 'Categories', to: '/admin/categories' },
   { label: 'Promotional banners', to: '/admin/banners' },
   { label: 'Payments', to: '/admin/payments' },
+  { label: 'Notifications', to: '/admin/notifications' },
   { label: 'Settings', to: '/admin/settings' },
 ]
 

@@ -5,6 +5,7 @@ import {
   markAdminNotificationRead,
   markAllAdminNotificationsRead,
 } from './notification.service.js'
+import { validateAdminNotificationsQuery } from './notification.validator.js'
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -18,7 +19,10 @@ const validateNotificationId = (value: unknown): string => {
 export const listAdminNotificationsController: RequestHandler = async (request, response) => {
   response.json({
     success: true,
-    data: await listAdminNotifications(request.authenticatedUser!.id),
+    data: await listAdminNotifications(
+      request.authenticatedUser!.id,
+      validateAdminNotificationsQuery(request.query as Record<string, unknown>),
+    ),
   })
 }
 

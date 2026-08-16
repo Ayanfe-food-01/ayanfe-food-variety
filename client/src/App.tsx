@@ -17,6 +17,7 @@ import { Analytics } from './pages/Admin/Analytics'
 import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
+import { Notifications } from './pages/Admin/Notifications'
 import { Settings } from './pages/Admin/Settings'
 import { StoreSettings } from './pages/Admin/StoreSettings'
 import { PaymentSettings } from './pages/Admin/PaymentSettings'
@@ -156,6 +157,7 @@ function RouteTransition() {
           <Route path="/admin/banners/new" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
           <Route path="/admin/banners/:id/edit" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
           <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
+          <Route path="/admin/notifications" element={<RequireAdmin><Notifications /></RequireAdmin>} />
           <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
           <Route path="/admin/settings/store" element={<RequireAdmin><StoreSettings /></RequireAdmin>} />
           <Route path="/admin/settings/payment" element={<RequireAdmin><PaymentSettings /></RequireAdmin>} />

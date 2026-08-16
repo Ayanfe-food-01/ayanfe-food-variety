@@ -17,16 +17,33 @@ export interface AdminNotification {
   createdAt: string
 }
 
+export interface AdminNotificationsQuery {
+  page?: number
+  pageSize?: number
+}
+
 interface AdminNotificationsResponse {
   success: true
   data: {
     notifications: AdminNotification[]
     unreadCount: number
+    pagination: {
+      page: number
+      pageSize: number
+      total: number
+      totalPages: number
+    }
   }
 }
 
-export async function getAdminNotifications(): Promise<AdminNotificationsResponse['data']> {
-  const response = await request<AdminNotificationsResponse>('/admin/notifications')
+export type AdminNotificationsPage = AdminNotificationsResponse['data']
+
+export async function getAdminNotifications(query: AdminNotificationsQuery = {}): Promise<AdminNotificationsPage> {
+  const params = new URLSearchParams()
+  if (query.page) params.set('page', String(query.page))
+  if (query.pageSize) params.set('pageSize', String(query.pageSize))
+  const queryString = params.toString()
+  const response = await request<AdminNotificationsResponse>(`/admin/notifications${queryString ? `?${queryString}` : ''}`)
   return response.data
 }
 

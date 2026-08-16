@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BellIcon } from '../../assets/icons'
 import {
   getAdminNotifications,
@@ -7,22 +7,10 @@ import {
   markAllAdminNotificationsRead,
   type AdminNotification,
 } from '../../services/notificationService'
+import { AdminNotificationList } from './AdminNotificationList'
 
 const pollingIntervalMs = 30_000
-
-const formatRelativeTime = (value: string): string => {
-  const timestamp = new Date(value).getTime()
-  if (Number.isNaN(timestamp)) return 'Recently'
-
-  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000))
-  if (elapsedSeconds < 60) return 'Just now'
-  const minutes = Math.floor(elapsedSeconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
+const recentNotificationPageSize = 8
 
 export function AdminNotifications() {
   const navigate = useNavigate()
@@ -33,7 +21,7 @@ export function AdminNotifications() {
 
   const loadNotifications = useCallback(async () => {
     try {
-      const result = await getAdminNotifications()
+      const result = await getAdminNotifications({ page: 1, pageSize: recentNotificationPageSize })
       setNotifications(result.notifications)
       setUnreadCount(result.unreadCount)
     } catch {
@@ -120,7 +108,7 @@ export function AdminNotifications() {
 
       {isOpen && (
         <section
-          className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-white shadow-xl"
+          className="absolute left-1/2 top-[calc(100%+0.75rem)] z-50 w-[min(23rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-white shadow-xl sm:left-auto sm:right-0 sm:translate-x-0"
           role="dialog"
           aria-label="Admin notifications"
         >
@@ -142,35 +130,20 @@ export function AdminNotifications() {
             )}
           </div>
 
-          {notifications.length > 0 ? (
-            <div className="max-h-[min(28rem,65vh)] overflow-y-auto p-2">
-              {notifications.map((notification) => (
-                <button
-                  className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-sage/35 ${notification.isRead ? 'bg-white' : 'bg-sage/35'}`}
-                  type="button"
-                  key={notification.id}
-                  onClick={() => void openNotification(notification)}
-                >
-                  <span className={`mt-1.5 size-2 shrink-0 rounded-full ${notification.isRead ? 'bg-line' : 'bg-orange'}`} aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-start justify-between gap-3">
-                      <span className={`text-sm ${notification.isRead ? 'font-semibold text-green-dark' : 'font-bold text-green-dark'}`}>{notification.title}</span>
-                      <time className="shrink-0 text-[11px] text-muted" dateTime={notification.createdAt} title={new Date(notification.createdAt).toLocaleString()}>
-                        {formatRelativeTime(notification.createdAt)}
-                      </time>
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-muted">{notification.message}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="px-5 py-10 text-center">
-              <BellIcon size={24} />
-              <p className="mt-3 text-sm font-bold text-green-dark">No notifications yet</p>
-              <p className="mt-1 text-xs leading-5 text-muted">Important order, payment, and stock updates will appear here.</p>
-            </div>
-          )}
+          <AdminNotificationList
+            compact
+            notifications={notifications}
+            onOpen={(notification) => void openNotification(notification)}
+          />
+          <div className="border-t border-line px-4 py-3 text-center">
+            <Link
+              className="text-xs font-bold text-green hover:text-orange"
+              to="/admin/notifications"
+              onClick={() => setIsOpen(false)}
+            >
+              View all notifications
+            </Link>
+          </div>
         </section>
       )}
     </div>

@@ -81,6 +81,10 @@ export function SelectField({
        const spaceBelow = viewportHeight - rect.bottom - viewportPadding
       const spaceAbove = rect.top - viewportPadding
       const openBelow = spaceBelow >= Math.min(180, preferredMaxHeight) || spaceBelow >= spaceAbove
+      const menuWidth = Math.min(
+        Math.max(rect.width, variant === 'compact' ? 208 : rect.width),
+        viewportWidth - viewportPadding * 2,
+      )
       const maxHeight = Math.max(
         96,
         Math.min(preferredMaxHeight, openBelow ? spaceBelow : spaceAbove),
@@ -90,14 +94,14 @@ export function SelectField({
         : Math.max(viewportPadding, rect.top - maxHeight - gap)
       const left = Math.min(
         Math.max(viewportPadding, rect.left),
-         Math.max(viewportPadding, viewportWidth - rect.width - viewportPadding),
+        Math.max(viewportPadding, viewportWidth - menuWidth - viewportPadding),
       )
 
       setMenuStyle({
         left,
         maxHeight,
         top,
-        width: Math.min(rect.width, window.innerWidth - viewportPadding * 2),
+        width: menuWidth,
       })
     }
 
@@ -193,7 +197,7 @@ export function SelectField({
       </button>
       {isOpen && options.length > 0 && menuStyle && createPortal(
         <div
-          className="select-field-menu"
+          className={`select-field-menu ${variant === 'compact' ? 'select-field-menu-compact' : ''}`}
           id={listboxId}
           ref={menuRef}
           role="listbox"

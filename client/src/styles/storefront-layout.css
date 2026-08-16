@@ -248,11 +248,11 @@
 
 .shop-sort-row {
   display: flex;
-  min-height: 25px;
+  min-height: 34px;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   color: var(--color-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .shop-sort-label {
@@ -261,7 +261,7 @@
 
 .shop-sort-select,
 .shop-sort-static {
-  min-width: 0;
+  min-width: 126px;
   color: var(--color-green-dark);
   font-weight: 700;
 }
@@ -413,16 +413,16 @@
 }
 
 .select-field-compact .select-field-button {
-  width: auto;
-  min-height: 25px;
-  gap: 4px;
+  width: 100%;
+  min-height: 34px;
+  gap: 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 9px;
   background: transparent;
   color: var(--color-green-dark);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 3px 4px;
+  padding: 6px 10px;
 }
 
 .select-field-compact .select-field-button:hover,
@@ -434,6 +434,18 @@
 .select-field-compact .select-field-button:focus-visible {
   outline: 2px solid rgb(50 79 45 / 25%);
   outline-offset: 1px;
+}
+
+.select-field-menu-compact {
+  padding: 8px;
+  border-radius: 16px;
+}
+
+.select-field-menu-compact .select-field-option {
+  min-height: 48px;
+  border-radius: 11px;
+  font-size: 14px;
+  padding: 12px 14px;
 }
 
 .filter-pill {

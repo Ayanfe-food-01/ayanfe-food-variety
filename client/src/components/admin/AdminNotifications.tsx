@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BellIcon } from '../../assets/icons'
 import {
@@ -11,6 +11,8 @@ import { AdminNotificationList } from './AdminNotificationList'
 
 const pollingIntervalMs = 30_000
 const recentNotificationPageSize = 8
+const notificationPanelMaxWidth = 368
+const notificationViewportGutter = 16
 
 export function AdminNotifications() {
   const navigate = useNavigate()
@@ -18,6 +20,36 @@ export function AdminNotifications() {
   const [notifications, setNotifications] = useState<AdminNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const notificationMenuRef = useRef<HTMLDivElement>(null)
+  const [notificationPanelStyle, setNotificationPanelStyle] = useState<CSSProperties | null>(null)
+
+  const updateNotificationPanelPosition = useCallback(() => {
+    const trigger = notificationMenuRef.current?.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')
+    if (!trigger) return
+
+    const triggerRect = trigger.getBoundingClientRect()
+    const panelWidth = Math.min(
+      notificationPanelMaxWidth,
+      Math.max(0, window.innerWidth - notificationViewportGutter * 2),
+    )
+    const left = Math.max(
+      notificationViewportGutter,
+      Math.min(
+        triggerRect.right - panelWidth,
+        window.innerWidth - notificationViewportGutter - panelWidth,
+      ),
+    )
+
+    setNotificationPanelStyle({
+      left: Math.round(left),
+      top: Math.round(triggerRect.bottom + 12),
+      width: Math.round(panelWidth),
+    })
+  }, [])
+
+  const closeMenu = useCallback(() => {
+    setIsOpen(false)
+    setNotificationPanelStyle(null)
+  }, [])
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -42,10 +74,10 @@ export function AdminNotifications() {
     if (!isOpen) return
 
     const closeOnPointerDown = (event: PointerEvent) => {
-      if (!notificationMenuRef.current?.contains(event.target as Node)) setIsOpen(false)
+      if (!notificationMenuRef.current?.contains(event.target as Node)) closeMenu()
     }
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false)
+      if (event.key === 'Escape') closeMenu()
     }
 
     document.addEventListener('pointerdown', closeOnPointerDown)
@@ -54,11 +86,36 @@ export function AdminNotifications() {
       document.removeEventListener('pointerdown', closeOnPointerDown)
       document.removeEventListener('keydown', closeOnEscape)
     }
-  }, [isOpen])
+  }, [closeMenu, isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    let frameId: number | undefined
+    const reposition = () => {
+      if (frameId !== undefined) window.cancelAnimationFrame(frameId)
+      frameId = window.requestAnimationFrame(updateNotificationPanelPosition)
+    }
+    reposition()
+    window.addEventListener('resize', reposition)
+    window.addEventListener('scroll', reposition, true)
+    window.visualViewport?.addEventListener('resize', reposition)
+
+    return () => {
+      if (frameId !== undefined) window.cancelAnimationFrame(frameId)
+      window.removeEventListener('resize', reposition)
+      window.removeEventListener('scroll', reposition, true)
+      window.visualViewport?.removeEventListener('resize', reposition)
+    }
+  }, [isOpen, updateNotificationPanelPosition])
 
   const toggleMenu = () => {
-    setIsOpen((current) => !current)
-    if (!isOpen) void loadNotifications()
+    if (isOpen) {
+      closeMenu()
+      return
+    }
+    setIsOpen(true)
+    void loadNotifications()
   }
 
   const openNotification = async (notification: AdminNotification) => {
@@ -73,7 +130,7 @@ export function AdminNotifications() {
         // Navigation should still take the admin to the relevant record.
       }
     }
-    setIsOpen(false)
+    closeMenu()
     navigate(notification.href)
   }
 
@@ -108,7 +165,8 @@ export function AdminNotifications() {
 
       {isOpen && (
         <section
-          className="absolute left-1/2 top-[calc(100%+0.75rem)] z-50 w-[min(23rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-white shadow-xl sm:left-auto sm:right-0 sm:translate-x-0"
+          className="fixed z-50 max-h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-xl"
+          style={notificationPanelStyle ?? { visibility: 'hidden' }}
           role="dialog"
           aria-label="Admin notifications"
         >
@@ -139,7 +197,7 @@ export function AdminNotifications() {
             <Link
               className="text-xs font-bold text-green hover:text-orange"
               to="/admin/notifications"
-              onClick={() => setIsOpen(false)}
+              onClick={closeMenu}
             >
               View all notifications
             </Link>

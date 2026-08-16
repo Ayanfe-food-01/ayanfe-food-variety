@@ -1,12 +1,12 @@
 import { Router } from 'express'
-import { checkoutController } from '../modules/orders/order.controller.js'
+import { checkoutController, guestOrderController } from '../modules/orders/order.controller.js'
 import {
   cancelCustomerOrderController,
   getCustomerOrderController,
   listCustomerOrdersController,
 } from '../modules/orders/customer-order.controller.js'
 import { createRateLimit } from '../middleware/rateLimit.js'
-import { requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
+import { optionalCustomerAuthentication, requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
 import { HttpError } from '../utils/http.js'
 
 const requireCheckoutRequestHeader: import('express').RequestHandler = (request, _response, next) => {
@@ -20,12 +20,12 @@ const requireCheckoutRequestHeader: import('express').RequestHandler = (request,
 export const orderRoutes = Router()
 
 orderRoutes.get('/', requireCustomerAuthentication, requireCustomerRole, listCustomerOrdersController)
+orderRoutes.get('/guest/:orderNumber', guestOrderController)
 orderRoutes.patch('/:orderNumber/cancel', requireCustomerAuthentication, requireCustomerRole, cancelCustomerOrderController)
 orderRoutes.get('/:orderNumber', requireCustomerAuthentication, requireCustomerRole, getCustomerOrderController)
 orderRoutes.post(
   '/',
-  requireCustomerAuthentication,
-  requireCustomerRole,
+  optionalCustomerAuthentication,
   requireCheckoutRequestHeader,
   createRateLimit(10, 15 * 60 * 1000),
   checkoutController,

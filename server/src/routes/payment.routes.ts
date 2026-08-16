@@ -18,3 +18,9 @@ paymentRoutes.post(
   paymentProofUpload,
   submitPaymentController,
 )
+paymentRoutes.post(
+  '/submit-guest',
+  createRateLimit(10, 15 * 60 * 1000),
+  paymentProofUpload,
+  submitPaymentController,
+)

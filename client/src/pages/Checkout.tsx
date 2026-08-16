@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
@@ -19,6 +19,8 @@ import { ApiError } from '../services/api'
 import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
 import { createRequestKey } from '../utils/browserCompatibility'
+import { saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
+import { clearGuestCheckout, isGuestCheckoutMarked, markGuestCheckout } from '../utils/guestCheckout'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -26,6 +28,45 @@ const formatPrice = (price: number) =>
     currency: 'NGN',
     maximumFractionDigits: 0,
   }).format(price)
+
+const CHECKOUT_DRAFT_STORAGE_KEY = 'ayanfe-checkout-draft'
+const CHECKOUT_KEY_STORAGE_KEY = 'ayanfe-checkout-key'
+const GUEST_ACCESS_TOKEN_STORAGE_KEY = 'ayanfe-guest-access-token'
+
+const readSessionValue = (key: string): string | null => {
+  try {
+    return window.sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+const writeSessionValue = (key: string, value: string): void => {
+  try {
+    window.sessionStorage.setItem(key, value)
+  } catch {
+    // Checkout remains usable for this tab if session storage is unavailable.
+  }
+}
+
+const clearSessionValue = (key: string): void => {
+  try {
+    window.sessionStorage.removeItem(key)
+  } catch {
+    // Nothing to clear when session storage is unavailable.
+  }
+}
+
+const readCheckoutDraft = (): CheckoutFormData => {
+  const stored = readSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
+  if (!stored) return initialCheckoutForm
+  try {
+    const parsed = JSON.parse(stored) as Partial<CheckoutFormData>
+    return { ...initialCheckoutForm, ...parsed }
+  } catch {
+    return initialCheckoutForm
+  }
+}
 
 function EmptyCheckout() {
   return (
@@ -63,8 +104,9 @@ export function Checkout() {
     refreshCart,
   } = useCart()
   const { user, isLoading: isCustomerAuthLoading, openAuth } = useCustomerAuth()
+  const location = useLocation()
   const navigate = useNavigate()
-  const [form, setForm] = useState<CheckoutFormData>(initialCheckoutForm)
+  const [form, setForm] = useState<CheckoutFormData>(readCheckoutDraft)
   const [errors, setErrors] = useState<CheckoutFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [needsCartReview, setNeedsCartReview] = useState(false)
@@ -72,7 +114,34 @@ export function Checkout() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentSettings[]>([])
   const [isPaymentLoading, setIsPaymentLoading] = useState(true)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [checkoutKey] = useState(createRequestKey)
+  const [checkoutKey] = useState(() => readSessionValue(CHECKOUT_KEY_STORAGE_KEY) ?? createRequestKey())
+  const [guestAccessToken] = useState(() => readSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY) ?? createRequestKey())
+  const guestCheckout = Boolean(
+    !user
+    && (
+      isGuestCheckoutMarked()
+      || (
+        location.state
+        && typeof location.state === 'object'
+        && 'guestCheckout' in location.state
+        && location.state.guestCheckout === true
+      )
+    ),
+  )
+
+  useEffect(() => {
+    writeSessionValue(CHECKOUT_KEY_STORAGE_KEY, checkoutKey)
+    writeSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY, guestAccessToken)
+  }, [checkoutKey, guestAccessToken])
+
+  useEffect(() => {
+    if (guestCheckout) markGuestCheckout()
+    if (user) clearGuestCheckout()
+  }, [guestCheckout, user])
+
+  useEffect(() => {
+    writeSessionValue(CHECKOUT_DRAFT_STORAGE_KEY, JSON.stringify(form))
+  }, [form])
 
   useEffect(() => {
     getPublicStoreSettings()
@@ -134,12 +203,24 @@ export function Checkout() {
       return
     }
 
+    if (!user && !guestCheckout) {
+      openAuth()
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const order = await checkoutCustomerCart({
         checkoutKey,
+        ...(user
+          ? {}
+          : {
+              guestAccessToken,
+              cartItems: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
+            }),
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
+        email: form.email.trim(),
         fulfillmentMethod: form.fulfillmentMethod as FulfillmentMethod,
         ...(form.fulfillmentMethod === 'DELIVERY'
           ? {
@@ -154,7 +235,14 @@ export function Checkout() {
       // The API removes only the purchased cart rows. Refreshing keeps the
       // cart badge correct without clearing items added in another tab.
       await refreshCart()
-      navigate(`/order-confirmation/${encodeURIComponent(order.orderNumber)}`, { replace: true })
+      if (!user) {
+        saveGuestOrderAccessToken(order.orderNumber, guestAccessToken)
+      }
+      clearSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
+      clearSessionValue(CHECKOUT_KEY_STORAGE_KEY)
+      clearSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY)
+      clearGuestCheckout()
+      navigate(`/order-confirmation/${encodeURIComponent(order.orderNumber)}${user ? '' : `?access=${encodeURIComponent(guestAccessToken)}`}`, { replace: true })
     } catch (error) {
       const message = error instanceof ApiError
         ? error.message
@@ -177,36 +265,6 @@ export function Checkout() {
     deliveryFee,
     form.fulfillmentMethod,
   )
-
-  if (!isCustomerAuthLoading && !user) {
-    return (
-      <>
-        <Navbar />
-        <main>
-          <section className="container page-state-section flex items-center justify-center py-16">
-            <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
-              <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
-                <span className="text-2xl font-bold" aria-hidden="true">A</span>
-              </div>
-              <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Customer account required</p>
-              <h1 className="mt-3 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">Sign in to check out</h1>
-              <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted">
-                Your cart and orders are securely tied to your customer account.
-              </p>
-              <button
-                className="mt-7 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
-                type="button"
-                onClick={() => openAuth()}
-              >
-                Sign in or create an account <ArrowRight size={16} />
-              </button>
-            </div>
-          </section>
-        </main>
-        <Footer />
-      </>
-    )
-  }
 
   if (isCustomerAuthLoading || isCartLoading) {
     return (
@@ -268,7 +326,7 @@ export function Checkout() {
                 </div>
               )}
 
-              <ContactDetailsSection form={form} errors={errors} onChange={updateField} />
+              <ContactDetailsSection form={form} errors={errors} isAuthenticated={Boolean(user)} onChange={updateField} />
               <PaymentMethodSection
                 methods={paymentMethods}
                 selectedMethod={form.paymentMethod}

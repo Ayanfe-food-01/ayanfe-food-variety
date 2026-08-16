@@ -23,7 +23,7 @@ export async function login(email: string, password: string): Promise<Authentica
 }
 
 export async function getCurrentUser(): Promise<AuthenticatedUser> {
-  const response = await request<AuthResponse>('/auth/me')
+  const response = await request<AuthResponse>('/auth/me', { cache: 'no-store' })
   return response.data.user
 }
 
@@ -79,7 +79,7 @@ export async function loginCustomer(email: string, password: string): Promise<Cu
 }
 
 export async function getCurrentCustomer(): Promise<CustomerUser> {
-  const response = await request<CustomerAuthResponse>('/auth/customer/me')
+  const response = await request<CustomerAuthResponse>('/auth/customer/me', { cache: 'no-store' })
   return response.data.user
 }
 

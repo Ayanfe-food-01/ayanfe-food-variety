@@ -42,6 +42,15 @@
   min-height: calc(100svh - 68px);
 }
 
+.auth-page-shell {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  padding-top: max(2.5rem, env(safe-area-inset-top));
+  padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
 .safe-modal-backdrop,
 .image-preview-backdrop {
   padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));

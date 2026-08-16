@@ -84,7 +84,7 @@ export interface AdminOrderStatusHistory {
   id: string
   previousStatus: OrderStatus | null
   newStatus: OrderStatus
-  changedBy: { name: string; email: string }
+  changedBy: { name: string; email: string } | null
   note: string | null
   createdAt: string
 }

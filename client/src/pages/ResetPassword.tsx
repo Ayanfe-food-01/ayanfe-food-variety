@@ -38,7 +38,7 @@ export function ResetPassword() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-cream px-5 py-10">
+    <main className="auth-page-shell grid place-items-center bg-cream px-5 py-10">
       <section className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-sm sm:p-9">
         <div className="flex justify-center">
           <Link to="/" aria-label="Return to storefront">

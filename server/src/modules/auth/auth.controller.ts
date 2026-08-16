@@ -17,6 +17,7 @@ import {
   requestPasswordReset,
   resetPassword,
   verifyCustomerEmail,
+  readAuthCookie,
 } from './auth.service.js'
 import {
   createGoogleOAuthState,
@@ -57,6 +58,7 @@ export const logoutController: RequestHandler = async (request, response) => {
 }
 
 export const meController: RequestHandler = async (request, response) => {
+  response.set('Cache-Control', 'no-store')
   const user = await getAuthenticatedUser(getSessionToken(request.headers.cookie))
     ?? await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (!user) {
@@ -97,6 +99,7 @@ export const customerLogoutController: RequestHandler = async (request, response
 }
 
 export const customerMeController: RequestHandler = async (request, response) => {
+  response.set('Cache-Control', 'no-store')
   const user = await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (!user) {
     response.status(401).json({ error: { message: 'Customer authentication is required.', statusCode: 401 } })
@@ -139,12 +142,8 @@ export const customerGoogleStartController: RequestHandler = (_request, response
 }
 
 export const customerGoogleCallbackController: RequestHandler = async (request, response, next) => {
-  const stateCookie = request.headers.cookie?.split(';')
-    .map((part) => part.trim().split('='))
-    .find(([key]) => key === googleOAuthStateCookie.name)?.[1]
-  const nonceCookie = request.headers.cookie?.split(';')
-    .map((part) => part.trim().split('='))
-    .find(([key]) => key === `${googleOAuthStateCookie.name}_nonce`)?.[1]
+  const stateCookie = readAuthCookie(request.headers.cookie, googleOAuthStateCookie.name)
+  const nonceCookie = readAuthCookie(request.headers.cookie, `${googleOAuthStateCookie.name}_nonce`)
   const state = typeof request.query.state === 'string' ? request.query.state : null
   const clearStateCookie = () => {
     response.clearCookie(googleOAuthStateCookie.name, googleOAuthStateCookie.options)

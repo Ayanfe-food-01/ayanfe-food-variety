@@ -146,17 +146,24 @@ const getEmailDeliveryError = (error: unknown): HttpError => {
   )
 }
 
-const readCookie = (cookieHeader: string | undefined, name: string): string | null => {
+export const readAuthCookie = (cookieHeader: string | undefined, name: string): string | null => {
   if (!cookieHeader) return null
   for (const part of cookieHeader.split(';')) {
     const [key, ...valueParts] = part.trim().split('=')
-    if (key === name) return decodeURIComponent(valueParts.join('='))
+    if (key !== name) continue
+    const value = valueParts.join('=')
+    try {
+      return decodeURIComponent(value)
+    } catch {
+      // A malformed cookie must behave like a missing session, not crash the request.
+      return null
+    }
   }
   return null
 }
 
 export const getSessionToken = (cookieHeader: string | undefined) =>
-  readCookie(cookieHeader, SESSION_COOKIE_NAME)
+  readAuthCookie(cookieHeader, SESSION_COOKIE_NAME)
 
 export async function login(input: LoginInput): Promise<{
   user: AuthenticatedUser
@@ -575,7 +582,7 @@ export async function revokeSession(token: string | null): Promise<void> {
 }
 
 export const getCustomerSessionToken = (cookieHeader: string | undefined) =>
-  readCookie(cookieHeader, CUSTOMER_SESSION_COOKIE_NAME)
+  readAuthCookie(cookieHeader, CUSTOMER_SESSION_COOKIE_NAME)
 
 export async function getAuthenticatedCustomer(token: string | null): Promise<AuthenticatedUser | null> {
   if (!token) return null

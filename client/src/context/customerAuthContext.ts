@@ -8,6 +8,7 @@ export interface CustomerAuthContextValue {
   isLoading: boolean
   openAuth: (afterAuth?: AuthAction) => void
   completeAuthentication: (user: AuthenticatedUser) => void
+  completeGuestContinuation: () => void
   setUser: (user: AuthenticatedUser | null) => void
   logout: () => Promise<void>
 }

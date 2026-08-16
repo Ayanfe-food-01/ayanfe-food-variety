@@ -96,6 +96,32 @@ export async function submitPaymentProof(input: {
   return response.data.payment
 }
 
+export async function submitGuestPaymentProof(input: {
+  orderId: string
+  guestAccessToken: string
+  senderName: string
+  transactionReference?: string | null
+  amount: string
+  transferredAt: string
+  proof: File
+}): Promise<PaymentSubmission> {
+  const formData = new FormData()
+  formData.append('orderId', input.orderId)
+  formData.append('guestAccessToken', input.guestAccessToken)
+  formData.append('senderName', input.senderName)
+  const transactionReference = input.transactionReference?.trim()
+  if (transactionReference) formData.append('transactionReference', transactionReference)
+  formData.append('amount', input.amount)
+  formData.append('transferredAt', localDateTimeToIso(input.transferredAt))
+  formData.append('proof', input.proof)
+
+  const response = await request<PaymentSubmissionResponse>('/payments/submit-guest', {
+    method: 'POST',
+    body: formData,
+  })
+  return response.data.payment
+}
+
 export interface AdminPaymentsQuery {
   search?: string
   status?: 'PENDING' | 'VERIFIED' | 'REJECTED'

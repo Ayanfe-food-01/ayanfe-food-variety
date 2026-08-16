@@ -7,6 +7,7 @@ import {
   type AuthenticatedUser,
 } from '../services/authService'
 import { CustomerAuthContext, type AuthAction, type CustomerAuthContextValue } from './customerAuthContext'
+import { storeAuthReturnPath } from '../utils/authReturn'
 
 interface CustomerAuthProviderProps {
   children: ReactNode
@@ -39,11 +40,23 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
 
   const openAuth = useCallback((action?: AuthAction) => {
     afterAuthRef.current = action
-    navigate('/login', { state: { from: location.pathname } })
-  }, [location.pathname, navigate])
+    const returnPath = `${location.pathname}${location.search}${location.hash}`
+    storeAuthReturnPath(returnPath)
+    navigate('/login', {
+      state: {
+        from: returnPath,
+      },
+    })
+  }, [location.hash, location.pathname, location.search, navigate])
 
   const completeAuthentication = useCallback((authenticatedUser: AuthenticatedUser) => {
     setUser(authenticatedUser.role === 'CUSTOMER' ? authenticatedUser : null)
+    const action = afterAuthRef.current
+    afterAuthRef.current = undefined
+    action?.()
+  }, [])
+
+  const completeGuestContinuation = useCallback(() => {
     const action = afterAuthRef.current
     afterAuthRef.current = undefined
     action?.()
@@ -62,6 +75,7 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
     isLoading,
     openAuth,
     completeAuthentication,
+    completeGuestContinuation,
     setUser,
     logout,
   }

@@ -115,6 +115,7 @@ model Order {
   id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderNumber      String      @unique @map("order_number") @db.VarChar(32)
   checkoutKey      String?     @unique @map("checkout_key") @db.Uuid
+  guestAccessTokenHash String? @unique @map("guest_access_token_hash") @db.VarChar(64)
   userId           String?     @map("user_id") @db.Uuid
   customerName     String      @map("customer_name") @db.VarChar(180)
   phone            String      @db.VarChar(40)
@@ -207,11 +208,11 @@ model OrderStatusHistory {
   orderId        String      @map("order_id") @db.Uuid
   previousStatus OrderStatus? @map("previous_status")
   newStatus      OrderStatus  @map("new_status")
-  changedBy      String      @map("changed_by") @db.Uuid
+  changedBy      String?     @map("changed_by") @db.Uuid
   note           String?
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  changedByUser  User        @relation(fields: [changedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  changedByUser  User?       @relation(fields: [changedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([orderId, createdAt], map: "order_status_history_order_created_idx")
   @@index([changedBy], map: "order_status_history_changed_by_idx")

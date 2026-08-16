@@ -1,6 +1,7 @@
 import { FulfillmentMethod, Prisma, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js'
 import type {
   CheckoutInput,
   OrderItemResponse,
@@ -185,7 +186,11 @@ const nextOrderNumber = async (transaction: Prisma.TransactionClient): Promise<s
   return `AFV-${new Date().getUTCFullYear()}-${String(sequence).padStart(6, '0')}`
 }
 
-export async function checkoutCustomerCart(userId: string, input: CheckoutInput): Promise<OrderResponse> {
+export async function checkoutCustomerCart(userId: string | null, input: CheckoutInput): Promise<OrderResponse> {
+  if (!userId && !input.guestAccessToken) {
+    throw new HttpError(401, 'Guest checkout access is required.')
+  }
+
   let result: { order: OrderWithItems; created: boolean }
   try {
     result = await prisma.$transaction(async (transaction) => {
@@ -194,7 +199,10 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       include: orderInclude,
     })
     if (existingOrder) {
-      if (existingOrder.userId !== userId) {
+      const ownsExistingOrder = userId
+        ? existingOrder.userId === userId
+        : Boolean(input.guestAccessToken && existingOrder.guestAccessTokenHash === hashGuestOrderAccessToken(input.guestAccessToken))
+      if (!ownsExistingOrder) {
         throw new HttpError(409, 'This checkout request cannot be reused.')
       }
       if (existingOrder.fulfillmentMethod !== input.fulfillmentMethod) {
@@ -203,34 +211,49 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       return { order: existingOrder, created: false }
     }
 
-    const user = await transaction.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, role: true, emailVerified: true },
-    })
-    if (!user || user.role !== 'CUSTOMER' || !user.emailVerified) {
+    const user = userId
+      ? await transaction.user.findUnique({
+          where: { id: userId },
+          select: { id: true, email: true, role: true, emailVerified: true },
+        })
+      : null
+    if (userId && (!user || user.role !== 'CUSTOMER' || !user.emailVerified)) {
       throw new HttpError(403, 'A verified customer account is required.')
     }
 
-    const cartReference = await transaction.customerCart.findUnique({
-      where: { userId: user.id },
-      select: { id: true },
-    })
-    if (!cartReference) throw new HttpError(400, 'Your cart is empty.')
+    let cartId: string | null = null
+    let cartItems: Array<{ id?: string; productId: string; quantity: number; createdAt: Date }>
+    if (user) {
+      const cartReference = await transaction.customerCart.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      })
+      if (!cartReference) throw new HttpError(400, 'Your cart is empty.')
 
-    // Serialize checkout against cart changes and then read the cart again.
-    await transaction.$queryRaw(
-      Prisma.sql`SELECT id FROM customer_carts WHERE id = ${cartReference.id}::uuid FOR UPDATE`,
-    )
-    const cart = await transaction.customerCart.findUnique({
-      where: { id: cartReference.id },
-      include: {
-        items: {
-          select: { id: true, productId: true, quantity: true, createdAt: true },
-          orderBy: { createdAt: 'asc' as const },
+      // Serialize checkout against cart changes and then read the cart again.
+      await transaction.$queryRaw(
+        Prisma.sql`SELECT id FROM customer_carts WHERE id = ${cartReference.id}::uuid FOR UPDATE`,
+      )
+      const cart = await transaction.customerCart.findUnique({
+        where: { id: cartReference.id },
+        include: {
+          items: {
+            select: { id: true, productId: true, quantity: true, createdAt: true },
+            orderBy: { createdAt: 'asc' as const },
+          },
         },
-      },
-    })
-    if (!cart || cart.items.length === 0) throw new HttpError(400, 'Your cart is empty.')
+      })
+      if (!cart || cart.items.length === 0) throw new HttpError(400, 'Your cart is empty.')
+      cartId = cart.id
+      cartItems = cart.items
+    } else {
+      cartItems = (input.cartItems ?? []).map((item, index) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        createdAt: new Date(index),
+      }))
+      if (cartItems.length === 0) throw new HttpError(400, 'Your cart is empty.')
+    }
 
     const paymentSettings = await transaction.paymentSettings.findUnique({
       where: {
@@ -244,12 +267,12 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       throw new HttpError(400, 'The selected payment method is unavailable.')
     }
 
-    const invalidQuantity = cart.items.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000)
+    const invalidQuantity = cartItems.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000)
     if (invalidQuantity) throw new HttpError(400, 'One or more cart quantities are invalid.')
 
     // Cart prices and product metadata are never used as order authorities.
     const products = await transaction.product.findMany({
-      where: { id: { in: cart.items.map((item) => item.productId) } },
+      where: { id: { in: cartItems.map((item) => item.productId) } },
       select: {
         id: true,
         name: true,
@@ -263,7 +286,7 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       },
     })
     const productsById = new Map(products.map((product) => [product.id, product]))
-    const unavailableMessages = cart.items.flatMap((item) => {
+    const unavailableMessages = cartItems.flatMap((item) => {
       const product = productsById.get(item.productId)
       if (!product) return [`Product ${item.productId} no longer exists.`]
       if (!product.isActive || !product.category.isActive) return [`${product.name} is no longer available.`]
@@ -276,7 +299,7 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       throw new HttpError(409, unavailableMessages.join(' '))
     }
 
-    const orderItems = cart.items.map((item) => {
+    const orderItems = cartItems.map((item) => {
       const product = productsById.get(item.productId)
       if (!product) throw new HttpError(409, 'One or more products are no longer available.')
        const unitPrice = calculateDiscountedPrice(
@@ -309,10 +332,11 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       data: {
         checkoutKey: input.checkoutKey,
         orderNumber: await nextOrderNumber(transaction),
-        userId: user.id,
+        guestAccessTokenHash: user ? null : hashGuestOrderAccessToken(input.guestAccessToken!),
+        userId: user?.id ?? null,
         customerName: input.customerName,
         phone: input.phone,
-        email: user.email,
+         email: user?.email ?? input.email,
          fulfillmentMethod: input.fulfillmentMethod,
          deliveryAddress: input.deliveryAddress ?? '',
          city: input.city ?? '',
@@ -328,7 +352,7 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
           create: {
             previousStatus: null,
             newStatus: OrderStatus.ORDER_PLACED,
-            changedBy: user.id,
+            changedBy: user?.id ?? null,
           },
         },
         paymentSnapshot: {
@@ -344,7 +368,7 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       include: orderInclude,
     })
 
-    for (const item of [...cart.items].sort((left, right) => left.productId.localeCompare(right.productId))) {
+    for (const item of [...cartItems].sort((left, right) => left.productId.localeCompare(right.productId))) {
       const product = productsById.get(item.productId)
       try {
         await deductStock(transaction, {
@@ -365,9 +389,14 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       data: { stockDeductedAt: new Date() },
     })
 
-    await transaction.customerCartItem.deleteMany({
-      where: { id: { in: cart.items.map((item) => item.id) }, cartId: cart.id },
-    })
+    if (cartId) {
+      await transaction.customerCartItem.deleteMany({
+        where: {
+          id: { in: cartItems.flatMap((item) => item.id ? [item.id] : []) },
+          cartId,
+        },
+      })
+    }
       return { order, created: true }
     })
   } catch (error: unknown) {
@@ -381,7 +410,10 @@ export async function checkoutCustomerCart(userId: string, input: CheckoutInput)
       where: { checkoutKey: input.checkoutKey },
       include: orderInclude,
     })
-    if (!existingOrder || existingOrder.userId !== userId) {
+    const ownsExistingOrder = userId
+      ? existingOrder?.userId === userId
+      : Boolean(existingOrder && input.guestAccessToken && existingOrder.guestAccessTokenHash === hashGuestOrderAccessToken(input.guestAccessToken))
+    if (!existingOrder || !ownsExistingOrder) {
       throw new HttpError(409, 'This checkout request cannot be reused.')
     }
     return toOrderResponse(existingOrder)
@@ -436,6 +468,18 @@ export async function getCustomerOrder(userId: string, id: string): Promise<Orde
 export async function getCustomerOrderByNumber(userId: string, orderNumber: string): Promise<OrderResponse | null> {
   const order = await prisma.order.findFirst({
     where: { orderNumber, userId },
+    include: orderInclude,
+  })
+  return order ? toOrderResponse(order) : null
+}
+
+export async function getGuestOrderByNumber(orderNumber: string, accessToken: string): Promise<OrderResponse | null> {
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+      guestAccessTokenHash: hashGuestOrderAccessToken(accessToken),
+      userId: null,
+    },
     include: orderInclude,
   })
   return order ? toOrderResponse(order) : null

@@ -2,8 +2,14 @@ import type { FulfillmentMethod, OrderStatus, PaymentMethod } from '@prisma/clie
 
 export interface CheckoutInput {
   checkoutKey: string
+  guestAccessToken?: string
+  cartItems?: Array<{
+    productId: string
+    quantity: number
+  }>
   customerName: string
   phone: string
+  email: string
   fulfillmentMethod: FulfillmentMethod
   deliveryAddress?: string
   city?: string

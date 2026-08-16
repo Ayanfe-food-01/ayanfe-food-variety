@@ -1,5 +1,6 @@
 import { SelectField, type SelectOption } from '../ui/SelectField'
 import type { Category } from '../../types/category'
+import { useHorizontalScrollIndicator } from '../../hooks/useHorizontalScrollIndicator'
 
 interface ProductFiltersProps {
   categories: Category[]
@@ -22,6 +23,7 @@ export function ProductFilters({
   onCategoryChange,
   onSortChange,
 }: ProductFiltersProps) {
+  const { isScrolling, onScroll } = useHorizontalScrollIndicator()
   const isCategorySelected = (category: Category) =>
     categoryValue === category.slug || categoryValue === category.id
 
@@ -32,7 +34,13 @@ export function ProductFilters({
         {!isCategoriesLoading && <span className="shop-filter-count">{categories.length + 1} options</span>}
       </div>
 
-      <div className="shop-category-rail" role="list" aria-label="Product categories" aria-busy={isCategoriesLoading}>
+      <div
+        className={`shop-category-rail ${isScrolling ? 'is-scrolling' : ''}`}
+        role="list"
+        aria-label="Product categories"
+        aria-busy={isCategoriesLoading}
+        onScroll={onScroll}
+      >
         <button
           className={`shop-category-chip ${!categoryValue ? 'is-active' : ''}`}
           type="button"

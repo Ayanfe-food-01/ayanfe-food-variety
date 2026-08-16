@@ -82,7 +82,7 @@ export function SelectField({
       const spaceAbove = rect.top - viewportPadding
       const openBelow = spaceBelow >= Math.min(180, preferredMaxHeight) || spaceBelow >= spaceAbove
       const menuWidth = Math.min(
-        Math.max(rect.width, variant === 'compact' ? 208 : rect.width),
+        Math.max(rect.width, variant === 'compact' ? 184 : rect.width),
         viewportWidth - viewportPadding * 2,
       )
       const maxHeight = Math.max(

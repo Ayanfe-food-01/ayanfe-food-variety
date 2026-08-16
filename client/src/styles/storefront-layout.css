@@ -186,11 +186,33 @@
   gap: 7px;
   overflow-x: auto;
   padding: 3px 1px 15px;
-  scrollbar-color: var(--color-sage) transparent;
+  scrollbar-color: transparent transparent;
   scrollbar-width: thin;
   scrollbar-gutter: stable;
   overscroll-behavior-inline: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+.shop-category-rail.is-scrolling {
+  scrollbar-color: var(--color-sage) transparent;
+}
+
+.shop-category-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.shop-category-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shop-category-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color .25s ease;
+}
+
+.shop-category-rail.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--color-sage);
 }
 
 .shop-category-chip,
@@ -248,11 +270,11 @@
 
 .shop-sort-row {
   display: flex;
-  min-height: 34px;
+  min-height: 30px;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .shop-sort-label {
@@ -261,7 +283,7 @@
 
 .shop-sort-select,
 .shop-sort-static {
-  min-width: 126px;
+  min-width: 110px;
   color: var(--color-green-dark);
   font-weight: 700;
 }
@@ -414,15 +436,15 @@
 
 .select-field-compact .select-field-button {
   width: 100%;
-  min-height: 34px;
-  gap: 8px;
+  min-height: 30px;
+  gap: 6px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 8px;
   background: transparent;
   color: var(--color-green-dark);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 6px 10px;
+  padding: 4px 8px;
 }
 
 .select-field-compact .select-field-button:hover,
@@ -437,15 +459,15 @@
 }
 
 .select-field-menu-compact {
-  padding: 8px;
-  border-radius: 16px;
+  padding: 6px;
+  border-radius: 14px;
 }
 
 .select-field-menu-compact .select-field-option {
-  min-height: 48px;
-  border-radius: 11px;
-  font-size: 14px;
-  padding: 12px 14px;
+  min-height: 42px;
+  border-radius: 9px;
+  font-size: 13px;
+  padding: 10px 12px;
 }
 
 .filter-pill {

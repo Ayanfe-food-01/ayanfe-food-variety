@@ -153,10 +153,94 @@
   gap: 10px;
 }
 
-.shop-filter-controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.shop-category-filter {
+  min-width: 0;
+}
+
+.shop-filter-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 10px;
+  color: var(--color-green-dark);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.shop-filter-count {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: none;
+}
+
+.shop-category-rail {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
   gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scrollbar-color: var(--color-sage) transparent;
+  scrollbar-width: thin;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shop-category-chip,
+.shop-category-chip-skeleton {
+  flex: 0 0 auto;
+  min-height: 42px;
+  border-radius: 999px;
+}
+
+.shop-category-chip {
+  border: 1px solid var(--color-line);
+  padding: 0 16px;
+  background: var(--color-cream);
+  color: var(--color-green-dark);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color .2s ease, background-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.shop-category-chip:hover {
+  border-color: var(--color-green);
+  background: var(--color-sage);
+  transform: translateY(-1px);
+}
+
+.shop-category-chip.is-active {
+  border-color: var(--color-green);
+  background: var(--color-green);
+  color: var(--color-cream);
+}
+
+.shop-category-chip:focus-visible {
+  outline: 3px solid rgb(217 111 60 / 28%);
+  outline-offset: 2px;
+}
+
+.shop-category-chip:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+.shop-category-chip-skeleton {
+  width: 108px;
+  background: var(--color-sage);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.shop-filter-controls {
+  display: flex;
+  justify-content: flex-end;
   width: 100%;
 }
 
@@ -323,8 +407,8 @@
 
 @media (min-width: 640px) {
   .shop-filters {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+    align-items: end;
   }
   .shop-filter-controls {
     justify-self: end;

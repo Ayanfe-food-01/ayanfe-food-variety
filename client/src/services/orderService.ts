@@ -57,6 +57,33 @@ export interface CreatedOrder {
   }>
 }
 
+export interface GuestOrder {
+  orderNumber: string
+  fulfillmentMethod: FulfillmentMethod
+  deliveryAddress: string
+  city: string
+  subtotal: string
+  deliveryFee: string
+  total: string
+  paymentStatus: CustomerPaymentStatus
+  orderStatus: OrderStatus
+  createdAt: string
+  orderItems: Array<{
+    id: string
+    productName: string
+    unitPrice: string
+    quantity: number
+    subtotal: string
+    deliveryFee: string
+    image: string
+  }>
+  statusHistory: Array<{
+    previousStatus: OrderStatus | null
+    newStatus: OrderStatus
+    createdAt: string
+  }>
+}
+
 export interface CustomerOrderListItem {
   id: string
   orderNumber: string
@@ -76,6 +103,11 @@ interface CustomerOrdersResponse {
 interface CustomerOrderResponse {
   success: true
   data: { order: CreatedOrder }
+}
+
+interface GuestOrderResponse {
+  success: true
+  data: { order: GuestOrder }
 }
 
 export async function checkoutCustomerCart(input: {
@@ -105,6 +137,15 @@ export async function checkoutCustomerCart(input: {
 export async function getGuestOrder(orderNumber: string, accessToken: string): Promise<CreatedOrder> {
   const response = await request<CustomerOrderResponse>(`/orders/guest/${encodeURIComponent(orderNumber)}`, {
     headers: { 'X-Guest-Access-Token': accessToken },
+  })
+  return response.data.order
+}
+
+export async function trackGuestOrder(orderNumber: string, contact: string): Promise<GuestOrder> {
+  const response = await request<GuestOrderResponse>('/orders/guest/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderNumber, contact }),
   })
   return response.data.order
 }

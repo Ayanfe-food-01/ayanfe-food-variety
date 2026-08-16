@@ -12,6 +12,7 @@ import { OrderConfirmation } from './pages/OrderConfirmation'
 import { CustomerOrders } from './pages/CustomerOrders'
 import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
+import { TrackOrder } from './pages/TrackOrder'
 import { Dashboard } from './pages/Admin/Dashboard'
 import { Analytics } from './pages/Admin/Analytics'
 import { Orders } from './pages/Admin/Orders'
@@ -134,6 +135,7 @@ function RouteTransition() {
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
+          <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/orders" element={<CustomerOrders />} />
           <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
           <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />

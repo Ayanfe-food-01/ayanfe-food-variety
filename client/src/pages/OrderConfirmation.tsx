@@ -71,6 +71,11 @@ export function OrderConfirmation() {
                 <span className="text-muted">Order number</span>
                 <strong className="text-green-dark">{order.orderNumber}</strong>
               </div>
+              {!user && (
+                <p className="mx-auto mt-4 max-w-lg text-xs leading-5 text-muted">
+                  Keep this number and use the Track order page with the email address or phone number you used at checkout.
+                </p>
+              )}
             </div>
 
              <div className="mt-6 rounded-2xl border border-green/25 bg-sage/30 p-6 shadow-sm sm:p-8">
@@ -144,6 +149,11 @@ export function OrderConfirmation() {
               <Link className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-sage" to="/shop">
                 Continue shopping
               </Link>
+              {!user && (
+                <Link className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-sage" to="/track-order">
+                  Track order
+                </Link>
+              )}
             </div>
           </div>
         )}

@@ -16,6 +16,7 @@ const links = [
   { label: 'About us', href: '/about' },
   { label: 'Contact', href: '/contact' },
   { label: 'Orders', href: '/orders' },
+  { label: 'Track order', href: '/track-order' },
 ]
 
 export function Navbar() {

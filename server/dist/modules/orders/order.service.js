@@ -403,6 +403,58 @@ export async function getGuestOrderByNumber(orderNumber, accessToken) {
     });
     return order ? toOrderResponse(order) : null;
 }
+const normalizeGuestPhone = (value) => {
+    const digits = value.replace(/\D/g, '');
+    return digits.startsWith('234') && digits.length === 13
+        ? `0${digits.slice(3)}`
+        : digits.startsWith('00234') && digits.length === 15
+            ? `0${digits.slice(5)}`
+            : digits;
+};
+const normalizeGuestContact = (value) => {
+    const trimmed = value.trim().toLowerCase();
+    return { email: trimmed, phone: normalizeGuestPhone(trimmed) };
+};
+const toGuestOrderResponse = (order) => {
+    const fullResponse = toOrderResponse(order);
+    return {
+        orderNumber: fullResponse.orderNumber,
+        fulfillmentMethod: fullResponse.fulfillmentMethod,
+        deliveryAddress: fullResponse.deliveryAddress,
+        city: fullResponse.city,
+        subtotal: fullResponse.subtotal,
+        deliveryFee: fullResponse.deliveryFee,
+        total: fullResponse.total,
+        paymentStatus: fullResponse.paymentStatus,
+        orderStatus: fullResponse.orderStatus,
+        createdAt: fullResponse.createdAt,
+        orderItems: fullResponse.orderItems.map((item) => ({
+            id: item.id,
+            productName: item.productName,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            subtotal: item.subtotal,
+            deliveryFee: item.deliveryFee,
+            image: item.product.image,
+        })),
+        statusHistory: fullResponse.statusHistory,
+    };
+};
+export async function getGuestOrderForTracking(orderNumber, contact) {
+    const order = await prisma.order.findFirst({
+        where: {
+            orderNumber,
+            userId: null,
+        },
+        include: orderInclude,
+    });
+    if (!order)
+        return null;
+    const normalizedContact = normalizeGuestContact(contact);
+    const emailMatches = Boolean(order.email && order.email.trim().toLowerCase() === normalizedContact.email);
+    const phoneMatches = normalizeGuestPhone(order.phone) === normalizedContact.phone;
+    return emailMatches || phoneMatches ? toGuestOrderResponse(order) : null;
+}
 const customerCancellableStatuses = new Set([
     OrderStatus.ORDER_PLACED,
     OrderStatus.PROCESSING,

@@ -4,6 +4,7 @@ import { HttpError } from '../../utils/http.js'
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js'
 import type {
   CheckoutInput,
+  GuestOrderResponse,
   OrderItemResponse,
   OrderResponse,
   CustomerPaymentSubmissionResponse,
@@ -491,6 +492,66 @@ export async function getGuestOrderByNumber(orderNumber: string, accessToken: st
     include: orderInclude,
   })
   return order ? toOrderResponse(order) : null
+}
+
+const normalizeGuestPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '')
+  return digits.startsWith('234') && digits.length === 13
+    ? `0${digits.slice(3)}`
+    : digits.startsWith('00234') && digits.length === 15
+      ? `0${digits.slice(5)}`
+      : digits
+}
+
+const normalizeGuestContact = (value: string): { email: string; phone: string } => {
+  const trimmed = value.trim().toLowerCase()
+
+  return { email: trimmed, phone: normalizeGuestPhone(trimmed) }
+}
+
+const toGuestOrderResponse = (order: OrderWithItems): GuestOrderResponse => {
+  const fullResponse = toOrderResponse(order)
+
+  return {
+    orderNumber: fullResponse.orderNumber,
+    fulfillmentMethod: fullResponse.fulfillmentMethod,
+    deliveryAddress: fullResponse.deliveryAddress,
+    city: fullResponse.city,
+    subtotal: fullResponse.subtotal,
+    deliveryFee: fullResponse.deliveryFee,
+    total: fullResponse.total,
+    paymentStatus: fullResponse.paymentStatus,
+    orderStatus: fullResponse.orderStatus,
+    createdAt: fullResponse.createdAt,
+    orderItems: fullResponse.orderItems.map((item) => ({
+      id: item.id,
+      productName: item.productName,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+      subtotal: item.subtotal,
+      deliveryFee: item.deliveryFee,
+      image: item.product.image,
+    })),
+    statusHistory: fullResponse.statusHistory,
+  }
+}
+
+export async function getGuestOrderForTracking(orderNumber: string, contact: string): Promise<GuestOrderResponse | null> {
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+      userId: null,
+    },
+    include: orderInclude,
+  })
+
+  if (!order) return null
+
+  const normalizedContact = normalizeGuestContact(contact)
+  const emailMatches = Boolean(order.email && order.email.trim().toLowerCase() === normalizedContact.email)
+  const phoneMatches = normalizeGuestPhone(order.phone) === normalizedContact.phone
+
+  return emailMatches || phoneMatches ? toGuestOrderResponse(order) : null
 }
 
 const customerCancellableStatuses = new Set<OrderStatus>([

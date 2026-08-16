@@ -57,13 +57,13 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
         </button>
 
         <label className="relative hidden min-w-0 flex-1 sm:block sm:max-w-md">
-          <span className="sr-only">Search admin portal</span>
+          <span className="sr-only">Search</span>
           <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={17} />
           <input
             className="h-11 w-full rounded-full border border-transparent bg-sage/45 pl-11 pr-4 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-green/20 focus:bg-white focus:ring-2 focus:ring-green/10"
             type="search"
-            placeholder="Search admin portal..."
-            aria-label="Search admin portal"
+            placeholder="Search..."
+            aria-label="Search"
           />
         </label>
 

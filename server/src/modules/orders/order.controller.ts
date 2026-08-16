@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express'
 import { HttpError } from '../../utils/http.js'
-import { checkoutCustomerCart, getGuestOrderByNumber, getOrderById } from './order.service.js'
-import { validateCheckoutInput, validateOrderId } from './order.validator.js'
+import { checkoutCustomerCart, getGuestOrderByNumber, getGuestOrderForTracking, getOrderById } from './order.service.js'
+import { validateCheckoutInput, validateGuestOrderTrackingInput, validateOrderId } from './order.validator.js'
 import { validateOrderNumber } from './order.validator.js'
 
 export const checkoutController: RequestHandler = async (request, response) => {
@@ -21,6 +21,17 @@ export const guestOrderController: RequestHandler = async (request, response) =>
   }
   const order = await getGuestOrderByNumber(orderNumber, accessToken)
   if (!order) throw new HttpError(404, 'Order not found.')
+  response.json({ success: true, data: { order } })
+}
+
+export const guestOrderTrackingController: RequestHandler = async (request, response) => {
+  const { orderNumber, contact } = validateGuestOrderTrackingInput(request.body)
+  const order = await getGuestOrderForTracking(orderNumber, contact)
+
+  if (!order) {
+    throw new HttpError(404, 'We could not find an order matching those details.')
+  }
+
   response.json({ success: true, data: { order } })
 }
 

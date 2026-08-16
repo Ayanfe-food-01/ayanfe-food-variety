@@ -1,4 +1,4 @@
-import { FulfillmentMethod, Prisma, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
+import { AdminNotificationType, FulfillmentMethod, Prisma, OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js'
@@ -11,6 +11,7 @@ import type {
 import { notifyOrderCreated, notifyOrderStatusChanged } from './order.email.js'
 import { deductStock, restoreStock } from '../inventory/inventory.service.js'
 import { calculateDiscountedPrice } from '../products/product.pricing.js'
+import { createAdminNotification } from '../notifications/notification.service.js'
 
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: {
@@ -397,6 +398,13 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         },
       })
     }
+    await createAdminNotification(transaction, {
+      type: AdminNotificationType.NEW_ORDER,
+      eventKey: `new-order:${order.id}`,
+      title: 'New order placed',
+      message: `${order.customerName} placed order ${order.orderNumber}.`,
+      href: `/admin/orders/${order.orderNumber}`,
+    })
       return { order, created: true }
     })
   } catch (error: unknown) {
@@ -554,6 +562,14 @@ export async function cancelCustomerOrder(
         })
       }
     }
+
+    await createAdminNotification(transaction, {
+      type: AdminNotificationType.CUSTOMER_ORDER_CANCELLED,
+      eventKey: `customer-order-cancelled:${order.id}`,
+      title: 'Customer cancelled an order',
+      message: `${order.customerName} cancelled order ${order.orderNumber}.`,
+      href: `/admin/orders/${order.orderNumber}`,
+    })
 
     return order
   })

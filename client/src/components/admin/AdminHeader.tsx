@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { BellIcon, ChevronDownIcon, GlobeIcon, MenuIcon, MoonIcon, SearchIcon } from '../../assets/icons'
+import { ChevronDownIcon, MenuIcon, MoonIcon, SearchIcon } from '../../assets/icons'
 import { Link } from 'react-router-dom'
 import type { AuthenticatedUser } from '../../services/authService'
+import { AdminNotifications } from './AdminNotifications'
 
 interface AdminHeaderProps {
   isLoggingOut: boolean
@@ -77,22 +78,7 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
           >
             <MoonIcon size={18} />
           </button>
-          <button
-            className="relative grid size-10 place-items-center rounded-full border border-transparent bg-sage/45 text-green-dark transition-colors hover:border-line hover:bg-white"
-            type="button"
-            aria-label="View notifications"
-          >
-            <BellIcon size={18} />
-            <span className="absolute right-2 top-2 size-1.5 rounded-full bg-orange" aria-hidden="true" />
-          </button>
-          <button
-            className="hidden size-10 place-items-center rounded-full border border-transparent bg-sage/45 text-green-dark transition-colors hover:border-line hover:bg-white sm:grid"
-            type="button"
-            aria-label="Language: English"
-            title="Language: English"
-          >
-            <GlobeIcon size={18} />
-          </button>
+          <AdminNotifications />
           <div className="relative" ref={profileMenuRef}>
             <button
               className="flex min-h-10 items-center gap-2 rounded-full border border-line bg-white px-1.5 py-1.5 text-left text-green-dark transition-colors hover:border-green/30 hover:bg-sage/30 disabled:cursor-wait disabled:opacity-60"

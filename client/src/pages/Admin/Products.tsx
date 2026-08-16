@@ -199,16 +199,16 @@ export function Products() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
-        <form className="flex flex-col gap-3 lg:flex-row" onSubmit={submitSearch}>
-          <label className="flex-1 text-xs font-bold text-green-dark">
+        <form className="flex flex-row items-end gap-3" onSubmit={submitSearch}>
+          <label className="min-w-0 flex-1 text-xs font-bold text-green-dark">
             Search products
             <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Name or description" />
           </label>
-          <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark lg:self-end" type="submit">Search</button>
-          <label className="text-xs font-bold text-green-dark">
+          <button className="shrink-0 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
+          <label className="min-w-0 flex-1 text-xs font-bold text-green-dark">
             Category
             <SelectField
-              className="mt-2 w-full sm:w-44"
+              className="mt-2 w-full"
               options={[
                 { value: '', label: 'All categories' },
                 ...categories.map((category) => ({ value: category.id, label: category.name })),
@@ -217,10 +217,10 @@ export function Products() {
               value={query.categoryId ?? ''}
             />
           </label>
-          <label className="text-xs font-bold text-green-dark">
+          <label className="min-w-0 flex-1 text-xs font-bold text-green-dark">
             Availability
             <SelectField
-              className="mt-2 w-full sm:w-44"
+              className="mt-2 w-full"
               options={[
                 { value: '', label: 'All products' },
                 { value: 'active', label: 'Active' },

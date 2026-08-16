@@ -10,7 +10,7 @@ import type {
   PublicProductPage,
   PublicProductQuery,
 } from './product.types.js'
-import { recordStockAdjustment } from '../inventory/inventory.service.js'
+import { createLowStockNotificationIfNeeded, recordStockAdjustment } from '../inventory/inventory.service.js'
 import { calculateDiscountedPrice } from './product.pricing.js'
 
 type ProductWithCategory = Prisma.ProductGetPayload<{
@@ -474,13 +474,23 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
         include: productInclude,
       })
       if (created.stockQuantity > 0) {
-        await recordStockAdjustment(transaction, {
+        const adjustment = await recordStockAdjustment(transaction, {
           productId: created.id,
           quantityDelta: created.stockQuantity,
           previousQuantity: 0,
           newQuantity: created.stockQuantity,
           reason: `Initial stock by admin ${adminId}`,
         })
+        if (adjustment) {
+          await createLowStockNotificationIfNeeded(transaction, {
+            productId: created.id,
+            productName: created.name,
+            previousQuantity: 0,
+            newQuantity: created.stockQuantity,
+            stockAdjustmentId: adjustment.id,
+            notifyFromZero: true,
+          })
+        }
       }
       return created
     })
@@ -530,13 +540,23 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
         include: productInclude,
       })
       if (updated.stockQuantity !== current.stock_quantity) {
-        await recordStockAdjustment(transaction, {
+        const adjustment = await recordStockAdjustment(transaction, {
           productId: id,
           quantityDelta: updated.stockQuantity - current.stock_quantity,
           previousQuantity: current.stock_quantity,
           newQuantity: updated.stockQuantity,
           reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
         })
+        if (adjustment) {
+          await createLowStockNotificationIfNeeded(transaction, {
+            productId: id,
+            productName: updated.name,
+            previousQuantity: current.stock_quantity,
+            newQuantity: updated.stockQuantity,
+            stockAdjustmentId: adjustment.id,
+            notifyFromZero: true,
+          })
+        }
       }
       return updated
     })

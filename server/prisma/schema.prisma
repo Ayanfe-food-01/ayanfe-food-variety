@@ -66,6 +66,14 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum AdminNotificationType {
+  NEW_ORDER
+  PAYMENT_PROOF_SUBMITTED
+  PAYMENT_CONFIRMED
+  CUSTOMER_ORDER_CANCELLED
+  LOW_STOCK
+}
+
 model Category {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name           String    @unique @db.VarChar(120)
@@ -315,9 +323,38 @@ model User {
   orderStatusChanges OrderStatusHistory[]
   cart         CustomerCart?
   paymentAuditEvents PaymentAuditEvent[] @relation("PaymentAuditActor")
+  notificationReads AdminNotificationRead[]
   wishlistItems WishlistItem[]
 
   @@map("users")
+}
+
+model AdminNotification {
+  id        String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type      AdminNotificationType
+  eventKey  String                 @unique @map("event_key") @db.VarChar(255)
+  title     String                 @db.VarChar(180)
+  message   String                 @db.VarChar(500)
+  href      String                 @db.VarChar(500)
+  createdAt DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  reads     AdminNotificationRead[]
+
+  @@index([createdAt], map: "admin_notifications_created_at_idx")
+  @@index([type, createdAt], map: "admin_notifications_type_created_at_idx")
+  @@map("admin_notifications")
+}
+
+model AdminNotificationRead {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notificationId String            @map("notification_id") @db.Uuid
+  adminId        String            @map("admin_id") @db.Uuid
+  readAt         DateTime          @default(now()) @map("read_at") @db.Timestamptz(6)
+  notification   AdminNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  admin          User              @relation(fields: [adminId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([notificationId, adminId], map: "admin_notification_reads_notification_admin_key")
+  @@index([adminId, readAt], map: "admin_notification_reads_admin_read_at_idx")
+  @@map("admin_notification_reads")
 }
 
 model CustomerEmailVerification {

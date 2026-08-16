@@ -14,7 +14,7 @@ const upload = multer({
   fileFilter: (_request, file, callback) => {
     const hasSupportedExtension = /\.(jpe?g|png|webp|heic|heif)$/i.test(file.originalname)
     if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(file.mimetype) && !hasSupportedExtension) {
-      callback(new HttpError(400, 'Branding images must be a JPG, PNG, or WEBP image.'))
+       callback(new HttpError(400, 'Branding images must be a JPG, PNG, WEBP, or HEIC/HEIF image.'))
       return
     }
     callback(null, true)
@@ -48,6 +48,9 @@ export const updateAdminBrandingController: RequestHandler = async (request, res
   const files = filesFromRequest(request)
   const logoFile = files.logo?.[0]
   const faviconFile = files.favicon?.[0]
+  if (!logoFile && !faviconFile) {
+    throw new HttpError(400, 'Choose a logo or favicon before saving.')
+  }
   const existing = await getAdminStoreBrandingAssets()
   let logo: Awaited<ReturnType<typeof uploadBrandingLogo>> | undefined
   let favicon: Awaited<ReturnType<typeof uploadBrandingFavicon>> | undefined

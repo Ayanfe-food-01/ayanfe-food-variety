@@ -5,6 +5,7 @@ import {
   getAuthenticatedUser,
   getCustomerSessionToken,
   getSessionToken,
+  customerAuthCookie,
 } from '../modules/auth/auth.service.js'
 import { UserRole } from '@prisma/client'
 
@@ -26,9 +27,12 @@ export const requireAdminRole: RequestHandler = (request, _response, next) => {
   next()
 }
 
-export const requireCustomerAuthentication: RequestHandler = async (request, _response, next) => {
+export const requireCustomerAuthentication: RequestHandler = async (request, response, next) => {
   const user = await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (!user) {
+    if (getCustomerSessionToken(request.headers.cookie)) {
+      response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
+    }
     next(new HttpError(401, 'Customer authentication is required.'))
     return
   }
@@ -44,8 +48,11 @@ export const requireCustomerRole: RequestHandler = (request, _response, next) =>
   next()
 }
 
-export const optionalCustomerAuthentication: RequestHandler = async (request, _response, next) => {
+export const optionalCustomerAuthentication: RequestHandler = async (request, response, next) => {
   const user = await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (user) request.authenticatedUser = user
+  else if (getCustomerSessionToken(request.headers.cookie)) {
+    response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
+  }
   next()
 }

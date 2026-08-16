@@ -17,6 +17,7 @@ import {
   requestPasswordReset,
   resetPassword,
   verifyCustomerEmail,
+  readAuthCookie,
 } from './auth.service.js'
 import {
   createGoogleOAuthState,
@@ -141,12 +142,8 @@ export const customerGoogleStartController: RequestHandler = (_request, response
 }
 
 export const customerGoogleCallbackController: RequestHandler = async (request, response, next) => {
-  const stateCookie = request.headers.cookie?.split(';')
-    .map((part) => part.trim().split('='))
-    .find(([key]) => key === googleOAuthStateCookie.name)?.[1]
-  const nonceCookie = request.headers.cookie?.split(';')
-    .map((part) => part.trim().split('='))
-    .find(([key]) => key === `${googleOAuthStateCookie.name}_nonce`)?.[1]
+  const stateCookie = readAuthCookie(request.headers.cookie, googleOAuthStateCookie.name)
+  const nonceCookie = readAuthCookie(request.headers.cookie, `${googleOAuthStateCookie.name}_nonce`)
   const state = typeof request.query.state === 'string' ? request.query.state : null
   const clearStateCookie = () => {
     response.clearCookie(googleOAuthStateCookie.name, googleOAuthStateCookie.options)

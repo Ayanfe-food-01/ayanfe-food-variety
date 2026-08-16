@@ -115,7 +115,7 @@ export function Login() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-cream px-5 py-10">
+    <main className="auth-page-shell grid place-items-center bg-cream px-5 py-10">
       <section className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-sm sm:p-9">
         <div className="flex justify-center">
           <Link to="/" aria-label="Return to storefront">
@@ -145,7 +145,7 @@ export function Login() {
           </>
         ) : (
           <>
-            <button className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={() => { setView('gateway'); setError(null) }}>
+            <button className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={() => { setView('gateway'); setMode('login'); setError(null) }}>
               ← Back
             </button>
             <div className="mt-7">
@@ -162,7 +162,15 @@ export function Login() {
               <div>
                 <div className="flex items-center justify-between gap-4 text-sm font-bold text-green-dark">
                   <label htmlFor="login-password">Password</label>
-                  {mode === 'login' && <Link className="text-xs text-green hover:text-orange" to="/forgot-password">Forgot Password?</Link>}
+                  {mode === 'login' && (
+                    <Link
+                      className="text-xs text-green hover:text-orange"
+                      to="/forgot-password"
+                      state={{ from: readInternalReturnPath(location.state) }}
+                    >
+                      Forgot Password?
+                    </Link>
+                  )}
                 </div>
                 <div className="relative mt-2">
                   <input id="login-password" className="w-full rounded-xl border border-line px-4 py-3 pr-12 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />

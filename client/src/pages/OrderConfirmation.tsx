@@ -1,38 +1,52 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { getCustomerOrder, type CreatedOrder } from '../services/orderService'
+import { getCustomerOrder, getGuestOrder, type CreatedOrder } from '../services/orderService'
 import { formatOrderStatus } from '../utils/orderStatus'
+import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
 
 export function OrderConfirmation() {
   const { orderNumber } = useParams()
+  const location = useLocation()
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const accessFromUrl = new URLSearchParams(location.search).get('access')
+  const guestAccessToken = orderNumber
+    ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
+    : null
 
   useEffect(() => {
-    if (isAuthLoading || !user || !orderNumber) return
-    getCustomerOrder(orderNumber)
+    if (isAuthLoading || !orderNumber) return
+    if (!user && !guestAccessToken) return
+    if (!user && guestAccessToken) {
+      saveGuestOrderAccessToken(orderNumber, guestAccessToken)
+    }
+    const loadOrder = user
+      ? getCustomerOrder(orderNumber)
+      : getGuestOrder(orderNumber, guestAccessToken!)
+    loadOrder
       .then(setOrder)
       .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Your order confirmation could not be loaded.'))
-  }, [isAuthLoading, orderNumber, user])
+  }, [guestAccessToken, isAuthLoading, orderNumber, user])
 
   return (
     <>
       <Navbar />
       <main className="container py-12 sm:py-16 lg:py-24">
-        {!isAuthLoading && !user ? (
+        {!isAuthLoading && !user && !guestAccessToken ? (
           <div className="mx-auto max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
-            <h1 className="text-3xl font-bold text-green-dark">Sign in to view your confirmation</h1>
+            <h1 className="text-3xl font-bold text-green-dark">Choose how to continue</h1>
+            <p className="mt-3 text-sm leading-6 text-muted">Sign in to view account orders, or use the guest order link from your checkout.</p>
             <button className="mt-6 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={() => openAuth()}>
-              Sign in or create an account
+              Continue to sign in
             </button>
           </div>
         ) : error ? (
@@ -62,7 +76,7 @@ export function OrderConfirmation() {
                <p className="mt-2 text-sm leading-6 text-muted">
                  After completing the transfer using the details shown during checkout, send your receipt so we can verify your payment.
                </p>
-               <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof`}>
+                <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof`}>
                  Submit payment proof <ArrowRight size={16} />
                </Link>
              </div>
@@ -121,7 +135,7 @@ export function OrderConfirmation() {
             </div>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link className="inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}`}>
+               <Link className="inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}`}>
                 View order <ArrowRight size={16} />
               </Link>
               <Link className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-sage" to="/shop">

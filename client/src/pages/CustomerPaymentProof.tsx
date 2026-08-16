@@ -1,19 +1,21 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { getCustomerOrder, type CreatedOrder } from '../services/orderService'
-import { getBankDetails, submitPaymentProof, type BankDetails, type PaymentSubmission } from '../services/paymentService'
+import { getCustomerOrder, getGuestOrder, type CreatedOrder } from '../services/orderService'
+import { getBankDetails, submitGuestPaymentProof, submitPaymentProof, type BankDetails, type PaymentSubmission } from '../services/paymentService'
 import { ImagePreview } from '../components/ui/ImagePreview'
+import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
 
 export function CustomerPaymentProof() {
   const { orderNumber } = useParams()
+  const location = useLocation()
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [bank, setBank] = useState<BankDetails | null>(null)
@@ -26,10 +28,20 @@ export function CustomerPaymentProof() {
   const [proof, setProof] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const accessFromUrl = new URLSearchParams(location.search).get('access')
+  const guestAccessToken = orderNumber
+    ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
+    : null
+  const isGuestOrder = !user && Boolean(guestAccessToken)
 
   useEffect(() => {
-    if (isAuthLoading || !user || !orderNumber) return
-    getCustomerOrder(orderNumber)
+    if (isAuthLoading || !orderNumber) return
+    if (!user && !guestAccessToken) return
+    if (!user && guestAccessToken) saveGuestOrderAccessToken(orderNumber, guestAccessToken)
+    const loadOrder = user
+      ? getCustomerOrder(orderNumber)
+      : getGuestOrder(orderNumber, guestAccessToken!)
+    loadOrder
       .then((loadedOrder) => {
         setOrder(loadedOrder)
         setSenderName(loadedOrder.customerName)
@@ -43,7 +55,7 @@ export function CustomerPaymentProof() {
       .catch((reason: unknown) => {
         setBankError(reason instanceof ApiError ? reason.message : 'Payment details could not be loaded.')
       })
-  }, [isAuthLoading, orderNumber, user])
+  }, [guestAccessToken, isAuthLoading, orderNumber, user])
 
   const handleProofChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0] ?? null
@@ -76,14 +88,17 @@ export function CustomerPaymentProof() {
     setError(null)
     setIsSubmitting(true)
     try {
-      setPayment(await submitPaymentProof({
+      const paymentInput = {
         orderId: order.id,
         senderName: senderName.trim(),
         transactionReference: transactionReference.trim(),
         amount,
         transferredAt,
         proof,
-      }))
+      }
+      setPayment(await (isGuestOrder
+        ? submitGuestPaymentProof({ ...paymentInput, guestAccessToken: guestAccessToken! })
+        : submitPaymentProof(paymentInput)))
     } catch (reason: unknown) {
       setError(reason instanceof ApiError ? reason.message : 'Payment proof could not be submitted.')
     } finally {
@@ -95,11 +110,12 @@ export function CustomerPaymentProof() {
     <>
       <Navbar />
       <main className="container py-12 sm:py-16 lg:py-24">
-        {!isAuthLoading && !user ? (
+        {!isAuthLoading && !user && !guestAccessToken ? (
           <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
-            <h1 className="text-3xl font-bold text-green-dark">Sign in to submit payment proof</h1>
+            <h1 className="text-3xl font-bold text-green-dark">Choose how to continue</h1>
+            <p className="mt-3 text-sm leading-6 text-muted">Sign in for account orders, or open the secure guest order link from your checkout confirmation.</p>
             <button className="mt-6 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={() => openAuth()}>
-              Sign in or create an account
+              Continue to sign in
             </button>
           </div>
         ) : error && !order ? (

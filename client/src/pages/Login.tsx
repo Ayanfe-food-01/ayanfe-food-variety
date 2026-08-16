@@ -7,6 +7,31 @@ import { ApiError } from '../services/api'
 import { getGoogleSignInUrl, login, signupCustomer, getCurrentUser, type AuthenticatedUser } from '../services/authService'
 
 type Mode = 'login' | 'signup'
+type LoginView = 'gateway' | 'email'
+
+const AUTH_RETURN_STORAGE_KEY = 'ayanfe-auth-return'
+
+const readInternalReturnPath = (locationState: unknown): string => {
+  const fromState = locationState && typeof locationState === 'object' && 'from' in locationState && typeof locationState.from === 'string'
+    ? locationState.from
+    : null
+  let storedPath: string | null = null
+  try {
+    storedPath = window.sessionStorage.getItem(AUTH_RETURN_STORAGE_KEY)
+  } catch {
+    storedPath = null
+  }
+  const candidate = fromState ?? storedPath ?? '/'
+  return candidate.startsWith('/') && !candidate.startsWith('//') ? candidate : '/'
+}
+
+const clearStoredReturnPath = () => {
+  try {
+    window.sessionStorage.removeItem(AUTH_RETURN_STORAGE_KEY)
+  } catch {
+    // Navigation still works when session storage is unavailable.
+  }
+}
 
 const googleErrorMessages: Record<string, string> = {
   google_cancelled: 'Google sign-in was cancelled.',
@@ -18,9 +43,16 @@ export function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const { completeAuthentication } = useCustomerAuth()
+  const [view, setView] = useState<LoginView>(() => {
+    const state = location.state
+    return state && typeof state === 'object' && 'email' in state ? 'email' : 'gateway'
+  })
   const [mode, setMode] = useState<Mode>('login')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => {
+    const state = location.state
+    return state && typeof state === 'object' && 'email' in state && typeof state.email === 'string' ? state.email : ''
+  })
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -29,9 +61,10 @@ export function Login() {
   useEffect(() => {
     const oauthError = new URLSearchParams(location.search).get('oauth_error')
     if (oauthError && googleErrorMessages[oauthError]) setError(googleErrorMessages[oauthError])
+    if (location.search.includes('oauth=google')) setView('gateway')
     getCurrentUser()
       .then((currentUser) => {
-        navigate(currentUser.role === 'ADMIN' ? '/admin' : '/', { replace: true })
+        navigate(getDestination(currentUser), { replace: true })
       })
       .catch((caught: unknown) => {
         if (!(caught instanceof ApiError && caught.status === 401)) setError('We could not check your existing session.')
@@ -39,9 +72,8 @@ export function Login() {
   }, [location.search, navigate])
 
   const getDestination = (user: AuthenticatedUser) => {
-    const from = location.state && typeof location.state === 'object' && 'from' in location.state && typeof location.state.from === 'string'
-      ? location.state.from
-      : '/'
+    const from = readInternalReturnPath(location.state)
+    clearStoredReturnPath()
     return user.role === 'ADMIN'
       ? from.startsWith('/admin') ? from : '/admin'
       : from.startsWith('/admin') ? '/' : from
@@ -76,7 +108,18 @@ export function Login() {
   const continueWithGoogle = () => {
     setError(null)
     setIsSubmitting(true)
+    try {
+      window.sessionStorage.setItem(AUTH_RETURN_STORAGE_KEY, readInternalReturnPath(location.state))
+    } catch {
+      // The in-memory route state still supports email authentication.
+    }
     window.location.assign(getGoogleSignInUrl())
+  }
+
+  const continueAsGuest = () => {
+    const destination = readInternalReturnPath(location.state)
+    clearStoredReturnPath()
+    navigate(destination, { replace: true, state: { guestCheckout: true } })
   }
 
   return (
@@ -87,80 +130,78 @@ export function Login() {
             <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
           </Link>
         </div>
-        <div className="mt-10">
-          <h1 className="text-4xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            {mode === 'login' ? 'Sign in to your account to continue.' : 'Create an account to get started.'}
-          </p>
-        </div>
-        <form className="mt-8 space-y-5" onSubmit={submit}>
-          {mode === 'signup' && (
-            <label className="block text-sm font-bold text-green-dark">Name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} required /></label>
-          )}
-          <label className="block text-sm font-bold text-green-dark">Email<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
-          <div>
-            <div className="flex items-center justify-between gap-4 text-sm font-bold text-green-dark">
-              <label htmlFor="login-password">Password</label>
-              {mode === 'login' && <Link className="text-xs text-green hover:text-orange" to="/forgot-password">Forgot Password?</Link>}
+        {view === 'gateway' ? (
+          <>
+            <div className="mt-10">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Your account, your choice</p>
+              <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em] text-green-dark">How would you like to continue?</h1>
+              <p className="mt-3 text-sm leading-6 text-muted">Sign in for account features or continue as a guest to place your order.</p>
             </div>
-            <div className="relative mt-2">
-              <input id="login-password" className="w-full rounded-xl border border-line px-4 py-3 pr-12 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />
-              <button
-                className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center rounded-lg p-1.5 text-muted transition-colors hover:bg-sage/40 hover:text-green-dark focus:outline-none focus:ring-2 focus:ring-green/20"
-                type="button"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                aria-pressed={showPassword}
-                onClick={() => setShowPassword((current) => !current)}
-              >
-                {showPassword ? <EyeOffIcon size={19} /> : <EyeIcon size={19} />}
-              </button>
+            <div className="mt-8 space-y-3">
+              <Button fullWidth size="lg" type="button" onClick={() => { setView('email'); setError(null) }}>
+                Continue with Email <ArrowRight size={17} />
+              </Button>
+              <Button fullWidth variant="outline" size="lg" type="button" disabled={isSubmitting} onClick={continueWithGoogle}>
+                <img className="size-5" src="/branding/google-icon.svg" alt="" aria-hidden="true" />
+                Continue with Google
+              </Button>
+              <Button fullWidth variant="outline" size="lg" type="button" onClick={continueAsGuest}>
+                Continue as Guest <ArrowRight size={17} />
+              </Button>
             </div>
-            <span className="mt-1 block text-xs font-normal text-muted">At least 6 characters.</span>
-          </div>
-          {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
-          <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (mode === 'login' ? 'Signing in…' : 'Creating…') : mode === 'login' ? 'Login' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
-          </Button>
-        </form>
-        <div className="mt-6">
-          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-            <span className="h-px flex-1 bg-line" />
-            <span>or</span>
-            <span className="h-px flex-1 bg-line" />
-          </div>
-          <Button
-            className="mt-5 w-full"
-            variant="outline"
-            size="lg"
-            type="button"
-            disabled={isSubmitting}
-            onClick={continueWithGoogle}
-          >
-            <img className="size-5" src="/branding/google-icon.svg" alt="" aria-hidden="true" />
-            Continue with Google
-          </Button>
-        </div>
-        {mode === 'login' && error?.toLowerCase().includes('verify your email') && (
-          <Button
-            className="mt-4 w-full"
-            variant="outline"
-            size="sm"
-            type="button"
-            onClick={() => navigate('/verify-email', { state: { email: email.trim().toLowerCase() } })}
-          >
-            Verify your email
-          </Button>
+            {error && <p className="mt-5 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
+          </>
+        ) : (
+          <>
+            <button className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={() => { setView('gateway'); setError(null) }}>
+              ← Back
+            </button>
+            <div className="mt-7">
+              <h1 className="text-4xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+              <p className="mt-3 text-sm leading-6 text-muted">
+                {mode === 'login' ? 'Sign in to your account to continue.' : 'Create an account to get started.'}
+              </p>
+            </div>
+            <form className="mt-8 space-y-5" onSubmit={submit}>
+              {mode === 'signup' && (
+                <label className="block text-sm font-bold text-green-dark">Name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} required /></label>
+              )}
+              <label className="block text-sm font-bold text-green-dark">Email<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+              <div>
+                <div className="flex items-center justify-between gap-4 text-sm font-bold text-green-dark">
+                  <label htmlFor="login-password">Password</label>
+                  {mode === 'login' && <Link className="text-xs text-green hover:text-orange" to="/forgot-password">Forgot Password?</Link>}
+                </div>
+                <div className="relative mt-2">
+                  <input id="login-password" className="w-full rounded-xl border border-line px-4 py-3 pr-12 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />
+                  <button
+                    className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center rounded-lg p-1.5 text-muted transition-colors hover:bg-sage/40 hover:text-green-dark focus:outline-none focus:ring-2 focus:ring-green/20"
+                    type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((current) => !current)}
+                  >
+                    {showPassword ? <EyeOffIcon size={19} /> : <EyeIcon size={19} />}
+                  </button>
+                </div>
+                <span className="mt-1 block text-xs font-normal text-muted">At least 6 characters.</span>
+              </div>
+              {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
+              <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (mode === 'login' ? 'Signing in…' : 'Creating…') : mode === 'login' ? 'Sign in' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
+              </Button>
+            </form>
+            {mode === 'login' && error?.toLowerCase().includes('verify your email') && (
+              <Button className="mt-4 w-full" variant="outline" size="sm" type="button" onClick={() => navigate('/verify-email', { state: { email: email.trim().toLowerCase() } })}>
+                Verify your email
+              </Button>
+            )}
+            <Button className="mt-7 w-full text-center" variant="text" size="sm" type="button" onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}>
+              {mode === 'login' ? 'Don’t have an account? Sign up' : 'Already have an account? Sign in'}
+            </Button>
+          </>
         )}
-        <Button
-          className="mt-7 w-full text-center"
-          variant="text"
-          size="sm"
-          type="button"
-          onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}
-        >
-          {mode === 'login' ? 'Don’t have an account? Sign up' : 'Already have an account? Login'}
-        </Button>
-        <Link className="mt-4 block text-center text-xs font-bold text-muted hover:text-green" to="/">Return to storefront</Link>
+        <Link className="mt-7 block text-center text-xs font-bold text-muted hover:text-green" to="/">Return to storefront</Link>
       </section>
     </main>
   )

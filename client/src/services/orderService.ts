@@ -80,6 +80,8 @@ interface CustomerOrderResponse {
 
 export async function checkoutCustomerCart(input: {
   checkoutKey: string
+  guestAccessToken?: string
+  cartItems?: Array<{ productId: string; quantity: number }>
   customerName: string
   phone: string
   fulfillmentMethod: FulfillmentMethod
@@ -95,6 +97,13 @@ export async function checkoutCustomerCart(input: {
       'X-Checkout-Request': '1',
     },
     body: JSON.stringify(input),
+  })
+  return response.data.order
+}
+
+export async function getGuestOrder(orderNumber: string, accessToken: string): Promise<CreatedOrder> {
+  const response = await request<CustomerOrderResponse>(`/orders/guest/${encodeURIComponent(orderNumber)}`, {
+    headers: { 'X-Guest-Access-Token': accessToken },
   })
   return response.data.order
 }

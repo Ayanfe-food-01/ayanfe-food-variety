@@ -39,8 +39,12 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
 
   const openAuth = useCallback((action?: AuthAction) => {
     afterAuthRef.current = action
-    navigate('/login', { state: { from: location.pathname } })
-  }, [location.pathname, navigate])
+    navigate('/login', {
+      state: {
+        from: `${location.pathname}${location.search}${location.hash}`,
+      },
+    })
+  }, [location.hash, location.pathname, location.search, navigate])
 
   const completeAuthentication = useCallback((authenticatedUser: AuthenticatedUser) => {
     setUser(authenticatedUser.role === 'CUSTOMER' ? authenticatedUser : null)

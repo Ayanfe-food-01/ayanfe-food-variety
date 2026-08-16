@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getBankDetails, type BankDetails } from '../services/paymentService'
-import { cancelCustomerOrder, getCustomerOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
+import { cancelCustomerOrder, getCustomerOrder, getGuestOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
 import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
 import { SelectField } from '../components/ui/SelectField'
 import { formatDate } from '../utils/dateFormat'
 import { lockBodyScroll } from '../utils/browserCompatibility'
+import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -100,6 +101,7 @@ function OrderTracker({ order }: { order: CreatedOrder }) {
 
 export function CustomerOrderDetails() {
   const { orderNumber } = useParams()
+  const location = useLocation()
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [bank, setBank] = useState<BankDetails | null>(null)
@@ -109,10 +111,20 @@ export function CustomerOrderDetails() {
   const [otherCancellationReason, setOtherCancellationReason] = useState('')
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
+  const accessFromUrl = new URLSearchParams(location.search).get('access')
+  const guestAccessToken = orderNumber
+    ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
+    : null
+  const isGuestOrder = !user && Boolean(guestAccessToken)
 
   useEffect(() => {
-    if (isAuthLoading || !user || !orderNumber) return
-    getCustomerOrder(orderNumber)
+    if (isAuthLoading || !orderNumber) return
+    if (!user && !guestAccessToken) return
+    if (!user && guestAccessToken) saveGuestOrderAccessToken(orderNumber, guestAccessToken)
+    const loadOrder = user
+      ? getCustomerOrder(orderNumber)
+      : getGuestOrder(orderNumber, guestAccessToken!)
+    loadOrder
       .then(setOrder)
       .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Order could not be loaded.'))
     getBankDetails()
@@ -120,7 +132,7 @@ export function CustomerOrderDetails() {
       .catch(() => {
         // Bank settings may be temporarily unavailable; the order remains viewable.
       })
-  }, [isAuthLoading, orderNumber, user])
+  }, [guestAccessToken, isAuthLoading, orderNumber, user])
 
   useEffect(() => {
     if (!isCancelDialogOpen) return
@@ -161,11 +173,12 @@ export function CustomerOrderDetails() {
     <>
       <Navbar />
       <main className="container py-12 sm:py-16 lg:py-24">
-        {!isAuthLoading && !user ? (
+        {!isAuthLoading && !user && !guestAccessToken ? (
           <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
-            <h1 className="text-3xl font-bold text-green-dark">Sign in to view this order</h1>
+            <h1 className="text-3xl font-bold text-green-dark">Choose how to continue</h1>
+            <p className="mt-3 text-sm leading-6 text-muted">Sign in to view account orders, or use the secure guest order link from checkout.</p>
             <button className="mt-6 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={() => openAuth()}>
-              Sign in or create an account
+              Continue to sign in
             </button>
           </div>
         ) : error ? (
@@ -174,7 +187,7 @@ export function CustomerOrderDetails() {
           <p className="rounded-2xl bg-white p-8 text-center text-sm text-muted">Loading order…</p>
         ) : (
           <div className="mx-auto max-w-3xl">
-            <Link className="text-sm font-bold text-green hover:text-orange" to="/orders">← Back to orders</Link>
+             <Link className="text-sm font-bold text-green hover:text-orange" to={isGuestOrder ? '/shop' : '/orders'}>← {isGuestOrder ? 'Continue shopping' : 'Back to orders'}</Link>
             <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Order details</p>
@@ -189,7 +202,7 @@ export function CustomerOrderDetails() {
                 <p className="mt-1 text-xs text-muted">{paymentStatusCopy[order.paymentStatus].description}</p>
                 <p className="mt-3 text-muted">Order status</p>
                 <strong className="block text-green-dark">{formatOrderStatus(order.orderStatus)}</strong>
-                {canCustomerCancelOrder(order.orderStatus) && (
+                 {!isGuestOrder && canCustomerCancelOrder(order.orderStatus) && (
                   <div className="mt-4 flex justify-start sm:justify-end">
                     <button
                       className="inline-flex items-center rounded-full border border-orange/40 px-4 py-2 text-sm font-bold text-orange transition-colors hover:bg-orange/10"

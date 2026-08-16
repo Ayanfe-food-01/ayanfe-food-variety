@@ -34,6 +34,31 @@ const optionalText = (value: unknown, field: string, maxLength: number): string 
   return normalizedValue || undefined
 }
 
+const validateGuestAccessToken = (value: unknown): string | undefined => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+    throw new HttpError(400, 'Guest checkout access is invalid.')
+  }
+  return value.trim()
+}
+
+const validateCartItems = (value: unknown): CheckoutInput['cartItems'] | undefined => {
+  if (value === undefined || value === null) return undefined
+  if (!Array.isArray(value) || value.length === 0 || value.length > 100) {
+    throw new HttpError(400, 'Guest cart items are invalid.')
+  }
+
+  return value.map((item) => {
+    if (!isRecord(item) || typeof item.productId !== 'string' || !UUID_PATTERN.test(item.productId.trim())) {
+      throw new HttpError(400, 'Guest cart items are invalid.')
+    }
+    if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) {
+      throw new HttpError(400, 'Guest cart quantities are invalid.')
+    }
+    return { productId: item.productId.trim(), quantity: item.quantity as number }
+  })
+}
+
 export function validateOrderId(value: string | undefined): string {
   if (!value || !UUID_PATTERN.test(value.trim())) {
     throw new HttpError(400, 'order id must be a valid order ID')
@@ -50,6 +75,8 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
   }
   return {
     checkoutKey: checkoutKey.trim(),
+    guestAccessToken: validateGuestAccessToken(body.guestAccessToken),
+    cartItems: validateCartItems(body.cartItems),
     customerName: requiredText(body.customerName, 'customerName', 180),
     phone: requiredText(body.phone, 'phone', 40),
     fulfillmentMethod: body.fulfillmentMethod === FulfillmentMethod.PICKUP || body.fulfillmentMethod === FulfillmentMethod.DELIVERY

@@ -1,7 +1,7 @@
 import { ArrowUpRight, MailIcon, PhoneIcon, TruckIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
-import { BreadcrumbBar } from '../components/ui/Breadcrumb'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { useStoreSettings } from '../hooks/useStoreSettings'
 import { Seo } from '../seo/Seo'
 import { CONTACT_DESCRIPTION, CONTACT_TITLE } from '../seo/config'
@@ -21,10 +21,10 @@ export function Contact() {
     <>
       <Seo title={CONTACT_TITLE} description={CONTACT_DESCRIPTION} canonicalPath="/contact" />
       <Navbar />
-      <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Contact' }]} />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-10 sm:py-14 lg:py-16">
+            <Breadcrumb className="mb-7" items={[{ label: 'Home', href: '/' }, { label: 'Contact' }]} />
             <div className="max-w-2xl">
               <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
                 <span className="inline-block size-2 rounded-full bg-orange" />

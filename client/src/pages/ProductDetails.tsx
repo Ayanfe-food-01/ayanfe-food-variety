@@ -6,7 +6,7 @@ import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { ProductPrice } from '../components/products/ProductPrice'
 import { WishlistButton } from '../components/products/WishlistButton'
-import { BreadcrumbBar } from '../components/ui/Breadcrumb'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
 import { useToast } from '../components/ui/Toast'
 import { useCart } from '../hooks/useCart'
@@ -157,8 +157,11 @@ export function ProductDetails() {
           canonicalPath={productPath}
         />
         <Navbar />
-        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product' }]} />
         <main className="container py-16 sm:py-24" aria-label="Loading product details">
+          <Breadcrumb
+            className="mb-8"
+            items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product' }]}
+          />
           <div className="grid animate-pulse items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div className="aspect-square rounded-3xl bg-sage" />
             <div>
@@ -185,9 +188,13 @@ export function ProductDetails() {
           noIndex
         />
         <Navbar />
-        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product unavailable' }]} />
-        <main className="container page-state-section flex items-center justify-center py-16">
-          <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
+        <main className="container page-state-section py-16">
+          <div className="mx-auto w-full max-w-xl">
+            <Breadcrumb
+              className="mb-8"
+              items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product unavailable' }]}
+            />
+            <section className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Something went wrong</p>
             <h1 className="m-0 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">
               We couldn’t load this product
@@ -202,7 +209,8 @@ export function ProductDetails() {
             >
               Try again <ArrowRight size={16} />
             </button>
-          </section>
+            </section>
+          </div>
         </main>
         <Footer />
       </>
@@ -219,9 +227,13 @@ export function ProductDetails() {
           noIndex
         />
         <Navbar />
-        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product not found' }]} />
-        <main className="container page-state-section flex items-center justify-center py-16">
-          <section className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10" aria-labelledby="not-found-heading">
+        <main className="container page-state-section py-16">
+          <div className="mx-auto w-full max-w-xl">
+            <Breadcrumb
+              className="mb-8"
+              items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: 'Product not found' }]}
+            />
+            <section className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10" aria-labelledby="not-found-heading">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Sorry, we couldn’t find that</p>
             <h1 id="not-found-heading" className="m-0 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">
               Product not found
@@ -235,7 +247,8 @@ export function ProductDetails() {
             >
               Back to shop <ArrowRight size={16} />
             </Link>
-          </section>
+            </section>
+          </div>
         </main>
         <Footer />
       </>
@@ -262,13 +275,16 @@ export function ProductDetails() {
         ]}
       />
       <Navbar />
-        <BreadcrumbBar items={[
-          { label: 'Home', href: '/' },
-          { label: 'Shop', href: '/shop' },
-          { label: product.name },
-        ]} />
       <main>
         <section className="container py-12 sm:py-16 lg:py-24">
+          <Breadcrumb
+            className="mb-8"
+            items={[
+              { label: 'Home', href: '/' },
+              { label: 'Shop', href: '/shop' },
+              { label: product.name },
+            ]}
+          />
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <figure className="m-0 overflow-hidden rounded-3xl border border-line bg-sage shadow-sm">
               <div className="aspect-square overflow-hidden">

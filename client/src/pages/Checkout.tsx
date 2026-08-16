@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
-import { BreadcrumbBar } from '../components/ui/Breadcrumb'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { ProductPrice } from '../components/products/ProductPrice'
 import {
   ContactDetailsSection,
@@ -71,7 +71,12 @@ const readCheckoutDraft = (): CheckoutFormData => {
 function EmptyCheckout() {
   return (
     <section className="container page-state-section flex items-center justify-center py-16">
-      <div className="w-full max-w-xl rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
+      <div className="w-full max-w-xl">
+        <Breadcrumb
+          className="mb-8"
+          items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]}
+        />
+        <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm sm:px-10">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green">
           <CartIcon size={28} />
         </div>
@@ -86,6 +91,7 @@ function EmptyCheckout() {
         >
           Continue shopping <ArrowRight size={16} />
         </Link>
+        </div>
       </div>
     </section>
   )
@@ -285,7 +291,6 @@ export function Checkout() {
     return (
       <>
         <Navbar />
-        <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
         <main><EmptyCheckout /></main>
         <Footer />
       </>
@@ -295,10 +300,13 @@ export function Checkout() {
   return (
     <>
       <Navbar />
-      <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]} />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
            <div className="container py-8 sm:py-10">
+             <Breadcrumb
+               className="mb-6"
+               items={[{ label: 'Home', href: '/' }, { label: 'Cart', href: '/cart' }, { label: 'Checkout' }]}
+             />
              <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
               <span className="inline-block size-2 rounded-full bg-orange" />
               Almost there

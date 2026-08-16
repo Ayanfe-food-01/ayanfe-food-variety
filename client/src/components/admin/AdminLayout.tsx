@@ -28,9 +28,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-cream lg:flex">
+    <div className="min-h-screen bg-cream">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={() => void logout()} />
-      <div className="admin-main min-w-0 flex-1">
+      <div className="admin-main min-w-0 lg:pl-72">
         <AdminHeader
           isLoggingOut={isLoggingOut}
           onLogout={() => void logout()}

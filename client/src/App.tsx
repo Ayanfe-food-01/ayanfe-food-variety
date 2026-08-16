@@ -18,6 +18,10 @@ import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Settings } from './pages/Admin/Settings'
+import { StoreSettings } from './pages/Admin/StoreSettings'
+import { PaymentSettings } from './pages/Admin/PaymentSettings'
+import { ContactSettings } from './pages/Admin/ContactSettings'
+import { PasswordSettings } from './pages/Admin/PasswordSettings'
 import { Login } from './pages/Login'
 import { VerifyEmail } from './pages/VerifyEmail'
 import { ForgotPassword } from './pages/ForgotPassword'
@@ -148,6 +152,10 @@ function RouteTransition() {
           <Route path="/admin/banners/:id/edit" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
           <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
           <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
+          <Route path="/admin/settings/store" element={<RequireAdmin><StoreSettings /></RequireAdmin>} />
+          <Route path="/admin/settings/payment" element={<RequireAdmin><PaymentSettings /></RequireAdmin>} />
+          <Route path="/admin/settings/contact" element={<RequireAdmin><ContactSettings /></RequireAdmin>} />
+          <Route path="/admin/settings/password" element={<RequireAdmin><PasswordSettings /></RequireAdmin>} />
         </Routes>
       </div>
     </>

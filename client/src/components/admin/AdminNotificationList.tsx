@@ -20,7 +20,9 @@ export function AdminNotificationList({
   if (notifications.length === 0) {
     return (
       <div className={`text-center ${compact ? 'px-5 py-10' : 'rounded-2xl border border-line bg-white px-5 py-16 shadow-sm'}`}>
-        <BellIcon className="mx-auto text-green-dark" size={compact ? 24 : 30} />
+        <span className="flex justify-center text-green-dark" aria-hidden="true">
+          <BellIcon size={compact ? 24 : 30} />
+        </span>
         <p className="mt-3 text-sm font-bold text-green-dark">{emptyTitle}</p>
         <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted">{emptyDescription}</p>
       </div>

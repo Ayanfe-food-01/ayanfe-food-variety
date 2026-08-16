@@ -46,7 +46,7 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-cream/90 px-4 backdrop-blur-xl sm:px-8 lg:px-10">
-      <div className="relative flex min-h-[80px] items-center gap-3">
+      <div className="flex min-h-[80px] items-center gap-3">
         <button
           className="rounded-xl border border-line bg-white p-2 text-green-dark lg:hidden"
           type="button"
@@ -78,9 +78,7 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
           >
             <MoonIcon size={18} />
           </button>
-          <div className="relative max-sm:absolute max-sm:left-1/2 max-sm:top-1/2 max-sm:-translate-x-1/2 max-sm:-translate-y-1/2">
-            <AdminNotifications />
-          </div>
+          <AdminNotifications />
           <div className="relative" ref={profileMenuRef}>
             <button
               className="flex min-h-10 items-center gap-2 rounded-full border border-line bg-white px-1.5 py-1.5 text-left text-green-dark transition-colors hover:border-green/30 hover:bg-sage/30 disabled:cursor-wait disabled:opacity-60"

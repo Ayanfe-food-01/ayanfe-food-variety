@@ -42,9 +42,12 @@ export function AdminNotifications() {
   }, [])
 
   useEffect(() => {
-    void loadNotifications()
+    const initialRefreshId = window.setTimeout(() => void loadNotifications(), 0)
     const intervalId = window.setInterval(() => void loadNotifications(), pollingIntervalMs)
-    return () => window.clearInterval(intervalId)
+    return () => {
+      window.clearTimeout(initialRefreshId)
+      window.clearInterval(intervalId)
+    }
   }, [loadNotifications])
 
   useEffect(() => {

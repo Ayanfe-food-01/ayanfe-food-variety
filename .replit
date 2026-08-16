@@ -66,6 +66,6 @@ externalPort = 8000
 ADMIN_INITIAL_NAME = "Ayanfe-food-variety"
 ADMIN_INITIAL_EMAIL = "ayanfefoodvariety01@gmail.com"
 PUBLIC_APP_URL = "https://www.ayanfefoodvariety.com.ng"
-CORS_ORIGINS = "https://51257a69-73e7-4d73-8084-992b659780f1-00-1f5abejog383q.kirk.replit.dev"
+CORS_ORIGINS = "https://c9b0584a-1e4b-462a-bd68-0acd29cfc714-00-13v2hynzxpat5.worf.replit.dev"
 
 [userenv.development]

@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
+import { ProductFilters } from '../components/products/ProductFilters'
 import { ProductGrid } from '../components/products/ProductGrid'
-import { BreadcrumbBar } from '../components/ui/Breadcrumb'
-import { SelectField } from '../components/ui/SelectField'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { getCategories } from '../services/categoryService'
 import { ApiError } from '../services/api'
 import { getNewArrivals, getProducts, type ProductPage } from '../services/productService'
 import type { Category } from '../types/category'
 import { Seo } from '../seo/Seo'
-import { ProductSearchAutocomplete } from '../components/products/ProductSearchAutocomplete'
 import {
   getAbsoluteUrl,
   getBreadcrumbSchema,
@@ -37,39 +36,17 @@ const readPage = (value: string | null) => {
 
 export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const navigate = useNavigate()
   const searchValue = searchParams.get('search') ?? ''
   const categoryValue = searchParams.get('category') ?? ''
   const sortValue = newArrivalsOnly ? 'newest' : searchParams.get('sort') ?? 'relevance'
   const pageValue = readPage(searchParams.get('page'))
-  const queryString = searchParams.toString()
 
-  const [searchInput, setSearchInput] = useState(searchValue)
   const [categories, setCategories] = useState<Category[]>([])
   const [result, setResult] = useState<ProductPage | null>(null)
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true)
   const [isProductsLoading, setIsProductsLoading] = useState(true)
   const [categoriesError, setCategoriesError] = useState(false)
   const [productsError, setProductsError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setSearchInput(searchValue), 0)
-    return () => window.clearTimeout(timeoutId)
-  }, [searchValue])
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      const nextParams = new URLSearchParams(window.location.search)
-      const trimmedSearch = searchInput.trim()
-      if ((nextParams.get('search') ?? '') === trimmedSearch) return
-      if (trimmedSearch) nextParams.set('search', trimmedSearch)
-      else nextParams.delete('search')
-      nextParams.delete('page')
-      if (nextParams.toString() !== queryString) setSearchParams(nextParams, { replace: true })
-    }, 350)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [queryString, searchInput, setSearchParams])
 
   const loadCategories = useCallback(() => {
     setIsCategoriesLoading(true)
@@ -134,13 +111,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
     setSearchParams(nextParams)
   }
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    updateParams({ search: searchInput.trim() || undefined, page: undefined })
-  }
-
   const clearFilters = () => {
-    setSearchInput('')
     setSearchParams({})
   }
 
@@ -196,10 +167,13 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
         jsonLd={collectionJsonLd}
       />
       <Navbar />
-      <BreadcrumbBar items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]} />
       <main>
         <section className="border-b border-line/70 bg-sage/35">
           <div className="container py-8 sm:py-10 lg:py-12">
+            <Breadcrumb
+              className="mb-6"
+              items={[{ label: 'Home', href: '/' }, { label: newArrivalsOnly ? 'New Arrivals' : 'Shop' }]}
+            />
             <div className="max-w-2xl">
               <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
                 <span className="inline-block size-2 rounded-full bg-orange" />
@@ -223,52 +197,24 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
           <div className="mb-8">
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Browse our range</p>
-              <h2 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
+               <h2 id="collection-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
                  {selectedCategory?.name ?? (newArrivalsOnly ? 'Latest additions' : 'Shop by category')}
-              </h2>
+               </h2>
             </div>
           </div>
 
-          <div className="shop-filters mb-10 rounded-2xl border border-line bg-white p-3 sm:p-4">
-            <ProductSearchAutocomplete
-              className="shop-filter-search"
-              value={searchInput}
-              onChange={setSearchInput}
-              onSubmit={submitSearch}
-              onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
-              inputId="product-search"
-              placeholder="Search products or ingredients"
-              ariaLabel="Search products"
-            />
-            <div className="shop-filter-controls">
-              <SelectField
-                ariaLabel="Filter by category"
-                className="filter-select-wrap"
-                options={[
-                  { value: '', label: isCategoriesLoading ? 'Loading…' : 'All categories' },
-                  ...categories.map((category) => ({ value: category.slug, label: category.name })),
-                ]}
-                onChange={(value) => updateParams({ category: value || undefined, page: undefined })}
-                value={categoryValue}
-                variant="filter"
-                disabled={isCategoriesLoading}
-              />
-              {!newArrivalsOnly ? (
-                <SelectField
-                  ariaLabel="Sort products"
-                  className="filter-select-wrap"
-                  options={SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
-                  onChange={(value) => updateParams({ sort: value === 'relevance' ? undefined : value, page: undefined })}
-                  value={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
-                  variant="filter"
-                />
-              ) : (
-                <span className="filter-pill">
-                   <span className="ui-truncate">Newest first</span>
-                </span>
-              )}
-            </div>
-          </div>
+           <div className="mb-10">
+             <ProductFilters
+               categories={categories}
+               categoryValue={categoryValue}
+               isCategoriesLoading={isCategoriesLoading}
+               sortOptions={SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+               sortValue={SORT_OPTIONS.some((option) => option.value === sortValue) ? sortValue : 'relevance'}
+               sortDisabled={newArrivalsOnly}
+               onCategoryChange={(value) => updateParams({ category: value || undefined, page: undefined })}
+               onSortChange={(value) => updateParams({ sort: value === 'relevance' ? undefined : value, page: undefined })}
+             />
+           </div>
 
           {categoriesError && (
             <div className="mb-6 rounded-2xl border border-orange/30 bg-orange/10 px-5 py-4 text-sm text-green-dark" role="alert">

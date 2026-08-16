@@ -12,7 +12,7 @@ interface SelectFieldProps {
   options: readonly SelectOption[]
   onChange: (value: string) => void
   className?: string
-  variant?: 'default' | 'filter'
+  variant?: 'default' | 'filter' | 'compact'
   id?: string
   name?: string
   ariaLabel?: string
@@ -81,6 +81,10 @@ export function SelectField({
        const spaceBelow = viewportHeight - rect.bottom - viewportPadding
       const spaceAbove = rect.top - viewportPadding
       const openBelow = spaceBelow >= Math.min(180, preferredMaxHeight) || spaceBelow >= spaceAbove
+      const menuWidth = Math.min(
+        Math.max(rect.width, variant === 'compact' ? 184 : rect.width),
+        viewportWidth - viewportPadding * 2,
+      )
       const maxHeight = Math.max(
         96,
         Math.min(preferredMaxHeight, openBelow ? spaceBelow : spaceAbove),
@@ -90,14 +94,14 @@ export function SelectField({
         : Math.max(viewportPadding, rect.top - maxHeight - gap)
       const left = Math.min(
         Math.max(viewportPadding, rect.left),
-         Math.max(viewportPadding, viewportWidth - rect.width - viewportPadding),
+        Math.max(viewportPadding, viewportWidth - menuWidth - viewportPadding),
       )
 
       setMenuStyle({
         left,
         maxHeight,
         top,
-        width: Math.min(rect.width, window.innerWidth - viewportPadding * 2),
+        width: menuWidth,
       })
     }
 
@@ -167,7 +171,7 @@ export function SelectField({
   }
 
   return (
-    <div className={`select-field ${variant === 'filter' ? 'select-field-filter' : ''} ${className}`} ref={wrapperRef}>
+      <div className={`select-field ${variant === 'filter' ? 'select-field-filter' : ''} ${variant === 'compact' ? 'select-field-compact' : ''} ${className}`} ref={wrapperRef}>
       {name && <input type="hidden" name={name} value={value} />}
       <button
         aria-activedescendant={isOpen && highlightedIndex >= 0 ? `${listboxId}-option-${highlightedIndex}` : undefined}
@@ -193,7 +197,7 @@ export function SelectField({
       </button>
       {isOpen && options.length > 0 && menuStyle && createPortal(
         <div
-          className="select-field-menu"
+          className={`select-field-menu ${variant === 'compact' ? 'select-field-menu-compact' : ''}`}
           id={listboxId}
           ref={menuRef}
           role="listbox"

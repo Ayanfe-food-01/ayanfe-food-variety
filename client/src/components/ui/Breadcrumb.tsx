@@ -32,17 +32,3 @@ export function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
     </nav>
   )
 }
-
-interface BreadcrumbBarProps {
-  items: BreadcrumbItem[]
-}
-
-export function BreadcrumbBar({ items }: BreadcrumbBarProps) {
-  return (
-    <div className="border-b border-line/70 bg-white">
-      <div className="container py-4 sm:py-5">
-        <Breadcrumb items={items} />
-      </div>
-    </div>
-  )
-}

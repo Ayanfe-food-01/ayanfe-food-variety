@@ -28,23 +28,25 @@ export function ProductSearchAutocomplete({
 }: ProductSearchAutocompleteProps) {
   const listboxId = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const [isDismissed, setIsDismissed] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
   const { suggestions, isLoading, hasError } = useProductSearchAutocomplete(value)
   const query = value.trim()
   const canShowSuggestions = query.length >= 2
 
   useEffect(() => {
     setActiveIndex(-1)
-    if (isDismissed) return
-    setIsOpen(canShowSuggestions)
-  }, [canShowSuggestions, isDismissed, query])
+    setIsOpen(isFocused && canShowSuggestions && !isDismissed)
+  }, [canShowSuggestions, isDismissed, isFocused, query])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setIsFocused(false)
       }
     }
 
@@ -91,6 +93,8 @@ export function ProductSearchAutocomplete({
     setIsDismissed(true)
     setIsOpen(false)
     setActiveIndex(-1)
+    setIsFocused(false)
+    inputRef.current?.blur()
     onSubmit(event)
   }
 
@@ -100,13 +104,20 @@ export function ProductSearchAutocomplete({
         <SearchIcon size={19} />
         <input
           id={inputId}
+          ref={inputRef}
           value={value}
           onChange={(event) => handleChange(event.target.value)}
           onFocus={() => {
+            setIsFocused(true)
             if (canShowSuggestions) {
               setIsDismissed(false)
               setIsOpen(true)
             }
+          }}
+          onBlur={() => {
+            setIsFocused(false)
+            setIsOpen(false)
+            setActiveIndex(-1)
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
@@ -134,7 +145,7 @@ export function ProductSearchAutocomplete({
                 type="button"
                 role="option"
                 aria-selected={activeIndex === index}
-                onMouseDown={(event) => event.preventDefault()}
+                onPointerDown={(event) => event.preventDefault()}
                 onClick={() => selectProduct(product)}
               >
                  <span className="product-search-option-name ui-truncate" title={product.name}>{product.name}</span>

@@ -185,9 +185,10 @@
   align-items: center;
   gap: 7px;
   overflow-x: auto;
-  padding: 1px 1px 8px;
+  padding: 3px 1px 15px;
   scrollbar-color: var(--color-sage) transparent;
   scrollbar-width: thin;
+  scrollbar-gutter: stable;
   overscroll-behavior-inline: contain;
   -webkit-overflow-scrolling: touch;
 }

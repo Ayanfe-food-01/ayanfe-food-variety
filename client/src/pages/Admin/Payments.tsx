@@ -120,27 +120,31 @@ export function Payments() {
       </section>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Payment filters">
-        <form className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_auto_repeat(4,minmax(130px,auto))]" onSubmit={submitSearch}>
-          <label className="text-xs font-bold text-green-dark">
-            Search payments
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Order, customer, email, or reference" />
-          </label>
-          <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark lg:self-end" type="submit">Search</button>
-          <label className="text-xs font-bold text-green-dark">Status
-            <SelectField className="mt-2 w-full" options={[{ value: 'PENDING', label: 'Pending first' }, { value: '', label: 'All statuses' }, { value: 'VERIFIED', label: 'Confirmed' }, { value: 'REJECTED', label: 'Rejected' }]} onChange={(value) => updateFilter('status', value)} value={query.status ?? ''} />
-          </label>
-          <label className="text-xs font-bold text-green-dark">Method
-            <SelectField className="mt-2 w-full" options={[{ value: '', label: 'All methods' }, { value: 'BANK_TRANSFER', label: 'Bank transfer' }]} onChange={(value) => updateFilter('paymentMethod', value)} value={query.paymentMethod ?? ''} />
-          </label>
-          <label className="text-xs font-bold text-green-dark">From
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
-          </label>
-          <label className="text-xs font-bold text-green-dark">To
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
-          </label>
-          <label className="text-xs font-bold text-green-dark">Sort
-            <SelectField className="mt-2 w-full" options={[{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }]} onChange={(value) => updateFilter('sort', value)} value={query.sort ?? 'newest'} />
-          </label>
+        <form className="space-y-4" onSubmit={submitSearch}>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <label className="min-w-0 text-xs font-bold text-green-dark">
+              Search payments
+              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Order, customer, email, or reference" />
+            </label>
+            <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark sm:self-end" type="submit">Search</button>
+          </div>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <label className="min-w-0 text-xs font-bold text-green-dark">Status
+              <SelectField className="mt-2 w-full min-w-0" options={[{ value: 'PENDING', label: 'Pending first' }, { value: '', label: 'All statuses' }, { value: 'VERIFIED', label: 'Confirmed' }, { value: 'REJECTED', label: 'Rejected' }]} onChange={(value) => updateFilter('status', value)} value={query.status ?? ''} />
+            </label>
+            <label className="min-w-0 text-xs font-bold text-green-dark">Method
+              <SelectField className="mt-2 w-full min-w-0" options={[{ value: '', label: 'All methods' }, { value: 'BANK_TRANSFER', label: 'Bank transfer' }]} onChange={(value) => updateFilter('paymentMethod', value)} value={query.paymentMethod ?? ''} />
+            </label>
+            <label className="min-w-0 text-xs font-bold text-green-dark">From
+              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
+            </label>
+            <label className="min-w-0 text-xs font-bold text-green-dark">To
+              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
+            </label>
+            <label className="min-w-0 text-xs font-bold text-green-dark">Sort
+              <SelectField className="mt-2 w-full min-w-0" options={[{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }]} onChange={(value) => updateFilter('sort', value)} value={query.sort ?? 'newest'} />
+            </label>
+          </div>
         </form>
       </section>
 

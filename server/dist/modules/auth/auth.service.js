@@ -88,17 +88,25 @@ const getEmailDeliveryError = (error) => {
     }
     return new HttpError(503, 'We could not send a verification email. Please try again later.');
 };
-const readCookie = (cookieHeader, name) => {
+export const readAuthCookie = (cookieHeader, name) => {
     if (!cookieHeader)
         return null;
     for (const part of cookieHeader.split(';')) {
         const [key, ...valueParts] = part.trim().split('=');
-        if (key === name)
-            return decodeURIComponent(valueParts.join('='));
+        if (key !== name)
+            continue;
+        const value = valueParts.join('=');
+        try {
+            return decodeURIComponent(value);
+        }
+        catch {
+            // A malformed cookie must behave like a missing session, not crash the request.
+            return null;
+        }
     }
     return null;
 };
-export const getSessionToken = (cookieHeader) => readCookie(cookieHeader, SESSION_COOKIE_NAME);
+export const getSessionToken = (cookieHeader) => readAuthCookie(cookieHeader, SESSION_COOKIE_NAME);
 export async function login(input) {
     const user = await prisma.user.findUnique({ where: { email: input.email } });
     if (!user || !user.passwordHash || !(await verifyPassword(input.password, user.passwordHash))) {
@@ -460,7 +468,7 @@ export async function revokeSession(token) {
         data: { revokedAt: new Date() },
     });
 }
-export const getCustomerSessionToken = (cookieHeader) => readCookie(cookieHeader, CUSTOMER_SESSION_COOKIE_NAME);
+export const getCustomerSessionToken = (cookieHeader) => readAuthCookie(cookieHeader, CUSTOMER_SESSION_COOKIE_NAME);
 export async function getAuthenticatedCustomer(token) {
     if (!token)
         return null;

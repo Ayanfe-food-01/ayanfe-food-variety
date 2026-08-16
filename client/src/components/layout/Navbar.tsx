@@ -7,6 +7,7 @@ import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete'
 import { useWishlist } from '../../hooks/useWishlist'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
+import { DEFAULT_LOGO_PATH } from '../../seo/config'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -29,6 +30,7 @@ export function Navbar() {
   const { user, logout } = useCustomerAuth()
   const { count: wishlistCount } = useWishlist()
   const { settings } = useStoreSettings()
+  const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
   const announcementMessages = (settings?.announcementText ?? '')
     .split(/\r?\n|\|/)
     .map((message) => message.trim())
@@ -104,7 +106,7 @@ export function Navbar() {
           <MenuIcon size={22} />
         </button>
         <Link className="brand-mark" to="/" aria-label="Ayanfe Food Variety home">
-          <img src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety" />
+           <img src={logoUrl} alt="Ayanfe Food Variety" />
         </Link>
         <ProductSearchAutocomplete
           value={search}
@@ -132,7 +134,7 @@ export function Navbar() {
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
       <aside className={`mobile-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
         <div className="mobile-menu-head">
-          <img className="mobile-menu-logo" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety" />
+           <img className="mobile-menu-logo" src={logoUrl} alt="Ayanfe Food Variety" />
           <button ref={closeMenuButtonRef} className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>
         </div>
         <ProductSearchAutocomplete

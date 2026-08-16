@@ -18,6 +18,10 @@ import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Settings } from './pages/Admin/Settings'
+import { StoreSettings } from './pages/Admin/StoreSettings'
+import { PaymentSettings } from './pages/Admin/PaymentSettings'
+import { ContactSettings } from './pages/Admin/ContactSettings'
+import { PasswordSettings } from './pages/Admin/PasswordSettings'
 import { Login } from './pages/Login'
 import { VerifyEmail } from './pages/VerifyEmail'
 import { ForgotPassword } from './pages/ForgotPassword'
@@ -32,6 +36,9 @@ import { BannerForm } from './pages/Admin/BannerForm'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 import { useRouteToast } from './hooks/useRouteToast'
 import { Seo } from './seo/Seo'
+import { BrandingHead } from './seo/BrandingHead'
+import { DEFAULT_LOGO_PATH } from './seo/config'
+import { useStoreSettings } from './hooks/useStoreSettings'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -50,6 +57,8 @@ function RouteToastBridge() {
 
 function RouteTransition() {
   const location = useLocation()
+  const { settings } = useStoreSettings()
+  const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
   const locationKey = `${location.pathname}${location.search}${location.hash}`
   const previousLocationKey = useRef(locationKey)
   const transitionTimeout = useRef<number | undefined>(undefined)
@@ -108,7 +117,7 @@ function RouteTransition() {
         <div className="route-loader" role="status" aria-live="polite" aria-label="Loading page">
           <div className="route-loader-mark">
             <span className="route-loader-ring" aria-hidden="true" />
-            <img src="/branding/ayanfe-food-variety-logo.png" alt="" />
+            <img src={logoUrl} alt="" />
           </div>
         </div>
       )}
@@ -148,6 +157,10 @@ function RouteTransition() {
           <Route path="/admin/banners/:id/edit" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
           <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
           <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
+          <Route path="/admin/settings/store" element={<RequireAdmin><StoreSettings /></RequireAdmin>} />
+          <Route path="/admin/settings/payment" element={<RequireAdmin><PaymentSettings /></RequireAdmin>} />
+          <Route path="/admin/settings/contact" element={<RequireAdmin><ContactSettings /></RequireAdmin>} />
+          <Route path="/admin/settings/password" element={<RequireAdmin><PasswordSettings /></RequireAdmin>} />
         </Routes>
       </div>
     </>
@@ -201,6 +214,7 @@ function PrivateRouteSeo() {
 function App() {
   return (
     <>
+      <BrandingHead />
       <ScrollToTop />
       <RouteToastBridge />
       <PrivateRouteSeo />

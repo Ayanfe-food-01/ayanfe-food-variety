@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { ArrowRight } from '../../assets/icons'
+import { useStoreSettings } from '../../hooks/useStoreSettings'
+import { DEFAULT_LOGO_PATH } from '../../seo/config'
 
 interface SidebarProps {
   isOpen: boolean
@@ -19,6 +21,9 @@ const links = [
 ]
 
 export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
+  const { settings } = useStoreSettings()
+  const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
+
   return (
     <>
       {isOpen && (
@@ -30,12 +35,12 @@ export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-green-dark/10 bg-green-dark px-5 py-6 text-cream transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-dvh min-h-screen w-72 flex-col overflow-y-auto overscroll-contain border-r border-green-dark/10 bg-green-dark px-5 py-6 text-cream transition-transform duration-200 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex items-center gap-3 px-2">
-          <img className="h-20 w-20 rounded-xl bg-white object-contain p-1" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+           <img className="h-20 w-20 rounded-xl bg-white object-contain p-1" src={logoUrl} alt="Ayanfe Food Variety logo" />
           <p className="m-0 text-xs text-cream/55">Admin portal</p>
         </div>
 

@@ -15,6 +15,7 @@ export interface Product {
   deliveryFee: string
   unit: string
   image: string
+  images: string[]
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number
@@ -77,4 +78,5 @@ export interface ProductInput {
   isFeatured: boolean
   stockQuantity: number
   image?: string
+  images?: string[]
 }

@@ -1,4 +1,4 @@
-- [Neon migration state](neon-migrations.md) — the configured database may require the existing Prisma migrations before live API flows can query project tables.
+- [Database migration state](neon-migrations.md) — the configured database must match the repository migrations before live API flows can query project tables.
 - [Unified authentication](unified-auth.md) — public auth is one `/login` experience; signup is customer-only while backend roles decide redirects and access.
 - [API workflow port detection](workflow-port-detection.md) — a healthy Express API can remain reachable while the managed console workflow is marked failed during port detection.
 - [Product image replacement](product-image-replacement.md) — upload new assets before persistence, delete old assets afterward, and clean up replacements on failed updates.
@@ -11,3 +11,4 @@
 - [Branded email notifications](branded-email-notifications.md) — transactional emails share one Resend/template path and never become part of the order transaction.
 - [Prisma client freshness](prisma-client-freshness.md) — after schema changes, regenerate the server Prisma client and restart the API before trusting typechecks or runtime imports.
 - [iOS Safari compatibility boundaries](ios-safari-compatibility.md) — coordinate overlay locks, dynamic viewport/safe-area layout, and binary-validate HEIC/HEIF uploads.
+- [Declared dependency availability](declared-dependency-availability.md) — a locked package can still be absent from node_modules after environment changes; verify imports at runtime and reinstall before debugging app code.

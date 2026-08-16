@@ -16,6 +16,7 @@ interface ProductApiResponse {
   deliveryFee: string
   unit: string
   image: string
+  images?: string[]
   stockQuantity: number
   isActive: boolean
   isFeatured: boolean
@@ -109,6 +110,11 @@ const toProduct = (product: ProductApiResponse): Product => {
     discountValue,
     deliveryFee,
     image: product.image,
+    images: product.images?.filter(Boolean).length
+      ? product.images.filter(Boolean)
+      : product.image
+        ? [product.image]
+        : [],
     description: product.description,
     stockQuantity,
     availabilityStatus: product.availabilityStatus,

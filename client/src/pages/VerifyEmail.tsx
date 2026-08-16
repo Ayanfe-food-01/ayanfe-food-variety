@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button'
 import { ApiError } from '../services/api'
 import { resendCustomerVerification, verifyCustomerEmail } from '../services/authService'
 import { readInternalReturnPath } from '../utils/authReturn'
+import { BrandLogo } from '../components/layout/BrandLogo'
 
 interface VerificationLocationState {
   email?: unknown
@@ -110,7 +111,7 @@ export function VerifyEmail() {
       <section className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-sm sm:p-9">
         <div className="flex justify-center">
           <Link to="/" aria-label="Return to storefront">
-            <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+            <BrandLogo className="h-20 w-20 object-contain" />
           </Link>
         </div>
         {isVerified ? (

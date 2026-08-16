@@ -29,7 +29,10 @@ export const getBankDetailsController = async (_request, response) => {
 };
 export const submitPaymentController = async (request, response) => {
     const input = validateSubmitPaymentInput(request.body);
-    const submission = await submitPayment(input, request.file, request.authenticatedUser?.id);
+    const guestAccessToken = typeof request.body.guestAccessToken === 'string'
+        ? request.body.guestAccessToken.trim()
+        : undefined;
+    const submission = await submitPayment(input, request.file, request.authenticatedUser?.id, guestAccessToken);
     response.status(201).json({
         success: true,
         message: 'Payment proof submitted and awaiting verification.',

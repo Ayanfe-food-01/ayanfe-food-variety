@@ -1,11 +1,11 @@
 ---
-name: Neon migration state
-description: Environment constraint for the configured Neon database and existing Prisma migrations.
+name: Database migration state
+description: Environment constraint for the configured PostgreSQL database and existing Prisma migrations.
 ---
 
-The configured Neon database is synchronized with the repository's existing Prisma migrations. The development runtime must prefer the explicit Neon secret over Replit's injected database URL.
+The configured PostgreSQL database is synchronized with the repository's existing Prisma migrations. The development runtime must use the workspace's explicitly configured `DATABASE_URL`, and deployment environments may provide their own value for the same variable.
 
-**Why:** Replit can provide a runtime-managed `DATABASE_URL` that points at a different PostgreSQL service; using it in preference to `NEON_DATABASE_URL` makes the API appear healthy while database-backed requests target the wrong database.
+**Why:** Database-backed requests can appear healthy while targeting an unintended PostgreSQL service if the runtime selects an implicit or stale connection instead of the explicitly configured workspace database.
 
 **How to apply:** Before testing future database-backed flows, check migration status and confirm the target environment. Apply existing migrations through the normal Prisma deployment process when explicitly requested, then seed only when the development catalog is empty. Restart stale API watchers after secret or database-target changes before testing auth. Do not invent a replacement schema or silently migrate production.
 

@@ -9,7 +9,29 @@ import { SubmitButton } from '../../components/ui/SubmitButton'
 import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
-const initialForm: ProductFormInput = { name: '', categoryId: '', price: '', discountType: '', discountValue: '', deliveryFee: '0', unit: '', description: '', stockQuantity: '0', isActive: true, isFeatured: false }
+const initialForm: ProductFormInput = {
+  name: '',
+  categoryId: '',
+  price: '',
+  discountType: '',
+  discountValue: '',
+  deliveryFee: '0',
+  unit: '',
+  description: '',
+  stockQuantity: '0',
+  isActive: true,
+  isFeatured: false,
+  images: [],
+  existingImages: [],
+  imageOrder: [],
+}
+
+interface ProductImageDraft {
+  id: string
+  url: string
+  file?: File
+}
+
 type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'discountType' | 'discountValue' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
 
 export function ProductForm() {
@@ -18,13 +40,12 @@ export function ProductForm() {
   const navigate = useNavigate()
   const [form, setForm] = useState<ProductFormInput>(initialForm)
   const [categories, setCategories] = useState<Category[]>([])
-  const [currentImage, setCurrentImage] = useState<string | null>(null)
+  const [imageDrafts, setImageDrafts] = useState<ProductImageDraft[]>([])
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   useEffect(() => {
     let current = true
@@ -40,8 +61,24 @@ export function ProductForm() {
       })
     if (!id) return
     getAdminProduct(id).then((product) => {
-      setForm({ name: product.name, categoryId: product.categoryId ?? '', price: String(product.price), discountType: product.discountType ?? '', discountValue: product.discountValue === null ? '' : String(product.discountValue), deliveryFee: String(product.deliveryFee), unit: product.unit, description: product.description, stockQuantity: String(product.stockQuantity ?? 0), isActive: product.isActive, isFeatured: product.isFeatured })
-      setCurrentImage(product.image)
+      const existingImages = product.images?.filter(Boolean).length ? product.images.filter(Boolean) : product.image ? [product.image] : []
+      setForm({
+        name: product.name,
+        categoryId: product.categoryId ?? '',
+        price: String(product.price),
+        discountType: product.discountType ?? '',
+        discountValue: product.discountValue === null ? '' : String(product.discountValue),
+        deliveryFee: String(product.deliveryFee),
+        unit: product.unit,
+        description: product.description,
+        stockQuantity: String(product.stockQuantity ?? 0),
+        isActive: product.isActive,
+        isFeatured: product.isFeatured,
+        images: [],
+        existingImages,
+        imageOrder: existingImages.map((image) => `existing:${image}`),
+      })
+      setImageDrafts(existingImages.map((url, index) => ({ id: `existing-${index}-${url}`, url })))
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
     return () => { current = false }
   }, [id])
@@ -52,10 +89,51 @@ export function ProductForm() {
     setError(null)
   }
 
-  const chooseImage = (file: File | undefined, preview: string | null, errorMessage: string | null) => {
-    update('image', file)
-    setImagePreview(preview)
-    setFieldErrors((current) => ({ ...current, image: errorMessage ?? undefined }))
+  const syncImageDrafts = (nextDrafts: ProductImageDraft[]) => {
+    let newImageIndex = 0
+    const imageOrder = nextDrafts.map((draft) => {
+      if (draft.file) {
+        const token = `new:${newImageIndex}`
+        newImageIndex += 1
+        return token
+      }
+      return `existing:${draft.url}`
+    })
+    setImageDrafts(nextDrafts)
+    setForm((current) => ({
+      ...current,
+      images: nextDrafts.flatMap((draft) => draft.file ? [draft.file] : []),
+      existingImages: nextDrafts.filter((draft) => !draft.file).map((draft) => draft.url),
+      imageOrder,
+    }))
+    setFieldErrors((current) => ({ ...current, image: undefined }))
+    setError(null)
+  }
+
+  const chooseImages = (files: File[], previews: string[], errorMessage: string | null) => {
+    if (errorMessage) {
+      setFieldErrors((current) => ({ ...current, image: errorMessage }))
+      setError(null)
+      return
+    }
+    syncImageDrafts([
+      ...imageDrafts,
+      ...files.map((file, index) => ({ id: `new-${Date.now()}-${index}`, url: previews[index], file })),
+    ])
+  }
+
+  const removeImage = (index: number) => {
+    const draft = imageDrafts[index]
+    if (draft?.file) URL.revokeObjectURL(draft.url)
+    syncImageDrafts(imageDrafts.filter((_, draftIndex) => draftIndex !== index))
+  }
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= imageDrafts.length) return
+    const nextDrafts = [...imageDrafts]
+    ;[nextDrafts[index], nextDrafts[nextIndex]] = [nextDrafts[nextIndex], nextDrafts[index]]
+    syncImageDrafts(nextDrafts)
   }
 
   const updateDiscountType = (value: string) => {
@@ -88,7 +166,7 @@ export function ProductForm() {
     if (!unit || unit.length > 80) nextErrors.unit = 'Enter a unit using up to 80 characters.'
     if (description.length < 10 || description.length > 4000) nextErrors.description = 'Use 10 to 4,000 characters.'
     if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
-    if (!isEditing && !form.image) nextErrors.image = 'Select a product image.'
+    if (imageDrafts.length === 0) nextErrors.image = 'Select at least one product image.'
     return nextErrors
   }
 
@@ -169,16 +247,38 @@ export function ProductForm() {
             <label className="text-sm font-bold text-green-dark">Stock quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={form.stockQuantity} onChange={(event) => update('stockQuantity', event.target.value)} required />{fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
           </div>
           <label className="block text-sm font-bold text-green-dark">Description<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('description')} value={form.description} onChange={(event) => update('description', event.target.value)} maxLength={4000} required />{fieldErrors.description && <span className="mt-1 block text-xs font-normal text-orange" id="description-error">{fieldErrors.description}</span>}<span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/4,000 characters</span></label>
-           <ImageUploadField
-             label="Product image"
-             helperText={`JPG, PNG, or WEBP up to 5 MB. ${isEditing ? 'Leave empty to keep the current image.' : ''}`}
-             alt="Product preview"
-             currentUrl={currentImage}
-             previewUrl={imagePreview}
+            <ImageUploadField
+              label="Product images"
+              helperText="Add up to 10 JPG, PNG, WEBP, or HEIC/HEIF images. The first image is the primary product image."
+              alt="Product image preview"
              error={fieldErrors.image}
-             required={!isEditing}
-             onChange={chooseImage}
+              multiple
+              onChange={() => undefined}
+              onMultipleChange={chooseImages}
            />
+            {imageDrafts.length > 0 && (
+              <div className="rounded-2xl border border-line bg-cream/40 p-4" aria-label="Product image order">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="m-0 text-sm font-bold text-green-dark">Image order</p>
+                  <p className="m-0 text-xs text-muted">{imageDrafts.length}/10 images</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {imageDrafts.map((draft, index) => (
+                    <div className="relative overflow-hidden rounded-xl border border-line bg-white" key={draft.id}>
+                      <img className="aspect-square w-full object-cover" src={draft.url} alt={`${form.name || 'Product'} image ${index + 1}`} />
+                      <div className="flex items-center justify-between gap-1 border-t border-line p-2">
+                        <span className="min-w-0 truncate text-[11px] font-bold text-green-dark">{index === 0 ? 'Primary' : `Image ${index + 1}`}</span>
+                        <button className="text-xs font-bold text-orange hover:text-green-dark" type="button" onClick={() => removeImage(index)}>Remove</button>
+                      </div>
+                      <div className="flex gap-1 px-2 pb-2">
+                        <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image left" disabled={index === 0} onClick={() => moveImage(index, -1)}>←</button>
+                        <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image right" disabled={index === imageDrafts.length - 1} onClick={() => moveImage(index, 1)}>→</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
              <FeaturedToggle checked={form.isFeatured} disabled={isSaving} onChange={(checked) => update('isFeatured', checked)} />
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}

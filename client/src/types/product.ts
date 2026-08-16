@@ -12,6 +12,7 @@ export interface Product {
   discountValue: number | null
   deliveryFee: number
   image: string
+  images: string[]
   description: string
   categoryId?: string
   categorySlug?: string

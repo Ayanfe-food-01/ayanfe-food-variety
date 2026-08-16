@@ -1,4 +1,4 @@
-import { authCookie, changeAdminPassword, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, loginWithGoogle, revokeCustomerSession, revokeSession, signupCustomer, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, } from './auth.service.js';
+import { authCookie, changeAdminPassword, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, loginWithGoogle, revokeCustomerSession, revokeSession, signupCustomer, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, readAuthCookie, } from './auth.service.js';
 import { createGoogleOAuthState, getGoogleAuthorizationUrl, getOAuthFrontendUrl, googleOAuthStateCookie, isGoogleOAuthConfigured, } from './auth.google.js';
 import { HttpError } from '../../utils/http.js';
 import { validateCustomerEmailVerificationInput, validateCustomerSignupInput, validateCustomerVerificationEmailInput, validateAdminPasswordChangeInput, validateLoginInput, validatePasswordResetInput, validatePasswordResetRequestInput, } from './auth.validator.js';
@@ -21,6 +21,7 @@ export const logoutController = async (request, response) => {
     response.status(204).send();
 };
 export const meController = async (request, response) => {
+    response.set('Cache-Control', 'no-store');
     const user = await getAuthenticatedUser(getSessionToken(request.headers.cookie))
         ?? await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie));
     if (!user) {
@@ -56,6 +57,7 @@ export const customerLogoutController = async (request, response) => {
     response.status(204).send();
 };
 export const customerMeController = async (request, response) => {
+    response.set('Cache-Control', 'no-store');
     const user = await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie));
     if (!user) {
         response.status(401).json({ error: { message: 'Customer authentication is required.', statusCode: 401 } });
@@ -96,12 +98,8 @@ export const customerGoogleStartController = (_request, response, next) => {
     }
 };
 export const customerGoogleCallbackController = async (request, response, next) => {
-    const stateCookie = request.headers.cookie?.split(';')
-        .map((part) => part.trim().split('='))
-        .find(([key]) => key === googleOAuthStateCookie.name)?.[1];
-    const nonceCookie = request.headers.cookie?.split(';')
-        .map((part) => part.trim().split('='))
-        .find(([key]) => key === `${googleOAuthStateCookie.name}_nonce`)?.[1];
+    const stateCookie = readAuthCookie(request.headers.cookie, googleOAuthStateCookie.name);
+    const nonceCookie = readAuthCookie(request.headers.cookie, `${googleOAuthStateCookie.name}_nonce`);
     const state = typeof request.query.state === 'string' ? request.query.state : null;
     const clearStateCookie = () => {
         response.clearCookie(googleOAuthStateCookie.name, googleOAuthStateCookie.options);

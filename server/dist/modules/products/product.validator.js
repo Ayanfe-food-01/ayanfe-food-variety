@@ -98,6 +98,23 @@ export function validateProductFields(body) {
         stockQuantity: integerValue(body.stockQuantity, 'Stock quantity'),
     };
 }
+export function validateProductImageOrder(body) {
+    if (!isRecord(body) || body.imageOrder === undefined || body.imageOrder === '')
+        return null;
+    if (typeof body.imageOrder !== 'string')
+        throw new HttpError(400, 'Product image order is invalid.');
+    let parsed;
+    try {
+        parsed = JSON.parse(body.imageOrder);
+    }
+    catch {
+        throw new HttpError(400, 'Product image order is invalid.');
+    }
+    if (!Array.isArray(parsed) || parsed.length > 10 || parsed.some((item) => typeof item !== 'string')) {
+        throw new HttpError(400, 'Product image order is invalid.');
+    }
+    return parsed;
+}
 export function validateProductStatusInput(body) {
     if (!isRecord(body))
         throw new HttpError(400, 'Availability is required.');

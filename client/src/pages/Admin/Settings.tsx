@@ -1,231 +1,64 @@
-import { useEffect, useState, type FormEvent, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
-import { ApiError } from '../../services/api'
-import { useToast } from '../../components/ui/Toast'
-import { SubmitButton } from '../../components/ui/SubmitButton'
-import {
-  getContactInformation,
-  changeAdminPassword,
-  getPaymentSettings,
-  getStoreInformation,
-  updateContactInformation,
-  updatePaymentSettings,
-  updateStoreInformation,
-  type ContactInformation,
-  type PaymentSettings,
-  type StoreInformation,
-} from '../../services/adminService'
+import { Link } from 'react-router-dom'
+import { ArrowRight } from '../../assets/icons'
 
-const emptyStore: StoreInformation = { businessName: '', callToOrderPhone: '', announcementText: '', address: '', description: '' }
-const emptyContact: ContactInformation = {
-  businessEmail: '',
-  businessPhone: '',
-  whatsappNumber: '',
-  openingHours: '',
-  pickupInformation: '',
-  deliveryInformation: '',
-  mapEmbedUrl: '',
-}
-const emptyPayment: PaymentSettings = {
-  paymentMethod: 'BANK_TRANSFER',
-  bankName: '',
-  accountName: '',
-  accountNumber: '',
-  instructions: '',
-  isActive: true,
-}
-const emptyPassword = { currentPassword: '', newPassword: '', confirmPassword: '' }
-
-interface SettingsSectionProps {
-  eyebrow: string
-  title: string
-  description: string
-  children: ReactNode
-}
-
-function SettingsSection({ eyebrow, title, description, children }: SettingsSectionProps) {
-  return (
-    <section className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
-      <div className="border-b border-line pb-5">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">{eyebrow}</p>
-        <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">{title}</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{description}</p>
-      </div>
-      <div className="pt-6">{children}</div>
-    </section>
-  )
-}
-
-function Field({ label, value, onChange, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return (
-    <label className="block text-sm font-bold text-green-dark">
-      {label}
-      <input
-        {...props}
-        className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-        value={value}
-        onChange={onChange}
-      />
-    </label>
-  )
-}
-
-function TextArea({ label, value, onChange, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
-  return (
-    <label className="block text-sm font-bold text-green-dark">
-      {label}
-      <textarea
-        {...props}
-        className="mt-2 min-h-28 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-        value={value}
-        onChange={onChange}
-      />
-    </label>
-  )
-}
+const settingsSections = [
+  {
+    eyebrow: 'Store information',
+    title: 'Store information',
+    description: 'Update your business name, call-to-order details, address, announcements, and public description.',
+    to: '/admin/settings/store',
+  },
+  {
+    eyebrow: 'Payment settings',
+    title: 'Payment settings',
+    description: 'Manage the bank-transfer instructions customers see after placing an order.',
+    to: '/admin/settings/payment',
+  },
+  {
+    eyebrow: 'Contact information',
+    title: 'Contact information',
+    description: 'Keep your public email, phone numbers, opening hours, pickup, delivery, and map details current.',
+    to: '/admin/settings/contact',
+  },
+  {
+    eyebrow: 'Security',
+    title: 'Change password',
+    description: 'Change the password used to access the admin portal without crowding the main settings page.',
+    to: '/admin/settings/password',
+  },
+]
 
 export function Settings() {
-  const [store, setStore] = useState(emptyStore)
-  const [contact, setContact] = useState(emptyContact)
-  const [payment, setPayment] = useState(emptyPayment)
-  const [password, setPassword] = useState(emptyPassword)
-  const [isLoading, setIsLoading] = useState(true)
-  const [saving, setSaving] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const { showToast } = useToast()
-
-  useEffect(() => {
-    Promise.all([getStoreInformation(), getContactInformation(), getPaymentSettings()])
-      .then(([loadedStore, loadedContact, loadedPayment]) => {
-        if (loadedStore) setStore(loadedStore)
-        if (loadedContact) setContact(loadedContact)
-        if (loadedPayment) setPayment(loadedPayment)
-      })
-      .catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Settings could not be loaded.'))
-      .finally(() => setIsLoading(false))
-  }, [])
-
-  const save = async <T,>(section: string, action: () => Promise<T>, onSuccess: (value: T) => void, successMessage: string) => {
-    setSaving(section)
-    setError(null)
-    try {
-      const value = await action()
-      onSuccess(value)
-      showToast(successMessage, 'success')
-    } catch (caught) {
-      showToast(caught instanceof ApiError ? caught.message : 'Settings could not be saved.', 'error')
-    } finally {
-      setSaving(null)
-    }
-  }
-
-  const submitStore = (event: FormEvent) => {
-    event.preventDefault()
-    void save('store', () => updateStoreInformation(store), (value) => {
-      setStore(value)
-    }, 'Store information saved.')
-  }
-  const submitContact = (event: FormEvent) => {
-    event.preventDefault()
-    void save('contact', () => updateContactInformation(contact), setContact, 'Contact information saved.')
-  }
-  const submitPayment = (event: FormEvent) => {
-    event.preventDefault()
-    void save('payment', () => updatePaymentSettings(payment), setPayment, 'Payment settings saved. Customer checkout now uses these details.')
-  }
-  const submitPassword = (event: FormEvent) => {
-    event.preventDefault()
-    if (password.newPassword !== password.confirmPassword) {
-      showToast('New passwords do not match.', 'error')
-      return
-    }
-    void save('password', () => changeAdminPassword(password), () => {
-      setPassword(emptyPassword)
-    }, 'Admin password changed. Other admin sessions were signed out.')
-  }
-
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Configuration</p>
       <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Settings</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Manage the store information and payment instructions customers see. Changes are stored in the database and take effect without a redeployment.</p>
-      {error && <p className="mt-5 rounded-xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</p>}
-      {isLoading ? <p className="mt-8 text-sm text-muted">Loading settings…</p> : (
-        <div className="mt-8 space-y-6">
-          <SettingsSection eyebrow="Store information" title="Store Information" description="Keep the public business identity, header messages, and description current. Address and description may be left blank until they are ready to publish.">
-            <form className="space-y-5" onSubmit={submitStore}>
-              <Field label="Business name" value={store.businessName} onChange={(event) => setStore({ ...store, businessName: event.target.value })} required maxLength={180} />
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Call to order phone" type="tel" value={store.callToOrderPhone} onChange={(event) => setStore({ ...store, callToOrderPhone: event.target.value })} required maxLength={40} inputMode="tel" placeholder="0801 234 5678" />
-                <TextArea label="Announcement ticker messages" value={store.announcementText} onChange={(event) => setStore({ ...store, announcementText: event.target.value })} maxLength={2000} placeholder={'Fresh stock available today\nFree delivery on qualifying orders'} />
-              </div>
-              <p className="-mt-2 text-xs font-normal leading-5 text-muted">The green ticker rotates each line continuously. You can also separate messages with a vertical bar (|).</p>
-              <Field label="Business / pickup address" value={store.address} onChange={(event) => setStore({ ...store, address: event.target.value })} maxLength={500} />
-              <TextArea label="Short business description" value={store.description} onChange={(event) => setStore({ ...store, description: event.target.value })} maxLength={500} />
-              <SaveButton saving={saving === 'store'} label="Save store information" />
-            </form>
-          </SettingsSection>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+        Choose a settings area to manage. Each section opens on its own page so the portal stays focused and easy to scan.
+      </p>
 
-           <SettingsSection eyebrow="Payment settings" title="Payment Settings" description="These bank-transfer details are shown to customers after checkout and are read live from the database. Never enter card or gateway credentials here.">
-            <form className="space-y-5" onSubmit={submitPayment}>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Bank name" value={payment.bankName} onChange={(event) => setPayment({ ...payment, bankName: event.target.value })} required maxLength={180} />
-                <Field label="Account name" value={payment.accountName} onChange={(event) => setPayment({ ...payment, accountName: event.target.value })} required maxLength={180} />
-              </div>
-              <Field label="Account number" value={payment.accountNumber} onChange={(event) => setPayment({ ...payment, accountNumber: event.target.value })} required maxLength={80} inputMode="numeric" />
-              <TextArea label="Payment instructions" value={payment.instructions} onChange={(event) => setPayment({ ...payment, instructions: event.target.value })} required maxLength={2000} placeholder="Tell customers what reference to use and what to do after transfer." />
-               <label className="flex items-start gap-3 rounded-xl border border-line bg-cream/50 p-4 text-sm text-green-dark">
-                 <input
-                   className="mt-0.5 size-4 accent-green"
-                   type="checkbox"
-                   checked={payment.isActive}
-                   onChange={(event) => setPayment({ ...payment, isActive: event.target.checked })}
-                 />
-                 <span>
-                   <span className="block font-bold">Available at checkout</span>
-                   <span className="mt-1 block text-xs font-normal leading-5 text-muted">Turn this off to temporarily stop accepting this payment method without deleting its saved details.</span>
-                 </span>
-               </label>
-              <SaveButton saving={saving === 'payment'} label="Save payment settings" />
-            </form>
-          </SettingsSection>
-
-          <SettingsSection eyebrow="Contact information" title="Contact Information" description="These details power the customer-facing contact section and footer.">
-            <form className="space-y-5" onSubmit={submitContact}>
-              <Field label="Business email" type="email" value={contact.businessEmail} onChange={(event) => setContact({ ...contact, businessEmail: event.target.value })} required maxLength={255} />
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Business phone" type="tel" value={contact.businessPhone} onChange={(event) => setContact({ ...contact, businessPhone: event.target.value })} required maxLength={40} />
-                <Field label="WhatsApp number" type="tel" value={contact.whatsappNumber} onChange={(event) => setContact({ ...contact, whatsappNumber: event.target.value })} required maxLength={40} />
-              </div>
-              <TextArea label="Opening hours" value={contact.openingHours} onChange={(event) => setContact({ ...contact, openingHours: event.target.value })} maxLength={500} placeholder={'Add the hours customers can visit or contact the business.\nExample: Monday–Saturday, 9:00am–5:00pm'} />
-              <div className="grid gap-5 sm:grid-cols-2">
-                <TextArea label="Pickup information" value={contact.pickupInformation} onChange={(event) => setContact({ ...contact, pickupInformation: event.target.value })} maxLength={1000} placeholder="Explain where and how customers can collect orders." />
-                <TextArea label="Delivery information" value={contact.deliveryInformation} onChange={(event) => setContact({ ...contact, deliveryInformation: event.target.value })} maxLength={1000} placeholder="Explain how customers should choose delivery during checkout." />
-              </div>
-              <div>
-                <Field label="Google Maps embed URL" type="url" value={contact.mapEmbedUrl} onChange={(event) => setContact({ ...contact, mapEmbedUrl: event.target.value })} maxLength={2000} placeholder="https://www.google.com/maps/embed?pb=…" />
-                <p className="mt-2 text-xs font-normal leading-5 text-muted">Paste the HTTPS iframe embed URL from Google Maps. No API key is required or stored.</p>
-              </div>
-              <SaveButton saving={saving === 'contact'} label="Save contact information" />
-            </form>
-          </SettingsSection>
-
-           <SettingsSection eyebrow="Security" title="Change admin password" description="Update the password used to access this admin portal. Your current session will stay active while other admin sessions are signed out.">
-             <form className="space-y-5" onSubmit={submitPassword}>
-               <Field label="Current password" type="password" autoComplete="current-password" value={password.currentPassword} onChange={(event) => setPassword({ ...password, currentPassword: event.target.value })} minLength={6} maxLength={256} required />
-               <div className="grid gap-5 sm:grid-cols-2">
-                 <Field label="New password" type="password" autoComplete="new-password" value={password.newPassword} onChange={(event) => setPassword({ ...password, newPassword: event.target.value })} minLength={6} maxLength={256} required />
-                 <Field label="Confirm new password" type="password" autoComplete="new-password" value={password.confirmPassword} onChange={(event) => setPassword({ ...password, confirmPassword: event.target.value })} minLength={6} maxLength={256} required />
-               </div>
-               <p className="-mt-2 text-xs leading-5 text-muted">Use at least 6 characters. You will need the new password the next time you sign in.</p>
-               <SaveButton saving={saving === 'password'} label="Change admin password" />
-             </form>
-           </SettingsSection>
-        </div>
-      )}
+      <div className="mt-8 grid gap-5 md:grid-cols-2">
+        {settingsSections.map((section) => (
+          <Link
+            className="group rounded-2xl border border-line bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-green/30 hover:shadow-md sm:p-7"
+            key={section.to}
+            to={section.to}
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">{section.eyebrow}</p>
+            <div className="mt-3 flex items-start justify-between gap-5">
+              <h2 className="text-2xl font-bold tracking-[-0.04em] text-green-dark">{section.title}</h2>
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sage/45 text-green-dark transition-colors group-hover:bg-green group-hover:text-cream" aria-hidden="true">
+                <ArrowRight size={17} />
+              </span>
+            </div>
+            <p className="mt-3 max-w-md text-sm leading-6 text-muted">{section.description}</p>
+            <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-green-dark">
+              Open section
+              <ArrowRight size={15} />
+            </span>
+          </Link>
+        ))}
+      </div>
     </div>
   )
-}
-
-function SaveButton({ saving, label }: { saving: boolean; label: string }) {
-  return <SubmitButton busy={saving} busyLabel="Saving…">{label}</SubmitButton>
 }

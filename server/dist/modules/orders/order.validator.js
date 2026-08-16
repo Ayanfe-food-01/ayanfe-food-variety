@@ -24,6 +24,37 @@ const optionalText = (value, field, maxLength) => {
     }
     return normalizedValue || undefined;
 };
+const requiredEmail = (value) => {
+    const email = requiredText(value, 'email', 255).toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new HttpError(400, 'A valid email address is required.');
+    }
+    return email;
+};
+const validateGuestAccessToken = (value) => {
+    if (value === undefined || value === null || value === '')
+        return undefined;
+    if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+        throw new HttpError(400, 'Guest checkout access is invalid.');
+    }
+    return value.trim();
+};
+const validateCartItems = (value) => {
+    if (value === undefined || value === null)
+        return undefined;
+    if (!Array.isArray(value) || value.length === 0 || value.length > 100) {
+        throw new HttpError(400, 'Guest cart items are invalid.');
+    }
+    return value.map((item) => {
+        if (!isRecord(item) || typeof item.productId !== 'string' || !UUID_PATTERN.test(item.productId.trim())) {
+            throw new HttpError(400, 'Guest cart items are invalid.');
+        }
+        if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) {
+            throw new HttpError(400, 'Guest cart quantities are invalid.');
+        }
+        return { productId: item.productId.trim(), quantity: item.quantity };
+    });
+};
 export function validateOrderId(value) {
     if (!value || !UUID_PATTERN.test(value.trim())) {
         throw new HttpError(400, 'order id must be a valid order ID');
@@ -39,8 +70,11 @@ export function validateCheckoutInput(body) {
     }
     return {
         checkoutKey: checkoutKey.trim(),
+        guestAccessToken: validateGuestAccessToken(body.guestAccessToken),
+        cartItems: validateCartItems(body.cartItems),
         customerName: requiredText(body.customerName, 'customerName', 180),
         phone: requiredText(body.phone, 'phone', 40),
+        email: requiredEmail(body.email),
         fulfillmentMethod: body.fulfillmentMethod === FulfillmentMethod.PICKUP || body.fulfillmentMethod === FulfillmentMethod.DELIVERY
             ? body.fulfillmentMethod
             : (() => { throw new HttpError(400, 'A valid fulfillment method is required.'); })(),

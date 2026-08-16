@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, CartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
@@ -15,6 +15,7 @@ import { ApiError } from '../services/api'
 import { getProduct, getProducts } from '../services/productService'
 import type { Product } from '../types/product'
 import { Seo } from '../seo/Seo'
+import { optimizedImageUrl } from '../utils/optimizedImageUrl'
 import {
   getAbsoluteUrl,
   getBreadcrumbSchema,
@@ -32,7 +33,9 @@ export function ProductDetails() {
   const [isLoading, setIsLoading] = useState(true)
   const [isNotFound, setIsNotFound] = useState(false)
   const [hasError, setHasError] = useState(false)
-  const [imageError, setImageError] = useState(false)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(new Set())
+  const touchStartX = useRef<number | null>(null)
   const { addToCart, items, pendingItemIds } = useCart()
   const { user, openAuth } = useCustomerAuth()
   const { showToast } = useToast()
@@ -52,7 +55,8 @@ export function ProductDetails() {
     setIsNotFound(false)
     setProduct(null)
     setRelatedProducts([])
-    setImageError(false)
+    setActiveImageIndex(0)
+    setFailedImageUrls(new Set())
     setQuantity(1)
 
     try {
@@ -80,6 +84,24 @@ export function ProductDetails() {
     }
   }, [id])
 
+  const productImages = product
+    ? (product.images?.filter(Boolean).length ? product.images.filter(Boolean) : product.image ? [product.image] : [])
+    : []
+
+  useEffect(() => {
+    if (productImages.length < 2) return
+    const timer = window.setTimeout(() => {
+      setActiveImageIndex((current) => (current + 1) % productImages.length)
+    }, 5000)
+    return () => window.clearTimeout(timer)
+  }, [activeImageIndex, productImages.length])
+
+  useEffect(() => {
+    if (activeImageIndex >= productImages.length && productImages.length > 0) {
+      setActiveImageIndex(0)
+    }
+  }, [activeImageIndex, productImages.length])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadProduct()
@@ -100,6 +122,29 @@ export function ProductDetails() {
   const retryProduct = () => {
     setIsLoading(true)
     void loadProduct()
+  }
+
+  const selectImage = (index: number) => {
+    if (index < 0 || index >= productImages.length) return
+    setActiveImageIndex(index)
+  }
+
+  const moveImage = (direction: -1 | 1) => {
+    if (productImages.length < 2) return
+    setActiveImageIndex((current) => (current + direction + productImages.length) % productImages.length)
+  }
+
+  const handleGalleryTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    touchStartX.current = event.changedTouches[0]?.clientX ?? null
+  }
+
+  const handleGalleryTouchEnd = (event: React.TouchEvent<HTMLElement>) => {
+    if (touchStartX.current === null) return
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current
+    const delta = endX - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(delta) < 40) return
+    moveImage(delta < 0 ? 1 : -1)
   }
 
   const addProductToCart = async () => {
@@ -135,7 +180,7 @@ export function ProductDetails() {
       '@type': 'Brand',
       name: SITE_NAME,
     },
-    ...(product.image ? { image: [getAbsoluteUrl(product.image)] } : {}),
+    ...(productImages.length ? { image: productImages.map((image) => getAbsoluteUrl(image)) } : {}),
     category: product.category,
     offers: {
       '@type': 'Offer',
@@ -287,23 +332,52 @@ export function ProductDetails() {
           />
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <figure className="m-0 overflow-hidden rounded-3xl border border-line bg-sage shadow-sm">
-              <div className="aspect-square overflow-hidden">
-                {product.image && !imageError ? (
+              <div
+                className="relative aspect-square overflow-hidden"
+                onTouchStart={handleGalleryTouchStart}
+                onTouchEnd={handleGalleryTouchEnd}
+                onTouchCancel={() => { touchStartX.current = null }}
+              >
+                {productImages[activeImageIndex] && !failedImageUrls.has(productImages[activeImageIndex]) ? (
                   <img
                     className="size-full object-cover transition-transform duration-500 hover:scale-[1.02]"
-                    src={product.image}
-                    alt={`${product.name} - Ayanfe Food Variety`}
+                    src={optimizedImageUrl(productImages[activeImageIndex], 720)}
+                    alt={`${product.name} image ${activeImageIndex + 1} - Ayanfe Food Variety`}
                     width={720}
                     height={720}
-                    fetchPriority="high"
-                    onError={() => setImageError(true)}
+                    loading={activeImageIndex === 0 ? 'eager' : 'lazy'}
+                    fetchPriority={activeImageIndex === 0 ? 'high' : 'auto'}
+                    onError={() => setFailedImageUrls((current) => new Set(current).add(productImages[activeImageIndex]))}
                   />
                 ) : (
                   <div className="flex size-full items-center justify-center px-8 text-center text-sm font-semibold text-muted" role="img" aria-label={`${product.name} image unavailable`}>
                     Image unavailable
                   </div>
                 )}
+                {productImages.length > 1 && (
+                  <>
+                    <button className="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/60 bg-white/90 text-xl font-bold text-green-dark shadow-lg transition-colors hover:bg-white" type="button" aria-label="Previous product image" onClick={() => moveImage(-1)}>‹</button>
+                    <button className="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/60 bg-white/90 text-xl font-bold text-green-dark shadow-lg transition-colors hover:bg-white" type="button" aria-label="Next product image" onClick={() => moveImage(1)}>›</button>
+                  </>
+                )}
               </div>
+              {productImages.length > 1 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 bg-white p-3" role="tablist" aria-label="Product images">
+                  {productImages.map((image, index) => (
+                    <button
+                      className={`overflow-hidden rounded-lg border-2 ${index === activeImageIndex ? 'border-orange' : 'border-transparent'}`}
+                      type="button"
+                      role="tab"
+                      aria-label={`Show product image ${index + 1}`}
+                      aria-selected={index === activeImageIndex}
+                      onClick={() => selectImage(index)}
+                      key={`${image}-${index}`}
+                    >
+                      <img className="size-14 object-cover sm:size-16" src={optimizedImageUrl(image, 120)} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </figure>
 
             <article>

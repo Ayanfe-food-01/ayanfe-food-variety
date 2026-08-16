@@ -14,6 +14,10 @@ const DEFAULT_STORE_SETTINGS = {
     pickupInformation: '',
     deliveryInformation: '',
     mapEmbedUrl: '',
+    logoUrl: null,
+    logoPublicId: null,
+    faviconUrl: null,
+    faviconPublicId: null,
 };
 const toStoreSettings = (settings) => ({
     businessName: settings.businessName,
@@ -28,6 +32,18 @@ const toStoreSettings = (settings) => ({
     pickupInformation: settings.pickupInformation,
     deliveryInformation: settings.deliveryInformation,
     mapEmbedUrl: settings.mapEmbedUrl,
+    logoUrl: settings.logoUrl,
+    faviconUrl: settings.faviconUrl,
+});
+const toStoreBranding = (settings) => ({
+    logoUrl: settings.logoUrl,
+    faviconUrl: settings.faviconUrl,
+});
+const toStoreBrandingAssets = (settings) => ({
+    logoUrl: settings.logoUrl,
+    logoPublicId: settings.logoPublicId,
+    faviconUrl: settings.faviconUrl,
+    faviconPublicId: settings.faviconPublicId,
 });
 const toStoreInformation = (settings) => ({
     businessName: settings.businessName,
@@ -84,6 +100,35 @@ export async function updateAdminStoreInformation(input) {
         update: input,
     });
     return toStoreInformation(settings);
+}
+export async function getAdminStoreBranding() {
+    const settings = await getSettings();
+    return settings ? toStoreBranding(settings) : { logoUrl: null, faviconUrl: null };
+}
+export async function getAdminStoreBrandingAssets() {
+    const settings = await getSettings();
+    return settings
+        ? toStoreBrandingAssets(settings)
+        : { logoUrl: null, logoPublicId: null, faviconUrl: null, faviconPublicId: null };
+}
+export async function updateAdminStoreBranding(input) {
+    const data = {
+        ...(input.logo ? { logoUrl: input.logo.url, logoPublicId: input.logo.publicId } : {}),
+        ...(input.removeLogo ? { logoUrl: null, logoPublicId: null } : {}),
+        ...(input.favicon ? { faviconUrl: input.favicon.url, faviconPublicId: input.favicon.publicId } : {}),
+        ...(input.removeFavicon ? { faviconUrl: null, faviconPublicId: null } : {}),
+    };
+    const settings = await getSettings();
+    const updated = settings
+        ? await prisma.storeSettings.update({ where: { singletonKey: SETTINGS_KEY }, data })
+        : await prisma.storeSettings.create({
+            data: {
+                singletonKey: SETTINGS_KEY,
+                ...DEFAULT_STORE_SETTINGS,
+                ...data,
+            },
+        });
+    return toStoreBranding(updated);
 }
 export async function getAdminContactInformation() {
     const settings = await getSettings();

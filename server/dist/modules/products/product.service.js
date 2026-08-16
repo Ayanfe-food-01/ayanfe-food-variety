@@ -4,6 +4,23 @@ import { HttpError } from '../../utils/http.js';
 import { recordStockAdjustment } from '../inventory/inventory.service.js';
 import { calculateDiscountedPrice } from './product.pricing.js';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const productInclude = {
+    category: true,
+    images: { orderBy: { sortOrder: 'asc' } },
+};
+const normalizedImages = (product) => {
+    const storedImages = product.images.map((image) => image.url).filter(Boolean);
+    const primaryImage = product.image || storedImages[0] || '';
+    return primaryImage
+        ? [primaryImage, ...storedImages.filter((image) => image !== primaryImage)]
+        : storedImages;
+};
+const inputImages = (input) => {
+    const images = input.images?.filter(Boolean) ?? (input.image ? [input.image] : []);
+    if (images.length === 0)
+        throw new HttpError(400, 'At least one product image is required.');
+    return images;
+};
 const toProduct = (product, isWishlisted = false) => ({
     id: product.id,
     categoryId: product.categoryId,
@@ -19,6 +36,7 @@ const toProduct = (product, isWishlisted = false) => ({
     deliveryFee: product.deliveryFee.toString(),
     unit: product.unit,
     image: product.image,
+    images: normalizedImages(product),
     isActive: product.isActive,
     isFeatured: product.isFeatured,
     stockQuantity: product.stockQuantity,
@@ -35,7 +53,7 @@ const toProduct = (product, isWishlisted = false) => ({
 export const toPublicProduct = (product, isWishlisted = false) => {
     return toProduct(product, isWishlisted);
 };
-const toPopularProduct = (product) => ({
+const toPopularProduct = (product, images) => ({
     id: product.id,
     categoryId: product.categoryId,
     categoryName: product.categoryName,
@@ -50,6 +68,7 @@ const toPopularProduct = (product) => ({
     deliveryFee: product.deliveryFee.toString(),
     unit: product.unit,
     image: product.image,
+    images,
     isActive: product.isActive,
     isFeatured: product.isFeatured,
     stockQuantity: product.stockQuantity,
@@ -93,7 +112,7 @@ export async function getProducts(query, wishlistUserId) {
         prisma.product.count({ where }),
         prisma.product.findMany({
             where,
-            include: { category: true },
+            include: productInclude,
             orderBy,
             skip: (query.page - 1) * query.limit,
             take: query.limit,
@@ -124,7 +143,10 @@ export async function getCategoryProductSections(limit, wishlistUserId) {
         include: {
             products: {
                 where: { isActive: true, stockQuantity: { gt: 0 } },
-                include: { category: true },
+                include: {
+                    category: true,
+                    images: { orderBy: { sortOrder: 'asc' } },
+                },
                 orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
                 take: limit,
             },
@@ -209,8 +231,24 @@ export async function getPopularProducts(query, wishlistUserId) {
             select: { productId: true },
         })).map((item) => item.productId))
         : new Set();
+    const imageRows = products.length
+        ? await prisma.productImage.findMany({
+            where: { productId: { in: products.map((product) => product.id) } },
+            orderBy: { sortOrder: 'asc' },
+            select: { productId: true, url: true },
+        })
+        : [];
+    const imagesByProduct = new Map();
+    for (const image of imageRows) {
+        const current = imagesByProduct.get(image.productId) ?? [];
+        current.push(image.url);
+        imagesByProduct.set(image.productId, current);
+    }
     return {
-        products: products.map((product) => ({ ...toPopularProduct(product), isWishlisted: wishlistProductIds.has(product.id) })),
+        products: products.map((product) => ({
+            ...toPopularProduct(product, imagesByProduct.get(product.id) ?? [product.image]),
+            isWishlisted: wishlistProductIds.has(product.id),
+        })),
         pagination: {
             page: query.page,
             limit: query.limit,
@@ -226,11 +264,12 @@ export async function getFeaturedProducts(query, wishlistUserId) {
     const where = {
         isFeatured: true,
         isActive: true,
+        stockQuantity: { gt: 0 },
         category: { isActive: true },
     };
     const products = await prisma.product.findMany({
         where,
-        include: { category: true },
+        include: productInclude,
         orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
@@ -257,7 +296,7 @@ export async function getProductById(identifier, wishlistUserId) {
         where: isUuid
             ? { isActive: true, category: { isActive: true }, OR: [{ id: identifier }, { slug: identifier }] }
             : { isActive: true, category: { isActive: true }, slug: identifier },
-        include: { category: true },
+        include: productInclude,
     });
     if (!product)
         return null;
@@ -269,7 +308,6 @@ export async function getProductById(identifier, wishlistUserId) {
         : false;
     return toPublicProduct(product, isWishlisted);
 }
-const productInclude = { category: true };
 const slugify = (value) => {
     const slug = value
         .toLowerCase()
@@ -342,6 +380,7 @@ export async function getAdminProduct(id) {
 }
 export async function createProduct(input, adminId) {
     await validateProductCategory(input.categoryId);
+    const images = inputImages(input);
     try {
         const product = await prisma.$transaction(async (transaction) => {
             const created = await transaction.product.create({
@@ -355,7 +394,8 @@ export async function createProduct(input, adminId) {
                     discountValue: input.discountValue,
                     deliveryFee: input.deliveryFee,
                     unit: input.unit,
-                    image: input.image ?? '',
+                    image: images[0],
+                    images: { create: images.map((url, sortOrder) => ({ url, sortOrder })) },
                     isActive: input.isActive,
                     isFeatured: input.isFeatured,
                     stockQuantity: input.stockQuantity,
@@ -384,6 +424,7 @@ export async function createProduct(input, adminId) {
 }
 export async function updateProduct(input, adminId, id) {
     await validateProductCategory(input.categoryId);
+    const images = inputImages(input);
     try {
         const product = await prisma.$transaction(async (transaction) => {
             const currentRows = await transaction.$queryRaw(Prisma.sql `SELECT id, stock_quantity
@@ -405,7 +446,11 @@ export async function updateProduct(input, adminId, id) {
                     discountValue: input.discountValue,
                     deliveryFee: input.deliveryFee,
                     unit: input.unit,
-                    ...(input.image ? { image: input.image } : {}),
+                    image: images[0],
+                    images: {
+                        deleteMany: {},
+                        create: images.map((url, sortOrder) => ({ url, sortOrder })),
+                    },
                     isActive: input.isActive,
                     isFeatured: input.isFeatured,
                     stockQuantity: input.stockQuantity,
@@ -468,10 +513,11 @@ export async function deleteProduct(id) {
             const product = lockedProducts[0];
             if (!product)
                 throw new HttpError(404, 'Product not found.');
-            const [orderItemCount, cartItemCount, stockAdjustmentCount] = await Promise.all([
+            const [orderItemCount, cartItemCount, stockAdjustmentCount, imageRows] = await Promise.all([
                 transaction.orderItem.count({ where: { productId: id } }),
                 transaction.customerCartItem.count({ where: { productId: id } }),
                 transaction.productStockAdjustment.count({ where: { productId: id } }),
+                transaction.productImage.findMany({ where: { productId: id }, select: { url: true } }),
             ]);
             if (orderItemCount > 0) {
                 console.warn(JSON.stringify({
@@ -502,7 +548,10 @@ export async function deleteProduct(id) {
                 productId: id,
                 removedCartItemCount: cartItemCount,
             }));
-            return { name: product.name, image: product.image };
+            return {
+                name: product.name,
+                images: Array.from(new Set([product.image, ...imageRows.map((image) => image.url)].filter(Boolean))),
+            };
         });
     }
     catch (error) {

@@ -12,6 +12,7 @@ import {
   storeAuthReturnPath,
 } from '../utils/authReturn'
 import { markGuestCheckout } from '../utils/guestCheckout'
+import { BrandLogo } from '../components/layout/BrandLogo'
 
 type Mode = 'login' | 'signup'
 type LoginView = 'gateway' | 'email'
@@ -119,7 +120,7 @@ export function Login() {
       <section className="w-full max-w-md rounded-3xl border border-line bg-white p-7 shadow-sm sm:p-9">
         <div className="flex justify-center">
           <Link to="/" aria-label="Return to storefront">
-            <img className="h-20 w-20 object-contain" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+            <BrandLogo className="h-20 w-20 object-contain" />
           </Link>
         </div>
         {view === 'gateway' ? (

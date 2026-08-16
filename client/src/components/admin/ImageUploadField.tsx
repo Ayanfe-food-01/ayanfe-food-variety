@@ -11,6 +11,9 @@ interface ImageUploadFieldProps {
   previewUrl?: string | null
   error?: string
   required?: boolean
+  accept?: string
+  previewClassName?: string
+  validateFile?: (file: File) => string | null | Promise<string | null>
   onChange: (file: File | undefined, previewUrl: string | null, error: string | null) => void
 }
 
@@ -22,9 +25,12 @@ export function ImageUploadField({
   previewUrl,
   error,
   required = false,
+  accept = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif',
+  previewClassName = 'h-40 w-full max-w-md rounded-2xl object-cover',
+  validateFile,
   onChange,
 }: ImageUploadFieldProps) {
-  const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
+  const chooseImage = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) {
       onChange(undefined, null, null)
@@ -43,6 +49,13 @@ export function ImageUploadField({
       return
     }
 
+    const validationError = await validateFile?.(file)
+    if (validationError) {
+      event.currentTarget.value = ''
+      onChange(undefined, null, validationError)
+      return
+    }
+
     onChange(file, URL.createObjectURL(file), null)
   }
 
@@ -53,7 +66,7 @@ export function ImageUploadField({
         <input
           className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold"
           type="file"
-           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+            accept={accept}
           onChange={chooseImage}
           required={required}
         />
@@ -61,7 +74,7 @@ export function ImageUploadField({
       </label>
       {error && <p className="mt-1 text-xs font-normal text-orange" role="alert">{error}</p>}
       {(previewUrl || currentUrl) && (
-        <img className="mt-3 h-40 w-full max-w-md rounded-2xl object-cover" src={previewUrl || currentUrl || ''} alt={alt} />
+        <img className={`mt-3 ${previewClassName}`} src={previewUrl || currentUrl || ''} alt={alt} />
       )}
     </div>
   )

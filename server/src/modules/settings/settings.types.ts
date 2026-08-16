@@ -13,6 +13,28 @@ export interface StoreSettings {
   pickupInformation: string
   deliveryInformation: string
   mapEmbedUrl: string
+  logoUrl: string | null
+  faviconUrl: string | null
+}
+
+export interface StoreBranding {
+  logoUrl: string | null
+  faviconUrl: string | null
+}
+
+export interface StoreBrandingAssets extends StoreBranding {
+  logoPublicId: string | null
+  faviconPublicId: string | null
+}
+
+export interface StoredBrandingImage {
+  url: string
+  publicId: string
+}
+
+export interface UpdateStoreBrandingInput {
+  logo?: StoredBrandingImage
+  favicon?: StoredBrandingImage
 }
 
 export interface StoreInformation {

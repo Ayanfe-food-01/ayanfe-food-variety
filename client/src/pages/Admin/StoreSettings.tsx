@@ -1,26 +1,65 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ApiError } from '../../services/api'
-import { getStoreInformation, updateStoreInformation, type StoreInformation } from '../../services/adminService'
+import {
+  getStoreBranding,
+  getStoreInformation,
+  updateStoreBranding,
+  updateStoreInformation,
+  type StoreBranding,
+  type StoreInformation,
+} from '../../services/adminService'
 import { useToast } from '../../components/ui/Toast'
 import { SettingsField, SettingsFormState, SettingsPageHeader, SettingsPanel, SettingsSaveButton, SettingsTextArea } from '../../components/admin/SettingsForm'
+import { ImageUploadField } from '../../components/admin/ImageUploadField'
 
 const emptyStore: StoreInformation = { businessName: '', callToOrderPhone: '', announcementText: '', address: '', description: '' }
+const emptyBranding: StoreBranding = { logoUrl: null, faviconUrl: null }
+
+const validateSquareFavicon = (file: File): Promise<string | null> => new Promise((resolve) => {
+  const previewUrl = URL.createObjectURL(file)
+  const image = new Image()
+  image.onload = () => {
+    URL.revokeObjectURL(previewUrl)
+    resolve(image.naturalWidth > 0 && image.naturalWidth === image.naturalHeight
+      ? null
+      : 'Favicon images must be square so browsers can display them correctly.')
+  }
+  image.onerror = () => {
+    URL.revokeObjectURL(previewUrl)
+    resolve('This favicon image could not be read. Choose a valid PNG, JPG, or WEBP image.')
+  }
+  image.src = previewUrl
+})
 
 export function StoreSettings() {
   const [store, setStore] = useState(emptyStore)
+  const [branding, setBranding] = useState(emptyBranding)
+  const [logoFile, setLogoFile] = useState<File | undefined>()
+  const [faviconFile, setFaviconFile] = useState<File | undefined>()
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const [faviconError, setFaviconError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isBrandingSaving, setIsBrandingSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useToast()
 
   useEffect(() => {
-    getStoreInformation()
-      .then((settings) => {
+    Promise.all([getStoreInformation(), getStoreBranding()])
+      .then(([settings, currentBranding]) => {
         if (settings) setStore(settings)
+        setBranding(currentBranding)
       })
       .catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Store information could not be loaded.'))
       .finally(() => setIsLoading(false))
   }, [])
+
+  useEffect(() => () => {
+    if (logoPreview) URL.revokeObjectURL(logoPreview)
+    if (faviconPreview) URL.revokeObjectURL(faviconPreview)
+  }, [faviconPreview, logoPreview])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -33,6 +72,27 @@ export function StoreSettings() {
       showToast(caught instanceof ApiError ? caught.message : 'Store information could not be saved.', 'error')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const submitBranding = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!logoFile && !faviconFile) {
+      showToast('Choose a logo or favicon before saving.', 'error')
+      return
+    }
+    setIsBrandingSaving(true)
+    try {
+      setBranding(await updateStoreBranding({ logo: logoFile, favicon: faviconFile }))
+      setLogoFile(undefined)
+      setFaviconFile(undefined)
+      setLogoPreview(null)
+      setFaviconPreview(null)
+      showToast('Branding updated.', 'success')
+    } catch (caught) {
+      showToast(caught instanceof ApiError ? caught.message : 'Branding could not be saved.', 'error')
+    } finally {
+      setIsBrandingSaving(false)
     }
   }
 
@@ -51,6 +111,45 @@ export function StoreSettings() {
             <SettingsField label="Business / pickup address" value={store.address} onChange={(event) => setStore({ ...store, address: event.target.value })} maxLength={500} />
             <SettingsTextArea label="Short business description" value={store.description} onChange={(event) => setStore({ ...store, description: event.target.value })} maxLength={500} />
             <SettingsSaveButton saving={isSaving} label="Save store information" />
+          </form>
+        </SettingsPanel>
+        <SettingsPanel eyebrow="Brand identity" title="Logo and favicon" description="Update the public logo and browser tab icon without changing code. Upload them separately so each asset can use the right proportions.">
+          <form className="space-y-6" onSubmit={submitBranding}>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <ImageUploadField
+                label="Website logo"
+                helperText="JPG, PNG, WEBP, or HEIC/HEIF up to 5 MB. Transparent PNG and WEBP logos are supported."
+                alt="Current website logo"
+                currentUrl={branding.logoUrl}
+                previewUrl={logoPreview}
+                error={logoError ?? undefined}
+                previewClassName="h-40 w-full max-w-md rounded-2xl bg-sage/30 object-contain p-4"
+                onChange={(file, previewUrl, uploadError) => {
+                  if (logoPreview) URL.revokeObjectURL(logoPreview)
+                  setLogoFile(file)
+                  setLogoPreview(previewUrl)
+                  setLogoError(uploadError)
+                }}
+              />
+              <ImageUploadField
+                label="Favicon"
+                helperText="Square PNG, JPG, or WEBP up to 5 MB. A square image is required for browser compatibility."
+                alt="Current favicon"
+                currentUrl={branding.faviconUrl}
+                previewUrl={faviconPreview}
+                error={faviconError ?? undefined}
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                previewClassName="mt-3 size-32 rounded-2xl bg-sage/30 object-contain p-5"
+                validateFile={validateSquareFavicon}
+                onChange={(file, previewUrl, uploadError) => {
+                  if (faviconPreview) URL.revokeObjectURL(faviconPreview)
+                  setFaviconFile(file)
+                  setFaviconPreview(previewUrl)
+                  setFaviconError(uploadError)
+                }}
+              />
+            </div>
+            <SettingsSaveButton saving={isBrandingSaving} label="Save branding" />
           </form>
         </SettingsPanel>
       </SettingsFormState>

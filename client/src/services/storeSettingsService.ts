@@ -15,6 +15,8 @@ export interface StoreSettings {
   pickupInformation: string
   deliveryInformation: string
   mapEmbedUrl: string
+  logoUrl: string | null
+  faviconUrl: string | null
 }
 
 export interface PublicStoreSettings {

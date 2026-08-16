@@ -56,6 +56,11 @@ export interface StoreInformation {
   description: string
 }
 
+export interface StoreBranding {
+  logoUrl: string | null
+  faviconUrl: string | null
+}
+
 export interface ContactInformation {
   businessEmail: string
   businessPhone: string
@@ -84,6 +89,11 @@ interface SettingsResponse {
 interface StoreInformationResponse {
   success: true
   data: { settings: StoreInformation | null }
+}
+
+interface StoreBrandingResponse {
+  success: true
+  data: { branding: StoreBranding }
 }
 
 interface ContactInformationResponse {
@@ -129,6 +139,22 @@ export async function updateStoreInformation(settings: StoreInformation): Promis
   })
   if (!response.data.settings) throw new Error('Store information was not returned.')
   return response.data.settings
+}
+
+export async function getStoreBranding(): Promise<StoreBranding> {
+  const response = await request<StoreBrandingResponse>('/admin/settings/branding')
+  return response.data.branding
+}
+
+export async function updateStoreBranding(input: { logo?: File; favicon?: File }): Promise<StoreBranding> {
+  const formData = new FormData()
+  if (input.logo) formData.set('logo', input.logo)
+  if (input.favicon) formData.set('favicon', input.favicon)
+  const response = await request<StoreBrandingResponse>('/admin/settings/branding', {
+    method: 'PUT',
+    body: formData,
+  })
+  return response.data.branding
 }
 
 export interface AdminBanner {

@@ -5,3 +5,4 @@ import { requireCustomerAuthentication, requireCustomerRole } from '../middlewar
 export const paymentRoutes = Router();
 paymentRoutes.get('/bank-details', getBankDetailsController);
 paymentRoutes.post('/submit', createRateLimit(10, 15 * 60 * 1000), requireCustomerAuthentication, requireCustomerRole, paymentProofUpload, submitPaymentController);
+paymentRoutes.post('/submit-guest', createRateLimit(10, 15 * 60 * 1000), paymentProofUpload, submitPaymentController);

@@ -1,12 +1,14 @@
 import { MailIcon, PhoneIcon } from '../../assets/icons'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { Link } from 'react-router-dom'
+import { DEFAULT_LOGO_PATH } from '../../seo/config'
 
 export function Footer() {
   const { settings } = useStoreSettings()
   const phone = settings?.businessPhone
   const email = settings?.businessEmail
   const whatsapp = settings?.whatsappNumber
+  const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
   const whatsappHref = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '').replace(/^0/, '234')}` : undefined
 
   return (
@@ -14,7 +16,7 @@ export function Footer() {
       <div className="container grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_0.7fr_0.7fr_1fr]">
         <div>
            <Link className="inline-flex items-center" to="/" aria-label="Ayanfe Food Variety home">
-            <img className="h-28 w-28 rounded-2xl bg-white object-contain p-1" src="/branding/ayanfe-food-variety-logo.png" alt="Ayanfe Food Variety logo" />
+             <img className="h-28 w-28 rounded-2xl bg-white object-contain p-1" src={logoUrl} alt="Ayanfe Food Variety logo" />
            </Link>
           <p className="mt-5 max-w-[270px] text-sm leading-6 text-cream/60">
              {settings?.description || 'Quality foodstuff and everyday essentials, carefully sourced and brought closer to your kitchen.'}

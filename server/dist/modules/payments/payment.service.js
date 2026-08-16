@@ -4,6 +4,7 @@ import { HttpError } from '../../utils/http.js';
 import { notifyPaymentReviewed, notifyPaymentSubmitted } from './payment.email.js';
 import { deletePaymentProof, uploadPaymentProof } from './payment.storage.js';
 import { getPublicPaymentSettings } from '../settings/settings.service.js';
+import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js';
 const toResponse = (submission) => ({
     id: submission.id,
     orderId: submission.orderId,
@@ -31,12 +32,15 @@ export async function getBankDetails() {
         throw new HttpError(503, 'Payment settings are not configured yet.');
     return toBankDetails(settings);
 }
-export async function submitPayment(input, file, authenticatedUserId) {
+export async function submitPayment(input, file, authenticatedUserId, guestAccessToken) {
     if (!file)
         throw new HttpError(400, 'A payment receipt image is required.');
     const order = await prisma.order.findUnique({ where: { id: input.orderId } });
-    if (!order || !authenticatedUserId || order.userId !== authenticatedUserId) {
-        throw new HttpError(authenticatedUserId ? 404 : 401, 'Order not found.');
+    const ownsOrder = authenticatedUserId
+        ? order?.userId === authenticatedUserId
+        : Boolean(guestAccessToken && order?.userId === null && order.guestAccessTokenHash === hashGuestOrderAccessToken(guestAccessToken));
+    if (!order || !ownsOrder) {
+        throw new HttpError(authenticatedUserId || guestAccessToken ? 404 : 401, 'Order not found.');
     }
     if (order.paymentStatus === PaymentStatus.PAID) {
         throw new HttpError(409, 'This order has already been paid.');

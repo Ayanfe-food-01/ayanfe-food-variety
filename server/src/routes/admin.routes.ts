@@ -51,6 +51,11 @@ import {
   updateAdminBannerStatusController,
 } from '../modules/banners/banner.controller.js'
 import { changeAdminPasswordController } from '../modules/auth/auth.controller.js'
+import {
+  brandingImageUpload,
+  getAdminBrandingController,
+  updateAdminBrandingController,
+} from '../modules/settings/branding.controller.js'
 
 export const adminRoutes = Router()
 
@@ -88,6 +93,8 @@ adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController)
 adminRoutes.post('/payments/:id/reject', rejectAdminPaymentController)
 adminRoutes.get('/settings/store', getAdminStoreInformationController)
 adminRoutes.put('/settings/store', updateAdminStoreInformationController)
+adminRoutes.get('/settings/branding', getAdminBrandingController)
+adminRoutes.put('/settings/branding', brandingImageUpload, updateAdminBrandingController)
 adminRoutes.get('/settings/contact', getAdminContactInformationController)
 adminRoutes.put('/settings/contact', updateAdminContactInformationController)
 adminRoutes.get('/settings/payment', getAdminPaymentSettingsController)

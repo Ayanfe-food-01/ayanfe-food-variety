@@ -251,6 +251,10 @@ model StoreSettings {
   pickupInformation String @default("") @map("pickup_information") @db.VarChar(1000)
   deliveryInformation String @default("") @map("delivery_information") @db.VarChar(1000)
   mapEmbedUrl     String   @default("") @map("map_embed_url") @db.VarChar(2000)
+  logoUrl         String?  @map("logo_url") @db.VarChar(1000)
+  logoPublicId    String?  @map("logo_public_id") @db.VarChar(255)
+  faviconUrl      String?  @map("favicon_url") @db.VarChar(1000)
+  faviconPublicId String?  @map("favicon_public_id") @db.VarChar(255)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

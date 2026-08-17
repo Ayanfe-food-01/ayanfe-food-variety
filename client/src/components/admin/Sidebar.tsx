@@ -17,6 +17,7 @@ const links = [
   { label: 'Categories', to: '/admin/categories' },
   { label: 'Promotional banners', to: '/admin/banners' },
   { label: 'Payments', to: '/admin/payments' },
+  { label: 'Notifications', to: '/admin/notifications' },
   { label: 'Settings', to: '/admin/settings' },
 ]
 
@@ -35,16 +36,18 @@ export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-dvh min-h-screen w-72 flex-col overflow-y-auto overscroll-contain border-r border-green-dark/10 bg-green-dark px-5 py-6 text-cream transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-dvh min-h-0 w-72 flex-col overflow-hidden border-r border-green-dark/10 bg-green-dark px-5 py-5 text-cream transition-transform duration-200 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-3 px-2">
+        <div className="shrink-0 px-2">
+          <div className="flex items-center gap-3">
            <img className="h-20 w-20 rounded-xl bg-white object-contain p-1" src={logoUrl} alt="Ayanfe Food Variety logo" />
-          <p className="m-0 text-xs text-cream/55">Admin portal</p>
+            <p className="m-0 text-xs text-cream/55">Admin portal</p>
+          </div>
         </div>
 
-        <nav className="mt-10 space-y-1" aria-label="Admin navigation">
+        <nav className="mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1" aria-label="Admin navigation">
           {links.map((link) => (
             <NavLink
               className={({ isActive }) =>
@@ -63,7 +66,7 @@ export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="mt-auto">
+        <div className="mt-4 shrink-0 border-t border-cream/10 pt-4">
           <button
             className="flex w-full items-center justify-center rounded-xl bg-cream px-4 py-3 text-sm font-bold text-green-dark transition-colors hover:bg-white"
             type="button"

@@ -56,6 +56,11 @@ import {
   getAdminBrandingController,
   updateAdminBrandingController,
 } from '../modules/settings/branding.controller.js'
+import {
+  listAdminNotificationsController,
+  markAdminNotificationReadController,
+  markAllAdminNotificationsReadController,
+} from '../modules/notifications/notification.controller.js'
 
 export const adminRoutes = Router()
 
@@ -91,6 +96,9 @@ adminRoutes.get('/payments', listAdminPaymentsController)
 adminRoutes.get('/payments/:id', getAdminPaymentController)
 adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController)
 adminRoutes.post('/payments/:id/reject', rejectAdminPaymentController)
+adminRoutes.get('/notifications', listAdminNotificationsController)
+adminRoutes.post('/notifications/read-all', markAllAdminNotificationsReadController)
+adminRoutes.patch('/notifications/:id/read', markAdminNotificationReadController)
 adminRoutes.get('/settings/store', getAdminStoreInformationController)
 adminRoutes.put('/settings/store', updateAdminStoreInformationController)
 adminRoutes.get('/settings/branding', getAdminBrandingController)

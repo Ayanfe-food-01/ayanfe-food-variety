@@ -1,7 +1,7 @@
 import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
-import { recordStockAdjustment } from '../inventory/inventory.service.js';
+import { createLowStockNotificationIfNeeded, recordStockAdjustment } from '../inventory/inventory.service.js';
 import { calculateDiscountedPrice } from './product.pricing.js';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const productInclude = {
@@ -403,13 +403,23 @@ export async function createProduct(input, adminId) {
                 include: productInclude,
             });
             if (created.stockQuantity > 0) {
-                await recordStockAdjustment(transaction, {
+                const adjustment = await recordStockAdjustment(transaction, {
                     productId: created.id,
                     quantityDelta: created.stockQuantity,
                     previousQuantity: 0,
                     newQuantity: created.stockQuantity,
                     reason: `Initial stock by admin ${adminId}`,
                 });
+                if (adjustment) {
+                    await createLowStockNotificationIfNeeded(transaction, {
+                        productId: created.id,
+                        productName: created.name,
+                        previousQuantity: 0,
+                        newQuantity: created.stockQuantity,
+                        stockAdjustmentId: adjustment.id,
+                        notifyFromZero: true,
+                    });
+                }
             }
             return created;
         });
@@ -458,13 +468,23 @@ export async function updateProduct(input, adminId, id) {
                 include: productInclude,
             });
             if (updated.stockQuantity !== current.stock_quantity) {
-                await recordStockAdjustment(transaction, {
+                const adjustment = await recordStockAdjustment(transaction, {
                     productId: id,
                     quantityDelta: updated.stockQuantity - current.stock_quantity,
                     previousQuantity: current.stock_quantity,
                     newQuantity: updated.stockQuantity,
                     reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
                 });
+                if (adjustment) {
+                    await createLowStockNotificationIfNeeded(transaction, {
+                        productId: id,
+                        productName: updated.name,
+                        previousQuantity: current.stock_quantity,
+                        newQuantity: updated.stockQuantity,
+                        stockAdjustmentId: adjustment.id,
+                        notifyFromZero: true,
+                    });
+                }
             }
             return updated;
         });

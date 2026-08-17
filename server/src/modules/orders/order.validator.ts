@@ -1,6 +1,6 @@
 import { HttpError } from '../../utils/http.js'
 import { FulfillmentMethod, PaymentMethod } from '@prisma/client'
-import type { CancellationInput, CheckoutInput } from './order.types.js'
+import type { CancellationInput, CheckoutInput, GuestOrderTrackingInput } from './order.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -122,4 +122,21 @@ export function validateOrderNumber(value: string | undefined): string {
     throw new HttpError(400, 'Order number is invalid.')
   }
   return value.trim()
+}
+
+export function validateGuestOrderTrackingInput(body: unknown): GuestOrderTrackingInput {
+  if (!isRecord(body)) {
+    throw new HttpError(400, 'Enter your order number and the email address or phone number used at checkout.')
+  }
+
+  const orderNumber = validateOrderNumber(typeof body.orderNumber === 'string' ? body.orderNumber : undefined)
+  const contact = requiredText(body.contact, 'Email or phone number', 255)
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.toLowerCase())
+  const phoneDigits = contact.replace(/\D/g, '')
+
+  if ((!isEmail && (phoneDigits.length < 7 || phoneDigits.length > 15)) || contact.length < 5) {
+    throw new HttpError(400, 'Enter a valid email address or phone number.')
+  }
+
+  return { orderNumber, contact }
 }

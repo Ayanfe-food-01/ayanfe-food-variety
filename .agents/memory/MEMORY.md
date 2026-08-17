@@ -12,3 +12,4 @@
 - [Prisma client freshness](prisma-client-freshness.md) — after schema changes, regenerate the server Prisma client and restart the API before trusting typechecks or runtime imports.
 - [iOS Safari compatibility boundaries](ios-safari-compatibility.md) — coordinate overlay locks, dynamic viewport/safe-area layout, and binary-validate HEIC/HEIF uploads.
 - [Declared dependency availability](declared-dependency-availability.md) — a locked package can still be absent from node_modules after environment changes; verify imports at runtime and reinstall before debugging app code.
+- [Responsive table sticky context](responsive-table-sticky-context.md) — align sticky headers as a row and use a custom visual rail over one synchronized proxy scroller.

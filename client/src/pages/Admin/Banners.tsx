@@ -11,6 +11,7 @@ import {
   type AdminBanner,
 } from '../../services/adminService'
 import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
+import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
 
 const formatDate = (value: string) =>
   formatCompatibleDate(value)
@@ -131,7 +132,7 @@ export function Banners() {
             <span>{banners.length} {banners.length === 1 ? 'banner' : 'banners'}</span>
             <span>Sorted by display order</span>
           </div>
-          <div className="space-y-3 px-4 pb-4 md:hidden">
+           <div className="space-y-3 px-4 pb-4 lg:hidden">
             {banners.map((banner) => (
               <article className="relative rounded-2xl border border-line bg-cream/45 p-4" key={banner.id}>
                 <div className="flex items-start gap-3">
@@ -150,15 +151,16 @@ export function Banners() {
               </article>
             ))}
           </div>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
-                <tr><th className="px-5 py-4 font-bold">Banner</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
+           <div className="hidden lg:block">
+             <ResponsiveDataTable label="Banners table horizontal scroll">
+             <table className="w-full min-w-[1080px] whitespace-nowrap text-left text-sm">
+               <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
+                  <tr><th className="px-5 py-4 font-bold">Banner</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
               </thead>
                <tbody className="divide-y divide-line">
                 {banners.map((banner) => (
-                  <tr key={banner.id}>
-                    <td className="px-5 py-4"><div className="flex min-w-[320px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="font-bold text-green-dark">{banner.title}</p><p className="mt-1 max-w-md truncate text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
+                   <tr key={banner.id} className="group">
+                     <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><div className="flex min-w-[380px] max-w-[388px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="responsive-table-ellipsis font-bold text-green-dark">{banner.title}</p><p className="responsive-table-ellipsis mt-1 text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 font-bold text-green-dark">{banner.displayOrder}</td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-muted">{formatDate(banner.createdAt)}</td>
@@ -167,6 +169,7 @@ export function Banners() {
                 ))}
               </tbody>
             </table>
+             </ResponsiveDataTable>
           </div>
         </div>
       )}

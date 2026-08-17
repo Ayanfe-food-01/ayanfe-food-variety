@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { BellIcon, ChevronDownIcon, GlobeIcon, MenuIcon, MoonIcon, SearchIcon } from '../../assets/icons'
+import { ChevronDownIcon, MenuIcon, MoonIcon, SearchIcon } from '../../assets/icons'
 import { Link } from 'react-router-dom'
 import type { AuthenticatedUser } from '../../services/authService'
+import { AdminNotifications } from './AdminNotifications'
 
 interface AdminHeaderProps {
   isLoggingOut: boolean
@@ -56,18 +57,17 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
         </button>
 
         <label className="relative hidden min-w-0 flex-1 sm:block sm:max-w-md">
-          <span className="sr-only">Search admin portal</span>
+          <span className="sr-only">Search</span>
           <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={17} />
           <input
             className="h-11 w-full rounded-full border border-transparent bg-sage/45 pl-11 pr-4 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-green/20 focus:bg-white focus:ring-2 focus:ring-green/10"
             type="search"
-            placeholder="Search admin portal..."
-            aria-label="Search admin portal"
+            placeholder="Search..."
+            aria-label="Search"
           />
         </label>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <span className="hidden text-xs text-muted xl:inline">Store operations</span>
           <button
             className="grid size-10 place-items-center rounded-full border border-transparent bg-sage/45 text-green-dark transition-colors hover:border-line hover:bg-white"
             type="button"
@@ -77,22 +77,7 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
           >
             <MoonIcon size={18} />
           </button>
-          <button
-            className="relative grid size-10 place-items-center rounded-full border border-transparent bg-sage/45 text-green-dark transition-colors hover:border-line hover:bg-white"
-            type="button"
-            aria-label="View notifications"
-          >
-            <BellIcon size={18} />
-            <span className="absolute right-2 top-2 size-1.5 rounded-full bg-orange" aria-hidden="true" />
-          </button>
-          <button
-            className="hidden size-10 place-items-center rounded-full border border-transparent bg-sage/45 text-green-dark transition-colors hover:border-line hover:bg-white sm:grid"
-            type="button"
-            aria-label="Language: English"
-            title="Language: English"
-          >
-            <GlobeIcon size={18} />
-          </button>
+          <AdminNotifications />
           <div className="relative" ref={profileMenuRef}>
             <button
               className="flex min-h-10 items-center gap-2 rounded-full border border-line bg-white px-1.5 py-1.5 text-left text-green-dark transition-colors hover:border-green/30 hover:bg-sage/30 disabled:cursor-wait disabled:opacity-60"

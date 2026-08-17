@@ -2,6 +2,7 @@ import type { AdminOrderListItem } from '../../services/orderService'
 import { formatOrderStatus } from '../../utils/orderStatus'
 import { OrderActionsMenu } from './OrderActionsMenu'
 import { formatDate } from '../../utils/dateFormat'
+import { ResponsiveDataTable } from '../ui/ResponsiveDataTable'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -28,7 +29,7 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-      <div className="space-y-3 p-4 md:hidden">
+      <div className="space-y-3 p-4 lg:hidden">
         {orders.map((order) => (
           <article className="rounded-2xl border border-line bg-cream/45 p-4" key={order.orderNumber}>
             <div className="flex items-start justify-between gap-4">
@@ -78,9 +79,10 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
           </article>
         ))}
       </div>
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
+      <div className="hidden lg:block">
+        <ResponsiveDataTable label="Orders table horizontal scroll">
+        <table className="w-full min-w-[1480px] whitespace-nowrap text-left text-sm">
+          <thead className="sticky top-0 z-10 border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
             <tr>
               <th className="px-5 py-4 font-bold">Order number</th>
               <th className="px-5 py-4 font-bold">Customer</th>
@@ -95,11 +97,11 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
           </thead>
           <tbody className="divide-y divide-line">
             {orders.map((order) => (
-               <tr className="hover:bg-cream/60" key={order.orderNumber}>
-                <td className="px-5 py-4 font-semibold text-green-dark">{order.orderNumber}</td>
+               <tr className="group hover:bg-cream/60" key={order.orderNumber}>
+                <td className="px-5 py-4 font-semibold text-green-dark"><span className="responsive-table-ellipsis max-w-[190px]">{order.orderNumber}</span></td>
                 <td className="px-5 py-4">
-                  <p className="m-0 font-semibold text-green-dark">{order.customerName}</p>
-                  <p className="mt-1 text-xs text-muted">{order.email ?? 'No email provided'}</p>
+                  <p className="responsive-table-ellipsis max-w-[270px] font-semibold text-green-dark">{order.customerName}</p>
+                    <p className="responsive-table-ellipsis mt-1 max-w-[270px] text-xs text-muted">{order.email ?? 'No email provided'}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{order.phone}</td>
                  <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt, true)}</td>
@@ -125,6 +127,7 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
             ))}
           </tbody>
         </table>
+        </ResponsiveDataTable>
       </div>
     </div>
   )

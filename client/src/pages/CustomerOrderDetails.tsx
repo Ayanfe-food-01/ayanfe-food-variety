@@ -6,13 +6,14 @@ import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getBankDetails, type BankDetails } from '../services/paymentService'
-import { cancelCustomerOrder, getCustomerOrder, getGuestOrder, type CreatedOrder, type OrderStatus } from '../services/orderService'
+import { cancelCustomerOrder, getCustomerOrder, getGuestOrder, type CreatedOrder } from '../services/orderService'
 import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
 import { SelectField } from '../components/ui/SelectField'
 import { formatDate } from '../utils/dateFormat'
 import { lockBodyScroll } from '../utils/browserCompatibility'
 import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
+import { OrderTracker } from '../components/orders/OrderTracker'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -21,82 +22,6 @@ const paymentStatusCopy: Record<CreatedOrder['paymentStatus'], { label: string; 
   PENDING: { label: 'PENDING', description: 'Awaiting payment verification' },
   PAID: { label: 'PAID', description: 'Payment confirmed' },
   REJECTED: { label: 'REJECTED', description: 'Payment proof was rejected' },
-}
-
-const trackerSteps = [
-  { key: 'placed', label: 'Order Placed', status: 'ORDER_PLACED' as OrderStatus },
-  { key: 'paid', label: 'Payment Confirmed', status: null },
-  { key: 'processing', label: 'Processing', status: 'PROCESSING' as OrderStatus },
-  { key: 'out-for-delivery', label: 'Out for Delivery', status: 'OUT_FOR_DELIVERY' as OrderStatus },
-  { key: 'delivered', label: 'Delivered', status: 'DELIVERED' as OrderStatus },
-] as const
-
-const fulfillmentRank: Record<OrderStatus, number> = {
-  ORDER_PLACED: 0,
-  PROCESSING: 1,
-  OUT_FOR_DELIVERY: 2,
-  DELIVERED: 3,
-  CANCELLED: -1,
-}
-
-function OrderTracker({ order }: { order: CreatedOrder }) {
-  if (order.orderStatus === 'CANCELLED') {
-    return (
-      <div className="rounded-2xl border border-orange/25 bg-orange/5 p-5">
-        <p className="text-sm font-bold text-orange">Order Cancelled</p>
-        <p className="mt-1 text-sm text-muted">This order will not move through the remaining fulfilment stages.</p>
-      </div>
-    )
-  }
-
-  const getStepState = (step: typeof trackerSteps[number]): 'complete' | 'active' | 'pending' => {
-    if (step.key === 'placed') return 'complete'
-    if (step.key === 'paid') return order.paymentStatus === 'PAID' ? 'complete' : 'active'
-    if (!step.status) return 'pending'
-    const currentRank = fulfillmentRank[order.orderStatus]
-    const stepRank = fulfillmentRank[step.status]
-     if (currentRank > stepRank || (step.status === 'DELIVERED' && currentRank === stepRank)) return 'complete'
-    if (currentRank === stepRank) return 'active'
-    return 'pending'
-  }
-
-  const getStepTimestamp = (step: typeof trackerSteps[number]): string | null => {
-    if (step.key === 'placed') return order.createdAt
-    if (step.key === 'paid') {
-      return order.paymentSubmissions.find((submission) => submission.status === 'VERIFIED')?.reviewedAt ?? null
-    }
-    return order.statusHistory.find((history) => history.newStatus === step.status)?.createdAt ?? null
-  }
-
-  return (
-    <div className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-        {trackerSteps.map((step, index) => (
-          <div className="flex flex-1 items-start gap-3 sm:block sm:text-center" key={step.key}>
-            {(() => {
-              const state = getStepState(step)
-              const timestamp = getStepTimestamp(step)
-              return (
-                <>
-            <div className="flex items-center sm:block">
-              <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${state === 'complete' ? 'bg-green text-cream' : state === 'active' ? 'border-2 border-orange bg-orange/10 text-orange' : 'border border-line bg-cream text-muted'}`}>
-                {state === 'complete' ? '✓' : state === 'active' ? '●' : '○'}
-              </span>
-              {index < trackerSteps.length - 1 && (
-                <span className={`ml-3 hidden h-0.5 w-full sm:inline-block ${state === 'complete' ? 'bg-green' : 'bg-line'}`} />
-              )}
-            </div>
-            <p className={`pt-1 text-sm font-bold ${state === 'complete' ? 'text-green-dark' : state === 'active' ? 'text-orange' : 'text-muted'}`}>{step.label}</p>
-            {timestamp && <p className="mt-1 text-[11px] text-muted">{formatDate(timestamp)}</p>}
-                </>
-              )
-            })()}
-          </div>
-        ))}
-      </div>
-      <p className="mt-5 text-xs leading-5 text-muted">Payment verification and fulfilment progress are tracked separately. The current order status is {formatOrderStatus(order.orderStatus)}.</p>
-    </div>
-  )
 }
 
 export function CustomerOrderDetails() {

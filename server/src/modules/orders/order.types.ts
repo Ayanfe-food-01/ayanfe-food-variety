@@ -17,6 +17,11 @@ export interface CheckoutInput {
   paymentMethod: PaymentMethod
 }
 
+export interface GuestOrderTrackingInput {
+  orderNumber: string
+  contact: string
+}
+
 export interface CancellationInput {
   reason?: string
 }
@@ -60,6 +65,34 @@ export interface OrderResponse {
   orderItems: OrderItemResponse[]
   paymentSubmissions: CustomerPaymentSubmissionResponse[]
   payment: OrderPaymentResponse | null
+  statusHistory: Array<{
+    previousStatus: OrderStatus | null
+    newStatus: OrderStatus
+    createdAt: string
+  }>
+}
+
+export interface GuestOrderResponse {
+  orderNumber: string
+  fulfillmentMethod: FulfillmentMethod
+  deliveryAddress: string
+  city: string
+  subtotal: string
+  deliveryFee: string
+  total: string
+  paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
+  paymentConfirmedAt: string | null
+  orderStatus: OrderStatus
+  createdAt: string
+  orderItems: Array<{
+    id: string
+    productName: string
+    unitPrice: string
+    quantity: number
+    subtotal: string
+    deliveryFee: string
+    image: string
+  }>
   statusHistory: Array<{
     previousStatus: OrderStatus | null
     newStatus: OrderStatus

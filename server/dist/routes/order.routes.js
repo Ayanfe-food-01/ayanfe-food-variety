@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { checkoutController, guestOrderController } from '../modules/orders/order.controller.js';
+import { checkoutController, guestOrderController, guestOrderTrackingController } from '../modules/orders/order.controller.js';
 import { cancelCustomerOrderController, getCustomerOrderController, listCustomerOrdersController, } from '../modules/orders/customer-order.controller.js';
 import { createRateLimit } from '../middleware/rateLimit.js';
 import { optionalCustomerAuthentication, requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js';
@@ -13,6 +13,7 @@ const requireCheckoutRequestHeader = (request, _response, next) => {
 };
 export const orderRoutes = Router();
 orderRoutes.get('/', requireCustomerAuthentication, requireCustomerRole, listCustomerOrdersController);
+orderRoutes.post('/guest/track', createRateLimit(10, 15 * 60 * 1000), guestOrderTrackingController);
 orderRoutes.get('/guest/:orderNumber', guestOrderController);
 orderRoutes.patch('/:orderNumber/cancel', requireCustomerAuthentication, requireCustomerRole, cancelCustomerOrderController);
 orderRoutes.get('/:orderNumber', requireCustomerAuthentication, requireCustomerRole, getCustomerOrderController);

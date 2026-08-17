@@ -1,10 +1,11 @@
-import { FulfillmentMethod, Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
+import { AdminNotificationType, FulfillmentMethod, Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js';
 import { notifyOrderCreated, notifyOrderStatusChanged } from './order.email.js';
 import { deductStock, restoreStock } from '../inventory/inventory.service.js';
 import { calculateDiscountedPrice } from '../products/product.pricing.js';
+import { createAdminNotification } from '../notifications/notification.service.js';
 const toPaymentSubmissionResponse = (submission) => ({
     id: submission.id,
     senderName: submission.senderName,
@@ -314,6 +315,13 @@ export async function checkoutCustomerCart(userId, input) {
                     },
                 });
             }
+            await createAdminNotification(transaction, {
+                type: AdminNotificationType.NEW_ORDER,
+                eventKey: `new-order:${order.id}`,
+                title: 'New order placed',
+                message: `${order.customerName} placed order ${order.orderNumber}.`,
+                href: `/admin/orders/${order.orderNumber}`,
+            });
             return { order, created: true };
         });
     }
@@ -395,6 +403,60 @@ export async function getGuestOrderByNumber(orderNumber, accessToken) {
     });
     return order ? toOrderResponse(order) : null;
 }
+const normalizeGuestPhone = (value) => {
+    const digits = value.replace(/\D/g, '');
+    return digits.startsWith('234') && digits.length === 13
+        ? `0${digits.slice(3)}`
+        : digits.startsWith('00234') && digits.length === 15
+            ? `0${digits.slice(5)}`
+            : digits;
+};
+const normalizeGuestContact = (value) => {
+    const trimmed = value.trim().toLowerCase();
+    return { email: trimmed, phone: normalizeGuestPhone(trimmed) };
+};
+const toGuestOrderResponse = (order) => {
+    const fullResponse = toOrderResponse(order);
+    const verifiedPayment = order.paymentSubmissions.find((submission) => submission.status === 'VERIFIED');
+    return {
+        orderNumber: fullResponse.orderNumber,
+        fulfillmentMethod: fullResponse.fulfillmentMethod,
+        deliveryAddress: fullResponse.deliveryAddress,
+        city: fullResponse.city,
+        subtotal: fullResponse.subtotal,
+        deliveryFee: fullResponse.deliveryFee,
+        total: fullResponse.total,
+        paymentStatus: fullResponse.paymentStatus,
+        paymentConfirmedAt: verifiedPayment?.reviewedAt?.toISOString() ?? null,
+        orderStatus: fullResponse.orderStatus,
+        createdAt: fullResponse.createdAt,
+        orderItems: fullResponse.orderItems.map((item) => ({
+            id: item.id,
+            productName: item.productName,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            subtotal: item.subtotal,
+            deliveryFee: item.deliveryFee,
+            image: item.product.image,
+        })),
+        statusHistory: fullResponse.statusHistory,
+    };
+};
+export async function getGuestOrderForTracking(orderNumber, contact) {
+    const order = await prisma.order.findFirst({
+        where: {
+            orderNumber,
+            userId: null,
+        },
+        include: orderInclude,
+    });
+    if (!order)
+        return null;
+    const normalizedContact = normalizeGuestContact(contact);
+    const emailMatches = Boolean(order.email && order.email.trim().toLowerCase() === normalizedContact.email);
+    const phoneMatches = normalizeGuestPhone(order.phone) === normalizedContact.phone;
+    return emailMatches || phoneMatches ? toGuestOrderResponse(order) : null;
+}
 const customerCancellableStatuses = new Set([
     OrderStatus.ORDER_PLACED,
     OrderStatus.PROCESSING,
@@ -454,6 +516,13 @@ export async function cancelCustomerOrder(userId, orderNumber, reason) {
                 });
             }
         }
+        await createAdminNotification(transaction, {
+            type: AdminNotificationType.CUSTOMER_ORDER_CANCELLED,
+            eventKey: `customer-order-cancelled:${order.id}`,
+            title: 'Customer cancelled an order',
+            message: `${order.customerName} cancelled order ${order.orderNumber}.`,
+            href: `/admin/orders/${order.orderNumber}`,
+        });
         return order;
     });
     void notifyOrderStatusChanged({

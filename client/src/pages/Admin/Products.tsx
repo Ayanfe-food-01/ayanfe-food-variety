@@ -17,6 +17,7 @@ import {
 } from '../../services/adminService'
 import type { Category } from '../../types/category'
 import { ProductPrice } from '../../components/products/ProductPrice'
+import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
 import { formatPrice } from '../../utils/formatPrice'
 import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 
@@ -199,16 +200,16 @@ export function Products() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
-        <form className="flex flex-col gap-3 lg:flex-row" onSubmit={submitSearch}>
-          <label className="flex-1 text-xs font-bold text-green-dark">
+        <form className="flex flex-row items-end gap-3" onSubmit={submitSearch}>
+          <label className="min-w-0 flex-1 text-xs font-bold text-green-dark">
             Search products
             <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Name or description" />
           </label>
-          <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark lg:self-end" type="submit">Search</button>
-          <label className="text-xs font-bold text-green-dark">
+          <button className="shrink-0 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
+          <label className="min-w-0 flex-1 text-xs font-bold text-green-dark">
             Category
             <SelectField
-              className="mt-2 w-full sm:w-44"
+              className="mt-2 w-full"
               options={[
                 { value: '', label: 'All categories' },
                 ...categories.map((category) => ({ value: category.id, label: category.name })),
@@ -217,10 +218,10 @@ export function Products() {
               value={query.categoryId ?? ''}
             />
           </label>
-          <label className="text-xs font-bold text-green-dark">
+          <label className="min-w-0 flex-1 text-xs font-bold text-green-dark">
             Availability
             <SelectField
-              className="mt-2 w-full sm:w-44"
+              className="mt-2 w-full"
               options={[
                 { value: '', label: 'All products' },
                 { value: 'active', label: 'Active' },
@@ -244,7 +245,7 @@ export function Products() {
             <span>Page {currentPage} of {totalPages}</span>
           </div>
            <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-             <div className="space-y-3 p-4 md:hidden">
+              <div className="space-y-3 p-4 lg:hidden">
                {result.products.map((product) => (
                  <article className="rounded-2xl border border-line bg-cream/45 p-4" key={product.id}>
                    <div className="flex items-start gap-3">
@@ -299,31 +300,32 @@ export function Products() {
                  </article>
                ))}
              </div>
-             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
+              <div className="hidden lg:block">
+               <ResponsiveDataTable label="Products table horizontal scroll">
+               <table className="w-full min-w-[1540px] whitespace-nowrap text-left text-sm">
+                 <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
                   <tr>
-                    <th className="px-4 py-4 font-bold">Product</th>
-                    <th className="px-4 py-4 font-bold">Category</th>
-                    <th className="px-4 py-4 font-bold">Price / unit</th>
-                     <th className="px-4 py-4 font-bold">Delivery fee</th>
-                    <th className="px-4 py-4 font-bold">Stock</th>
-                    <th className="px-4 py-4 font-bold">Availability</th>
-                     <th className="px-4 py-4 font-bold">Featured</th>
-                    <th className="px-4 py-4 font-bold">Created</th>
-                    <th className="px-4 py-4 font-bold">Actions</th>
+                      <th className="px-4 py-4 font-bold">Product</th>
+                     <th className="px-4 py-4 font-bold">Category</th>
+                     <th className="px-4 py-4 font-bold">Price / unit</th>
+                      <th className="px-4 py-4 font-bold">Delivery fee</th>
+                     <th className="px-4 py-4 font-bold">Stock</th>
+                     <th className="px-4 py-4 font-bold">Availability</th>
+                      <th className="px-4 py-4 font-bold">Featured</th>
+                     <th className="px-4 py-4 font-bold">Created</th>
+                     <th className="px-4 py-4 font-bold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {result.products.map((product) => (
-                    <tr key={product.id} className="align-middle">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
+                     <tr key={product.id} className="group align-middle">
+                        <td className="w-[380px] max-w-[380px] overflow-hidden px-4 py-4">
+                          <div className="flex min-w-[340px] max-w-[348px] items-center gap-3">
                           <img className="size-14 rounded-xl object-cover" src={product.image} alt="" />
-                          <div><p className="font-bold text-green-dark">{product.name}</p><p className="mt-1 max-w-[210px] truncate text-xs text-muted">{product.description}</p></div>
+                            <div className="min-w-0 flex-1"><p className="responsive-table-ellipsis font-bold text-green-dark">{product.name}</p><p className="responsive-table-ellipsis mt-1 text-xs text-muted">{product.description}</p></div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-muted">{product.category}</td>
+                       <td className="max-w-[190px] px-4 py-4 text-muted"><span className="responsive-table-ellipsis max-w-[150px]">{product.category}</span></td>
                       <td className="px-4 py-4"><span className="font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /></span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
                        <td className="px-4 py-4 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</td>
                       <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>
@@ -349,6 +351,7 @@ export function Products() {
                   ))}
                 </tbody>
               </table>
+               </ResponsiveDataTable>
             </div>
           </div>
           {totalPages > 1 && <div className="mt-5 flex items-center justify-between gap-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}

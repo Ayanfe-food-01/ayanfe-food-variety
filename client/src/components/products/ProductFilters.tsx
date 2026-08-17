@@ -23,7 +23,7 @@ export function ProductFilters({
   onCategoryChange,
   onSortChange,
 }: ProductFiltersProps) {
-  const { isScrolling, onScroll } = useHorizontalScrollIndicator()
+  const { isScrolling, thumbWidth, thumbOffset, onScroll } = useHorizontalScrollIndicator()
   const isCategorySelected = (category: Category) =>
     categoryValue === category.slug || categoryValue === category.id
 
@@ -39,7 +39,7 @@ export function ProductFilters({
         role="list"
         aria-label="Product categories"
         aria-busy={isCategoriesLoading}
-        onScroll={onScroll}
+        onScroll={(event) => onScroll(event.currentTarget)}
       >
         <button
           className={`shop-category-chip ${!categoryValue ? 'is-active' : ''}`}
@@ -63,6 +63,9 @@ export function ProductFilters({
               {category.name}
             </button>
           ))}
+      </div>
+      <div className={`shop-category-scroll-indicator ${isScrolling ? 'is-visible' : ''}`} aria-hidden="true">
+        <span style={{ width: `${thumbWidth}%`, transform: `translateX(${thumbOffset}%)` }} />
       </div>
 
       <div className="shop-filter-divider" />

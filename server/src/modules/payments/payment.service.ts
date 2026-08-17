@@ -1,4 +1,4 @@
-import { PaymentAuditAction, PaymentStatus, PaymentSubmissionStatus, Prisma } from '@prisma/client'
+import { AdminNotificationType, PaymentAuditAction, PaymentStatus, PaymentSubmissionStatus, Prisma } from '@prisma/client'
 import type { PaymentRejectionReason } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
@@ -12,6 +12,7 @@ import type {
   ReviewPaymentInput,
   SubmitPaymentInput,
 } from './payment.types.js'
+import { createAdminNotification } from '../notifications/notification.service.js'
 
 const toResponse = (submission: {
   id: string
@@ -109,6 +110,13 @@ export async function submitPayment(
           performedById: authenticatedUserId,
         },
       })
+      await createAdminNotification(transaction, {
+        type: AdminNotificationType.PAYMENT_PROOF_SUBMITTED,
+        eventKey: `payment-proof-submitted:${created.id}`,
+        title: 'Payment proof submitted',
+        message: `Payment proof for order ${order.orderNumber} is awaiting review.`,
+        href: `/admin/payments/${created.id}`,
+      })
       return created
     })
   } catch (error: unknown) {
@@ -186,6 +194,15 @@ export async function reviewPayment(
         note: input.reviewNote ?? input.rejectionReason ?? null,
       },
     })
+    if (verified) {
+      await createAdminNotification(transaction, {
+        type: AdminNotificationType.PAYMENT_CONFIRMED,
+        eventKey: `payment-confirmed:${id}`,
+        title: 'Payment confirmed',
+        message: `Payment for order ${order.orderNumber} was confirmed.`,
+        href: `/admin/payments/${id}`,
+      })
+    }
     const updated = await transaction.paymentSubmission.findUniqueOrThrow({ where: { id } })
     return {
       submission: toResponse(updated),

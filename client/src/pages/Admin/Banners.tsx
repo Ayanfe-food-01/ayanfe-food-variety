@@ -154,8 +154,8 @@ export function Banners() {
            <div className="hidden lg:block">
              <ResponsiveDataTable label="Banners table horizontal scroll">
             <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
-                 <tr><th className="sticky left-0 top-[80px] z-30 border-r border-line bg-sage/30 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Banner</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Status</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Order</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Created</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Actions</th></tr>
+               <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
+                 <tr><th className="sticky left-0 z-30 border-r border-line bg-sage/30 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Banner</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
               </thead>
                <tbody className="divide-y divide-line">
                 {banners.map((banner) => (

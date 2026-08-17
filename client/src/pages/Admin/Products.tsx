@@ -303,26 +303,26 @@ export function Products() {
               <div className="hidden lg:block">
                <ResponsiveDataTable label="Products table horizontal scroll">
               <table className="w-full min-w-[900px] text-left text-sm">
-                <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
+                 <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
                   <tr>
-                     <th className="sticky left-0 top-[80px] z-30 border-r border-line bg-sage/30 px-4 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Product</th>
-                     <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Category</th>
-                     <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Price / unit</th>
-                      <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Delivery fee</th>
-                     <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Stock</th>
-                     <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Availability</th>
-                      <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Featured</th>
-                     <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Created</th>
-                     <th className="sticky top-[80px] z-20 bg-sage/30 px-4 py-4 font-bold">Actions</th>
+                     <th className="sticky left-0 z-30 border-r border-line bg-sage/30 px-4 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Product</th>
+                     <th className="px-4 py-4 font-bold">Category</th>
+                     <th className="px-4 py-4 font-bold">Price / unit</th>
+                      <th className="px-4 py-4 font-bold">Delivery fee</th>
+                     <th className="px-4 py-4 font-bold">Stock</th>
+                     <th className="px-4 py-4 font-bold">Availability</th>
+                      <th className="px-4 py-4 font-bold">Featured</th>
+                     <th className="px-4 py-4 font-bold">Created</th>
+                     <th className="px-4 py-4 font-bold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {result.products.map((product) => (
                      <tr key={product.id} className="group align-middle">
                        <td className="sticky left-0 z-10 border-r border-line bg-white px-4 py-4 shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)] group-hover:bg-cream/60">
-                        <div className="flex items-center gap-3">
+                         <div className="flex min-w-0 items-center gap-3">
                           <img className="size-14 rounded-xl object-cover" src={product.image} alt="" />
-                          <div><p className="font-bold text-green-dark">{product.name}</p><p className="mt-1 max-w-[210px] truncate text-xs text-muted">{product.description}</p></div>
+                           <div className="min-w-0 flex-1"><p className="break-words font-bold text-green-dark">{product.name}</p><p className="mt-1 max-w-[210px] truncate text-xs text-muted">{product.description}</p></div>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-muted">{product.category}</td>

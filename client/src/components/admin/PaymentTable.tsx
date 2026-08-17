@@ -63,17 +63,17 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
       <div className="hidden lg:block">
         <ResponsiveDataTable label="Payments table horizontal scroll">
         <table className="w-full min-w-[1080px] text-left text-sm">
-          <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
+          <thead className="sticky top-0 z-10 border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
             <tr>
-              <th className="sticky left-0 top-[80px] z-30 border-r border-line bg-sage/35 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Order / customer</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Amount</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Method</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Transaction reference</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Proof</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Submitted</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Status</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Reviewed</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4" />
+              <th className="sticky left-0 z-30 border-r border-line bg-sage/35 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Order / customer</th>
+              <th className="px-5 py-4 font-bold">Amount</th>
+              <th className="px-5 py-4 font-bold">Method</th>
+              <th className="px-5 py-4 font-bold">Transaction reference</th>
+              <th className="px-5 py-4 font-bold">Proof</th>
+              <th className="px-5 py-4 font-bold">Submitted</th>
+              <th className="px-5 py-4 font-bold">Status</th>
+              <th className="px-5 py-4 font-bold">Reviewed</th>
+              <th className="px-5 py-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-line">

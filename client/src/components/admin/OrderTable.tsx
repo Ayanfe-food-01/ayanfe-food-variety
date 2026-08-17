@@ -82,17 +82,17 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
       <div className="hidden lg:block">
         <ResponsiveDataTable label="Orders table horizontal scroll">
         <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
+          <thead className="sticky top-0 z-10 border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
             <tr>
-              <th className="sticky left-0 top-[80px] z-30 border-r border-line bg-sage/35 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Order number</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Customer</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Phone</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Date</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Total</th>
-               <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Fulfillment</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Payment</th>
-              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Order status</th>
-               <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Actions</th>
+              <th className="sticky left-0 z-30 border-r border-line bg-sage/35 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Order number</th>
+              <th className="px-5 py-4 font-bold">Customer</th>
+              <th className="px-5 py-4 font-bold">Phone</th>
+              <th className="px-5 py-4 font-bold">Date</th>
+              <th className="px-5 py-4 font-bold">Total</th>
+               <th className="px-5 py-4 font-bold">Fulfillment</th>
+              <th className="px-5 py-4 font-bold">Payment</th>
+              <th className="px-5 py-4 font-bold">Order status</th>
+               <th className="px-5 py-4 font-bold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -101,7 +101,7 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                 <td className="sticky left-0 z-10 border-r border-line bg-white px-5 py-4 font-semibold text-green-dark shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)] group-hover:bg-cream/60">{order.orderNumber}</td>
                 <td className="px-5 py-4">
                   <p className="m-0 font-semibold text-green-dark">{order.customerName}</p>
-                  <p className="mt-1 text-xs text-muted">{order.email ?? 'No email provided'}</p>
+                   <p className="mt-1 break-all text-xs text-muted">{order.email ?? 'No email provided'}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{order.phone}</td>
                  <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt, true)}</td>

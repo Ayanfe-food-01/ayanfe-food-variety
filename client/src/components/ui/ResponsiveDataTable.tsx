@@ -11,6 +11,7 @@ interface FloatingBarPosition {
   left: number
   width: number
   contentWidth: number
+  viewportWidth: number
   scrollLeft: number
   visible: boolean
 }
@@ -19,6 +20,7 @@ const initialPosition: FloatingBarPosition = {
   left: 0,
   width: 0,
   contentWidth: 0,
+  viewportWidth: 0,
   scrollLeft: 0,
   visible: false,
 }
@@ -69,6 +71,7 @@ export function ResponsiveDataTable({ children, className = '', label = 'Table h
           left,
           width,
           contentWidth: tableScroller.scrollWidth,
+          viewportWidth: tableScroller.clientWidth,
           scrollLeft: tableScroller.scrollLeft,
           visible: hasHorizontalOverflow && isInViewport && width > 80,
         })
@@ -105,7 +108,7 @@ export function ResponsiveDataTable({ children, className = '', label = 'Table h
   const floatingScrollbar = position.visible && typeof document !== 'undefined'
     ? createPortal(
         <div
-          className="responsive-table-floating-scrollbar fixed z-40 rounded-full border border-line bg-white/95 p-1 shadow-lg backdrop-blur"
+          className="responsive-table-floating-scrollbar fixed z-40 flex h-8 items-center rounded-full border border-line bg-white/95 px-2 shadow-lg backdrop-blur"
           style={{
             bottom: 'max(0.75rem, env(safe-area-inset-bottom))',
             left: `${position.left}px`,
@@ -114,15 +117,26 @@ export function ResponsiveDataTable({ children, className = '', label = 'Table h
         >
           <div
             ref={scrollbarRef}
-            className="h-3 overflow-x-auto overscroll-x-contain rounded-full"
+            className="responsive-table-proxy-scrollbar absolute inset-x-2 inset-y-0 z-10 h-8 overflow-x-auto overscroll-x-contain rounded-full opacity-0"
             aria-label={label}
             role="scrollbar"
             aria-valuemin={0}
-            aria-valuemax={Math.max(0, position.contentWidth - (tableScrollerRef.current?.clientWidth ?? 0))}
+            aria-valuemax={Math.max(0, position.contentWidth - position.viewportWidth)}
             aria-valuenow={position.scrollLeft}
             tabIndex={0}
           >
             <div className="h-px" style={{ width: `${position.contentWidth}px` }} />
+          </div>
+          <div className="pointer-events-none relative h-2 w-full rounded-full bg-sage/80">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-green shadow-sm"
+              style={{
+                width: `${Math.max(32, Math.min(position.width - 16, (position.width - 16) * position.viewportWidth / position.contentWidth))}px`,
+                transform: `translateX(${position.contentWidth > position.viewportWidth
+                  ? (position.width - 16 - Math.max(32, Math.min(position.width - 16, (position.width - 16) * position.viewportWidth / position.contentWidth))) * position.scrollLeft / (position.contentWidth - position.viewportWidth)
+                  : 0}px)`,
+              }}
+            />
           </div>
         </div>,
         document.body,

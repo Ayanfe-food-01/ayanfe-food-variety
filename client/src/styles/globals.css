@@ -29,6 +29,27 @@
   }
 
   * { box-sizing: border-box; }
+  * {
+    scrollbar-color: var(--color-green) var(--color-sage);
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--color-sage);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-green);
+    border: 2px solid var(--color-sage);
+    border-radius: 999px;
+  }
+
   html { min-height: 100%; scroll-behavior: smooth; }
   body, #root { min-height: 100%; }
   body { @apply m-0 min-w-[320px] bg-cream text-ink; }
@@ -132,24 +153,24 @@
     display: none;
   }
 
-  .responsive-table-floating-scrollbar {
-    scrollbar-color: var(--color-green) var(--color-sage);
-    scrollbar-width: thin;
+  .responsive-table-proxy-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .responsive-table-floating-scrollbar::-webkit-scrollbar {
-    height: 10px;
+  .responsive-table-proxy-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
-  .responsive-table-floating-scrollbar::-webkit-scrollbar-track {
-    background: var(--color-sage);
-    border-radius: 999px;
+  .responsive-table-scrollbar-hidden table {
+    border-collapse: separate;
+    border-spacing: 0;
   }
 
-  .responsive-table-floating-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--color-green);
-    border: 2px solid var(--color-sage);
-    border-radius: 999px;
+  .responsive-table-scrollbar-hidden th,
+  .responsive-table-scrollbar-hidden td {
+    overflow-wrap: anywhere;
   }
 }
 

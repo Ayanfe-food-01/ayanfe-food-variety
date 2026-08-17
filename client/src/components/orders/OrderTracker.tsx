@@ -5,6 +5,7 @@ import { formatOrderStatus } from '../../utils/orderStatus'
 export interface OrderTrackingData {
   orderStatus: OrderStatus
   paymentStatus: CreatedOrder['paymentStatus']
+  paymentConfirmedAt?: string | null
   createdAt: string
   paymentSubmissions?: Array<{
     status: 'PENDING' | 'VERIFIED' | 'REJECTED'
@@ -57,7 +58,9 @@ export function OrderTracker({ order }: { order: OrderTrackingData }) {
   const getStepTimestamp = (step: typeof trackerSteps[number]): string | null => {
     if (step.key === 'placed') return order.createdAt
     if (step.key === 'paid') {
-      return order.paymentSubmissions?.find((submission) => submission.status === 'VERIFIED')?.reviewedAt ?? null
+      return order.paymentConfirmedAt
+        ?? order.paymentSubmissions?.find((submission) => submission.status === 'VERIFIED')?.reviewedAt
+        ?? null
     }
     return order.statusHistory.find((history) => history.newStatus === step.status)?.createdAt ?? null
   }

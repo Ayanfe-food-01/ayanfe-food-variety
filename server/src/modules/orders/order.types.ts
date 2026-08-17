@@ -81,6 +81,7 @@ export interface GuestOrderResponse {
   deliveryFee: string
   total: string
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
+  paymentConfirmedAt: string | null
   orderStatus: OrderStatus
   createdAt: string
   orderItems: Array<{

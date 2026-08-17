@@ -417,6 +417,7 @@ const normalizeGuestContact = (value) => {
 };
 const toGuestOrderResponse = (order) => {
     const fullResponse = toOrderResponse(order);
+    const verifiedPayment = order.paymentSubmissions.find((submission) => submission.status === 'VERIFIED');
     return {
         orderNumber: fullResponse.orderNumber,
         fulfillmentMethod: fullResponse.fulfillmentMethod,
@@ -426,6 +427,7 @@ const toGuestOrderResponse = (order) => {
         deliveryFee: fullResponse.deliveryFee,
         total: fullResponse.total,
         paymentStatus: fullResponse.paymentStatus,
+        paymentConfirmedAt: verifiedPayment?.reviewedAt?.toISOString() ?? null,
         orderStatus: fullResponse.orderStatus,
         createdAt: fullResponse.createdAt,
         orderItems: fullResponse.orderItems.map((item) => ({

@@ -511,6 +511,7 @@ const normalizeGuestContact = (value: string): { email: string; phone: string } 
 
 const toGuestOrderResponse = (order: OrderWithItems): GuestOrderResponse => {
   const fullResponse = toOrderResponse(order)
+  const verifiedPayment = order.paymentSubmissions.find((submission) => submission.status === 'VERIFIED')
 
   return {
     orderNumber: fullResponse.orderNumber,
@@ -521,6 +522,7 @@ const toGuestOrderResponse = (order: OrderWithItems): GuestOrderResponse => {
     deliveryFee: fullResponse.deliveryFee,
     total: fullResponse.total,
     paymentStatus: fullResponse.paymentStatus,
+    paymentConfirmedAt: verifiedPayment?.reviewedAt?.toISOString() ?? null,
     orderStatus: fullResponse.orderStatus,
     createdAt: fullResponse.createdAt,
     orderItems: fullResponse.orderItems.map((item) => ({

@@ -66,6 +66,7 @@ export interface GuestOrder {
   deliveryFee: string
   total: string
   paymentStatus: CustomerPaymentStatus
+  paymentConfirmedAt: string | null
   orderStatus: OrderStatus
   createdAt: string
   orderItems: Array<{

@@ -14,6 +14,7 @@ import {
 } from '../../services/adminService'
 import type { Category } from '../../types/category'
 import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
+import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
 
 const pageSize = 10
 const formatDate = (value?: string) => value
@@ -188,7 +189,7 @@ export function Categories() {
             <span>{result?.pagination.total ?? 0} {result?.pagination.total === 1 ? 'category' : 'categories'}</span>
             <span>Page {currentPage} of {totalPages}</span>
           </div>
-          <div className="space-y-3 px-4 pb-4 md:hidden">
+           <div className="space-y-3 px-4 pb-4 lg:hidden">
             {categories.map((category) => (
               <article className="relative rounded-2xl border border-line bg-cream/45 p-4" key={category.id}>
                 <div className="flex items-start gap-3">
@@ -232,15 +233,16 @@ export function Categories() {
               </article>
             ))}
           </div>
-          <div className="hidden overflow-x-auto md:block">
+           <div className="hidden lg:block">
+             <ResponsiveDataTable label="Categories table horizontal scroll">
             <table className="w-full min-w-[1100px] text-left text-sm">
               <thead className="border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
-                <tr><th className="px-5 py-4 font-bold">Category</th><th className="px-5 py-4 font-bold">Products</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Updated</th><th className="px-5 py-4 font-bold">Actions</th></tr>
+                 <tr><th className="sticky left-0 top-[80px] z-30 border-r border-line bg-sage/30 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Category</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Products</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Status</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Created</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Updated</th><th className="sticky top-[80px] z-20 bg-sage/30 px-5 py-4 font-bold">Actions</th></tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {categories.map((category) => (
-                  <tr key={category.id}>
-                    <td className="px-5 py-4"><div className="flex min-w-[260px] items-center gap-3"><div className="size-14 shrink-0 overflow-hidden rounded-xl bg-sage">{category.imageUrl && <img className="size-full object-cover" src={category.imageUrl} alt="" />}</div><div className="min-w-0"><p className="font-bold text-green-dark">{category.name}</p><p className="mt-1 max-w-md truncate text-xs text-muted">{category.description || 'No description'}</p><p className="mt-1 text-xs text-muted">{category.slug}</p></div></div></td>
+                   <tr key={category.id} className="group">
+                     <td className="sticky left-0 z-10 border-r border-line bg-white px-5 py-4 shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)] group-hover:bg-cream/60"><div className="flex min-w-[260px] items-center gap-3"><div className="size-14 shrink-0 overflow-hidden rounded-xl bg-sage">{category.imageUrl && <img className="size-full object-cover" src={category.imageUrl} alt="" />}</div><div className="min-w-0"><p className="font-bold text-green-dark">{category.name}</p><p className="mt-1 max-w-md truncate text-xs text-muted">{category.description || 'No description'}</p><p className="mt-1 text-xs text-muted">{category.slug}</p></div></div></td>
                     <td className="px-5 py-4 text-muted">{category.productCount ?? 0}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${category.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{category.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.createdAt)}</td>
@@ -250,6 +252,7 @@ export function Categories() {
                 ))}
               </tbody>
             </table>
+             </ResponsiveDataTable>
           </div>
           {totalPages > 1 && <div className="flex items-center justify-between gap-4 border-t border-line px-5 py-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
         </div>

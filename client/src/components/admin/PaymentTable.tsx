@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { AdminPayment } from '../../services/paymentService'
 import { formatDate } from '../../utils/dateFormat'
+import { ResponsiveDataTable } from '../ui/ResponsiveDataTable'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
@@ -32,7 +33,7 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-      <div className="space-y-3 p-4 md:hidden">
+      <div className="space-y-3 p-4 lg:hidden">
         {payments.map((payment) => (
           <article className="rounded-2xl border border-line bg-cream/45 p-4" key={payment.id}>
             <div className="flex items-start justify-between gap-4">
@@ -59,25 +60,26 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
           </article>
         ))}
       </div>
-      <div className="hidden overflow-x-auto md:block">
+      <div className="hidden lg:block">
+        <ResponsiveDataTable label="Payments table horizontal scroll">
         <table className="w-full min-w-[1080px] text-left text-sm">
           <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
             <tr>
-              <th className="px-5 py-4 font-bold">Order / customer</th>
-              <th className="px-5 py-4 font-bold">Amount</th>
-              <th className="px-5 py-4 font-bold">Method</th>
-              <th className="px-5 py-4 font-bold">Transaction reference</th>
-              <th className="px-5 py-4 font-bold">Proof</th>
-              <th className="px-5 py-4 font-bold">Submitted</th>
-              <th className="px-5 py-4 font-bold">Status</th>
-              <th className="px-5 py-4 font-bold">Reviewed</th>
-              <th className="px-5 py-4" />
+              <th className="sticky left-0 top-[80px] z-30 border-r border-line bg-sage/35 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Order / customer</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Amount</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Method</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Transaction reference</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Proof</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Submitted</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Status</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4 font-bold">Reviewed</th>
+              <th className="sticky top-[80px] z-20 bg-sage/35 px-5 py-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
             {payments.map((payment) => (
-              <tr className="hover:bg-cream/60" key={payment.id}>
-                <td className="px-5 py-4">
+              <tr className="group hover:bg-cream/60" key={payment.id}>
+                <td className="sticky left-0 z-10 border-r border-line bg-white px-5 py-4 shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)] group-hover:bg-cream/60">
                   <Link className="font-semibold text-green hover:text-orange" to={`/admin/orders/${payment.orderNumber}`}>{payment.orderNumber}</Link>
                   <p className="mt-1 text-xs text-muted">{payment.customerName} · {payment.customerEmail ?? payment.customerPhone}</p>
                 </td>
@@ -96,6 +98,7 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
             ))}
           </tbody>
         </table>
+        </ResponsiveDataTable>
       </div>
     </div>
   )

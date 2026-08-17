@@ -121,6 +121,36 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  .responsive-table-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-table-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+
+  .responsive-table-floating-scrollbar {
+    scrollbar-color: var(--color-green) var(--color-sage);
+    scrollbar-width: thin;
+  }
+
+  .responsive-table-floating-scrollbar::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .responsive-table-floating-scrollbar::-webkit-scrollbar-track {
+    background: var(--color-sage);
+    border-radius: 999px;
+  }
+
+  .responsive-table-floating-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-green);
+    border: 2px solid var(--color-sage);
+    border-radius: 999px;
+  }
 }
 
 @media (max-width: 767px) {

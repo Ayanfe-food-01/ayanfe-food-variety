@@ -22,7 +22,7 @@ function ProofBadge({ payment }: { payment: AdminPayment }) {
 
 function ReferenceValue({ reference }: { reference: string | null }) {
   return reference
-    ? <span className="break-all font-semibold text-green-dark">{reference}</span>
+    ? <span className="break-all font-semibold text-green-dark lg:break-normal">{reference}</span>
     : <span className="text-muted">Not provided</span>
 }
 
@@ -62,10 +62,10 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
       </div>
       <div className="hidden lg:block">
         <ResponsiveDataTable label="Payments table horizontal scroll">
-        <table className="w-full min-w-[1080px] text-left text-sm">
+        <table className="w-full min-w-[1480px] whitespace-nowrap text-left text-sm">
           <thead className="sticky top-0 z-10 border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
             <tr>
-              <th className="sticky left-0 z-30 border-r border-line bg-sage/35 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Order / customer</th>
+              <th className="px-5 py-4 font-bold">Order / customer</th>
               <th className="px-5 py-4 font-bold">Amount</th>
               <th className="px-5 py-4 font-bold">Method</th>
               <th className="px-5 py-4 font-bold">Transaction reference</th>
@@ -79,7 +79,7 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
           <tbody className="divide-y divide-line">
             {payments.map((payment) => (
               <tr className="group hover:bg-cream/60" key={payment.id}>
-                <td className="sticky left-0 z-10 border-r border-line bg-white px-5 py-4 shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)] group-hover:bg-cream/60">
+                <td className="px-5 py-4">
                   <Link className="font-semibold text-green hover:text-orange" to={`/admin/orders/${payment.orderNumber}`}>{payment.orderNumber}</Link>
                   <p className="mt-1 text-xs text-muted">{payment.customerName} · {payment.customerEmail ?? payment.customerPhone}</p>
                 </td>

@@ -81,10 +81,10 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
       </div>
       <div className="hidden lg:block">
         <ResponsiveDataTable label="Orders table horizontal scroll">
-        <table className="w-full min-w-[980px] text-left text-sm">
+        <table className="w-full min-w-[1480px] whitespace-nowrap text-left text-sm">
           <thead className="sticky top-0 z-10 border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
             <tr>
-              <th className="sticky left-0 z-30 border-r border-line bg-sage/35 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Order number</th>
+              <th className="px-5 py-4 font-bold">Order number</th>
               <th className="px-5 py-4 font-bold">Customer</th>
               <th className="px-5 py-4 font-bold">Phone</th>
               <th className="px-5 py-4 font-bold">Date</th>
@@ -98,10 +98,10 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
           <tbody className="divide-y divide-line">
             {orders.map((order) => (
                <tr className="group hover:bg-cream/60" key={order.orderNumber}>
-                <td className="sticky left-0 z-10 border-r border-line bg-white px-5 py-4 font-semibold text-green-dark shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)] group-hover:bg-cream/60">{order.orderNumber}</td>
+                <td className="px-5 py-4 font-semibold text-green-dark">{order.orderNumber}</td>
                 <td className="px-5 py-4">
                   <p className="m-0 font-semibold text-green-dark">{order.customerName}</p>
-                   <p className="mt-1 break-all text-xs text-muted">{order.email ?? 'No email provided'}</p>
+                    <p className="mt-1 text-xs text-muted">{order.email ?? 'No email provided'}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{order.phone}</td>
                  <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt, true)}</td>

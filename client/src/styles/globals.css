@@ -170,7 +170,7 @@
 
   .responsive-table-scrollbar-hidden th,
   .responsive-table-scrollbar-hidden td {
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
   }
 }
 

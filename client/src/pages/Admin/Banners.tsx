@@ -153,14 +153,14 @@ export function Banners() {
           </div>
            <div className="hidden lg:block">
              <ResponsiveDataTable label="Banners table horizontal scroll">
-            <table className="w-full min-w-[900px] text-left text-sm">
+             <table className="w-full min-w-[1080px] whitespace-nowrap text-left text-sm">
                <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
-                 <tr><th className="sticky left-0 z-30 border-r border-line bg-sage/30 px-5 py-4 font-bold shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)]">Banner</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
+                  <tr><th className="px-5 py-4 font-bold">Banner</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
               </thead>
                <tbody className="divide-y divide-line">
                 {banners.map((banner) => (
                    <tr key={banner.id} className="group">
-                     <td className="sticky left-0 z-10 border-r border-line bg-white px-5 py-4 shadow-[4px_0_8px_-6px_rgba(32,60,36,0.35)] group-hover:bg-cream/60"><div className="flex min-w-[320px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="font-bold text-green-dark">{banner.title}</p><p className="mt-1 max-w-md truncate text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
+                     <td className="px-5 py-4"><div className="flex min-w-[380px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="font-bold text-green-dark">{banner.title}</p><p className="mt-1 text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 font-bold text-green-dark">{banner.displayOrder}</td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-muted">{formatDate(banner.createdAt)}</td>

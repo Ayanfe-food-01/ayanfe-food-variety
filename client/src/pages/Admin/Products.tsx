@@ -319,13 +319,13 @@ export function Products() {
                 <tbody className="divide-y divide-line">
                   {result.products.map((product) => (
                      <tr key={product.id} className="group align-middle">
-                        <td className="px-4 py-4">
-                          <div className="flex min-w-[340px] items-center gap-3">
+                        <td className="w-[380px] max-w-[380px] overflow-hidden px-4 py-4">
+                          <div className="flex min-w-[340px] max-w-[348px] items-center gap-3">
                           <img className="size-14 rounded-xl object-cover" src={product.image} alt="" />
-                            <div className="min-w-0 flex-1"><p className="font-bold text-green-dark">{product.name}</p><p className="mt-1 text-xs text-muted">{product.description}</p></div>
+                            <div className="min-w-0 flex-1"><p className="responsive-table-ellipsis font-bold text-green-dark">{product.name}</p><p className="responsive-table-ellipsis mt-1 text-xs text-muted">{product.description}</p></div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-muted">{product.category}</td>
+                       <td className="max-w-[190px] px-4 py-4 text-muted"><span className="responsive-table-ellipsis max-w-[150px]">{product.category}</span></td>
                       <td className="px-4 py-4"><span className="font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /></span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
                        <td className="px-4 py-4 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</td>
                       <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>

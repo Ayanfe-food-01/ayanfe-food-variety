@@ -22,7 +22,7 @@ function ProofBadge({ payment }: { payment: AdminPayment }) {
 
 function ReferenceValue({ reference }: { reference: string | null }) {
   return reference
-    ? <span className="break-all font-semibold text-green-dark lg:break-normal">{reference}</span>
+    ? <span className="responsive-table-ellipsis max-w-[280px] break-all font-semibold text-green-dark lg:break-normal">{reference}</span>
     : <span className="text-muted">Not provided</span>
 }
 
@@ -80,8 +80,8 @@ export function PaymentTable({ payments, onSelect }: PaymentTableProps) {
             {payments.map((payment) => (
               <tr className="group hover:bg-cream/60" key={payment.id}>
                 <td className="px-5 py-4">
-                  <Link className="font-semibold text-green hover:text-orange" to={`/admin/orders/${payment.orderNumber}`}>{payment.orderNumber}</Link>
-                  <p className="mt-1 text-xs text-muted">{payment.customerName} · {payment.customerEmail ?? payment.customerPhone}</p>
+                  <Link className="responsive-table-ellipsis max-w-[190px] font-semibold text-green hover:text-orange" to={`/admin/orders/${payment.orderNumber}`}>{payment.orderNumber}</Link>
+                  <p className="responsive-table-ellipsis mt-1 max-w-[280px] text-xs text-muted">{payment.customerName} · {payment.customerEmail ?? payment.customerPhone}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-4">
                   <p className="font-semibold text-green-dark">{formatPrice(payment.amount)}</p>

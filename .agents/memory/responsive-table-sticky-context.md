@@ -7,4 +7,4 @@ Admin table columns should scroll together as normal cells; do not make identifi
 
 **Why:** Mobile browser previews exposed header labels displaced into product rows, sticky-column split styling looked incorrect, and narrow table minimum widths compressed readable content.
 
-**How to apply:** Keep one real table scroll container, synchronize any floating control to it, keep all desktop columns in the same scroll flow, and use shared global scrollbar styling/custom proxy visuals rather than page-specific scrollbar implementations.
+**How to apply:** Keep one real table scroll container, synchronize any floating control to it, keep all desktop columns in the same scroll flow, and use shared global scrollbar styling/custom proxy visuals rather than page-specific scrollbar implementations. Bound long desktop cell content with an in-cell ellipsis instead of allowing it to paint into adjacent columns; retain mobile wrapping where needed.

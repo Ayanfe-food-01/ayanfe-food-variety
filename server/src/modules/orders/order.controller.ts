@@ -29,7 +29,10 @@ export const guestOrderTrackingController: RequestHandler = async (request, resp
   const order = await getGuestOrderForTracking(orderNumber, contact)
 
   if (!order) {
-    throw new HttpError(404, 'We could not find an order matching those details.')
+    throw new HttpError(
+      404,
+      'We could not verify this order. Check the order number and the email or phone used at checkout. Guest tracking is for orders placed without signing in; if you used an account, sign in to view your order.',
+    )
   }
 
   response.json({ success: true, data: { order } })

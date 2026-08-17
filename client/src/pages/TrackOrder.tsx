@@ -49,7 +49,7 @@ export function TrackOrder() {
           ? caught.message
           : caught instanceof ApiError && caught.status === 400
             ? caught.message
-            : 'We could not find an order matching those details. Check your order number and the email or phone number used at checkout.',
+            : 'We could not verify this order. Check the order number and the email or phone used at checkout. Guest tracking is for orders placed without signing in; if you used an account, sign in to view your order.',
       )
     } finally {
       setIsSubmitting(false)

@@ -1,4 +1,6 @@
-import 'dotenv/config'
+import dotenv from 'dotenv'
+
+dotenv.config({ path: new URL('../../../.env', import.meta.url), quiet: true })
 
 const parsePort = (value: string | undefined): number => {
   const port = Number(value ?? 8000)

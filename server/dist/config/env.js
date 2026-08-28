@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: new URL('../../../.env', import.meta.url), quiet: true });
 const parsePort = (value) => {
     const port = Number(value ?? 8000);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {

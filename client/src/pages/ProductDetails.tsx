@@ -5,6 +5,7 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { ProductPrice } from '../components/products/ProductPrice'
+import { ProductOptionSelector } from '../components/products/ProductOptionSelector'
 import { WishlistButton } from '../components/products/WishlistButton'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
@@ -28,6 +29,7 @@ import {
 export function ProductDetails() {
   const { id } = useParams<{ id: string }>()
   const [quantity, setQuantity] = useState(1)
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [product, setProduct] = useState<Product | null>(null)
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -58,10 +60,19 @@ export function ProductDetails() {
     setActiveImageIndex(0)
     setFailedImageUrls(new Set())
     setQuantity(1)
+    setSelectedOptionId(null)
 
     try {
       const loadedProduct = await getProduct(id)
       setProduct(loadedProduct)
+
+      const loadedOptions = loadedProduct.options ?? []
+      if (loadedOptions.length > 0) {
+        const sortedOptions = [...loadedOptions].sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
+        )
+        setSelectedOptionId((sortedOptions.find((option) => option.stockQuantity > 0) ?? sortedOptions[0])?.id ?? null)
+      }
 
       try {
         const allProducts = (await getProducts({ category: loadedProduct.categorySlug, limit: 8 })).products
@@ -113,11 +124,26 @@ export function ProductDetails() {
   const currentCartQuantity = product
     ? items.find((item) => item.id === product.id)?.quantity ?? 0
     : 0
-  const availableStock = product?.stockQuantity ?? 0
-  const remainingStockForCart = Math.max(0, availableStock - currentCartQuantity)
+  const productOptions = product?.options?.length
+    ? [...product.options].sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
+    : []
+  const hasOptions = productOptions.length > 0
+  const selectedOption = hasOptions
+    ? (productOptions.find((option) => option.id === selectedOptionId) ?? null)
+    : null
+  const availableStock = hasOptions
+    ? (selectedOption?.stockQuantity ?? 0)
+    : (product?.stockQuantity ?? 0)
+  const remainingStockForCart = hasOptions
+    ? availableStock
+    : Math.max(0, availableStock - currentCartQuantity)
   const maxSelectableQuantity = Math.max(1, remainingStockForCart)
   const selectedQuantity = Math.min(quantity, maxSelectableQuantity)
-  const canAddToCart = Boolean(product?.isAvailable && remainingStockForCart > 0)
+  const canAddToCart = Boolean(
+    product?.isAvailable
+    && (!hasOptions || selectedOption !== null)
+    && remainingStockForCart > 0,
+  )
 
   const retryProduct = () => {
     setIsLoading(true)
@@ -394,18 +420,28 @@ export function ProductDetails() {
               <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
                 <ProductPrice
                   className="text-2xl font-bold text-green-dark"
-                  originalPrice={product.price}
-                  discountedPrice={product.discountedPrice}
+                  originalPrice={selectedOption ? selectedOption.price : product.price}
+                  discountedPrice={selectedOption ? selectedOption.price : product.discountedPrice}
                   discountedClassName="text-green-dark"
                   originalClassName="ml-2 text-base font-normal text-muted"
                 />
-                <span className="text-sm text-muted">per {product.unit}</span>
+                <span className="text-sm text-muted">per {selectedOption ? selectedOption.label : product.unit}</span>
               </div>
               <p className="mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">
                 {product.description}
               </p>
 
               <div className="my-8 h-px bg-line" />
+
+              {hasOptions && (
+                <div className="mb-5">
+                  <ProductOptionSelector
+                    options={productOptions}
+                    selectedOptionId={selectedOption?.id ?? null}
+                    onSelect={setSelectedOptionId}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
                 <div>
@@ -457,7 +493,7 @@ export function ProductDetails() {
                    ? `${availableStock} ${availableStock === 1 ? 'unit' : 'units'} available`
                    : 'Out of stock'}
                </p>
-               {availableStock > 0 && currentCartQuantity >= availableStock && (
+               {!hasOptions && availableStock > 0 && currentCartQuantity >= availableStock && (
                  <p className="mt-1 text-xs text-muted">All available units are already in your cart.</p>
                )}
               <p className="mt-3 text-xs text-muted">

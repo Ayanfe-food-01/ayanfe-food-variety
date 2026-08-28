@@ -25,6 +25,7 @@ interface ProductApiResponse {
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   createdAt: string
   updatedAt: string
+  options?: ProductOptionApiResponse[]
 }
 
 interface ProductListResponse {
@@ -36,6 +37,15 @@ interface ProductListResponse {
 
 interface ProductResponse {
   data: ProductApiResponse
+}
+
+interface ProductOptionApiResponse {
+  id: string
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive: boolean
 }
 
 export interface ProductQuery {
@@ -96,6 +106,32 @@ const toProduct = (product: ProductApiResponse): Product => {
     throw new Error('The product data is invalid.')
   }
 
+  const options: Product['options'] = product.options !== undefined
+    ? product.options.map((option) => {
+      const optionPrice = Number(option.price)
+
+      if (
+        !Number.isFinite(optionPrice)
+        || optionPrice <= 0
+        || !Number.isInteger(option.stockQuantity)
+        || option.stockQuantity < 0
+        || !Number.isInteger(option.sortOrder)
+        || option.sortOrder < 0
+      ) {
+        throw new Error('The product data is invalid.')
+      }
+
+      return {
+        id: option.id,
+        label: option.label,
+        price: optionPrice,
+        stockQuantity: option.stockQuantity,
+        sortOrder: option.sortOrder,
+        isActive: option.isActive,
+      }
+    })
+    : undefined
+
   return {
     id: product.id,
     categoryId: product.categoryId,
@@ -122,6 +158,7 @@ const toProduct = (product: ProductApiResponse): Product => {
     isFeatured: product.isFeatured,
     isAvailable: product.isAvailable,
     isWishlisted: product.isWishlisted,
+    options,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   }

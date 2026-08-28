@@ -11,6 +11,7 @@ import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
 import { useToast } from '../components/ui/Toast'
 import { useCart } from '../hooks/useCart'
+import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { getProduct, getProducts } from '../services/productService'
@@ -176,7 +177,7 @@ export function ProductDetails() {
   const addProductToCart = async () => {
     if (!product || !canAddToCart) return
     try {
-      await addToCart(product, selectedQuantity)
+      await addToCart(product, selectedQuantity, selectedOption)
       showToast(`${product.name} added to your cart.`, 'success')
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'This product could not be added to your cart.', 'error')
@@ -192,7 +193,7 @@ export function ProductDetails() {
     addProductToCart()
   }
 
-  const isAdding = product ? pendingItemIds.includes(product.id) : false
+  const isAdding = product ? pendingItemIds.includes(cartItemLineKey(product.id, selectedOption?.id ?? null)) : false
   const productPath = product ? `/product/${product.slug ?? product.id}` : `/product/${id ?? ''}`
   const productDescription = product ? getProductMetaDescription(product.name) : 'View product details from Ayanfe Food Variety.'
   const productSchema = product ? {

@@ -4,6 +4,8 @@ import type { ProductDiscountType } from '../types/product'
 export interface CustomerCartItem {
   id: string
   productId: string
+  productOptionId: string | null
+  productOptionLabel: string | null
   name: string
   unit: string
   price: string
@@ -28,13 +30,19 @@ export interface CustomerCartSnapshot {
   canCheckout: boolean
 }
 
+export interface CustomerCartItemInput {
+  productId: string
+  quantity: number
+  productOptionId?: string | null
+}
+
 interface CustomerCartResponse {
   success: true
   data: CustomerCartSnapshot
 }
 
 export async function syncCustomerCart(
-  items: Array<{ productId: string; quantity: number }>,
+  items: CustomerCartItemInput[],
 ): Promise<CustomerCartSnapshot> {
   const response = await request<CustomerCartResponse>('/customer/cart/sync', {
     method: 'POST',
@@ -49,17 +57,21 @@ export async function getCustomerCart(): Promise<CustomerCartSnapshot> {
   return response.data
 }
 
-export async function addCustomerCartItem(productId: string, quantity: number): Promise<CustomerCartSnapshot> {
+export async function addCustomerCartItem(
+  productId: string,
+  quantity: number,
+  productOptionId?: string | null,
+): Promise<CustomerCartSnapshot> {
   const response = await request<CustomerCartResponse>('/cart/items', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId, quantity }),
+    body: JSON.stringify({ productId, quantity, productOptionId: productOptionId ?? null }),
   })
   return response.data
 }
 
 export async function replaceCustomerCart(
-  items: Array<{ productId: string; quantity: number }>,
+  items: CustomerCartItemInput[],
 ): Promise<CustomerCartSnapshot> {
   const response = await request<CustomerCartResponse>('/customer/cart', {
     method: 'PUT',

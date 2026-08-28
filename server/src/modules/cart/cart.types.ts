@@ -2,12 +2,15 @@ import type { ProductDiscountType } from '@prisma/client'
 
 export interface CartItemInput {
   productId: string
+  productOptionId: string | null
   quantity: number
 }
 
 export interface CustomerCartItemResponse {
   id: string
   productId: string
+  productOptionId: string | null
+  productOptionLabel: string | null
   name: string
   unit: string
   price: string

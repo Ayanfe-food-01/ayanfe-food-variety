@@ -1,10 +1,14 @@
 import { createContext } from 'react'
-import type { Product } from '../types/product'
+import type { Product, ProductOption } from '../types/product'
 import type { ProductDiscountType } from '../types/product'
+
+export const cartItemLineKey = (id: string, productOptionId: string | null) => `${id}|${productOptionId ?? ''}`
 
 export interface CartItem {
   id: Product['id']
   cartItemId?: string
+  productOptionId: string | null
+  productOptionLabel: string | null
   name: Product['name']
   unit: Product['unit']
   price: Product['price']
@@ -32,10 +36,10 @@ export interface CartContextValue {
   error: string | null
   pendingItemIds: string[]
   isClearing: boolean
-  addToCart: (product: Product, quantity?: number) => Promise<void>
-  increaseQuantity: (productId: string) => Promise<void>
-  decreaseQuantity: (productId: string) => Promise<void>
-  removeFromCart: (productId: string) => Promise<void>
+  addToCart: (product: Product, quantity?: number, selectedOption?: ProductOption | null) => Promise<void>
+  increaseQuantity: (item: CartItem) => Promise<void>
+  decreaseQuantity: (item: CartItem) => Promise<void>
+  removeFromCart: (item: CartItem) => Promise<void>
   clearCart: () => Promise<void>
   refreshCart: () => Promise<void>
   getItemSubtotal: (item: CartItem) => number

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Product } from '../types/product'
+import type { Product, ProductOption } from '../types/product'
 import {
   addCustomerCartItem,
   clearCustomerCart,
@@ -11,7 +11,7 @@ import {
   type CustomerCartSnapshot,
 } from '../services/cartService'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
-import { CartContext, type CartContextValue, type CartItem } from './cartContext'
+import { CartContext, cartItemLineKey, type CartContextValue, type CartItem } from './cartContext'
 
 const CART_STORAGE_KEY = 'ayanfe-cart'
 const CART_OWNER_STORAGE_KEY = 'ayanfe-cart-owner'
@@ -22,6 +22,8 @@ const messageFromError = (error: unknown) =>
 const toCartItem = (item: CustomerCartItem): CartItem => ({
   cartItemId: item.id,
   id: item.productId,
+  productOptionId: item.productOptionId,
+  productOptionLabel: item.productOptionLabel,
   name: item.name,
   unit: item.unit,
   price: Number(item.price),
@@ -51,6 +53,7 @@ const isCartItem = (value: unknown): value is CartItem => {
     typeof item.unit === 'string' &&
     typeof price === 'number' &&
     Number.isFinite(price) &&
+    price > 0 &&
     typeof item.deliveryFee === 'number' &&
     Number.isFinite(item.deliveryFee) &&
     typeof item.image === 'string' &&
@@ -72,6 +75,8 @@ const readStoredCart = (): CartItem[] => {
 
     return parsedCart.filter(isCartItem).map((item) => ({
       ...item,
+      productOptionId: typeof item.productOptionId === 'string' ? item.productOptionId : null,
+      productOptionLabel: typeof item.productOptionLabel === 'string' ? item.productOptionLabel : null,
       originalPrice: typeof item.originalPrice === 'number' ? item.originalPrice : item.price,
       discountType: item.discountType === 'PERCENTAGE' || item.discountType === 'FIXED' ? item.discountType : null,
       discountValue: typeof item.discountValue === 'number' && Number.isFinite(item.discountValue) ? item.discountValue : null,
@@ -87,23 +92,39 @@ const readStoredCart = (): CartItem[] => {
   }
 }
 
-const createCartItem = (product: Product, quantity: number): CartItem => ({
-  id: product.id,
-  name: product.name,
-  unit: product.unit,
-  price: product.discountedPrice,
-  originalPrice: product.price,
-  discountType: product.discountType,
-  discountValue: product.discountValue,
-  deliveryFee: product.deliveryFee * quantity,
-  image: product.image,
-  quantity,
-  itemSubtotal: product.discountedPrice * quantity,
-  isAvailable: product.isAvailable,
-  availableQuantity: product.stockQuantity,
-  canUpdateQuantity: product.isAvailable,
-  availabilityMessage: product.isAvailable ? null : 'This product is no longer available.',
-})
+const createCartItem = (product: Product, quantity: number, selectedOption: ProductOption | null): CartItem => {
+  const isOptioned = selectedOption !== null
+  const unitPrice = isOptioned ? selectedOption.price : product.discountedPrice
+  const originalPrice = isOptioned ? selectedOption.price : product.price
+  const availableQuantity = isOptioned ? selectedOption.stockQuantity : product.stockQuantity
+  const optionInStock = isOptioned ? selectedOption.stockQuantity > 0 : product.stockQuantity > 0
+  const isAvailable = product.isAvailable && optionInStock
+  const availabilityMessage = isOptioned && selectedOption.stockQuantity === 0
+    ? `The ${selectedOption.label} option is out of stock.`
+    : product.isAvailable
+      ? null
+      : 'This product is no longer available.'
+
+  return {
+    id: product.id,
+    productOptionId: selectedOption?.id ?? null,
+    productOptionLabel: selectedOption?.label ?? null,
+    name: product.name,
+    unit: product.unit,
+    price: unitPrice,
+    originalPrice,
+    discountType: isOptioned ? null : product.discountType,
+    discountValue: isOptioned ? null : product.discountValue,
+    deliveryFee: product.deliveryFee * quantity,
+    image: product.image,
+    quantity,
+    itemSubtotal: unitPrice * quantity,
+    isAvailable,
+    availableQuantity,
+    canUpdateQuantity: isAvailable,
+    availabilityMessage,
+  }
+}
 
 interface CartProviderProps {
   children: ReactNode
@@ -181,7 +202,11 @@ export function CartProvider({ children }: CartProviderProps) {
       setError(null)
     }, 0)
     const storedCartOwner = window.localStorage.getItem(CART_OWNER_STORAGE_KEY)
-    const localItems = itemsRef.current.map((item) => ({ productId: item.id, quantity: item.quantity }))
+    const localItems = itemsRef.current.map((item) => ({
+      productId: item.id,
+      quantity: item.quantity,
+      productOptionId: item.productOptionId,
+    }))
     const hydrateCart = storedCartOwner === user.id
       ? getCustomerCart()
       : syncCustomerCart(localItems)
@@ -207,10 +232,10 @@ export function CartProvider({ children }: CartProviderProps) {
   }, [applySnapshot, isCustomerAuthLoading, user])
 
   const runItemMutation = useCallback(async (
-    productId: string,
+    lineKey: string,
     mutation: () => Promise<CustomerCartSnapshot>,
   ) => {
-    setPendingItemIds((current) => current.includes(productId) ? current : [...current, productId])
+    setPendingItemIds((current) => current.includes(lineKey) ? current : [...current, lineKey])
     setError(null)
     try {
       applySnapshot(await mutation())
@@ -218,37 +243,47 @@ export function CartProvider({ children }: CartProviderProps) {
       setError(messageFromError(caught))
       throw caught
     } finally {
-      setPendingItemIds((current) => current.filter((id) => id !== productId))
+      setPendingItemIds((current) => current.filter((id) => id !== lineKey))
     }
   }, [applySnapshot])
 
-  const addToCart = useCallback(async (product: Product, quantity = 1) => {
+  const addToCart = useCallback(async (product: Product, quantity = 1, selectedOption: ProductOption | null = null) => {
     const safeQuantity = Math.floor(quantity)
     if (!Number.isInteger(safeQuantity) || safeQuantity < 1) {
       throw new Error('Quantity must be a positive whole number.')
     }
 
+    const optionId = selectedOption?.id ?? null
+    const lineKey = cartItemLineKey(product.id, optionId)
+
     if (user) {
-      await runItemMutation(product.id, () => addCustomerCartItem(product.id, safeQuantity))
+      await runItemMutation(lineKey, () => addCustomerCartItem(product.id, safeQuantity, optionId))
       return
     }
 
-    const existingItem = itemsRef.current.find((item) => item.id === product.id)
-    const nextQuantity = (existingItem?.quantity ?? 0) + safeQuantity
-    if (!product.isAvailable) {
-      throw new Error('This product is unavailable.')
+    const stockQuantity = selectedOption ? selectedOption.stockQuantity : product.stockQuantity
+    if (!product.isAvailable || (selectedOption && selectedOption.stockQuantity <= 0)) {
+      throw new Error(selectedOption && selectedOption.stockQuantity <= 0
+        ? `The ${selectedOption.label} option is out of stock.`
+        : 'This product is unavailable.')
     }
-    if (nextQuantity > product.stockQuantity) {
-      throw new Error(`Insufficient stock. Only ${product.stockQuantity} ${product.stockQuantity === 1 ? 'unit' : 'units'} available.`)
+
+    const existingItem = itemsRef.current.find(
+      (item) => item.id === product.id && (item.productOptionId ?? null) === optionId,
+    )
+    const nextQuantity = (existingItem?.quantity ?? 0) + safeQuantity
+    if (nextQuantity > stockQuantity) {
+      const scope = selectedOption ? ` of the ${selectedOption.label} option` : ''
+      throw new Error(`Insufficient stock. Only ${stockQuantity} ${stockQuantity === 1 ? 'unit' : 'units'}${scope} available.`)
     }
 
     setError(null)
     setAuthoritativeSubtotal(null)
     setAuthoritativeDeliveryFee(null)
     const nextItems = !existingItem
-      ? [...itemsRef.current, createCartItem(product, safeQuantity)]
+      ? [...itemsRef.current, createCartItem(product, safeQuantity, selectedOption)]
       : itemsRef.current.map((item) =>
-          item.id === product.id
+          cartItemLineKey(item.id, item.productOptionId) === lineKey
             ? {
                 ...item,
                 quantity: item.quantity + safeQuantity,
@@ -261,75 +296,80 @@ export function CartProvider({ children }: CartProviderProps) {
     setItems(nextItems)
   }, [runItemMutation, user])
 
-  const increaseQuantity = useCallback(async (productId: string) => {
-    const item = itemsRef.current.find((currentItem) => currentItem.id === productId)
-    if (!item || pendingItemIds.includes(productId)) return
+  const increaseQuantity = useCallback(async (item: CartItem) => {
+    const lineKey = cartItemLineKey(item.id, item.productOptionId)
+    const currentItem = itemsRef.current.find((candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey)
+    if (!currentItem || pendingItemIds.includes(lineKey)) return
 
-    if (user && item.cartItemId) {
-      await runItemMutation(productId, () => updateCustomerCartItem(item.cartItemId!, item.quantity + 1))
+    if (user && currentItem.cartItemId) {
+      await runItemMutation(lineKey, () => updateCustomerCartItem(currentItem.cartItemId!, currentItem.quantity + 1))
       return
     }
 
-    if (!item.isAvailable) return
-    if (typeof item.availableQuantity === 'number' && item.quantity >= item.availableQuantity) {
-      setError(`Only ${item.availableQuantity} ${item.availableQuantity === 1 ? 'unit' : 'units'} available.`)
+    if (!currentItem.isAvailable) return
+    if (typeof currentItem.availableQuantity === 'number' && currentItem.quantity >= currentItem.availableQuantity) {
+      const scope = currentItem.productOptionId ? ` of the ${currentItem.productOptionLabel} option` : ''
+      setError(`Only ${currentItem.availableQuantity} ${currentItem.availableQuantity === 1 ? 'unit' : 'units'}${scope} available.`)
       return
     }
     setAuthoritativeSubtotal(null)
     setAuthoritativeDeliveryFee(null)
-    setItems((currentItems) => currentItems.map((currentItem) =>
-      currentItem.id === productId
+    setItems((currentItems) => currentItems.map((candidate) =>
+      cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey
         ? {
-            ...currentItem,
-            quantity: currentItem.quantity + 1,
-            itemSubtotal: currentItem.price * (currentItem.quantity + 1),
-            deliveryFee: currentItem.deliveryFee / currentItem.quantity * (currentItem.quantity + 1),
+            ...candidate,
+            quantity: candidate.quantity + 1,
+            itemSubtotal: candidate.price * (candidate.quantity + 1),
+            deliveryFee: candidate.deliveryFee / candidate.quantity * (candidate.quantity + 1),
           }
-        : currentItem,
+        : candidate,
     ))
   }, [pendingItemIds, runItemMutation, user])
 
-  const decreaseQuantity = useCallback(async (productId: string) => {
-    const item = itemsRef.current.find((currentItem) => currentItem.id === productId)
-    if (!item || item.quantity <= 1 || pendingItemIds.includes(productId)) return
+  const decreaseQuantity = useCallback(async (item: CartItem) => {
+    const lineKey = cartItemLineKey(item.id, item.productOptionId)
+    const currentItem = itemsRef.current.find((candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey)
+    if (!currentItem || currentItem.quantity <= 1 || pendingItemIds.includes(lineKey)) return
 
-    if (user && item.cartItemId) {
-      if (item.canUpdateQuantity === false) return
-      const nextQuantity = item.isAvailable
-        ? item.quantity - 1
-        : Math.min(item.quantity - 1, item.availableQuantity ?? item.quantity - 1)
+    if (user && currentItem.cartItemId) {
+      if (currentItem.canUpdateQuantity === false) return
+      const nextQuantity = currentItem.isAvailable
+        ? currentItem.quantity - 1
+        : Math.min(currentItem.quantity - 1, currentItem.availableQuantity ?? currentItem.quantity - 1)
       if (nextQuantity < 1) return
-      await runItemMutation(productId, () => updateCustomerCartItem(item.cartItemId!, nextQuantity))
+      await runItemMutation(lineKey, () => updateCustomerCartItem(currentItem.cartItemId!, nextQuantity))
       return
     }
 
     setAuthoritativeSubtotal(null)
     setAuthoritativeDeliveryFee(null)
-    setItems((currentItems) => currentItems.map((currentItem) =>
-      currentItem.id === productId
+    setItems((currentItems) => currentItems.map((candidate) =>
+      cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey
         ? {
-            ...currentItem,
-            quantity: currentItem.quantity - 1,
-            itemSubtotal: currentItem.price * (currentItem.quantity - 1),
-            deliveryFee: currentItem.deliveryFee / currentItem.quantity * (currentItem.quantity - 1),
+            ...candidate,
+            quantity: candidate.quantity - 1,
+            itemSubtotal: candidate.price * (candidate.quantity - 1),
+            deliveryFee: candidate.deliveryFee / candidate.quantity * (candidate.quantity - 1),
           }
-        : currentItem,
+        : candidate,
     ))
   }, [pendingItemIds, runItemMutation, user])
 
-  const removeFromCart = useCallback(async (productId: string) => {
-    const item = itemsRef.current.find((currentItem) => currentItem.id === productId)
-    if (!item || pendingItemIds.includes(productId)) return
+  const removeFromCart = useCallback(async (item: CartItem) => {
+    const lineKey = cartItemLineKey(item.id, item.productOptionId)
+    if (!item || pendingItemIds.includes(lineKey)) return
 
     if (user && item.cartItemId) {
-      await runItemMutation(productId, () => removeCustomerCartItem(item.cartItemId!))
+      await runItemMutation(lineKey, () => removeCustomerCartItem(item.cartItemId!))
       return
     }
 
     setError(null)
     setAuthoritativeSubtotal(null)
     setAuthoritativeDeliveryFee(null)
-    setItems((currentItems) => currentItems.filter((currentItem) => currentItem.id !== productId))
+    setItems((currentItems) => currentItems.filter(
+      (candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) !== lineKey,
+    ))
   }, [pendingItemIds, runItemMutation, user])
 
   const clearCart = useCallback(async () => {
@@ -342,7 +382,7 @@ export function CartProvider({ children }: CartProviderProps) {
       } else {
         setItems([])
         setAuthoritativeSubtotal(null)
-      setAuthoritativeDeliveryFee(null)
+        setAuthoritativeDeliveryFee(null)
       }
     } catch (caught: unknown) {
       setError(messageFromError(caught))

@@ -11,7 +11,7 @@ export function validateCartItems(body: unknown): CartItemInput[] {
     throw new HttpError(400, 'Cart items are required and must be valid.')
   }
 
-  const productIds = new Set<string>()
+  const lineKeys = new Set<string>()
   return body.items.map((value, index) => {
     if (!isRecord(value)) throw new HttpError(400, `items[${index}] must be an object.`)
     if (typeof value.productId !== 'string' || !UUID_PATTERN.test(value.productId)) {
@@ -20,9 +20,11 @@ export function validateCartItems(body: unknown): CartItemInput[] {
     if (typeof value.quantity !== 'number' || !Number.isInteger(value.quantity) || value.quantity < 1 || value.quantity > 1000) {
       throw new HttpError(400, `items[${index}].quantity must be a positive integer.`)
     }
-    if (productIds.has(value.productId)) throw new HttpError(400, 'Duplicate products are not allowed in a cart.')
-    productIds.add(value.productId)
-    return { productId: value.productId, quantity: value.quantity }
+    const productOptionId = validateProductOptionId(value.productOptionId)
+    const lineKey = `${value.productId}:${productOptionId ?? ''}`
+    if (lineKeys.has(lineKey)) throw new HttpError(400, 'Duplicate products are not allowed in a cart.')
+    lineKeys.add(lineKey)
+    return { productId: value.productId, productOptionId, quantity: value.quantity }
   })
 }
 
@@ -31,7 +33,19 @@ export function validateCartItemInput(body: unknown): CartItemInput {
   if (typeof body.productId !== 'string' || !UUID_PATTERN.test(body.productId.trim())) {
     throw new HttpError(400, 'productId must be valid.')
   }
-  return { productId: body.productId.trim(), quantity: validateQuantity(body.quantity) }
+  return {
+    productId: body.productId.trim(),
+    productOptionId: validateProductOptionId(body.productOptionId),
+    quantity: validateQuantity(body.quantity),
+  }
+}
+
+export function validateProductOptionId(value: unknown): string | null {
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+    throw new HttpError(400, 'productOptionId must be valid.')
+  }
+  return value.trim()
 }
 
 export function validateQuantity(value: unknown): number {

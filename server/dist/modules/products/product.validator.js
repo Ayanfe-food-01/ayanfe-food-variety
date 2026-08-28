@@ -73,6 +73,53 @@ const discountFields = (typeValue, value, originalPrice) => {
     }
     return { discountType, discountValue };
 };
+export const MAX_PRODUCT_OPTIONS = 50;
+const optionInput = (value) => {
+    if (!isRecord(value))
+        throw new HttpError(400, 'Each product option must be an object.');
+    const label = requiredText(value.label, 'Option label', 1, 80);
+    const price = moneyValue(value.price, 'Option price', false);
+    return {
+        label,
+        price,
+        stockQuantity: value.stockQuantity === undefined ? 0 : integerValue(value.stockQuantity, 'Option stock quantity'),
+        sortOrder: value.sortOrder === undefined ? 0 : integerValue(value.sortOrder, 'Option order'),
+        isActive: booleanValue(value.isActive, 'Option availability', true),
+    };
+};
+export function parseProductOptions(value) {
+    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+        return undefined;
+    }
+    let parsed = value;
+    if (typeof value === 'string') {
+        try {
+            parsed = JSON.parse(value);
+        }
+        catch {
+            throw new HttpError(400, 'Product options must be a valid JSON array.');
+        }
+    }
+    if (!Array.isArray(parsed))
+        throw new HttpError(400, 'Product options must be an array.');
+    if (parsed.length > MAX_PRODUCT_OPTIONS) {
+        throw new HttpError(400, `A product can have at most ${MAX_PRODUCT_OPTIONS} options.`);
+    }
+    const options = parsed.map(optionInput);
+    const labels = new Set();
+    const orders = new Set();
+    for (const option of options) {
+        const labelKey = option.label.toLowerCase();
+        if (labels.has(labelKey))
+            throw new HttpError(400, `Duplicate option label "${option.label}".`);
+        labels.add(labelKey);
+        if (orders.has(option.sortOrder)) {
+            throw new HttpError(400, 'Option order positions must be unique.');
+        }
+        orders.add(option.sortOrder);
+    }
+    return options;
+}
 export function validateAdminProductId(value) {
     if (!value || !UUID_PATTERN.test(value.trim()))
         throw new HttpError(400, 'Product ID is invalid.');
@@ -84,18 +131,33 @@ export function validateProductFields(body) {
     const categoryId = requiredText(body.categoryId, 'Category', 1, 40);
     if (!UUID_PATTERN.test(categoryId))
         throw new HttpError(400, 'Category is invalid.');
-    const price = priceValue(body.price);
+    const options = parseProductOptions(body.options);
+    const hasOptions = Boolean(options && options.length > 0);
+    let price;
+    if (hasOptions) {
+        const hasProvidedPrice = body.price !== undefined && body.price !== null && String(body.price).trim() !== '';
+        if (hasProvidedPrice)
+            price = priceValue(body.price);
+        if ((body.discountType !== undefined && body.discountType !== null && body.discountType !== '')
+            || (body.discountValue !== undefined && body.discountValue !== null && String(body.discountValue).trim() !== '')) {
+            throw new HttpError(400, 'Discounts cannot be combined with product options.');
+        }
+    }
+    else {
+        price = priceValue(body.price);
+    }
     return {
         name: requiredText(body.name, 'Product name', 2, 180),
         categoryId,
         price,
-        ...discountFields(body.discountType, body.discountValue, price),
+        ...(hasOptions ? { discountType: null, discountValue: null } : discountFields(body.discountType, body.discountValue, price)),
         deliveryFee: deliveryFeeValue(body.deliveryFee),
         unit: requiredText(body.unit, 'Unit', 1, 80),
         description: requiredText(body.description, 'Description', 10, 4000),
         isActive: booleanValue(body.isActive, 'Availability', true),
         isFeatured: booleanValue(body.isFeatured, 'Featured', false),
-        stockQuantity: integerValue(body.stockQuantity, 'Stock quantity'),
+        stockQuantity: hasOptions ? undefined : integerValue(body.stockQuantity, 'Stock quantity'),
+        options,
     };
 }
 export function validateProductImageOrder(body) {

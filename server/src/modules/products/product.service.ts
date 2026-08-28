@@ -5,6 +5,7 @@ import type {
   AdminProductQuery,
   Product,
   ProductInput,
+  ProductOption,
   PublicCategoryProductSection,
   PublicProduct,
   PublicProductPage,
@@ -17,13 +18,17 @@ type ProductWithCategory = Prisma.ProductGetPayload<{
   include: {
     category: true
     images: { orderBy: { sortOrder: 'asc' } }
+    options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] }
   }
 }>
+
+type ProductOptionRow = ProductWithCategory['options'][number]
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const productInclude = {
   category: true,
   images: { orderBy: { sortOrder: 'asc' } },
+  options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
 } satisfies Prisma.ProductInclude
 
 const normalizedImages = (product: Pick<ProductWithCategory, 'image' | 'images'>): string[] => {
@@ -34,11 +39,43 @@ const normalizedImages = (product: Pick<ProductWithCategory, 'image' | 'images'>
     : storedImages
 }
 
+const toOption = (option: ProductOptionRow): ProductOption => ({
+  id: option.id,
+  label: option.label,
+  price: option.price.toString(),
+  stockQuantity: option.stockQuantity,
+  sortOrder: option.sortOrder,
+  isActive: option.isActive,
+})
+
+const normalizedOptions = (options: readonly ProductOptionRow[]): ProductOption[] =>
+  options.filter((option) => option.isActive).map(toOption)
+
 const inputImages = (input: ProductInput): string[] => {
   const images = input.images?.filter(Boolean) ?? (input.image ? [input.image] : [])
   if (images.length === 0) throw new HttpError(400, 'At least one product image is required.')
   return images
 }
+
+const optionStockSum = (options: ProductInput['options']): number =>
+  (options ?? []).reduce((sum, option) => sum + option.stockQuantity, 0)
+
+const optionPriceFloor = (options: ProductInput['options'] | undefined): string => {
+  if (!options || options.length === 0) return ''
+  return options.reduce(
+    (lowest, option) => (lowest === '' || Number(option.price) < Number(lowest) ? option.price : lowest),
+    '',
+  )
+}
+
+const optionCreateRows = (options: ProductInput['options'] | undefined) =>
+  (options ?? []).map((option) => ({
+    label: option.label,
+    price: option.price,
+    stockQuantity: option.stockQuantity,
+    sortOrder: option.sortOrder,
+    isActive: option.isActive ?? true,
+  }))
 
 const toProduct = (product: ProductWithCategory, isWishlisted = false): Product => ({
   id: product.id,
@@ -56,6 +93,7 @@ const toProduct = (product: ProductWithCategory, isWishlisted = false): Product 
   unit: product.unit,
   image: product.image,
   images: normalizedImages(product),
+  options: normalizedOptions(product.options),
   isActive: product.isActive,
   isFeatured: product.isFeatured,
   stockQuantity: product.stockQuantity,
@@ -98,7 +136,7 @@ interface PopularProductRow {
   orderedQuantity: bigint
 }
 
-const toPopularProduct = (product: PopularProductRow, images: string[]): PublicProduct => ({
+const toPopularProduct = (product: PopularProductRow, images: string[], options: ProductOption[]): PublicProduct => ({
   id: product.id,
   categoryId: product.categoryId,
   categoryName: product.categoryName,
@@ -118,6 +156,7 @@ const toPopularProduct = (product: PopularProductRow, images: string[]): PublicP
   unit: product.unit,
   image: product.image,
   images,
+  options,
   isActive: product.isActive,
   isFeatured: product.isFeatured,
   stockQuantity: product.stockQuantity,
@@ -205,6 +244,7 @@ export async function getCategoryProductSections(
          include: {
            category: true,
            images: { orderBy: { sortOrder: 'asc' } },
+           options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
          },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
@@ -308,9 +348,23 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
     imagesByProduct.set(image.productId, current)
   }
 
+  const productIds = products.map((product) => product.id)
+  const optionRows = productIds.length
+    ? await prisma.productOption.findMany({
+        where: { productId: { in: productIds }, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      })
+    : []
+  const optionsByProduct = new Map<string, ProductOption[]>()
+  for (const row of optionRows) {
+    const current = optionsByProduct.get(row.productId) ?? []
+    current.push(toOption(row))
+    optionsByProduct.set(row.productId, current)
+  }
+
   return {
     products: products.map((product) => ({
-      ...toPopularProduct(product, imagesByProduct.get(product.id) ?? [product.image]),
+      ...toPopularProduct(product, imagesByProduct.get(product.id) ?? [product.image], optionsByProduct.get(product.id) ?? []),
       isWishlisted: wishlistProductIds.has(product.id),
     })),
     pagination: {
@@ -452,6 +506,7 @@ export async function getAdminProduct(id: string): Promise<Product> {
 export async function createProduct(input: ProductInput, adminId: string): Promise<Product> {
   await validateProductCategory(input.categoryId)
   const images = inputImages(input)
+  const hasOptions = Boolean(input.options && input.options.length > 0)
   try {
     const product = await prisma.$transaction(async (transaction) => {
       const created = await transaction.product.create({
@@ -460,7 +515,7 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
           name: input.name,
           slug: await uniqueSlug(input.name),
           description: input.description,
-          price: input.price,
+          price: input.price ?? optionPriceFloor(input.options),
           discountType: input.discountType,
           discountValue: input.discountValue,
           deliveryFee: input.deliveryFee,
@@ -469,7 +524,8 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
            images: { create: images.map((url, sortOrder) => ({ url, sortOrder })) },
           isActive: input.isActive,
           isFeatured: input.isFeatured,
-          stockQuantity: input.stockQuantity,
+          stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : 0),
+          ...(hasOptions ? { options: { create: optionCreateRows(input.options) } } : {}),
         },
         include: productInclude,
       })
@@ -493,7 +549,7 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
         }
       }
       return created
-    })
+    }, { timeout: 15000 })
     return toAdminProduct(product)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -506,6 +562,8 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
 export async function updateProduct(input: ProductInput, adminId: string, id: string): Promise<Product> {
   await validateProductCategory(input.categoryId)
   const images = inputImages(input)
+  const hasOptions = Boolean(input.options && input.options.length > 0)
+  const replacesOptions = input.options !== undefined
   try {
     const product = await prisma.$transaction(async (transaction) => {
       const currentRows = await transaction.$queryRaw<Array<{ id: string; stock_quantity: number }>>(
@@ -523,7 +581,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           name: input.name,
           slug: await uniqueSlug(input.name, id),
           description: input.description,
-          price: input.price,
+          price: input.price ?? (hasOptions ? optionPriceFloor(input.options) : undefined),
           discountType: input.discountType,
           discountValue: input.discountValue,
           deliveryFee: input.deliveryFee,
@@ -535,7 +593,10 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
            },
           isActive: input.isActive,
           isFeatured: input.isFeatured,
-          stockQuantity: input.stockQuantity,
+          stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : undefined),
+          ...(replacesOptions
+            ? { options: { deleteMany: {}, create: optionCreateRows(input.options) } }
+            : {}),
         },
         include: productInclude,
       })
@@ -559,7 +620,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
         }
       }
       return updated
-    })
+    }, { timeout: 15000 })
     return toAdminProduct(product)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

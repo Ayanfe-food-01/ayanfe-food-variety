@@ -5,6 +5,7 @@ import { toPublicProduct } from '../products/product.service.js';
 const wishlistProductInclude = {
     category: true,
     images: { orderBy: { sortOrder: 'asc' } },
+    options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
 };
 const requireProduct = async (productId) => {
     const product = await prisma.product.findUnique({

@@ -1,5 +1,22 @@
 import type { ProductDiscountType } from '@prisma/client'
 
+export interface ProductOption {
+  id: string
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive: boolean
+}
+
+export interface ProductOptionInput {
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive?: boolean
+}
+
 export interface Product {
   id: string
   categoryId: string
@@ -16,6 +33,7 @@ export interface Product {
   unit: string
   image: string
   images: string[]
+  options: ProductOption[]
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number
@@ -68,7 +86,7 @@ export interface AdminProductQuery {
 export interface ProductInput {
   name: string
   categoryId: string
-  price: string
+  price?: string
   discountType: ProductDiscountType | null
   discountValue: string | null
   deliveryFee: string
@@ -76,7 +94,8 @@ export interface ProductInput {
   description: string
   isActive: boolean
   isFeatured: boolean
-  stockQuantity: number
+  stockQuantity?: number
   image?: string
   images?: string[]
+  options?: ProductOptionInput[]
 }

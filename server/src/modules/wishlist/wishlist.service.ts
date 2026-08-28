@@ -7,6 +7,7 @@ import type { WishlistResponse } from './wishlist.types.js'
 const wishlistProductInclude = {
   category: true,
   images: { orderBy: { sortOrder: 'asc' } },
+  options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
 } satisfies Prisma.ProductInclude
 
 const requireProduct = async (productId: string) => {

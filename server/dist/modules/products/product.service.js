@@ -7,6 +7,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const productInclude = {
     category: true,
     images: { orderBy: { sortOrder: 'asc' } },
+    options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
 };
 const normalizedImages = (product) => {
     const storedImages = product.images.map((image) => image.url).filter(Boolean);
@@ -15,12 +16,34 @@ const normalizedImages = (product) => {
         ? [primaryImage, ...storedImages.filter((image) => image !== primaryImage)]
         : storedImages;
 };
+const toOption = (option) => ({
+    id: option.id,
+    label: option.label,
+    price: option.price.toString(),
+    stockQuantity: option.stockQuantity,
+    sortOrder: option.sortOrder,
+    isActive: option.isActive,
+});
+const normalizedOptions = (options) => options.filter((option) => option.isActive).map(toOption);
 const inputImages = (input) => {
     const images = input.images?.filter(Boolean) ?? (input.image ? [input.image] : []);
     if (images.length === 0)
         throw new HttpError(400, 'At least one product image is required.');
     return images;
 };
+const optionStockSum = (options) => (options ?? []).reduce((sum, option) => sum + option.stockQuantity, 0);
+const optionPriceFloor = (options) => {
+    if (!options || options.length === 0)
+        return '';
+    return options.reduce((lowest, option) => (lowest === '' || Number(option.price) < Number(lowest) ? option.price : lowest), '');
+};
+const optionCreateRows = (options) => (options ?? []).map((option) => ({
+    label: option.label,
+    price: option.price,
+    stockQuantity: option.stockQuantity,
+    sortOrder: option.sortOrder,
+    isActive: option.isActive ?? true,
+}));
 const toProduct = (product, isWishlisted = false) => ({
     id: product.id,
     categoryId: product.categoryId,
@@ -37,6 +60,7 @@ const toProduct = (product, isWishlisted = false) => ({
     unit: product.unit,
     image: product.image,
     images: normalizedImages(product),
+    options: normalizedOptions(product.options),
     isActive: product.isActive,
     isFeatured: product.isFeatured,
     stockQuantity: product.stockQuantity,
@@ -53,7 +77,7 @@ const toProduct = (product, isWishlisted = false) => ({
 export const toPublicProduct = (product, isWishlisted = false) => {
     return toProduct(product, isWishlisted);
 };
-const toPopularProduct = (product, images) => ({
+const toPopularProduct = (product, images, options) => ({
     id: product.id,
     categoryId: product.categoryId,
     categoryName: product.categoryName,
@@ -69,6 +93,7 @@ const toPopularProduct = (product, images) => ({
     unit: product.unit,
     image: product.image,
     images,
+    options,
     isActive: product.isActive,
     isFeatured: product.isFeatured,
     stockQuantity: product.stockQuantity,
@@ -146,6 +171,7 @@ export async function getCategoryProductSections(limit, wishlistUserId) {
                 include: {
                     category: true,
                     images: { orderBy: { sortOrder: 'asc' } },
+                    options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
                 },
                 orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
                 take: limit,
@@ -244,9 +270,22 @@ export async function getPopularProducts(query, wishlistUserId) {
         current.push(image.url);
         imagesByProduct.set(image.productId, current);
     }
+    const productIds = products.map((product) => product.id);
+    const optionRows = productIds.length
+        ? await prisma.productOption.findMany({
+            where: { productId: { in: productIds }, isActive: true },
+            orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+        })
+        : [];
+    const optionsByProduct = new Map();
+    for (const row of optionRows) {
+        const current = optionsByProduct.get(row.productId) ?? [];
+        current.push(toOption(row));
+        optionsByProduct.set(row.productId, current);
+    }
     return {
         products: products.map((product) => ({
-            ...toPopularProduct(product, imagesByProduct.get(product.id) ?? [product.image]),
+            ...toPopularProduct(product, imagesByProduct.get(product.id) ?? [product.image], optionsByProduct.get(product.id) ?? []),
             isWishlisted: wishlistProductIds.has(product.id),
         })),
         pagination: {
@@ -381,6 +420,7 @@ export async function getAdminProduct(id) {
 export async function createProduct(input, adminId) {
     await validateProductCategory(input.categoryId);
     const images = inputImages(input);
+    const hasOptions = Boolean(input.options && input.options.length > 0);
     try {
         const product = await prisma.$transaction(async (transaction) => {
             const created = await transaction.product.create({
@@ -389,7 +429,7 @@ export async function createProduct(input, adminId) {
                     name: input.name,
                     slug: await uniqueSlug(input.name),
                     description: input.description,
-                    price: input.price,
+                    price: input.price ?? optionPriceFloor(input.options),
                     discountType: input.discountType,
                     discountValue: input.discountValue,
                     deliveryFee: input.deliveryFee,
@@ -398,7 +438,8 @@ export async function createProduct(input, adminId) {
                     images: { create: images.map((url, sortOrder) => ({ url, sortOrder })) },
                     isActive: input.isActive,
                     isFeatured: input.isFeatured,
-                    stockQuantity: input.stockQuantity,
+                    stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : 0),
+                    ...(hasOptions ? { options: { create: optionCreateRows(input.options) } } : {}),
                 },
                 include: productInclude,
             });
@@ -422,7 +463,7 @@ export async function createProduct(input, adminId) {
                 }
             }
             return created;
-        });
+        }, { timeout: 15000 });
         return toAdminProduct(product);
     }
     catch (error) {
@@ -435,6 +476,8 @@ export async function createProduct(input, adminId) {
 export async function updateProduct(input, adminId, id) {
     await validateProductCategory(input.categoryId);
     const images = inputImages(input);
+    const hasOptions = Boolean(input.options && input.options.length > 0);
+    const replacesOptions = input.options !== undefined;
     try {
         const product = await prisma.$transaction(async (transaction) => {
             const currentRows = await transaction.$queryRaw(Prisma.sql `SELECT id, stock_quantity
@@ -451,7 +494,7 @@ export async function updateProduct(input, adminId, id) {
                     name: input.name,
                     slug: await uniqueSlug(input.name, id),
                     description: input.description,
-                    price: input.price,
+                    price: input.price ?? (hasOptions ? optionPriceFloor(input.options) : undefined),
                     discountType: input.discountType,
                     discountValue: input.discountValue,
                     deliveryFee: input.deliveryFee,
@@ -463,7 +506,10 @@ export async function updateProduct(input, adminId, id) {
                     },
                     isActive: input.isActive,
                     isFeatured: input.isFeatured,
-                    stockQuantity: input.stockQuantity,
+                    stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : undefined),
+                    ...(replacesOptions
+                        ? { options: { deleteMany: {}, create: optionCreateRows(input.options) } }
+                        : {}),
                 },
                 include: productInclude,
             });
@@ -487,7 +533,7 @@ export async function updateProduct(input, adminId, id) {
                 }
             }
             return updated;
-        });
+        }, { timeout: 15000 });
         return toAdminProduct(product);
     }
     catch (error) {

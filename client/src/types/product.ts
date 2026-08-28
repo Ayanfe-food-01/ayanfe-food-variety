@@ -1,5 +1,14 @@
 export type ProductDiscountType = 'PERCENTAGE' | 'FIXED'
 
+export interface ProductOption {
+  id: string
+  label: string
+  price: number
+  stockQuantity: number
+  sortOrder: number
+  isActive: boolean
+}
+
 export interface Product {
   id: string
   name: string
@@ -22,6 +31,7 @@ export interface Product {
   isAvailable: boolean
   isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+  options?: ProductOption[]
   createdAt?: string
   updatedAt?: string
 }

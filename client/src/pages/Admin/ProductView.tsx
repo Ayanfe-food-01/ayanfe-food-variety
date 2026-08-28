@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { getAdminProduct } from '../../services/adminService'
 import { ProductPrice } from '../../components/products/ProductPrice'
+import { formatPrice } from '../../utils/formatPrice'
 import type { Product } from '../../types/product'
 
 export function ProductView() {
@@ -35,6 +36,19 @@ export function ProductView() {
             <h2 className="mt-3 text-3xl font-bold tracking-[-0.04em] text-green-dark">{product.name}</h2>
             <p className="mt-4 text-2xl font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-2 text-base font-normal text-muted" /> <span className="text-sm font-normal text-muted">/ {product.unit}</span></p>
             {product.discountType && <p className="mt-2 text-xs font-semibold text-orange">{product.discountType === 'PERCENTAGE' ? `${product.discountValue}% discount` : `NGN ${product.discountValue} discount`}</p>}
+            {product.options && product.options.length > 0 && (
+              <div className="mt-6">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Quantity / size options</p>
+                <ul className="mt-3 space-y-2">
+                  {product.options.map((option) => (
+                    <li className="flex items-center justify-between gap-3 rounded-xl border border-line bg-cream/40 px-4 py-2.5 text-sm" key={option.id}>
+                      <span className="font-bold text-green-dark">{option.label}</span>
+                      <span className="text-xs text-muted">{formatPrice(option.price)} · {option.stockQuantity} in stock</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <p className="mt-6 text-sm leading-7 text-muted">{product.description}</p>
             <dl className="mt-8 grid gap-4 border-t border-line pt-6 sm:grid-cols-2">
               <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Stock quantity</dt><dd className="mt-1 text-lg font-bold text-green-dark">{product.stockQuantity ?? 0}</dd></div>

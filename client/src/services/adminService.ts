@@ -1,5 +1,5 @@
 import { request } from './api'
-import type { Product } from '../types/product'
+import type { Product, ProductOption } from '../types/product'
 import type { Category } from '../types/category'
 import type { PaymentMethod } from './orderService'
 
@@ -422,6 +422,15 @@ export async function updateAdminCategoryStatus(id: string, isActive: boolean): 
   return response.data.category
 }
 
+interface AdminProductOptionApiResponse {
+  id: string
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive: boolean
+}
+
 interface AdminProductApiResponse {
   id: string
   categoryId: string
@@ -443,9 +452,19 @@ interface AdminProductApiResponse {
   stockQuantity: number
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
+  options?: AdminProductOptionApiResponse[]
   createdAt: string
   updatedAt: string
 }
+
+export interface ProductOptionDraft {
+  label: string
+  price: string
+  stockQuantity: string
+}
+
+export const isFilledProductOption = (option: ProductOptionDraft): boolean =>
+  option.label.trim() !== '' || option.price.trim() !== '' || option.stockQuantity.trim() !== ''
 
 export interface ProductFormInput {
   name: string
@@ -462,6 +481,7 @@ export interface ProductFormInput {
   images: File[]
   existingImages: string[]
   imageOrder: string[]
+  options: ProductOptionDraft[]
 }
 
 const toQueryString = (query: AdminProductsQuery): string => {
@@ -477,19 +497,27 @@ const toQueryString = (query: AdminProductsQuery): string => {
 
 const formDataFor = (input: ProductFormInput): FormData => {
   const formData = new FormData()
+  const options = input.options.filter(isFilledProductOption)
+  const hasOptions = options.length > 0
   formData.set('name', input.name)
   formData.set('categoryId', input.categoryId)
-  formData.set('price', input.price)
-  formData.set('discountType', input.discountType)
-  formData.set('discountValue', input.discountValue)
+  formData.set('price', hasOptions ? '' : input.price)
+  formData.set('discountType', hasOptions ? '' : input.discountType)
+  formData.set('discountValue', hasOptions ? '' : input.discountValue)
   formData.set('deliveryFee', input.deliveryFee)
   formData.set('unit', input.unit)
   formData.set('description', input.description)
-  formData.set('stockQuantity', input.stockQuantity)
+  formData.set('stockQuantity', hasOptions ? '' : input.stockQuantity)
   formData.set('isActive', String(input.isActive))
   formData.set('isFeatured', String(input.isFeatured))
   formData.set('existingImages', JSON.stringify(input.existingImages))
   formData.set('imageOrder', JSON.stringify(input.imageOrder))
+  formData.set('options', JSON.stringify(options.map((option, sortOrder) => ({
+    label: option.label.trim(),
+    price: option.price.trim(),
+    stockQuantity: option.stockQuantity.trim() === '' ? 0 : Number(option.stockQuantity),
+    sortOrder,
+  }))))
   input.images.forEach((image) => formData.append('images', image))
   return formData
 }
@@ -518,6 +546,14 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   availabilityStatus: product.availabilityStatus,
   isAvailable: product.isAvailable,
     isWishlisted: false,
+  options: (product.options ?? []).map((option): ProductOption => ({
+    id: option.id,
+    label: option.label,
+    price: Number(option.price),
+    stockQuantity: option.stockQuantity,
+    sortOrder: option.sortOrder,
+    isActive: option.isActive,
+  })),
   createdAt: product.createdAt,
   updatedAt: product.updatedAt,
 })

@@ -3,11 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { FeaturedToggle } from '../../components/admin/FeaturedToggle'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { OptionInputField, type OptionRowErrors } from '../../components/admin/OptionInputField'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { SelectField } from '../../components/ui/SelectField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
-import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
+import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
 import type { Category } from '../../types/category'
+
+const MAX_PRODUCT_OPTIONS = 50
 
 const initialForm: ProductFormInput = {
   name: '',
@@ -24,6 +27,7 @@ const initialForm: ProductFormInput = {
   images: [],
   existingImages: [],
   imageOrder: [],
+  options: [],
 }
 
 interface ProductImageDraft {
@@ -46,6 +50,7 @@ export function ProductForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
+  const [optionErrors, setOptionErrors] = useState<OptionRowErrors[]>([])
 
   useEffect(() => {
     let current = true
@@ -77,6 +82,11 @@ export function ProductForm() {
         images: [],
         existingImages,
         imageOrder: existingImages.map((image) => `existing:${image}`),
+        options: (product.options ?? []).map((option) => ({
+          label: option.label,
+          price: String(option.price),
+          stockQuantity: String(option.stockQuantity),
+        })),
       })
       setImageDrafts(existingImages.map((url, index) => ({ id: `existing-${index}-${url}`, url })))
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
@@ -88,6 +98,25 @@ export function ProductForm() {
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
     setError(null)
   }
+
+  const filledOptions = form.options.filter(isFilledProductOption)
+  const hasFilledOptions = filledOptions.length > 0
+
+  const validOptionPrices = filledOptions.flatMap((option) => {
+    const number = Number(option.price)
+    return Number.isFinite(number) && number > 0 ? [number] : []
+  })
+  const derivedPrice = hasFilledOptions && validOptionPrices.length > 0 ? String(Math.min(...validOptionPrices)) : form.price
+  const derivedStock = filledOptions.reduce((sum, option) => {
+    const number = Number(option.stockQuantity)
+    return sum + (Number.isInteger(number) && number >= 0 ? number : 0)
+  }, 0)
+
+  useEffect(() => {
+    if (hasFilledOptions && (form.discountType || form.discountValue)) {
+      setForm((current) => ({ ...current, discountType: '', discountValue: '' }))
+    }
+  }, [hasFilledOptions, form.discountType, form.discountValue])
 
   const syncImageDrafts = (nextDrafts: ProductImageDraft[]) => {
     let newImageIndex = 0
@@ -142,8 +171,9 @@ export function ProductForm() {
     if (!value) update('discountValue', '')
   }
 
-  const validate = (): FormErrors => {
+  const validate = (): { fieldErrors: FormErrors; optionErrors: OptionRowErrors[] } => {
     const nextErrors: FormErrors = {}
+    const optionErrors: OptionRowErrors[] = []
     const name = form.name.trim()
     const unit = form.unit.trim()
     const description = form.description.trim()
@@ -151,31 +181,63 @@ export function ProductForm() {
     const discountValue = form.discountValue.trim()
     const deliveryFee = form.deliveryFee.trim()
     const stock = Number(form.stockQuantity)
+    const filledIndexes = form.options.map(isFilledProductOption)
+    const hasFilledOptions = filledIndexes.length > 0 && filledIndexes.some(Boolean)
+
     if (name.length < 2 || name.length > 180) nextErrors.name = 'Use 2 to 180 characters.'
     if (!form.categoryId) nextErrors.categoryId = 'Select an active category.'
     else if (categories.find((category) => category.id === form.categoryId)?.isActive !== true) nextErrors.categoryId = 'Select an active category.'
-    if (!/^\d+(?:\.\d{1,2})?$/.test(price) || Number(price) <= 0) nextErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
-    if (form.discountType && (!/^\d+(?:\.\d{1,2})?$/.test(discountValue) || Number(discountValue) <= 0)) {
-      nextErrors.discountValue = 'Enter a discount greater than zero with up to 2 decimals.'
-    } else if (form.discountType === 'PERCENTAGE' && Number(discountValue) > 100) {
-      nextErrors.discountValue = 'Percentage discount cannot be greater than 100.'
-    } else if (form.discountType === 'FIXED' && Number(discountValue) > Number(price)) {
-      nextErrors.discountValue = 'Fixed discount cannot be greater than the product price.'
+
+    if (hasFilledOptions) {
+      if (form.discountType || form.discountValue) nextErrors.discountType = 'Discounts cannot be combined with options.'
+    } else {
+      if (!/^\d+(?:\.\d{1,2})?$/.test(price) || Number(price) <= 0) nextErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
+      if (form.discountType && (!/^\d+(?:\.\d{1,2})?$/.test(discountValue) || Number(discountValue) <= 0)) {
+        nextErrors.discountValue = 'Enter a discount greater than zero with up to 2 decimals.'
+      } else if (form.discountType === 'PERCENTAGE' && Number(discountValue) > 100) {
+        nextErrors.discountValue = 'Percentage discount cannot be greater than 100.'
+      } else if (form.discountType === 'FIXED' && Number(discountValue) > Number(price)) {
+        nextErrors.discountValue = 'Fixed discount cannot be greater than the product price.'
+      }
+      if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
     }
+
     if (!/^\d+(?:\.\d{1,2})?$/.test(deliveryFee) || !Number.isFinite(Number(deliveryFee)) || Number(deliveryFee) < 0) nextErrors.deliveryFee = 'Enter a delivery fee of zero or more with up to 2 decimals.'
     if (!unit || unit.length > 80) nextErrors.unit = 'Enter a unit using up to 80 characters.'
     if (description.length < 10 || description.length > 4000) nextErrors.description = 'Use 10 to 4,000 characters.'
-    if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
     if (imageDrafts.length === 0) nextErrors.image = 'Select at least one product image.'
-    return nextErrors
+
+    const labels = new Set<string>()
+    form.options.forEach((option, index) => {
+      const rowErrors: OptionRowErrors = {}
+      if (!filledIndexes[index]) {
+        optionErrors.push(rowErrors)
+        return
+      }
+      const label = option.label.trim()
+      const optionPrice = option.price.trim()
+      const optionStock = option.stockQuantity.trim()
+      if (!label) rowErrors.label = 'Enter a label, for example 5 kg bag.'
+      else if (label.length > 80) rowErrors.label = 'Use up to 80 characters.'
+      if (!/^\d+(?:\.\d{1,2})?$/.test(optionPrice) || Number(optionPrice) <= 0) rowErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
+      if (optionStock !== '' && (!/^\d+$/.test(optionStock) || Number(optionStock) < 0)) rowErrors.stockQuantity = 'Enter a non-negative whole number.'
+      const labelKey = label.toLowerCase()
+      if (label && labels.has(labelKey)) rowErrors.label = 'Each option label must be unique.'
+      if (label) labels.add(labelKey)
+      optionErrors.push(rowErrors)
+    })
+
+    return { fieldErrors: nextErrors, optionErrors }
   }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
-    const nextErrors = validate()
-    if (Object.keys(nextErrors).length > 0) {
-      setFieldErrors(nextErrors)
+    const validation = validate()
+    const hasOptionErrors = validation.optionErrors.some((errors) => Object.keys(errors).length > 0)
+    if (Object.keys(validation.fieldErrors).length > 0 || hasOptionErrors) {
+      setFieldErrors(validation.fieldErrors)
+      setOptionErrors(validation.optionErrors)
       setError('Please correct the highlighted fields.')
       return
     }
@@ -224,28 +286,42 @@ export function ProductForm() {
               required
               value={form.categoryId}
             />{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
-             <label className="text-sm font-bold text-green-dark">Price (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('price')} type="text" inputMode="decimal" value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required />{fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
+             <label className="text-sm font-bold text-green-dark">Price (NGN){hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('price')} type="text" inputMode="decimal" value={hasFilledOptions ? derivedPrice : form.price} disabled={hasFilledOptions} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Set to the lowest option price.</span> : fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
              <div className="sm:col-span-2">
-               <div className="grid gap-5 sm:grid-cols-2">
-                 <label className="text-sm font-bold text-green-dark">Discount type (optional)<SelectField
-                   className="mt-2 w-full"
-                   {...fieldProps('discountType')}
-                   onChange={updateDiscountType}
-                   options={[
-                     { value: '', label: 'No discount' },
-                     { value: 'PERCENTAGE', label: 'Percentage discount' },
-                     { value: 'FIXED', label: 'Fixed amount discount' },
-                   ]}
-                   value={form.discountType}
-                 />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
-                 {form.discountType && <label className="text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
-               </div>
-               <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>
+               {hasFilledOptions ? (
+                 <p className="rounded-xl border border-dashed border-green/25 bg-sage/25 px-4 py-3 text-xs font-normal text-muted">Discounts are not available for products with quantity/size options.</p>
+               ) : (
+                 <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="text-sm font-bold text-green-dark">Discount type (optional)<SelectField
+                    className="mt-2 w-full"
+                    {...fieldProps('discountType')}
+                    onChange={updateDiscountType}
+                    options={[
+                      { value: '', label: 'No discount' },
+                      { value: 'PERCENTAGE', label: 'Percentage discount' },
+                      { value: 'FIXED', label: 'Fixed amount discount' },
+                    ]}
+                    value={form.discountType}
+                  />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
+                  {form.discountType && <label className="text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
+                 </div>
+               )}
+               {!hasFilledOptions && <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>}
              </div>
              <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
             <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('unit')} value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required />{fieldErrors.unit && <span className="mt-1 block text-xs font-normal text-orange" id="unit-error">{fieldErrors.unit}</span>}</label>
-            <label className="text-sm font-bold text-green-dark">Stock quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={form.stockQuantity} onChange={(event) => update('stockQuantity', event.target.value)} required />{fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
+            <label className="text-sm font-bold text-green-dark">Stock quantity{hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={hasFilledOptions ? String(derivedStock) : form.stockQuantity} disabled={hasFilledOptions} onChange={(event) => update('stockQuantity', event.target.value)} required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Total stock is the sum of all option stock.</span> : fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
           </div>
+          <OptionInputField
+            options={form.options}
+            errors={optionErrors}
+            maxOptions={MAX_PRODUCT_OPTIONS}
+            onChange={(nextOptions) => {
+              setForm((current) => ({ ...current, options: nextOptions }))
+              setOptionErrors(nextOptions.map(() => ({})))
+              setError(null)
+            }}
+          />
           <label className="block text-sm font-bold text-green-dark">Description<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('description')} value={form.description} onChange={(event) => update('description', event.target.value)} maxLength={4000} required />{fieldErrors.description && <span className="mt-1 block text-xs font-normal text-orange" id="description-error">{fieldErrors.description}</span>}<span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/4,000 characters</span></label>
             <ImageUploadField
               label="Product images"

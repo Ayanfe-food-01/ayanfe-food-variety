@@ -26,13 +26,42 @@ export async function createLowStockNotificationIfNeeded(transaction, input) {
     });
 }
 export async function deductStock(transaction, input) {
-    const products = await transaction.$queryRaw(Prisma.sql `SELECT stock_quantity, is_active, name
-      FROM products
-      WHERE id = ${input.productId}::uuid
-      FOR UPDATE`);
-    const product = products[0];
+    const product = await lockProduct(transaction, input.productId);
     if (!product)
         throw new HttpError(404, 'Product no longer exists.');
+    if (input.productOptionId) {
+        const option = await lockProductOption(transaction, input.productOptionId);
+        if (!option || option.product_id !== input.productId)
+            throw new HttpError(404, 'Product option no longer exists.');
+        if (!product.is_active)
+            throw new HttpError(409, 'Product is no longer available.');
+        if (!option.is_active || option.stock_quantity < input.quantity) {
+            throw new HttpError(409, 'Product option is unavailable or there is insufficient stock.');
+        }
+        await transaction.productOption.update({
+            where: { id: option.id },
+            data: { stockQuantity: { decrement: input.quantity } },
+        });
+        const adjustment = await recordStockAdjustment(transaction, {
+            productId: input.productId,
+            productOptionId: option.id,
+            orderId: input.orderId,
+            quantityDelta: -input.quantity,
+            previousQuantity: option.stock_quantity,
+            newQuantity: option.stock_quantity - input.quantity,
+            reason: `Order ${input.orderNumber}`,
+        });
+        if (adjustment) {
+            await createLowStockNotificationIfNeeded(transaction, {
+                productId: input.productId,
+                productName: `${product.name} (${option.label})`,
+                previousQuantity: option.stock_quantity,
+                newQuantity: option.stock_quantity - input.quantity,
+                stockAdjustmentId: adjustment.id,
+            });
+        }
+        return;
+    }
     if (!product.is_active || product.stock_quantity < input.quantity) {
         throw new HttpError(409, 'Product is unavailable or there is insufficient stock.');
     }
@@ -59,11 +88,26 @@ export async function deductStock(transaction, input) {
     }
 }
 export async function restoreStock(transaction, input) {
-    const products = await transaction.$queryRaw(Prisma.sql `SELECT stock_quantity
-      FROM products
-      WHERE id = ${input.productId}::uuid
-      FOR UPDATE`);
-    const product = products[0];
+    if (input.productOptionId) {
+        const option = await lockProductOption(transaction, input.productOptionId);
+        if (!option || option.product_id !== input.productId)
+            throw new HttpError(404, 'Product option no longer exists.');
+        await transaction.productOption.update({
+            where: { id: option.id },
+            data: { stockQuantity: { increment: input.quantity } },
+        });
+        await recordStockAdjustment(transaction, {
+            productId: input.productId,
+            productOptionId: option.id,
+            orderId: input.orderId,
+            quantityDelta: input.quantity,
+            previousQuantity: option.stock_quantity,
+            newQuantity: option.stock_quantity + input.quantity,
+            reason: `Cancellation ${input.orderNumber}`,
+        });
+        return;
+    }
+    const product = await lockProduct(transaction, input.productId);
     if (!product)
         throw new HttpError(404, 'Product no longer exists.');
     await transaction.product.update({
@@ -79,3 +123,17 @@ export async function restoreStock(transaction, input) {
         reason: `Cancellation ${input.orderNumber}`,
     });
 }
+const lockProduct = async (transaction, productId) => {
+    const products = await transaction.$queryRaw(Prisma.sql `SELECT stock_quantity, is_active, name
+      FROM products
+      WHERE id = ${productId}::uuid
+      FOR UPDATE`);
+    return products[0] ?? null;
+};
+const lockProductOption = async (transaction, productOptionId) => {
+    const options = await transaction.$queryRaw(Prisma.sql `SELECT id, product_id, label, stock_quantity, is_active
+      FROM product_options
+      WHERE id = ${productOptionId}::uuid
+      FOR UPDATE`);
+    return options[0] ?? null;
+};

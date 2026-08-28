@@ -52,7 +52,17 @@ const validateCartItems = (value) => {
         if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) {
             throw new HttpError(400, 'Guest cart quantities are invalid.');
         }
-        return { productId: item.productId.trim(), quantity: item.quantity };
+        const productOptionId = item.productOptionId;
+        if (productOptionId !== undefined
+            && productOptionId !== null
+            && (typeof productOptionId !== 'string' || !UUID_PATTERN.test(productOptionId.trim()))) {
+            throw new HttpError(400, 'Guest cart product options are invalid.');
+        }
+        return {
+            productId: item.productId.trim(),
+            productOptionId: typeof productOptionId === 'string' && productOptionId.trim() ? productOptionId.trim() : null,
+            quantity: item.quantity,
+        };
     });
 };
 export function validateOrderId(value) {

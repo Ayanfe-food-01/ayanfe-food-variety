@@ -5,6 +5,7 @@ export interface CheckoutInput {
   guestAccessToken?: string
   cartItems?: Array<{
     productId: string
+    productOptionId?: string | null
     quantity: number
   }>
   customerName: string
@@ -30,6 +31,8 @@ export interface OrderItemResponse {
   id: string
   productId: string
   productName: string
+  productOptionId: string | null
+  productOptionLabel: string | null
   unitPrice: string
   quantity: number
   subtotal: string
@@ -87,6 +90,7 @@ export interface GuestOrderResponse {
   orderItems: Array<{
     id: string
     productName: string
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string

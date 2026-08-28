@@ -174,6 +174,7 @@ export function TrackOrder() {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-green-dark">{item.productName}</p>
+                        {item.productOptionLabel && <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>}
                         <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)}</p>
                       </div>
                       <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>

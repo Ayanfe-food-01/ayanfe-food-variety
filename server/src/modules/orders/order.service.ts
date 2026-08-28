@@ -117,6 +117,8 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
         id: item.id,
         productId: item.productId,
         productName: item.productName,
+        productOptionId: item.productOptionId,
+        productOptionLabel: item.productOptionLabel,
         unitPrice: item.unitPrice.toString(),
         quantity: item.quantity,
         subtotal: item.subtotal.toString(),
@@ -224,7 +226,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     }
 
     let cartId: string | null = null
-    let cartItems: Array<{ id?: string; productId: string; quantity: number; createdAt: Date }>
+    let cartItems: Array<{ id?: string; productId: string; productOptionId?: string | null; quantity: number; createdAt: Date }>
     if (user) {
       const cartReference = await transaction.customerCart.findUnique({
         where: { userId: user.id },
@@ -240,7 +242,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         where: { id: cartReference.id },
         include: {
           items: {
-            select: { id: true, productId: true, quantity: true, createdAt: true },
+            select: { id: true, productId: true, productOptionId: true, quantity: true, createdAt: true },
             orderBy: { createdAt: 'asc' as const },
           },
         },
@@ -251,6 +253,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     } else {
       cartItems = (input.cartItems ?? []).map((item, index) => ({
         productId: item.productId,
+        productOptionId: item.productOptionId ?? null,
         quantity: item.quantity,
         createdAt: new Date(index),
       }))
@@ -288,11 +291,31 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       },
     })
     const productsById = new Map(products.map((product) => [product.id, product]))
+
+    // The selected product option is resolved from the database at checkout so
+    // its price and stock are never taken from the browser or the cart.
+    const productOptionIds = cartItems.flatMap((item) => (item.productOptionId ? [item.productOptionId] : []))
+    const productOptions = productOptionIds.length > 0
+      ? await transaction.productOption.findMany({
+          where: { id: { in: productOptionIds } },
+          select: { id: true, productId: true, label: true, price: true, stockQuantity: true, isActive: true },
+        })
+      : []
+    const productOptionsById = new Map(productOptions.map((option) => [option.id, option]))
+
     const unavailableMessages = cartItems.flatMap((item) => {
       const product = productsById.get(item.productId)
       if (!product) return [`Product ${item.productId} no longer exists.`]
       if (!product.isActive || !product.category.isActive) return [`${product.name} is no longer available.`]
-      if (product.stockQuantity < item.quantity) {
+      if (item.productOptionId) {
+        const option = productOptionsById.get(item.productOptionId)
+        if (!option) return [`${product.name}: the selected option no longer exists.`]
+        if (option.productId !== product.id) return [`${product.name}: the selected option is invalid.`]
+        if (!option.isActive) return [`${product.name} (${option.label}) is no longer available.`]
+        if (option.stockQuantity < item.quantity) {
+          return [`${product.name} (${option.label}): only ${option.stockQuantity} unit(s) currently available.`]
+        }
+      } else if (product.stockQuantity < item.quantity) {
         return [`${product.name}: only ${product.stockQuantity} unit(s) currently available.`]
       }
       return []
@@ -304,11 +327,17 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     const orderItems = cartItems.map((item) => {
       const product = productsById.get(item.productId)
       if (!product) throw new HttpError(409, 'One or more products are no longer available.')
-       const unitPrice = calculateDiscountedPrice(
-         product.price,
-         product.discountType,
-         product.discountValue,
-       )
+      const option = item.productOptionId ? productOptionsById.get(item.productOptionId) : null
+      if (option && option.productId !== product.id) {
+        throw new HttpError(409, 'One or more selected options are invalid.')
+      }
+       const unitPrice = option
+         ? option.price
+         : calculateDiscountedPrice(
+           product.price,
+           product.discountType,
+           product.discountValue,
+         )
        const subtotal = unitPrice.mul(item.quantity)
        const deliveryFee = input.fulfillmentMethod === FulfillmentMethod.DELIVERY
          ? product.deliveryFee.mul(item.quantity)
@@ -316,6 +345,8 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       return {
         productId: product.id,
         productName: product.name,
+        productOptionId: option?.id ?? null,
+        productOptionLabel: option?.label ?? null,
          unitPrice,
         quantity: item.quantity,
         subtotal,
@@ -375,6 +406,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       try {
         await deductStock(transaction, {
           productId: item.productId,
+          productOptionId: item.productOptionId ?? null,
           quantity: item.quantity,
           orderId: order.id,
           orderNumber: order.orderNumber,
@@ -407,7 +439,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       href: `/admin/orders/${order.orderNumber}`,
     })
       return { order, created: true }
-    })
+    }, { timeout: 60000 })
   } catch (error: unknown) {
     const isCheckoutKeyConflict =
       error instanceof Prisma.PrismaClientKnownRequestError
@@ -447,6 +479,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       createdAt: result.order.createdAt.toISOString(),
       items: result.order.orderItems.map((item) => ({
         name: item.productName,
+        optionLabel: item.productOptionLabel,
         unitPrice: item.unitPrice.toString(),
         quantity: item.quantity,
         subtotal: item.subtotal.toString(),
@@ -528,6 +561,7 @@ const toGuestOrderResponse = (order: OrderWithItems): GuestOrderResponse => {
     orderItems: fullResponse.orderItems.map((item) => ({
       id: item.id,
       productName: item.productName,
+      productOptionLabel: item.productOptionLabel,
       unitPrice: item.unitPrice,
       quantity: item.quantity,
       subtotal: item.subtotal,
@@ -570,7 +604,7 @@ export async function cancelCustomerOrder(
     const existing = await transaction.order.findFirst({
       where: { orderNumber, userId },
       include: {
-        orderItems: { select: { productId: true, quantity: true } },
+        orderItems: { select: { productId: true, productOptionId: true, quantity: true } },
       },
     })
 
@@ -619,6 +653,7 @@ export async function cancelCustomerOrder(
       for (const item of existing.orderItems) {
         await restoreStock(transaction, {
           productId: item.productId,
+          productOptionId: item.productOptionId ?? null,
           quantity: item.quantity,
           orderId: order.id,
           orderNumber: order.orderNumber,
@@ -635,7 +670,7 @@ export async function cancelCustomerOrder(
     })
 
     return order
-  })
+  }, { timeout: 30000 })
 
   void notifyOrderStatusChanged({
     orderNumber: result.orderNumber,

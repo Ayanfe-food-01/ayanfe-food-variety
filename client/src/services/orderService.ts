@@ -19,6 +19,8 @@ export interface CreatedOrder {
     id: string
     productId: string
     productName: string
+    productOptionId: string | null
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string
@@ -72,6 +74,7 @@ export interface GuestOrder {
   orderItems: Array<{
     id: string
     productName: string
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string
@@ -114,7 +117,7 @@ interface GuestOrderResponse {
 export async function checkoutCustomerCart(input: {
   checkoutKey: string
   guestAccessToken?: string
-  cartItems?: Array<{ productId: string; quantity: number }>
+  cartItems?: Array<{ productId: string; productOptionId?: string | null; quantity: number }>
   customerName: string
   phone: string
   email: string
@@ -202,6 +205,8 @@ export interface AdminOrder {
     id: string
     productId: string
     productName: string
+    productOptionId: string | null
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string

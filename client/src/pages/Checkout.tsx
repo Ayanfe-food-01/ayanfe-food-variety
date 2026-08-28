@@ -14,6 +14,7 @@ import { calculateCheckoutTotals } from '../components/checkout/checkoutCalculat
 import { initialCheckoutForm, validateCheckoutForm } from '../components/checkout/checkoutValidation'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../components/checkout/types'
 import { useCart } from '../hooks/useCart'
+import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
@@ -222,7 +223,11 @@ export function Checkout() {
           ? {}
           : {
               guestAccessToken,
-              cartItems: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
+              cartItems: items.map((item) => ({
+                productId: item.id,
+                productOptionId: item.productOptionId ?? null,
+                quantity: item.quantity,
+              })),
             }),
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
@@ -374,7 +379,7 @@ export function Checkout() {
               </div>
               <div className="mt-6 space-y-5">
                 {items.map((item) => (
-                  <div className="flex gap-3" key={item.id}>
+                  <div className="flex gap-3" key={cartItemLineKey(item.id, item.productOptionId)}>
                     <div className="relative shrink-0">
                       {item.image ? (
                         <img className="size-16 rounded-xl object-cover" src={item.image} alt={item.name} />
@@ -385,6 +390,9 @@ export function Checkout() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="m-0 truncate text-sm font-bold text-green-dark">{item.name}</p>
+                      {item.productOptionLabel && (
+                        <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>
+                      )}
                        <p className="mt-1 text-xs text-muted">
                          {item.unit} · <ProductPrice
                            originalPrice={item.originalPrice}

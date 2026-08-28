@@ -264,6 +264,8 @@ const orderDetailInclude = {
             id: true,
             productId: true,
             productName: true,
+            productOptionId: true,
+            productOptionLabel: true,
             unitPrice: true,
             quantity: true,
             subtotal: true,
@@ -350,7 +352,7 @@ export async function updateAdminOrderStatus(orderNumber, input, adminId) {
         const existing = await transaction.order.findUnique({
             where: { orderNumber },
             include: {
-                orderItems: { select: { productId: true, quantity: true } },
+                orderItems: { select: { productId: true, productOptionId: true, quantity: true } },
             },
         });
         if (!existing)
@@ -368,6 +370,7 @@ export async function updateAdminOrderStatus(orderNumber, input, adminId) {
                 for (const item of existing.orderItems) {
                     await restoreStock(transaction, {
                         productId: item.productId,
+                        productOptionId: item.productOptionId ?? null,
                         quantity: item.quantity,
                         orderId: existing.id,
                         orderNumber: existing.orderNumber,
@@ -415,6 +418,7 @@ export async function updateAdminOrderStatus(orderNumber, input, adminId) {
             for (const item of existing.orderItems) {
                 await restoreStock(transaction, {
                     productId: item.productId,
+                    productOptionId: item.productOptionId ?? null,
                     quantity: item.quantity,
                     orderId: order.id,
                     orderNumber: order.orderNumber,
@@ -426,7 +430,7 @@ export async function updateAdminOrderStatus(orderNumber, input, adminId) {
             customerName: existing.customerName,
             email: existing.email,
         };
-    });
+    }, { timeout: 30000 });
     void notifyOrderStatusChanged({
         orderNumber: updated.orderNumber,
         customerName: updated.customerName,
@@ -484,7 +488,7 @@ export async function deleteAdminOrder(orderNumber) {
             throw new HttpError(409, 'Only cancelled orders with reconciled stock can be permanently deleted.');
         }
         await transaction.order.delete({ where: { id: existing.id } });
-    });
+    }, { timeout: 30000 });
 }
 export async function listAdminPayments(query) {
     const search = query.search

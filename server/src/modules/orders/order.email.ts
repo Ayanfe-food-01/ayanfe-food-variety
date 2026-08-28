@@ -9,6 +9,7 @@ import {
 
 type OrderEmailItem = {
   name: string
+  optionLabel?: string | null
   unitPrice: string
   quantity: number
   subtotal: string
@@ -82,7 +83,7 @@ const renderOrderItems = (items: OrderEmailItem[]): string => `
     <tbody>
       ${items.map((item) => `
         <tr style="border-bottom:1px solid #edf1eb;">
-          <td style="padding:13px 0;line-height:1.45;">${escapeHtml(item.name)}<br><span style="color:#66756b;font-size:12px;">${escapeHtml(formatPrice(item.unitPrice))} each</span></td>
+          <td style="padding:13px 0;line-height:1.45;">${escapeHtml(item.name)}${item.optionLabel ? `<br><span style="color:#66756b;font-size:12px;">${escapeHtml(item.optionLabel)}</span>` : ''}<br><span style="color:#66756b;font-size:12px;">${escapeHtml(formatPrice(item.unitPrice))} each</span></td>
           <td align="center" style="padding:13px 8px;color:#58695e;">${item.quantity}</td>
           <td align="right" style="padding:13px 0;font-weight:bold;white-space:nowrap;">${escapeHtml(formatPrice(item.subtotal))}</td>
         </tr>
@@ -155,7 +156,7 @@ const customerOrderMessage = (order: CreatedOrderEmail): EmailMessage => {
       'Ayanfe Food Variety order confirmation',
       `Hi ${order.customerName},`,
       `Order: ${order.orderNumber}`,
-      ...order.items.map((item) => `${item.name} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
+      ...order.items.map((item) => `${item.name}${item.optionLabel ? ` (${item.optionLabel})` : ''} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
       `Subtotal: ${formatPrice(order.subtotal)}`,
       `Delivery fee: ${formatPrice(order.deliveryFee)}`,
       `Total: ${formatPrice(order.total)}`,
@@ -192,7 +193,7 @@ const adminOrderMessage = (order: CreatedOrderEmail): EmailMessage => {
       `Customer: ${order.customerName}`,
       `Email: ${order.customerEmail ?? 'Not provided'}`,
       `Phone: ${order.phone}`,
-      ...order.items.map((item) => `${item.name} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
+      ...order.items.map((item) => `${item.name}${item.optionLabel ? ` (${item.optionLabel})` : ''} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
       `Total: ${formatPrice(order.total)}`,
       `Payment method: ${formatPaymentMethod(order.paymentMethod)}`,
       `Payment status: ${formatStatus(order.paymentStatus)}`,

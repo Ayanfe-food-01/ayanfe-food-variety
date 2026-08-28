@@ -52,6 +52,8 @@ const toOrderResponse = (order) => {
             id: item.id,
             productId: item.productId,
             productName: item.productName,
+            productOptionId: item.productOptionId,
+            productOptionLabel: item.productOptionLabel,
             unitPrice: item.unitPrice.toString(),
             quantity: item.quantity,
             subtotal: item.subtotal.toString(),
@@ -164,7 +166,7 @@ export async function checkoutCustomerCart(userId, input) {
                     where: { id: cartReference.id },
                     include: {
                         items: {
-                            select: { id: true, productId: true, quantity: true, createdAt: true },
+                            select: { id: true, productId: true, productOptionId: true, quantity: true, createdAt: true },
                             orderBy: { createdAt: 'asc' },
                         },
                     },
@@ -177,6 +179,7 @@ export async function checkoutCustomerCart(userId, input) {
             else {
                 cartItems = (input.cartItems ?? []).map((item, index) => ({
                     productId: item.productId,
+                    productOptionId: item.productOptionId ?? null,
                     quantity: item.quantity,
                     createdAt: new Date(index),
                 }));
@@ -213,13 +216,35 @@ export async function checkoutCustomerCart(userId, input) {
                 },
             });
             const productsById = new Map(products.map((product) => [product.id, product]));
+            // The selected product option is resolved from the database at checkout so
+            // its price and stock are never taken from the browser or the cart.
+            const productOptionIds = cartItems.flatMap((item) => (item.productOptionId ? [item.productOptionId] : []));
+            const productOptions = productOptionIds.length > 0
+                ? await transaction.productOption.findMany({
+                    where: { id: { in: productOptionIds } },
+                    select: { id: true, productId: true, label: true, price: true, stockQuantity: true, isActive: true },
+                })
+                : [];
+            const productOptionsById = new Map(productOptions.map((option) => [option.id, option]));
             const unavailableMessages = cartItems.flatMap((item) => {
                 const product = productsById.get(item.productId);
                 if (!product)
                     return [`Product ${item.productId} no longer exists.`];
                 if (!product.isActive || !product.category.isActive)
                     return [`${product.name} is no longer available.`];
-                if (product.stockQuantity < item.quantity) {
+                if (item.productOptionId) {
+                    const option = productOptionsById.get(item.productOptionId);
+                    if (!option)
+                        return [`${product.name}: the selected option no longer exists.`];
+                    if (option.productId !== product.id)
+                        return [`${product.name}: the selected option is invalid.`];
+                    if (!option.isActive)
+                        return [`${product.name} (${option.label}) is no longer available.`];
+                    if (option.stockQuantity < item.quantity) {
+                        return [`${product.name} (${option.label}): only ${option.stockQuantity} unit(s) currently available.`];
+                    }
+                }
+                else if (product.stockQuantity < item.quantity) {
                     return [`${product.name}: only ${product.stockQuantity} unit(s) currently available.`];
                 }
                 return [];
@@ -231,7 +256,13 @@ export async function checkoutCustomerCart(userId, input) {
                 const product = productsById.get(item.productId);
                 if (!product)
                     throw new HttpError(409, 'One or more products are no longer available.');
-                const unitPrice = calculateDiscountedPrice(product.price, product.discountType, product.discountValue);
+                const option = item.productOptionId ? productOptionsById.get(item.productOptionId) : null;
+                if (option && option.productId !== product.id) {
+                    throw new HttpError(409, 'One or more selected options are invalid.');
+                }
+                const unitPrice = option
+                    ? option.price
+                    : calculateDiscountedPrice(product.price, product.discountType, product.discountValue);
                 const subtotal = unitPrice.mul(item.quantity);
                 const deliveryFee = input.fulfillmentMethod === FulfillmentMethod.DELIVERY
                     ? product.deliveryFee.mul(item.quantity)
@@ -239,6 +270,8 @@ export async function checkoutCustomerCart(userId, input) {
                 return {
                     productId: product.id,
                     productName: product.name,
+                    productOptionId: option?.id ?? null,
+                    productOptionLabel: option?.label ?? null,
                     unitPrice,
                     quantity: item.quantity,
                     subtotal,
@@ -291,6 +324,7 @@ export async function checkoutCustomerCart(userId, input) {
                 try {
                     await deductStock(transaction, {
                         productId: item.productId,
+                        productOptionId: item.productOptionId ?? null,
                         quantity: item.quantity,
                         orderId: order.id,
                         orderNumber: order.orderNumber,
@@ -323,7 +357,7 @@ export async function checkoutCustomerCart(userId, input) {
                 href: `/admin/orders/${order.orderNumber}`,
             });
             return { order, created: true };
-        });
+        }, { timeout: 60000 });
     }
     catch (error) {
         const isCheckoutKeyConflict = error instanceof Prisma.PrismaClientKnownRequestError
@@ -362,6 +396,7 @@ export async function checkoutCustomerCart(userId, input) {
             createdAt: result.order.createdAt.toISOString(),
             items: result.order.orderItems.map((item) => ({
                 name: item.productName,
+                optionLabel: item.productOptionLabel,
                 unitPrice: item.unitPrice.toString(),
                 quantity: item.quantity,
                 subtotal: item.subtotal.toString(),
@@ -433,6 +468,7 @@ const toGuestOrderResponse = (order) => {
         orderItems: fullResponse.orderItems.map((item) => ({
             id: item.id,
             productName: item.productName,
+            productOptionLabel: item.productOptionLabel,
             unitPrice: item.unitPrice,
             quantity: item.quantity,
             subtotal: item.subtotal,
@@ -466,7 +502,7 @@ export async function cancelCustomerOrder(userId, orderNumber, reason) {
         const existing = await transaction.order.findFirst({
             where: { orderNumber, userId },
             include: {
-                orderItems: { select: { productId: true, quantity: true } },
+                orderItems: { select: { productId: true, productOptionId: true, quantity: true } },
             },
         });
         if (!existing)
@@ -510,6 +546,7 @@ export async function cancelCustomerOrder(userId, orderNumber, reason) {
             for (const item of existing.orderItems) {
                 await restoreStock(transaction, {
                     productId: item.productId,
+                    productOptionId: item.productOptionId ?? null,
                     quantity: item.quantity,
                     orderId: order.id,
                     orderNumber: order.orderNumber,
@@ -524,7 +561,7 @@ export async function cancelCustomerOrder(userId, orderNumber, reason) {
             href: `/admin/orders/${order.orderNumber}`,
         });
         return order;
-    });
+    }, { timeout: 30000 });
     void notifyOrderStatusChanged({
         orderNumber: result.orderNumber,
         customerName: result.customerName,

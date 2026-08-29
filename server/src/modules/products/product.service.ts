@@ -77,6 +77,95 @@ const optionCreateRows = (options: ProductInput['options'] | undefined) =>
     isActive: option.isActive ?? true,
   }))
 
+const ARCHIVE_PREFIX = 'Archived · '
+const archivedOptionLabel = (label: string): string => `${ARCHIVE_PREFIX}${label}`
+
+async function reconcileOptions(
+  transaction: Prisma.TransactionClient,
+  productId: string,
+  submitted: NonNullable<ProductInput['options']>,
+): Promise<void> {
+  const existing = await transaction.productOption.findMany({ where: { productId } })
+  const existingById = new Map(existing.map((option) => [option.id, option]))
+  const archivedLabels = existing.reduce<Map<string, string>>((map, option) => {
+    if (!option.isActive) {
+      let originalLabel = option.label
+      while (originalLabel.startsWith(ARCHIVE_PREFIX)) originalLabel = originalLabel.slice(ARCHIVE_PREFIX.length)
+      map.set(originalLabel.toLowerCase(), option.id)
+    }
+    return map
+  }, new Map())
+
+  const upserted = new Set<string>()
+  let sortOrder = 0
+  for (const option of submitted) {
+    const target = option.id ? existingById.get(option.id) : undefined
+    const labelKey = option.label.toLowerCase()
+    if (target) {
+      const archived = archivedLabels.get(labelKey)
+      if (archived && archived !== target.id) {
+        throw new HttpError(400, `A removed option with the label "${option.label}" cannot be re-used for this product.`)
+      }
+      if (archived && archived === target.id) archivedLabels.delete(labelKey)
+      upserted.add(target.id)
+      await transaction.productOption.update({
+        where: { id: target.id },
+        data: { label: option.label, price: option.price, stockQuantity: option.stockQuantity, sortOrder, isActive: true },
+      })
+    } else {
+      const revived = archivedLabels.get(labelKey)
+      if (revived) {
+        const alreadyLive = existing.some((row) => row.isActive && row.label.toLowerCase() === labelKey)
+        if (alreadyLive) {
+          throw new HttpError(400, `An option with the label "${option.label}" already exists for this product.`)
+        }
+        archivedLabels.delete(labelKey)
+        upserted.add(revived)
+        await transaction.productOption.update({
+          where: { id: revived },
+          data: { label: option.label, price: option.price, stockQuantity: option.stockQuantity, sortOrder, isActive: true },
+        })
+      } else {
+        const created = await transaction.productOption.create({
+          data: { productId, label: option.label, price: option.price, stockQuantity: option.stockQuantity, sortOrder, isActive: true },
+        })
+        upserted.add(created.id)
+      }
+    }
+    sortOrder += 1
+  }
+
+  const removed = existing.filter((option) => !upserted.has(option.id))
+  if (removed.length > 0) {
+    const removedIds = removed.map((option) => option.id)
+    const [orderRefs, cartRefs] = await Promise.all([
+      transaction.orderItem.groupBy({
+        by: ['productOptionId'],
+        where: { productOptionId: { in: removedIds } },
+        _count: { _all: true },
+      }),
+      transaction.customerCartItem.groupBy({
+        by: ['productOptionId'],
+        where: { productOptionId: { in: removedIds } },
+        _count: { _all: true },
+      }),
+    ])
+    const referenced = new Set(
+      [...orderRefs, ...cartRefs].map((row) => row.productOptionId) as string[],
+    )
+    for (const option of removed) {
+      if (referenced.has(option.id)) {
+        await transaction.productOption.update({
+          where: { id: option.id },
+          data: { label: option.label.startsWith(ARCHIVE_PREFIX) ? option.label : archivedOptionLabel(option.label), isActive: false },
+        })
+        continue
+      }
+      await transaction.productOption.delete({ where: { id: option.id } })
+    }
+  }
+}
+
 const toProduct = (product: ProductWithCategory, isWishlisted = false): Product => ({
   id: product.id,
   categoryId: product.categoryId,
@@ -457,7 +546,10 @@ export const validateProductCategory = async (categoryId: string) => {
   if (!category.isActive) throw new HttpError(400, 'The selected category is inactive.')
 }
 
-const toAdminProduct = (product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): Product => toProduct(product)
+const toAdminProduct = (product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): Product => ({
+  ...toProduct(product),
+  archivedOptions: product.options.filter((option) => !option.isActive).map(toOption),
+})
 
 export async function listAdminProducts(query: AdminProductQuery) {
   const where: Prisma.ProductWhereInput = {}
@@ -574,6 +666,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
       )
       const current = currentRows[0]
       if (!current) throw new HttpError(404, 'Product not found.')
+      if (replacesOptions) await reconcileOptions(transaction, id, input.options!)
       const updated = await transaction.product.update({
         where: { id },
         data: {
@@ -594,9 +687,6 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           isActive: input.isActive,
           isFeatured: input.isFeatured,
           stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : undefined),
-          ...(replacesOptions
-            ? { options: { deleteMany: {}, create: optionCreateRows(input.options) } }
-            : {}),
         },
         include: productInclude,
       })
@@ -620,7 +710,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
         }
       }
       return updated
-    }, { timeout: 15000 })
+    }, { timeout: 60000 })
     return toAdminProduct(product)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

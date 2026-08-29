@@ -458,6 +458,7 @@ interface AdminProductApiResponse {
 }
 
 export interface ProductOptionDraft {
+  id?: string
   label: string
   price: string
   stockQuantity: string
@@ -513,6 +514,7 @@ const formDataFor = (input: ProductFormInput): FormData => {
   formData.set('existingImages', JSON.stringify(input.existingImages))
   formData.set('imageOrder', JSON.stringify(input.imageOrder))
   formData.set('options', JSON.stringify(options.map((option, sortOrder) => ({
+    ...(option.id ? { id: option.id } : {}),
     label: option.label.trim(),
     price: option.price.trim(),
     stockQuantity: option.stockQuantity.trim() === '' ? 0 : Number(option.stockQuantity),

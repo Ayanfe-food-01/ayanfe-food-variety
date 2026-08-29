@@ -32,6 +32,7 @@ export interface Product {
   isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   options?: ProductOption[]
+  archivedOptions?: ProductOption[]
   createdAt?: string
   updatedAt?: string
 }

@@ -7,10 +7,18 @@ import { OptionInputField, type OptionRowErrors } from '../../components/admin/O
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { SelectField } from '../../components/ui/SelectField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
-import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
+import { formatPrice } from '../../utils/formatPrice'
+import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
 const MAX_PRODUCT_OPTIONS = 50
+
+const ARCHIVED_PREFIX = 'Archived · '
+const archivedDisplayLabel = (label: string): string => {
+  let cleaned = label
+  while (cleaned.startsWith(ARCHIVED_PREFIX)) cleaned = cleaned.slice(ARCHIVED_PREFIX.length)
+  return cleaned
+}
 
 const initialForm: ProductFormInput = {
   name: '',
@@ -43,6 +51,7 @@ export function ProductForm() {
   const isEditing = Boolean(id)
   const navigate = useNavigate()
   const [form, setForm] = useState<ProductFormInput>(initialForm)
+  const [archivedOptions, setArchivedOptions] = useState<ProductOptionDraft[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [imageDrafts, setImageDrafts] = useState<ProductImageDraft[]>([])
   const [isLoading, setIsLoading] = useState(isEditing)
@@ -83,11 +92,18 @@ export function ProductForm() {
         existingImages,
         imageOrder: existingImages.map((image) => `existing:${image}`),
         options: (product.options ?? []).map((option) => ({
+          id: option.id,
           label: option.label,
           price: String(option.price),
           stockQuantity: String(option.stockQuantity),
         })),
       })
+      setArchivedOptions((product.archivedOptions ?? []).map((option) => ({
+        id: option.id,
+        label: archivedDisplayLabel(option.label),
+        price: String(option.price),
+        stockQuantity: String(option.stockQuantity),
+      })))
       setImageDrafts(existingImages.map((url, index) => ({ id: `existing-${index}-${url}`, url })))
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
     return () => { current = false }
@@ -101,6 +117,15 @@ export function ProductForm() {
 
   const filledOptions = form.options.filter(isFilledProductOption)
   const hasFilledOptions = filledOptions.length > 0
+
+  const restoreArchivedOption = (index: number) => {
+    const archived = archivedOptions[index]
+    if (!archived || form.options.length >= MAX_PRODUCT_OPTIONS) return
+    setArchivedOptions((current) => current.filter((_, currentIndex) => currentIndex !== index))
+    setForm((current) => ({ ...current, options: [...current.options, archived] }))
+    setOptionErrors((current) => [...current, {}])
+    setError(null)
+  }
 
   const validOptionPrices = filledOptions.flatMap((option) => {
     const number = Number(option.price)
@@ -322,6 +347,23 @@ export function ProductForm() {
               setError(null)
             }}
           />
+          {archivedOptions.length > 0 && (
+            <div className="rounded-2xl border border-line bg-cream/40 p-4">
+              <p className="m-0 text-sm font-bold text-green-dark">Previously removed sizes</p>
+              <p className="mt-1 text-xs font-normal text-muted">These sizes are still linked to past orders and customer carts, so they were kept rather than deleted. Restore one to sell it again — its details are filled from the last saved values.</p>
+              <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-white">
+                {archivedOptions.map((option, index) => (
+                  <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={option.id ?? `archived-${index}`}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-green-dark">{option.label}</p>
+                      <p className="mt-0.5 text-xs font-normal text-muted">{formatPrice(Number(option.price))} · {option.stockQuantity} in stock</p>
+                    </div>
+                    <button className="shrink-0 rounded-xl border border-line bg-white px-4 py-2 text-xs font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" aria-label={`Restore option ${option.label}`} disabled={form.options.length >= MAX_PRODUCT_OPTIONS} onClick={() => restoreArchivedOption(index)}>Restore</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <label className="block text-sm font-bold text-green-dark">Description<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('description')} value={form.description} onChange={(event) => update('description', event.target.value)} maxLength={4000} required />{fieldErrors.description && <span className="mt-1 block text-xs font-normal text-orange" id="description-error">{fieldErrors.description}</span>}<span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/4,000 characters</span></label>
             <ImageUploadField
               label="Product images"

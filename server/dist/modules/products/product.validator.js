@@ -79,7 +79,14 @@ const optionInput = (value) => {
         throw new HttpError(400, 'Each product option must be an object.');
     const label = requiredText(value.label, 'Option label', 1, 80);
     const price = moneyValue(value.price, 'Option price', false);
+    const id = value.id === undefined || value.id === null ? undefined : (() => {
+        const raw = String(value.id).trim();
+        if (!UUID_PATTERN.test(raw))
+            throw new HttpError(400, 'Option ID is invalid.');
+        return raw;
+    })();
     return {
+        id,
         label,
         price,
         stockQuantity: value.stockQuantity === undefined ? 0 : integerValue(value.stockQuantity, 'Option stock quantity'),

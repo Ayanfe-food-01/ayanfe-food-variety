@@ -10,6 +10,7 @@ export interface ProductOption {
 }
 
 export interface ProductOptionInput {
+  id?: string
   label: string
   price: string
   stockQuantity: number
@@ -34,6 +35,7 @@ export interface Product {
   image: string
   images: string[]
   options: ProductOption[]
+  archivedOptions?: ProductOption[]
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number

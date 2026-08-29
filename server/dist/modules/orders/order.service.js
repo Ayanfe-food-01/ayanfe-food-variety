@@ -1,10 +1,11 @@
-import { AdminNotificationType, FulfillmentMethod, Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
+import { AdminNotificationType, FulfillmentMethod, Prisma, OrderStatus, PaymentStatus, ShoppingMode } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js';
 import { notifyOrderCreated, notifyOrderStatusChanged } from './order.email.js';
 import { deductStock, restoreStock } from '../inventory/inventory.service.js';
 import { calculateDiscountedPrice } from '../products/product.pricing.js';
+import { assertWholesaleOrderable, wholesaleUnitPriceFromOption } from '../products/wholesale.pricing.js';
 import { createAdminNotification } from '../notifications/notification.service.js';
 const toPaymentSubmissionResponse = (submission) => ({
     id: submission.id,
@@ -38,6 +39,7 @@ const toOrderResponse = (order) => {
         deliveryAddress: order.deliveryAddress,
         city: order.city,
         note: order.note,
+        orderType: order.shoppingMode,
         subtotal: order.subtotal.toString(),
         deliveryFee: order.deliveryFee.toString(),
         total: order.total.toString(),
@@ -151,9 +153,6 @@ export async function checkoutCustomerCart(userId, input) {
             if (userId && (!user || user.role !== 'CUSTOMER' || !user.emailVerified)) {
                 throw new HttpError(403, 'A verified customer account is required.');
             }
-            if (user && user.shoppingMode === 'WHOLESALE') {
-                throw new HttpError(403, 'Wholesale checkout is not available yet.');
-            }
             let cartId = null;
             let cartItems;
             if (user) {
@@ -225,7 +224,16 @@ export async function checkoutCustomerCart(userId, input) {
             const productOptions = productOptionIds.length > 0
                 ? await transaction.productOption.findMany({
                     where: { id: { in: productOptionIds } },
-                    select: { id: true, productId: true, label: true, price: true, stockQuantity: true, isActive: true },
+                    select: {
+                        id: true,
+                        productId: true,
+                        label: true,
+                        price: true,
+                        stockQuantity: true,
+                        isActive: true,
+                        wholesaleMoq: true,
+                        wholesalePriceTiers: { orderBy: { minQuantity: 'asc' } },
+                    },
                 })
                 : [];
             const productOptionsById = new Map(productOptions.map((option) => [option.id, option]));
@@ -255,6 +263,19 @@ export async function checkoutCustomerCart(userId, input) {
             if (unavailableMessages.length > 0) {
                 throw new HttpError(409, unavailableMessages.join(' '));
             }
+            // An order's shopping mode is decided by the signed-in customer's mode and
+            // is never taken from the browser. Wholesale prices and minimums are
+            // re-validated against the database at order time.
+            const isWholesale = user?.shoppingMode === ShoppingMode.WHOLESALE;
+            if (isWholesale) {
+                for (const item of cartItems) {
+                    if (!item.productOptionId)
+                        continue;
+                    const option = productOptionsById.get(item.productOptionId);
+                    if (option)
+                        assertWholesaleOrderable(option, item.quantity);
+                }
+            }
             const orderItems = cartItems.map((item) => {
                 const product = productsById.get(item.productId);
                 if (!product)
@@ -264,7 +285,9 @@ export async function checkoutCustomerCart(userId, input) {
                     throw new HttpError(409, 'One or more selected options are invalid.');
                 }
                 const unitPrice = option
-                    ? option.price
+                    ? (isWholesale
+                        ? (wholesaleUnitPriceFromOption(option, item.quantity) ?? option.price)
+                        : option.price)
                     : calculateDiscountedPrice(product.price, product.discountType, product.discountValue);
                 const subtotal = unitPrice.mul(item.quantity);
                 const deliveryFee = input.fulfillmentMethod === FulfillmentMethod.DELIVERY
@@ -293,6 +316,7 @@ export async function checkoutCustomerCart(userId, input) {
                     phone: input.phone,
                     email: user?.email ?? input.email,
                     fulfillmentMethod: input.fulfillmentMethod,
+                    shoppingMode: isWholesale ? ShoppingMode.WHOLESALE : ShoppingMode.RETAIL,
                     deliveryAddress: input.deliveryAddress ?? '',
                     city: input.city ?? '',
                     note: input.deliveryInstructions ?? null,
@@ -459,6 +483,7 @@ const toGuestOrderResponse = (order) => {
     return {
         orderNumber: fullResponse.orderNumber,
         fulfillmentMethod: fullResponse.fulfillmentMethod,
+        orderType: fullResponse.orderType,
         deliveryAddress: fullResponse.deliveryAddress,
         city: fullResponse.city,
         subtotal: fullResponse.subtotal,

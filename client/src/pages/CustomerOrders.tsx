@@ -83,10 +83,10 @@ export function CustomerOrders() {
               <div className="divide-y divide-line">
                 {orders.map((order) => (
                   <Link className="flex flex-wrap items-center justify-between gap-4 p-5 transition-colors hover:bg-sage/25 sm:p-6" to={`/orders/${order.orderNumber}`} key={order.id}>
-                    <div>
-                      <p className="text-sm font-bold text-green-dark">{order.orderNumber}</p>
-                       <p className="mt-1 text-xs text-muted">{formatDate(order.createdAt)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</p>
-                    </div>
+<div>
+                        <p className="text-sm font-bold text-green-dark">{order.orderNumber}</p>
+                         <p className="mt-1 text-xs text-muted">{formatDate(order.createdAt)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'} · {order.orderType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</p>
+                      </div>
                     <div className="flex items-center gap-5">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span>
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>

@@ -101,6 +101,7 @@ function EmptyCheckout() {
 export function Checkout() {
   const {
     items,
+    mode,
     subtotal,
     deliveryFee,
     totalQuantity,
@@ -320,6 +321,9 @@ export function Checkout() {
              <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
               Choose pickup or delivery, confirm your details, and place your order securely.
             </p>
+             <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-green-dark">
+               {mode === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}
+             </p>
           </div>
         </section>
 
@@ -373,6 +377,12 @@ export function Checkout() {
             </form>
 
             <aside className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-28" aria-labelledby="checkout-summary-heading">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
+                <span className={mode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
+                <span className={mode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>
+                  {mode === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}
+                </span>
+              </div>
               <div className="flex items-center justify-between gap-4">
                 <h2 id="checkout-summary-heading" className="m-0 text-2xl font-bold tracking-[-0.03em] text-green-dark">Your order</h2>
                 <Link className="text-xs font-bold text-green transition-colors hover:text-orange" to="/cart">Edit cart</Link>

@@ -112,7 +112,7 @@ export function OrderDetail() {
   return (
     <div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><Link className="text-sm font-bold text-green hover:text-orange" to="/admin/orders">← Back to orders</Link><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Order detail</p><h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{order.orderNumber}</h1><p className="mt-3 text-sm text-muted">Placed {formatDate(order.createdAt)}</p></div>
+        <div><Link className="text-sm font-bold text-green hover:text-orange" to="/admin/orders">← Back to orders</Link><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Order detail</p><h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{order.orderNumber}</h1><p className="mt-3 text-sm text-muted">Placed {formatDate(order.createdAt)}</p><p className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]"><span className={order.shoppingMode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} /><span className={order.shoppingMode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>{order.shoppingMode === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}</span></p></div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span>
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>
@@ -137,6 +137,7 @@ export function OrderDetail() {
               <div><p className="text-xs text-muted">Email</p><p className="mt-1 font-bold text-green-dark">{order.email ?? 'Not provided'}</p></div>
               <div><p className="text-xs text-muted">Phone</p><p className="mt-1 font-bold text-green-dark">{order.phone}</p></div>
               <div><p className="text-xs text-muted">Fulfillment</p><p className="mt-1 font-bold text-green-dark">{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</p></div>
+              <div><p className="text-xs text-muted">Type</p><p className="mt-1 font-bold text-green-dark">{order.shoppingMode === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</p></div>
             </div>
             {order.fulfillmentMethod === 'DELIVERY' ? (
               <div className="mt-5 rounded-xl bg-sage/35 p-4 text-sm">

@@ -63,10 +63,14 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                 <dt className="uppercase tracking-[0.12em] text-muted">Total</dt>
                 <dd className="mt-1 font-bold text-green-dark">{formatPrice(order.total)}</dd>
               </div>
-               <div>
-                 <dt className="uppercase tracking-[0.12em] text-muted">Fulfillment</dt>
-                 <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${order.fulfillmentMethod === 'PICKUP' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</span></dd>
-               </div>
+<div>
+                <dt className="uppercase tracking-[0.12em] text-muted">Fulfillment</dt>
+                <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${order.fulfillmentMethod === 'PICKUP' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</span></dd>
+              </div>
+              <div>
+                <dt className="uppercase tracking-[0.12em] text-muted">Type</dt>
+                <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${order.shoppingMode === 'WHOLESALE' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{order.shoppingMode === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</span></dd>
+              </div>
               <div>
                 <dt className="uppercase tracking-[0.12em] text-muted">Payment</dt>
                 <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></dd>
@@ -90,7 +94,8 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
               <th className="px-5 py-4 font-bold">Date</th>
               <th className="px-5 py-4 font-bold">Total</th>
                <th className="px-5 py-4 font-bold">Fulfillment</th>
-              <th className="px-5 py-4 font-bold">Payment</th>
+                <th className="px-5 py-4 font-bold">Type</th>
+               <th className="px-5 py-4 font-bold">Payment</th>
               <th className="px-5 py-4 font-bold">Order status</th>
                <th className="px-5 py-4 font-bold">Actions</th>
             </tr>
@@ -106,8 +111,9 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{order.phone}</td>
                  <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt, true)}</td>
                 <td className="whitespace-nowrap px-5 py-4 font-semibold text-green-dark">{formatPrice(order.total)}</td>
-                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${order.fulfillmentMethod === 'PICKUP' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</span></td>
-                <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></td>
+<td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${order.fulfillmentMethod === 'PICKUP' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</span></td>
+               <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${order.shoppingMode === 'WHOLESALE' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{order.shoppingMode === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</span></td>
+               <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span></td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span></td>
                 <td className="px-5 py-4 text-right">
                   <div className="flex justify-end">

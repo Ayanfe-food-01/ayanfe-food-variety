@@ -1,5 +1,7 @@
 import { request } from './api'
 
+export type OrderType = 'RETAIL' | 'WHOLESALE'
+
 export interface CreatedOrder {
   id: string
   orderNumber: string
@@ -7,6 +9,7 @@ export interface CreatedOrder {
   phone: string
   whatsapp: string | null
   fulfillmentMethod: FulfillmentMethod
+  orderType: OrderType
   email: string | null
   deliveryAddress: string
   city: string
@@ -62,6 +65,7 @@ export interface CreatedOrder {
 export interface GuestOrder {
   orderNumber: string
   fulfillmentMethod: FulfillmentMethod
+  orderType: OrderType
   deliveryAddress: string
   city: string
   subtotal: string
@@ -93,6 +97,7 @@ export interface CustomerOrderListItem {
   orderNumber: string
   customerName: string
   fulfillmentMethod: FulfillmentMethod
+  orderType: OrderType
   total: string
   paymentStatus: CustomerPaymentStatus
   orderStatus: OrderStatus
@@ -186,6 +191,7 @@ export interface AdminOrder {
   phone: string
   whatsapp: string | null
   fulfillmentMethod: FulfillmentMethod
+  shoppingMode: OrderType
   email: string | null
   deliveryAddress: string
   city: string
@@ -247,6 +253,7 @@ export interface AdminOrderListItem {
   email: string | null
   phone: string
   fulfillmentMethod: FulfillmentMethod
+  shoppingMode: OrderType
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus

@@ -71,6 +71,12 @@ export function OrderConfirmation() {
                 <span className="text-muted">Order number</span>
                 <strong className="text-green-dark">{order.orderNumber}</strong>
               </div>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em]">
+                <span className={order.orderType === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
+                <span className={order.orderType === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>
+                  {order.orderType === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}
+                </span>
+              </div>
               {!user && (
                 <p className="mx-auto mt-4 max-w-lg text-xs leading-5 text-muted">
                   Keep this number and use the Track order page with the email address or phone number you used at checkout.
@@ -92,7 +98,10 @@ export function OrderConfirmation() {
             <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-2xl font-bold text-green-dark">Order summary</h2>
-                <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">Payment pending</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{order.orderType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</span>
+                  <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">Payment pending</span>
+                </div>
               </div>
               <div className="mt-5 divide-y divide-line">
                 {order.orderItems.map((item) => (

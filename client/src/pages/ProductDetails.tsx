@@ -46,7 +46,7 @@ export function ProductDetails() {
   const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(new Set())
   const touchStartX = useRef<number | null>(null)
   const { addToCart, items, pendingItemIds } = useCart()
-  const { user, openAuth, shoppingMode } = useCustomerAuth()
+  const { user, shoppingMode } = useCustomerAuth()
   const { showToast } = useToast()
   const isWholesaleShopper = user?.role === 'CUSTOMER' && shoppingMode === 'WHOLESALE'
   const [wholesalePricingOptions, setWholesalePricingOptions] = useState<WholesaleOptionPricing[]>([])
@@ -275,11 +275,7 @@ export function ProductDetails() {
 
   const handleAddToCart = () => {
     if (!product?.isAvailable || !canAddToCart) return
-    if (!user) {
-      openAuth(addProductToCart)
-      return
-    }
-    addProductToCart()
+    void addProductToCart()
   }
 
   const isAdding = product ? pendingItemIds.includes(cartItemLineKey(product.id, selectedOption?.id ?? null)) : false

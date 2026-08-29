@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { useMemo, useState, type ComponentType, type FormEvent, type MouseEvent } from 'react'
 import {
   ArrowUpRight,
   CartIcon,
@@ -16,6 +16,7 @@ import {
 } from '../assets/icons'
 import type { IconProps } from '../assets/icons/types'
 import { FaqAccordion, type FaqItem } from '../components/help/FaqAccordion'
+import { searchHelpFaqs } from '../components/help/helpSearch'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
@@ -65,8 +66,9 @@ const helpCategories: HelpCategory[] = [
         question: 'How do I add a product to my cart?',
         answer: (
           <p>
-            Tap “Add to cart” on a product card or on the product page. The cart badge in the header updates right away
-            and the cart panel opens so you can keep shopping or review your items.
+            Tap “Add to cart” on a product card or on the product page. A confirmation message appears and the cart
+            badge in the header updates right away. Tap the cart icon whenever you’re ready to review or change your
+            items.
           </p>
         ),
       },
@@ -201,8 +203,8 @@ const helpCategories: HelpCategory[] = [
         question: 'What is wholesale shopping?',
         answer: (
           <p>
-            Wholesale shopping shows lower unit prices when you buy in larger quantities. Instead of a single price,
-            each product uses quantity-based tiers, so the more you buy, the lower the price per unit.
+            Wholesale shopping shows lower unit prices when you buy in bulk. Instead of a single
+            price, each product uses quantity-based tiers, so the more you buy, the lower the price per unit.
           </p>
         ),
       },
@@ -275,8 +277,8 @@ const helpCategories: HelpCategory[] = [
         answer: (
           <p>
             Sign in and open <Link to="/orders">Orders</Link> (or the account icon in the header) to see all your orders
-            and open any of them for details. From there you can submit payment proof or cancel an order that is still
-            at “Order Placed” or “Processing”.
+            and open any of them for details. From there you can submit payment proof while your payment is still
+            pending, and cancel orders that are still at “Order Placed” or “Processing”.
           </p>
         ),
       },
@@ -339,7 +341,8 @@ const helpCategories: HelpCategory[] = [
         answer: (
           <p>
             Open the <Link to="/login">sign-in page</Link> and tap “Don’t have an account? Sign up”. Enter your name,
-            email address, and a password with at least 6 characters, then verify your email using the link we send you.
+            email address, and a password with at least 6 characters, then confirm the 6-digit verification code we
+            email you to verify your account.
           </p>
         ),
       },
@@ -347,8 +350,8 @@ const helpCategories: HelpCategory[] = [
         question: 'How do I sign in?',
         answer: (
           <p>
-            On the <Link to="/login">sign-in page</Link>, choose “Continue with Email” and enter your email and password
-            — or choose “Continue with Google” to sign in with your Google account.
+            On the <Link to="/login">sign-in page</Link>, choose “Continue with Email” and enter your email and password.
+            If Google sign-in is available, you can also choose “Continue with Google” to use your Google account.
           </p>
         ),
       },
@@ -408,73 +411,6 @@ const quickLinks = [
   { label: 'Sign in', href: '/login' },
 ]
 
-const nodeToText = (node: ReactNode): string => {
-  if (node === null || node === undefined || typeof node === 'boolean') return ''
-  if (typeof node === 'string' || typeof node === 'number') return String(node)
-  if (Array.isArray(node)) return node.map(nodeToText).join(' ')
-  if (typeof node === 'object' && 'props' in node) {
-    const children = (node as { props: { children?: ReactNode } }).props?.children
-    return nodeToText(children)
-  }
-  return ''
-}
-
-interface SearchIndexCategory {
-  id: string
-  title: string
-  faqs: { question: string; searchText: string }[]
-}
-
-const faqSearchIndex: SearchIndexCategory[] = helpCategories.map((category) => ({
-  id: category.id,
-  title: category.title,
-  faqs: category.faqs.map((faq) => ({
-    question: faq.question,
-    searchText: `${faq.question} ${nodeToText(faq.answer)} ${category.title}`.toLocaleLowerCase('en'),
-  })),
-}))
-
-const searchTokens = (value: string): string[] =>
-  value.toLocaleLowerCase('en').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
-
-interface SearchHit {
-  categoryId: string
-  faq: FaqItem
-  score: number
-}
-
-interface SearchResult {
-  tokens: string[]
-  categories: HelpCategory[] | null
-  total: number
-}
-
-const searchFaqs = (query: string): SearchResult => {
-  const tokens = searchTokens(query)
-  if (tokens.length === 0) return { tokens, categories: null, total: 0 }
-
-  const hits: SearchHit[] = []
-  helpCategories.forEach((category, categoryIndex) => {
-    const indexCategory = faqSearchIndex[categoryIndex]
-    category.faqs.forEach((faq, faqIndex) => {
-      const searchText = indexCategory?.faqs[faqIndex]?.searchText ?? ''
-      const score = tokens.reduce((total, token) => (searchText.includes(token) ? total + 1 : total), 0)
-      if (score > 0) hits.push({ categoryId: category.id, faq, score })
-    })
-  })
-
-  hits.sort((a, b) => b.score - a.score)
-
-  const categories = helpCategories
-    .map((category) => ({
-      ...category,
-      faqs: hits.filter((hit) => hit.categoryId === category.id).map((hit) => hit.faq),
-    }))
-    .filter((category) => category.faqs.length > 0)
-
-  return { tokens, categories: categories.length > 0 ? categories : null, total: hits.length }
-}
-
 export function Help() {
   const { settings } = useStoreSettings()
   const phone = settings?.businessPhone?.trim()
@@ -483,7 +419,7 @@ export function Help() {
   const whatsappHref = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '').replace(/^0/, '234')}` : undefined
 
   const [query, setQuery] = useState('')
-  const { tokens, categories: searchCategories, total } = useMemo(() => searchFaqs(query), [query])
+  const { tokens, categories: searchCategories, total } = useMemo(() => searchHelpFaqs(helpCategories, query), [query])
   const isSearching = tokens.length > 0
 
   const clearSearch = () => setQuery('')

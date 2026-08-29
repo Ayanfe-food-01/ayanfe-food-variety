@@ -8,6 +8,7 @@ import { bannerImageUpload, createAdminBannerController, deleteAdminBannerContro
 import { changeAdminPasswordController } from '../modules/auth/auth.controller.js';
 import { brandingImageUpload, getAdminBrandingController, updateAdminBrandingController, } from '../modules/settings/branding.controller.js';
 import { listAdminNotificationsController, markAdminNotificationReadController, markAllAdminNotificationsReadController, } from '../modules/notifications/notification.controller.js';
+import { getAdminQuoteRequestController, listAdminQuoteRequestsController, updateAdminQuoteRequestNoteController, updateAdminQuoteRequestStatusController, } from '../modules/quotes/quote.admin.controller.js';
 export const adminRoutes = Router();
 adminRoutes.use(...requireAdminAccess);
 adminRoutes.get('/categories', listAdminCategoriesController);
@@ -41,6 +42,10 @@ adminRoutes.get('/payments', listAdminPaymentsController);
 adminRoutes.get('/payments/:id', getAdminPaymentController);
 adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController);
 adminRoutes.post('/payments/:id/reject', rejectAdminPaymentController);
+adminRoutes.get('/quotes', listAdminQuoteRequestsController);
+adminRoutes.get('/quotes/:reference', getAdminQuoteRequestController);
+adminRoutes.patch('/quotes/:reference/status', updateAdminQuoteRequestStatusController);
+adminRoutes.patch('/quotes/:reference/note', updateAdminQuoteRequestNoteController);
 adminRoutes.get('/notifications', listAdminNotificationsController);
 adminRoutes.post('/notifications/read-all', markAllAdminNotificationsReadController);
 adminRoutes.patch('/notifications/:id/read', markAdminNotificationReadController);

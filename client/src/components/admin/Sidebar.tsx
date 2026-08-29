@@ -13,6 +13,7 @@ const links = [
   { label: 'Dashboard', to: '/admin' },
   { label: 'Sales analytics', to: '/admin/analytics' },
   { label: 'Orders', to: '/admin/orders' },
+  { label: 'Quote requests', to: '/admin/quote-requests' },
   { label: 'Products & inventory', to: '/admin/products' },
   { label: 'Categories', to: '/admin/categories' },
   { label: 'Promotional banners', to: '/admin/banners' },

@@ -79,6 +79,14 @@ enum AdminNotificationType {
   LOW_STOCK
 }
 
+enum QuoteRequestStatus {
+  PENDING
+  CONTACTED
+  QUOTED
+  COMPLETED
+  CANCELLED
+}
+
 model Category {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name           String    @unique @db.VarChar(120)
@@ -119,6 +127,7 @@ model Product {
   images      ProductImage[]
   options     ProductOption[]
   wholesalePriceTiers WholesalePriceTier[]
+  quoteRequestItems QuoteRequestItem[]
 
   @@index([categoryId], map: "products_category_id_idx")
   @@index([isActive], map: "products_active_idx")
@@ -173,6 +182,7 @@ model ProductOption {
   orderItems    OrderItem[]
   stockAdjustments ProductStockAdjustment[]
   wholesalePriceTiers WholesalePriceTier[]
+  quoteRequestItems QuoteRequestItem[]
 
   @@unique([productId, label], map: "product_options_product_label_key")
   @@index([productId, sortOrder], map: "product_options_product_order_idx")
@@ -376,6 +386,7 @@ model User {
   paymentAuditEvents PaymentAuditEvent[] @relation("PaymentAuditActor")
   notificationReads AdminNotificationRead[]
   wishlistItems WishlistItem[]
+  quoteRequests QuoteRequest[]
 
   @@map("users")
 }
@@ -553,4 +564,50 @@ model ProductStockAdjustment {
   @@index([orderId], map: "product_stock_adjustments_order_id_idx")
   @@index([productOptionId], map: "product_stock_adjustments_product_option_id_idx")
   @@map("product_stock_adjustments")
+}
+
+model QuoteRequest {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quoteNumber  String            @unique @map("quote_number") @db.VarChar(32)
+  requestKey   String?           @unique @map("request_key") @db.VarChar(64)
+  userId       String?           @map("user_id") @db.Uuid
+  customerName String            @map("customer_name") @db.VarChar(180)
+  customerEmail String           @map("customer_email") @db.VarChar(255)
+  customerPhone String           @map("customer_phone") @db.VarChar(40)
+  message      String?           @db.Text
+  shoppingMode ShoppingMode?     @map("shopping_mode")
+  status       QuoteRequestStatus @default(PENDING)
+  adminNote    String?           @map("admin_note") @db.VarChar(2000)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  items        QuoteRequestItem[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "quote_requests_user_created_idx")
+  @@index([userId, status], map: "quote_requests_user_status_idx")
+  @@index([status, createdAt(sort: Desc)], map: "quote_requests_status_created_idx")
+  @@index([status], map: "quote_requests_status_idx")
+  @@index([customerEmail], map: "quote_requests_customer_email_idx")
+  @@index([customerPhone], map: "quote_requests_customer_phone_idx")
+  @@map("quote_requests")
+}
+
+model QuoteRequestItem {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quoteRequestId  String       @map("quote_request_id") @db.Uuid
+  productId       String       @map("product_id") @db.Uuid
+  productOptionId String?      @map("product_option_id") @db.Uuid
+  productName     String       @map("product_name") @db.VarChar(180)
+  productOptionLabel String?   @map("product_option_label") @db.VarChar(80)
+  quantity        Int
+  note            String?      @db.VarChar(500)
+  quoteRequest    QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  productOption   ProductOption? @relation(fields: [productOptionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([quoteRequestId, productId, productOptionId], map: "quote_request_items_request_product_option_key")
+  @@index([quoteRequestId], map: "quote_request_items_request_id_idx")
+  @@index([productId], map: "quote_request_items_product_id_idx")
+  @@index([productOptionId], map: "quote_request_items_product_option_id_idx")
+  @@map("quote_request_items")
 }

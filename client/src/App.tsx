@@ -14,12 +14,15 @@ import { CustomerOrders } from './pages/CustomerOrders'
 import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
 import { TrackOrder } from './pages/TrackOrder'
+import { RequestQuote } from './pages/RequestQuote'
 import { Dashboard } from './pages/Admin/Dashboard'
 import { Analytics } from './pages/Admin/Analytics'
 import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Notifications } from './pages/Admin/Notifications'
+import { QuoteRequests } from './pages/Admin/QuoteRequests'
+import { QuoteRequestDetail } from './pages/Admin/QuoteRequestDetail'
 import { Settings } from './pages/Admin/Settings'
 import { StoreSettings } from './pages/Admin/StoreSettings'
 import { PaymentSettings } from './pages/Admin/PaymentSettings'
@@ -140,6 +143,7 @@ function RouteTransition() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
           <Route path="/track-order" element={<TrackOrder />} />
+          <Route path="/request-a-quote" element={<RequestQuote />} />
           <Route path="/orders" element={<CustomerOrders />} />
           <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
           <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
@@ -152,6 +156,8 @@ function RouteTransition() {
           <Route path="/admin/analytics" element={<RequireAdmin><Analytics /></RequireAdmin>} />
           <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
           <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
+          <Route path="/admin/quote-requests" element={<RequireAdmin><QuoteRequests /></RequireAdmin>} />
+          <Route path="/admin/quote-requests/:reference" element={<RequireAdmin><QuoteRequestDetail /></RequireAdmin>} />
           <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />
           <Route path="/admin/products/new" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
           <Route path="/admin/products/:id" element={<RequireAdmin><ProductView /></RequireAdmin>} />

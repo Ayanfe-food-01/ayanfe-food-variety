@@ -603,6 +603,15 @@ export function ProductDetails() {
                          : 'All available in cart'}
                 </Button>
               </div>
+              <Link
+                className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-green/25 px-6 text-sm font-bold text-green transition-colors hover:bg-green hover:text-cream"
+                to={`/request-a-quote?product=${encodeURIComponent(product.id)}${hasOptions && selectedOption ? `&option=${encodeURIComponent(selectedOption.id)}` : ''}&qty=${Math.max(1, selectedQuantity)}`}
+              >
+                Request a quote{isWholesaleShopper ? ' for bulk pricing' : ''}
+              </Link>
+              <p className="mt-2 text-xs text-muted">
+                Need larger quantities or bulk pricing? Request a quote and we&rsquo;ll confirm details.
+              </p>
                <p className={`mt-4 text-sm font-semibold ${availableStock > 0 ? 'text-green-dark' : 'text-orange'}`} role="status" aria-live="polite">
                  {availableStock > 0
                    ? `${availableStock} ${availableStock === 1 ? 'unit' : 'units'} available`

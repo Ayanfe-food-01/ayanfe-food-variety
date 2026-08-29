@@ -8,6 +8,27 @@ let bodyScrollLockSnapshot: {
   paddingRight: string
 } | null = null
 
+// Programmatic scroll calls must not animate: the app sets a global smooth
+// scroll-behavior (for in-page anchors), which otherwise turns route changes
+// and drawer/menu scroll restoration into slow bottom-to-top animations.
+// Temporarily switching to "auto" makes the jump instant on every browser,
+// including older Safari that lacks the "instant" ScrollBehavior value.
+function withInstantScroll(run: () => void): void {
+  const root = document.documentElement
+  const previous = root.style.scrollBehavior
+  root.style.scrollBehavior = 'auto'
+  run()
+  root.style.scrollBehavior = previous
+}
+
+export function scrollToTopInstant(): void {
+  withInstantScroll(() => window.scrollTo(0, 0))
+}
+
+function restoreScrollInstant(scrollY: number): void {
+  withInstantScroll(() => window.scrollTo(0, scrollY))
+}
+
 export function createRequestKey(): string {
   const browserCrypto = globalThis.crypto
   if (typeof browserCrypto?.randomUUID === 'function') {
@@ -85,6 +106,6 @@ export function lockBodyScroll(): () => void {
     body.style.top = snapshot.top
     body.style.width = snapshot.width
     body.style.paddingRight = snapshot.paddingRight
-    window.scrollTo(0, snapshot.scrollY)
+    restoreScrollInstant(snapshot.scrollY)
   }
 }

@@ -42,12 +42,13 @@ import { BrandingHead } from './seo/BrandingHead'
 import { DEFAULT_LOGO_PATH } from './seo/config'
 import { useStoreSettings } from './hooks/useStoreSettings'
 import { WhatsAppFloatButton } from './components/layout/WhatsAppFloatButton'
+import { scrollToTopInstant } from './utils/browserCompatibility'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
 
   useEffect(() => {
-    window.scrollTo(0, 0)
+    scrollToTopInstant()
   }, [pathname, search])
 
   return null

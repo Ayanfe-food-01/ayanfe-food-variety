@@ -498,18 +498,19 @@
   padding: 10px 12px;
 }
 
-/* ---- Cart drawer (mini cart) ---- */
+/* ---- Cart modal (mini cart) ---- */
 .cart-drawer {
   position: fixed;
   inset: 0;
   z-index: 80;
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
   pointer-events: none;
 }
 
 .cart-drawer-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgb(20 33 22 / 45%);
   opacity: 0;
@@ -526,24 +527,28 @@
 }
 
 .cart-drawer-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(420px, 100%);
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 2rem);
+  max-height: calc(100vh - 2rem);
   display: flex;
   flex-direction: column;
   background: var(--color-cream);
-  box-shadow: -24px 0 48px rgb(20 33 22 / 18%);
-  transform: translateX(100%);
+  border: 1px solid var(--color-line);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgb(20 33 22 / 28%);
+  transform: translateY(16px);
+  opacity: 0;
   visibility: hidden;
-  transition: transform .32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear .32s;
-  will-change: transform;
+  transition: opacity .28s ease, transform .32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear .32s;
+  will-change: transform, opacity;
   pointer-events: auto;
 }
 
 .cart-drawer.is-open .cart-drawer-panel {
-  transform: translateX(0);
+  transform: translateY(0);
+  opacity: 1;
   visibility: visible;
   transition-delay: 0s;
 }
@@ -948,8 +953,8 @@
 
 @media (max-width: 767px) {
   .cart-drawer-panel {
-    width: calc(100% - 20px);
-    border-radius: 18px 0 0 18px;
+    max-height: calc(100dvh - 2rem);
+    max-height: calc(100vh - 2rem);
   }
   .whatsapp-float-button {
     right: 14px;

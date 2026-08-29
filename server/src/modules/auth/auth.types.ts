@@ -1,4 +1,4 @@
-import type { UserRole } from '@prisma/client'
+import type { ShoppingMode, UserRole } from '@prisma/client'
 
 export interface LoginInput {
   email: string
@@ -42,6 +42,7 @@ export interface AuthenticatedUser {
   email: string
   phone: string | null
   role: UserRole
+  shoppingMode: ShoppingMode
 }
 
 export interface AuthResponse {

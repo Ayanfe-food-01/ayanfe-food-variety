@@ -18,6 +18,7 @@ import {
   resetPassword,
   verifyCustomerEmail,
   readAuthCookie,
+  setCustomerShoppingMode,
 } from './auth.service.js'
 import {
   createGoogleOAuthState,
@@ -35,6 +36,7 @@ import {
   validateLoginInput,
   validatePasswordResetInput,
   validatePasswordResetRequestInput,
+  validateShoppingModeInput,
 } from './auth.validator.js'
 
 export const loginController: RequestHandler = async (request, response) => {
@@ -105,6 +107,14 @@ export const customerMeController: RequestHandler = async (request, response) =>
     response.status(401).json({ error: { message: 'Customer authentication is required.', statusCode: 401 } })
     return
   }
+  response.json({ success: true, data: { user } })
+}
+
+export const customerShoppingModeController: RequestHandler = async (request, response) => {
+  const user = await setCustomerShoppingMode(
+    request.authenticatedUser!.id,
+    validateShoppingModeInput(request.body),
+  )
   response.json({ success: true, data: { user } })
 }
 

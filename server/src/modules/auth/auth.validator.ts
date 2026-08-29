@@ -1,5 +1,6 @@
 import { HttpError } from '../../utils/http.js'
 import type { LoginInput } from './auth.types.js'
+import type { ShoppingMode } from '@prisma/client'
 import type {
   CustomerEmailVerificationInput,
   CustomerSignupInput,
@@ -63,6 +64,16 @@ export function validateCustomerVerificationEmailInput(body: unknown): CustomerV
     throw new HttpError(400, 'Enter a valid email address.')
   }
   return { email: body.email.trim().toLowerCase() }
+}
+
+export function validateShoppingModeInput(body: unknown): ShoppingMode {
+  if (!isRecord(body) || typeof body.mode !== 'string') {
+    throw new HttpError(400, 'A shopping mode is required.')
+  }
+  if (body.mode !== 'RETAIL' && body.mode !== 'WHOLESALE') {
+    throw new HttpError(400, 'Shopping mode must be RETAIL or WHOLESALE.')
+  }
+  return body.mode
 }
 
 export function validatePasswordResetRequestInput(body: unknown): PasswordResetRequestInput {

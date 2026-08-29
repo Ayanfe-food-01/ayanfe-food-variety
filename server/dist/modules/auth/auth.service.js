@@ -1,6 +1,6 @@
 import { promisify } from 'node:util';
 import { createHmac, randomBytes, randomInt, scrypt as nodeScrypt, timingSafeEqual, } from 'node:crypto';
-import { UserRole } from '@prisma/client';
+import { ShoppingMode, UserRole } from '@prisma/client';
 import { env } from '../../config/env.js';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
@@ -22,6 +22,7 @@ const toUser = (user) => ({
     email: user.email,
     phone: user.phone ?? null,
     role: user.role,
+    shoppingMode: user.shoppingMode ?? ShoppingMode.RETAIL,
 });
 export const authCookie = {
     name: SESSION_COOKIE_NAME,
@@ -487,6 +488,13 @@ export async function revokeCustomerSession(token) {
         where: { tokenHash: hashSessionToken(token), revokedAt: null },
         data: { revokedAt: new Date() },
     });
+}
+export async function setCustomerShoppingMode(userId, mode) {
+    const user = await prisma.user.update({
+        where: { id: userId },
+        data: { shoppingMode: mode },
+    });
+    return toUser(user);
 }
 async function findOrCreateGoogleCustomer(identity) {
     try {

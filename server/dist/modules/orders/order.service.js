@@ -145,17 +145,20 @@ export async function checkoutCustomerCart(userId, input) {
             const user = userId
                 ? await transaction.user.findUnique({
                     where: { id: userId },
-                    select: { id: true, email: true, role: true, emailVerified: true },
+                    select: { id: true, email: true, role: true, emailVerified: true, shoppingMode: true },
                 })
                 : null;
             if (userId && (!user || user.role !== 'CUSTOMER' || !user.emailVerified)) {
                 throw new HttpError(403, 'A verified customer account is required.');
             }
+            if (user && user.shoppingMode === 'WHOLESALE') {
+                throw new HttpError(403, 'Wholesale checkout is not available yet.');
+            }
             let cartId = null;
             let cartItems;
             if (user) {
                 const cartReference = await transaction.customerCart.findUnique({
-                    where: { userId: user.id },
+                    where: { userId_mode: { userId: user.id, mode: user.shoppingMode } },
                     select: { id: true },
                 });
                 if (!cartReference)

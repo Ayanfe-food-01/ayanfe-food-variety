@@ -218,18 +218,21 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     const user = userId
       ? await transaction.user.findUnique({
           where: { id: userId },
-          select: { id: true, email: true, role: true, emailVerified: true },
+          select: { id: true, email: true, role: true, emailVerified: true, shoppingMode: true },
         })
       : null
     if (userId && (!user || user.role !== 'CUSTOMER' || !user.emailVerified)) {
       throw new HttpError(403, 'A verified customer account is required.')
+    }
+    if (user && user.shoppingMode === 'WHOLESALE') {
+      throw new HttpError(403, 'Wholesale checkout is not available yet.')
     }
 
     let cartId: string | null = null
     let cartItems: Array<{ id?: string; productId: string; productOptionId?: string | null; quantity: number; createdAt: Date }>
     if (user) {
       const cartReference = await transaction.customerCart.findUnique({
-        where: { userId: user.id },
+        where: { userId_mode: { userId: user.id, mode: user.shoppingMode } },
         select: { id: true },
       })
       if (!cartReference) throw new HttpError(400, 'Your cart is empty.')

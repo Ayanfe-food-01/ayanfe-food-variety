@@ -8,6 +8,7 @@ import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete
 import { useWishlist } from '../../hooks/useWishlist'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { DEFAULT_LOGO_PATH } from '../../seo/config'
+import { ShoppingModeSwitch } from './ShoppingModeSwitch'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -130,6 +131,7 @@ export function Navbar() {
       <div className="desktop-nav container">
         {links.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
         <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+        <ShoppingModeSwitch className="desktop-shopping-mode" />
         {user && <button type="button" onClick={() => void logout()}>Log out</button>}
       </div>
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
@@ -150,6 +152,7 @@ export function Navbar() {
           placeholder="Search the store"
           ariaLabel="Search the store"
         />
+        <ShoppingModeSwitch className="mobile-shopping-mode" />
         <div className="mobile-links">
           {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
            <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>

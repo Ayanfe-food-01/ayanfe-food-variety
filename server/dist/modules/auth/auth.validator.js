@@ -52,6 +52,15 @@ export function validateCustomerVerificationEmailInput(body) {
     }
     return { email: body.email.trim().toLowerCase() };
 }
+export function validateShoppingModeInput(body) {
+    if (!isRecord(body) || typeof body.mode !== 'string') {
+        throw new HttpError(400, 'A shopping mode is required.');
+    }
+    if (body.mode !== 'RETAIL' && body.mode !== 'WHOLESALE') {
+        throw new HttpError(400, 'Shopping mode must be RETAIL or WHOLESALE.');
+    }
+    return body.mode;
+}
 export function validatePasswordResetRequestInput(body) {
     if (!isRecord(body))
         throw new HttpError(400, 'Email is required.');

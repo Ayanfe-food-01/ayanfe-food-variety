@@ -1,5 +1,26 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { env } from '../config/env.js';
+// Transient database failures caused by serverless cold-start latency, pool
+// saturation, and dropped/idle connections on the pooled endpoint. Requests
+// hitting these may or may not have taken effect, so only idempotently-guarded
+// writes may retry on them; the error middleware surfaces them to clients as
+// 503 "store temporarily busy" everywhere else.
+export const PRISMA_TRANSIENT_DB_CODES = new Set([
+    'P1001', // Can't reach database server
+    'P1002', // Connection timed out
+    'P1017', // Server closed the connection unexpectedly
+    'P2024', // Connection pool timed out
+    'P2028', // Transaction was rolled back under load
+]);
+export function isTransientDatabaseError(error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && PRISMA_TRANSIENT_DB_CODES.has(error.code)) {
+        return true;
+    }
+    // Connection-level failures (refused, pool/socket timeout) are thrown as
+    // classes Prisma does not export, so they are recognised by their stable
+    // class name instead of instanceof.
+    return error instanceof Error && error.constructor.name.startsWith('PrismaClientConnection');
+}
 // Neon's serverless Postgres can pause and take tens of seconds to warm up,
 // and its pooled endpoint can hold connections during cold multi-query work.
 // The engine defaults for waiting on the connection pool (10s) and socket
@@ -38,8 +59,29 @@ export const prisma = new PrismaClient({
         timeout: 90_000,
     },
 });
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Startup probe. Neon's pooled endpoint can cold-start or shed the first
+// connections, so a single transient failure would otherwise abort boot.
+// Bounded retries give the pool time to warm up before the app reports the
+// database as unreachable.
+const STARTUP_RETRIES = 5;
+const STARTUP_RETRY_DELAY_MS = 1500;
 export async function verifyDatabaseConnection() {
-    await prisma.$queryRaw `SELECT 1`;
+    let lastError;
+    for (let attempt = 1; attempt <= STARTUP_RETRIES; attempt += 1) {
+        try {
+            await prisma.$queryRaw `SELECT 1`;
+            return;
+        }
+        catch (error) {
+            lastError = error;
+            if (!isTransientDatabaseError(error) || attempt === STARTUP_RETRIES) {
+                throw error;
+            }
+            await sleep(STARTUP_RETRY_DELAY_MS * attempt);
+        }
+    }
+    throw lastError;
 }
 export async function closeDatabase() {
     await prisma.$disconnect();

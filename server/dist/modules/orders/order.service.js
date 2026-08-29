@@ -1,5 +1,5 @@
 import { AdminNotificationType, FulfillmentMethod, Prisma, OrderStatus, PaymentStatus, ShoppingMode } from '@prisma/client';
-import { prisma } from '../../lib/prisma.js';
+import { prisma, isTransientDatabaseError } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js';
 import { notifyOrderCreated, notifyOrderStatusChanged } from './order.email.js';
@@ -125,266 +125,284 @@ export async function checkoutCustomerCart(userId, input) {
     if (!userId && !input.guestAccessToken) {
         throw new HttpError(401, 'Guest checkout access is required.');
     }
-    let result;
+    let result = null;
+    // Checkout is the one write path that may safely retry a transient database
+    // error: the checkout key is unique and checked at the start of the
+    // transaction. If a previous attempt committed, the retry simply returns
+    // that existing order instead of creating a duplicate; if it rolled back,
+    // the retry runs cleanly. Only connection/load codes that vanish on a fresh
+    // attempt are retried, and only once.
+    const MAX_CHECKOUT_ATTEMPTS = 2;
     try {
-        result = await prisma.$transaction(async (transaction) => {
-            const existingOrder = await transaction.order.findUnique({
-                where: { checkoutKey: input.checkoutKey },
-                include: orderInclude,
-            });
-            if (existingOrder) {
-                const ownsExistingOrder = userId
-                    ? existingOrder.userId === userId
-                    : Boolean(input.guestAccessToken && existingOrder.guestAccessTokenHash === hashGuestOrderAccessToken(input.guestAccessToken));
-                if (!ownsExistingOrder) {
-                    throw new HttpError(409, 'This checkout request cannot be reused.');
-                }
-                if (existingOrder.fulfillmentMethod !== input.fulfillmentMethod) {
-                    throw new HttpError(409, 'This checkout request was already completed with a different fulfillment method.');
-                }
-                return { order: existingOrder, created: false };
-            }
-            const user = userId
-                ? await transaction.user.findUnique({
-                    where: { id: userId },
-                    select: { id: true, email: true, role: true, emailVerified: true, shoppingMode: true },
-                })
-                : null;
-            if (userId && (!user || user.role !== 'CUSTOMER' || !user.emailVerified)) {
-                throw new HttpError(403, 'A verified customer account is required.');
-            }
-            let cartId = null;
-            let cartItems;
-            if (user) {
-                const cartReference = await transaction.customerCart.findUnique({
-                    where: { userId_mode: { userId: user.id, mode: user.shoppingMode } },
-                    select: { id: true },
-                });
-                if (!cartReference)
-                    throw new HttpError(400, 'Your cart is empty.');
-                // Serialize checkout against cart changes and then read the cart again.
-                await transaction.$queryRaw(Prisma.sql `SELECT id FROM customer_carts WHERE id = ${cartReference.id}::uuid FOR UPDATE`);
-                const cart = await transaction.customerCart.findUnique({
-                    where: { id: cartReference.id },
-                    include: {
-                        items: {
-                            select: { id: true, productId: true, productOptionId: true, quantity: true, createdAt: true },
-                            orderBy: { createdAt: 'asc' },
-                        },
-                    },
-                });
-                if (!cart || cart.items.length === 0)
-                    throw new HttpError(400, 'Your cart is empty.');
-                cartId = cart.id;
-                cartItems = cart.items;
-            }
-            else {
-                cartItems = (input.cartItems ?? []).map((item, index) => ({
-                    productId: item.productId,
-                    productOptionId: item.productOptionId ?? null,
-                    quantity: item.quantity,
-                    createdAt: new Date(index),
-                }));
-                if (cartItems.length === 0)
-                    throw new HttpError(400, 'Your cart is empty.');
-            }
-            const paymentSettings = await transaction.paymentSettings.findUnique({
-                where: {
-                    singletonKey_paymentMethod: {
-                        singletonKey: 'default',
-                        paymentMethod: input.paymentMethod,
-                    },
-                },
-            });
-            if (!paymentSettings || !paymentSettings.isActive) {
-                throw new HttpError(400, 'The selected payment method is unavailable.');
-            }
-            const invalidQuantity = cartItems.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000);
-            if (invalidQuantity)
-                throw new HttpError(400, 'One or more cart quantities are invalid.');
-            // Cart prices and product metadata are never used as order authorities.
-            const products = await transaction.product.findMany({
-                where: { id: { in: cartItems.map((item) => item.productId) } },
-                select: {
-                    id: true,
-                    name: true,
-                    price: true,
-                    discountType: true,
-                    discountValue: true,
-                    deliveryFee: true,
-                    isActive: true,
-                    stockQuantity: true,
-                    category: { select: { isActive: true } },
-                },
-            });
-            const productsById = new Map(products.map((product) => [product.id, product]));
-            // The selected product option is resolved from the database at checkout so
-            // its price and stock are never taken from the browser or the cart.
-            const productOptionIds = cartItems.flatMap((item) => (item.productOptionId ? [item.productOptionId] : []));
-            const productOptions = productOptionIds.length > 0
-                ? await transaction.productOption.findMany({
-                    where: { id: { in: productOptionIds } },
-                    select: {
-                        id: true,
-                        productId: true,
-                        label: true,
-                        price: true,
-                        stockQuantity: true,
-                        isActive: true,
-                        wholesaleMoq: true,
-                        wholesalePriceTiers: { orderBy: { minQuantity: 'asc' } },
-                    },
-                })
-                : [];
-            const productOptionsById = new Map(productOptions.map((option) => [option.id, option]));
-            const unavailableMessages = cartItems.flatMap((item) => {
-                const product = productsById.get(item.productId);
-                if (!product)
-                    return [`Product ${item.productId} no longer exists.`];
-                if (!product.isActive || !product.category.isActive)
-                    return [`${product.name} is no longer available.`];
-                if (item.productOptionId) {
-                    const option = productOptionsById.get(item.productOptionId);
-                    if (!option)
-                        return [`${product.name}: the selected option no longer exists.`];
-                    if (option.productId !== product.id)
-                        return [`${product.name}: the selected option is invalid.`];
-                    if (!option.isActive)
-                        return [`${product.name} (${option.label}) is no longer available.`];
-                    if (option.stockQuantity < item.quantity) {
-                        return [`${product.name} (${option.label}): only ${option.stockQuantity} unit(s) currently available.`];
-                    }
-                }
-                else if (product.stockQuantity < item.quantity) {
-                    return [`${product.name}: only ${product.stockQuantity} unit(s) currently available.`];
-                }
-                return [];
-            });
-            if (unavailableMessages.length > 0) {
-                throw new HttpError(409, unavailableMessages.join(' '));
-            }
-            // An order's shopping mode is decided by the signed-in customer's mode and
-            // is never taken from the browser. Wholesale prices and minimums are
-            // re-validated against the database at order time.
-            const isWholesale = user?.shoppingMode === ShoppingMode.WHOLESALE;
-            if (isWholesale) {
-                for (const item of cartItems) {
-                    if (!item.productOptionId)
-                        continue;
-                    const option = productOptionsById.get(item.productOptionId);
-                    if (option)
-                        assertWholesaleOrderable(option, item.quantity);
-                }
-            }
-            const orderItems = cartItems.map((item) => {
-                const product = productsById.get(item.productId);
-                if (!product)
-                    throw new HttpError(409, 'One or more products are no longer available.');
-                const option = item.productOptionId ? productOptionsById.get(item.productOptionId) : null;
-                if (option && option.productId !== product.id) {
-                    throw new HttpError(409, 'One or more selected options are invalid.');
-                }
-                const unitPrice = option
-                    ? (isWholesale
-                        ? (wholesaleUnitPriceFromOption(option, item.quantity) ?? option.price)
-                        : option.price)
-                    : calculateDiscountedPrice(product.price, product.discountType, product.discountValue);
-                const subtotal = unitPrice.mul(item.quantity);
-                const deliveryFee = input.fulfillmentMethod === FulfillmentMethod.DELIVERY
-                    ? product.deliveryFee.mul(item.quantity)
-                    : new Prisma.Decimal(0);
-                return {
-                    productId: product.id,
-                    productName: product.name,
-                    productOptionId: option?.id ?? null,
-                    productOptionLabel: option?.label ?? null,
-                    unitPrice,
-                    quantity: item.quantity,
-                    subtotal,
-                    deliveryFee,
-                };
-            });
-            const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
-            const totalDeliveryFee = orderItems.reduce((total, item) => total.add(item.deliveryFee), new Prisma.Decimal(0));
-            const order = await transaction.order.create({
-                data: {
-                    checkoutKey: input.checkoutKey,
-                    orderNumber: await nextOrderNumber(transaction),
-                    guestAccessTokenHash: user ? null : hashGuestOrderAccessToken(input.guestAccessToken),
-                    userId: user?.id ?? null,
-                    customerName: input.customerName,
-                    phone: input.phone,
-                    email: user?.email ?? input.email,
-                    fulfillmentMethod: input.fulfillmentMethod,
-                    shoppingMode: isWholesale ? ShoppingMode.WHOLESALE : ShoppingMode.RETAIL,
-                    deliveryAddress: input.deliveryAddress ?? '',
-                    city: input.city ?? '',
-                    note: input.deliveryInstructions ?? null,
-                    subtotal,
-                    deliveryFee: totalDeliveryFee,
-                    total: subtotal.add(totalDeliveryFee),
-                    paymentMethod: input.paymentMethod,
-                    paymentStatus: PaymentStatus.PENDING,
-                    orderStatus: OrderStatus.ORDER_PLACED,
-                    orderItems: { create: orderItems },
-                    statusHistory: {
-                        create: {
-                            previousStatus: null,
-                            newStatus: OrderStatus.ORDER_PLACED,
-                            changedBy: user?.id ?? null,
-                        },
-                    },
-                    paymentSnapshot: {
-                        create: {
-                            paymentMethod: paymentSettings.paymentMethod,
-                            bankName: paymentSettings.bankName,
-                            accountName: paymentSettings.accountName,
-                            accountNumber: paymentSettings.accountNumber,
-                            instructions: paymentSettings.instructions,
-                        },
-                    },
-                },
-                include: orderInclude,
-            });
-            for (const item of [...cartItems].sort((left, right) => left.productId.localeCompare(right.productId))) {
-                const product = productsById.get(item.productId);
-                try {
-                    await deductStock(transaction, {
-                        productId: item.productId,
-                        productOptionId: item.productOptionId ?? null,
-                        quantity: item.quantity,
-                        orderId: order.id,
-                        orderNumber: order.orderNumber,
+        for (let attempt = 1; attempt <= MAX_CHECKOUT_ATTEMPTS; attempt += 1) {
+            try {
+                result = await prisma.$transaction(async (transaction) => {
+                    const existingOrder = await transaction.order.findUnique({
+                        where: { checkoutKey: input.checkoutKey },
+                        include: orderInclude,
                     });
-                }
-                catch (error) {
-                    if (error instanceof HttpError && (error.statusCode === 404 || error.statusCode === 409)) {
-                        throw new HttpError(error.statusCode, product ? `${product.name}: ${error.message}` : error.message);
+                    if (existingOrder) {
+                        const ownsExistingOrder = userId
+                            ? existingOrder.userId === userId
+                            : Boolean(input.guestAccessToken && existingOrder.guestAccessTokenHash === hashGuestOrderAccessToken(input.guestAccessToken));
+                        if (!ownsExistingOrder) {
+                            throw new HttpError(409, 'This checkout request cannot be reused.');
+                        }
+                        if (existingOrder.fulfillmentMethod !== input.fulfillmentMethod) {
+                            throw new HttpError(409, 'This checkout request was already completed with a different fulfillment method.');
+                        }
+                        return { order: existingOrder, created: false };
                     }
-                    throw error;
+                    const user = userId
+                        ? await transaction.user.findUnique({
+                            where: { id: userId },
+                            select: { id: true, email: true, role: true, emailVerified: true, shoppingMode: true },
+                        })
+                        : null;
+                    if (userId && (!user || user.role !== 'CUSTOMER' || !user.emailVerified)) {
+                        throw new HttpError(403, 'A verified customer account is required.');
+                    }
+                    let cartId = null;
+                    let cartItems;
+                    if (user) {
+                        const cartReference = await transaction.customerCart.findUnique({
+                            where: { userId_mode: { userId: user.id, mode: user.shoppingMode } },
+                            select: { id: true },
+                        });
+                        if (!cartReference)
+                            throw new HttpError(400, 'Your cart is empty.');
+                        // Serialize checkout against cart changes and then read the cart again.
+                        await transaction.$queryRaw(Prisma.sql `SELECT id FROM customer_carts WHERE id = ${cartReference.id}::uuid FOR UPDATE`);
+                        const cart = await transaction.customerCart.findUnique({
+                            where: { id: cartReference.id },
+                            include: {
+                                items: {
+                                    select: { id: true, productId: true, productOptionId: true, quantity: true, createdAt: true },
+                                    orderBy: { createdAt: 'asc' },
+                                },
+                            },
+                        });
+                        if (!cart || cart.items.length === 0)
+                            throw new HttpError(400, 'Your cart is empty.');
+                        cartId = cart.id;
+                        cartItems = cart.items;
+                    }
+                    else {
+                        cartItems = (input.cartItems ?? []).map((item, index) => ({
+                            productId: item.productId,
+                            productOptionId: item.productOptionId ?? null,
+                            quantity: item.quantity,
+                            createdAt: new Date(index),
+                        }));
+                        if (cartItems.length === 0)
+                            throw new HttpError(400, 'Your cart is empty.');
+                    }
+                    const paymentSettings = await transaction.paymentSettings.findUnique({
+                        where: {
+                            singletonKey_paymentMethod: {
+                                singletonKey: 'default',
+                                paymentMethod: input.paymentMethod,
+                            },
+                        },
+                    });
+                    if (!paymentSettings || !paymentSettings.isActive) {
+                        throw new HttpError(400, 'The selected payment method is unavailable.');
+                    }
+                    const invalidQuantity = cartItems.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000);
+                    if (invalidQuantity)
+                        throw new HttpError(400, 'One or more cart quantities are invalid.');
+                    // Cart prices and product metadata are never used as order authorities.
+                    const products = await transaction.product.findMany({
+                        where: { id: { in: cartItems.map((item) => item.productId) } },
+                        select: {
+                            id: true,
+                            name: true,
+                            price: true,
+                            discountType: true,
+                            discountValue: true,
+                            deliveryFee: true,
+                            isActive: true,
+                            stockQuantity: true,
+                            category: { select: { isActive: true } },
+                        },
+                    });
+                    const productsById = new Map(products.map((product) => [product.id, product]));
+                    // The selected product option is resolved from the database at checkout so
+                    // its price and stock are never taken from the browser or the cart.
+                    const productOptionIds = cartItems.flatMap((item) => (item.productOptionId ? [item.productOptionId] : []));
+                    const productOptions = productOptionIds.length > 0
+                        ? await transaction.productOption.findMany({
+                            where: { id: { in: productOptionIds } },
+                            select: {
+                                id: true,
+                                productId: true,
+                                label: true,
+                                price: true,
+                                stockQuantity: true,
+                                isActive: true,
+                                wholesaleMoq: true,
+                                wholesalePriceTiers: { orderBy: { minQuantity: 'asc' } },
+                            },
+                        })
+                        : [];
+                    const productOptionsById = new Map(productOptions.map((option) => [option.id, option]));
+                    const unavailableMessages = cartItems.flatMap((item) => {
+                        const product = productsById.get(item.productId);
+                        if (!product)
+                            return [`Product ${item.productId} no longer exists.`];
+                        if (!product.isActive || !product.category.isActive)
+                            return [`${product.name} is no longer available.`];
+                        if (item.productOptionId) {
+                            const option = productOptionsById.get(item.productOptionId);
+                            if (!option)
+                                return [`${product.name}: the selected option no longer exists.`];
+                            if (option.productId !== product.id)
+                                return [`${product.name}: the selected option is invalid.`];
+                            if (!option.isActive)
+                                return [`${product.name} (${option.label}) is no longer available.`];
+                            if (option.stockQuantity < item.quantity) {
+                                return [`${product.name} (${option.label}): only ${option.stockQuantity} unit(s) currently available.`];
+                            }
+                        }
+                        else if (product.stockQuantity < item.quantity) {
+                            return [`${product.name}: only ${product.stockQuantity} unit(s) currently available.`];
+                        }
+                        return [];
+                    });
+                    if (unavailableMessages.length > 0) {
+                        throw new HttpError(409, unavailableMessages.join(' '));
+                    }
+                    // An order's shopping mode is decided by the signed-in customer's mode and
+                    // is never taken from the browser. Wholesale prices and minimums are
+                    // re-validated against the database at order time.
+                    const isWholesale = user?.shoppingMode === ShoppingMode.WHOLESALE;
+                    if (isWholesale) {
+                        for (const item of cartItems) {
+                            if (!item.productOptionId)
+                                continue;
+                            const option = productOptionsById.get(item.productOptionId);
+                            if (option)
+                                assertWholesaleOrderable(option, item.quantity);
+                        }
+                    }
+                    const orderItems = cartItems.map((item) => {
+                        const product = productsById.get(item.productId);
+                        if (!product)
+                            throw new HttpError(409, 'One or more products are no longer available.');
+                        const option = item.productOptionId ? productOptionsById.get(item.productOptionId) : null;
+                        if (option && option.productId !== product.id) {
+                            throw new HttpError(409, 'One or more selected options are invalid.');
+                        }
+                        const unitPrice = option
+                            ? (isWholesale
+                                ? (wholesaleUnitPriceFromOption(option, item.quantity) ?? option.price)
+                                : option.price)
+                            : calculateDiscountedPrice(product.price, product.discountType, product.discountValue);
+                        const subtotal = unitPrice.mul(item.quantity);
+                        const deliveryFee = input.fulfillmentMethod === FulfillmentMethod.DELIVERY
+                            ? product.deliveryFee.mul(item.quantity)
+                            : new Prisma.Decimal(0);
+                        return {
+                            productId: product.id,
+                            productName: product.name,
+                            productOptionId: option?.id ?? null,
+                            productOptionLabel: option?.label ?? null,
+                            unitPrice,
+                            quantity: item.quantity,
+                            subtotal,
+                            deliveryFee,
+                        };
+                    });
+                    const subtotal = orderItems.reduce((total, item) => total.add(item.subtotal), new Prisma.Decimal(0));
+                    const totalDeliveryFee = orderItems.reduce((total, item) => total.add(item.deliveryFee), new Prisma.Decimal(0));
+                    const order = await transaction.order.create({
+                        data: {
+                            checkoutKey: input.checkoutKey,
+                            orderNumber: await nextOrderNumber(transaction),
+                            guestAccessTokenHash: user ? null : hashGuestOrderAccessToken(input.guestAccessToken),
+                            userId: user?.id ?? null,
+                            customerName: input.customerName,
+                            phone: input.phone,
+                            email: user?.email ?? input.email,
+                            fulfillmentMethod: input.fulfillmentMethod,
+                            shoppingMode: isWholesale ? ShoppingMode.WHOLESALE : ShoppingMode.RETAIL,
+                            deliveryAddress: input.deliveryAddress ?? '',
+                            city: input.city ?? '',
+                            note: input.deliveryInstructions ?? null,
+                            subtotal,
+                            deliveryFee: totalDeliveryFee,
+                            total: subtotal.add(totalDeliveryFee),
+                            paymentMethod: input.paymentMethod,
+                            paymentStatus: PaymentStatus.PENDING,
+                            orderStatus: OrderStatus.ORDER_PLACED,
+                            orderItems: { create: orderItems },
+                            statusHistory: {
+                                create: {
+                                    previousStatus: null,
+                                    newStatus: OrderStatus.ORDER_PLACED,
+                                    changedBy: user?.id ?? null,
+                                },
+                            },
+                            paymentSnapshot: {
+                                create: {
+                                    paymentMethod: paymentSettings.paymentMethod,
+                                    bankName: paymentSettings.bankName,
+                                    accountName: paymentSettings.accountName,
+                                    accountNumber: paymentSettings.accountNumber,
+                                    instructions: paymentSettings.instructions,
+                                },
+                            },
+                        },
+                        include: orderInclude,
+                    });
+                    for (const item of [...cartItems].sort((left, right) => left.productId.localeCompare(right.productId))) {
+                        const product = productsById.get(item.productId);
+                        try {
+                            await deductStock(transaction, {
+                                productId: item.productId,
+                                productOptionId: item.productOptionId ?? null,
+                                quantity: item.quantity,
+                                orderId: order.id,
+                                orderNumber: order.orderNumber,
+                            });
+                        }
+                        catch (error) {
+                            if (error instanceof HttpError && (error.statusCode === 404 || error.statusCode === 409)) {
+                                throw new HttpError(error.statusCode, product ? `${product.name}: ${error.message}` : error.message);
+                            }
+                            throw error;
+                        }
+                    }
+                    await transaction.order.update({
+                        where: { id: order.id },
+                        data: { stockDeductedAt: new Date() },
+                    });
+                    if (cartId) {
+                        await transaction.customerCartItem.deleteMany({
+                            where: {
+                                id: { in: cartItems.flatMap((item) => item.id ? [item.id] : []) },
+                                cartId,
+                            },
+                        });
+                    }
+                    await createAdminNotification(transaction, {
+                        type: AdminNotificationType.NEW_ORDER,
+                        eventKey: `new-order:${order.id}`,
+                        title: 'New order placed',
+                        message: `${order.customerName} placed order ${order.orderNumber}.`,
+                        href: `/admin/orders/${order.orderNumber}`,
+                    });
+                    return { order, created: true };
+                }, { timeout: 60000 });
+                break;
+            }
+            catch (retryError) {
+                if (attempt >= MAX_CHECKOUT_ATTEMPTS || !isTransientDatabaseError(retryError)) {
+                    throw retryError;
                 }
+                await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
             }
-            await transaction.order.update({
-                where: { id: order.id },
-                data: { stockDeductedAt: new Date() },
-            });
-            if (cartId) {
-                await transaction.customerCartItem.deleteMany({
-                    where: {
-                        id: { in: cartItems.flatMap((item) => item.id ? [item.id] : []) },
-                        cartId,
-                    },
-                });
-            }
-            await createAdminNotification(transaction, {
-                type: AdminNotificationType.NEW_ORDER,
-                eventKey: `new-order:${order.id}`,
-                title: 'New order placed',
-                message: `${order.customerName} placed order ${order.orderNumber}.`,
-                href: `/admin/orders/${order.orderNumber}`,
-            });
-            return { order, created: true };
-        }, { timeout: 60000 });
+        }
     }
     catch (error) {
         const isCheckoutKeyConflict = error instanceof Prisma.PrismaClientKnownRequestError
@@ -403,6 +421,9 @@ export async function checkoutCustomerCart(userId, input) {
             throw new HttpError(409, 'This checkout request cannot be reused.');
         }
         return toOrderResponse(existingOrder);
+    }
+    if (!result) {
+        throw new Error('Checkout did not produce an order.');
     }
     if (result.created) {
         void notifyOrderCreated({

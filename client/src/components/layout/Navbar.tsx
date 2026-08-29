@@ -9,6 +9,8 @@ import { useWishlist } from '../../hooks/useWishlist'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { DEFAULT_LOGO_PATH } from '../../seo/config'
 import { ShoppingModeSwitch } from './ShoppingModeSwitch'
+import { CartDrawer } from '../cart/CartDrawer'
+import { useMarketUi } from '../../hooks/useMarketUi'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -23,6 +25,7 @@ const links = [
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const { isCartDrawerOpen, openCartDrawer, closeCartDrawer } = useMarketUi()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const closeMenuButtonRef = useRef<HTMLButtonElement>(null)
@@ -123,9 +126,16 @@ export function Navbar() {
           <Link className="account-link" to={user ? '/orders' : '/login'} aria-label={user ? 'Open your orders' : 'Sign in'}>
             <UserIcon size={22} /><span className="desktop-only">{user ? 'Account' : 'Sign in'}</span>
           </Link>
-          <Link className="cart-link" to="/cart" aria-label={`Cart with ${totalQuantity} items`}>
+          <button
+            className="cart-link"
+            type="button"
+            aria-label={`Open cart with ${totalQuantity} items`}
+            aria-haspopup="dialog"
+            aria-expanded={isCartDrawerOpen}
+            onClick={openCartDrawer}
+          >
             <CartIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
-          </Link>
+          </button>
         </div>
       </nav>
       <div className="desktop-nav container">
@@ -159,6 +169,7 @@ export function Navbar() {
         </div>
         {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <Link className="logout-link" to="/login" onClick={() => setIsMenuOpen(false)}>Sign in</Link>}
       </aside>
+      <CartDrawer open={isCartDrawerOpen} onClose={closeCartDrawer} />
     </header>
   )
 }

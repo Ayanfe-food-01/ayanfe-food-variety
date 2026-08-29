@@ -7,6 +7,7 @@ import { CartProvider } from './context/CartContext'
 import { CustomerAuthProvider } from './context/CustomerAuthContext'
 import { WishlistProvider } from './context/WishlistContext'
 import { ToastProvider } from './components/ui/Toast'
+import { MarketUiProvider } from './context/MarketUiContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root')!).render(
         <WishlistProvider>
           <ToastProvider>
             <CartProvider>
-              <App />
+              <MarketUiProvider>
+                <App />
+              </MarketUiProvider>
             </CartProvider>
           </ToastProvider>
         </WishlistProvider>

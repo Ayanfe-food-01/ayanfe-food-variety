@@ -41,6 +41,7 @@ import { Seo } from './seo/Seo'
 import { BrandingHead } from './seo/BrandingHead'
 import { DEFAULT_LOGO_PATH } from './seo/config'
 import { useStoreSettings } from './hooks/useStoreSettings'
+import { WhatsAppFloatButton } from './components/layout/WhatsAppFloatButton'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -216,6 +217,9 @@ function PrivateRouteSeo() {
 }
 
 function App() {
+  const location = useLocation()
+  const isAdminRoute = location.pathname.startsWith('/admin')
+
   return (
     <>
       <BrandingHead />
@@ -223,6 +227,7 @@ function App() {
       <RouteToastBridge />
       <PrivateRouteSeo />
       <RouteTransition />
+      {!isAdminRoute && <WhatsAppFloatButton />}
     </>
   )
 }

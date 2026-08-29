@@ -6,6 +6,7 @@ import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { ProductPrice } from '../components/products/ProductPrice'
 import { ProductOptionSelector } from '../components/products/ProductOptionSelector'
+import { WholesalePricing } from '../components/products/WholesalePricing'
 import { WishlistButton } from '../components/products/WishlistButton'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { Button } from '../components/ui/Button'
@@ -14,8 +15,13 @@ import { useCart } from '../hooks/useCart'
 import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
-import { getProduct, getProducts } from '../services/productService'
-import type { Product } from '../types/product'
+import {
+  getProduct,
+  getProductWholesalePricing,
+  getProducts,
+  getWholesaleUnitPrice,
+} from '../services/productService'
+import type { Product, WholesaleOptionPricing } from '../types/product'
 import { Seo } from '../seo/Seo'
 import { optimizedImageUrl } from '../utils/optimizedImageUrl'
 import {
@@ -40,8 +46,14 @@ export function ProductDetails() {
   const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(new Set())
   const touchStartX = useRef<number | null>(null)
   const { addToCart, items, pendingItemIds } = useCart()
-  const { user, openAuth } = useCustomerAuth()
+  const { user, openAuth, shoppingMode } = useCustomerAuth()
   const { showToast } = useToast()
+  const isWholesaleShopper = user?.role === 'CUSTOMER' && shoppingMode === 'WHOLESALE'
+  const [wholesalePricingOptions, setWholesalePricingOptions] = useState<WholesaleOptionPricing[]>([])
+  const [wholesalePricingStatus, setWholesalePricingStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [wholesaleUnitPrice, setWholesaleUnitPrice] = useState<number | null>(null)
+  const [wholesaleLookupLoading, setWholesaleLookupLoading] = useState(false)
+  const [wholesaleLookupError, setWholesaleLookupError] = useState<string | null>(null)
 
   const loadProduct = useCallback(async () => {
     await Promise.resolve()
@@ -122,6 +134,36 @@ export function ProductDetails() {
     return () => window.clearTimeout(timeoutId)
   }, [loadProduct])
 
+  useEffect(() => {
+    if (!isWholesaleShopper || !product) {
+      setWholesalePricingOptions([])
+      setWholesalePricingStatus('idle')
+      setWholesaleUnitPrice(null)
+      setWholesaleLookupError(null)
+      setWholesaleLookupLoading(false)
+      return
+    }
+    let cancelled = false
+    const controller = new AbortController()
+    setWholesalePricingStatus('loading')
+    setWholesaleUnitPrice(null)
+    setWholesaleLookupError(null)
+    getProductWholesalePricing(product.id, controller.signal)
+      .then((pricing) => {
+        if (cancelled) return
+        setWholesalePricingOptions(pricing.options)
+        setWholesalePricingStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setWholesalePricingStatus('error')
+      })
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [isWholesaleShopper, product?.id])
+
   const currentCartQuantity = product
     ? items.find((item) => item.id === product.id)?.quantity ?? 0
     : 0
@@ -139,12 +181,59 @@ export function ProductDetails() {
     ? availableStock
     : Math.max(0, availableStock - currentCartQuantity)
   const maxSelectableQuantity = Math.max(1, remainingStockForCart)
-  const selectedQuantity = Math.min(quantity, maxSelectableQuantity)
+  const selectedOptionWholesale = hasOptions
+    ? (wholesalePricingOptions.find((option) => option.optionId === selectedOptionId) ?? null)
+    : null
+  const isOptionWholesaleConfigured = selectedOptionWholesale !== null
+  const quantityFloor = isWholesaleShopper && isOptionWholesaleConfigured
+    ? Math.max(1, Math.min(selectedOptionWholesale.moq ?? 1, maxSelectableQuantity))
+    : 1
+  const selectedQuantity = Math.max(quantityFloor, Math.min(quantity, maxSelectableQuantity))
   const canAddToCart = Boolean(
     product?.isAvailable
     && (!hasOptions || selectedOption !== null)
     && remainingStockForCart > 0,
   )
+
+  useEffect(() => {
+    setQuantity((current) => Math.max(current, quantityFloor))
+  }, [quantityFloor])
+
+  useEffect(() => {
+    if (!isWholesaleShopper || !product || !selectedOption || !selectedOptionWholesale) {
+      setWholesaleUnitPrice(null)
+      setWholesaleLookupError(null)
+      setWholesaleLookupLoading(false)
+      return
+    }
+    let cancelled = false
+    setWholesaleLookupLoading(true)
+    setWholesaleLookupError(null)
+    getWholesaleUnitPrice(product.id, selectedOption.id, selectedQuantity)
+      .then((result) => {
+        if (!cancelled) setWholesaleUnitPrice(result.unitPrice)
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        setWholesaleUnitPrice(null)
+        setWholesaleLookupError(
+          error instanceof Error ? error.message : 'Wholesale pricing could not be calculated right now.',
+        )
+      })
+      .finally(() => {
+        if (!cancelled) setWholesaleLookupLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    isWholesaleShopper,
+    product?.id,
+    selectedOption?.id,
+    selectedQuantity,
+    isOptionWholesaleConfigured,
+    selectedOptionWholesale?.moq,
+  ])
 
   const retryProduct = () => {
     setIsLoading(true)
@@ -419,15 +508,44 @@ export function ProductDetails() {
                 <WishlistButton product={product} />
               </div>
               <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
-                <ProductPrice
-                  className="text-2xl font-bold text-green-dark"
-                  originalPrice={selectedOption ? selectedOption.price : product.price}
-                  discountedPrice={selectedOption ? selectedOption.price : product.discountedPrice}
-                  discountedClassName="text-green-dark"
-                  originalClassName="ml-2 text-base font-normal text-muted"
-                />
-                <span className="text-sm text-muted">per {selectedOption ? selectedOption.label : product.unit}</span>
+                {isWholesaleShopper && isOptionWholesaleConfigured ? (
+                  <WholesalePricing
+                    optionLabel={selectedOption ? selectedOption.label : product.unit}
+                    moq={selectedOptionWholesale?.moq ?? null}
+                    tiers={selectedOptionWholesale?.tiers ?? []}
+                    quantity={selectedQuantity}
+                    unitPrice={wholesaleUnitPrice}
+                    isCalculating={wholesaleLookupLoading}
+                    error={wholesaleLookupError}
+                  />
+                ) : (
+                  <>
+                    <ProductPrice
+                      className="text-2xl font-bold text-green-dark"
+                      originalPrice={selectedOption ? selectedOption.price : product.price}
+                      discountedPrice={selectedOption ? selectedOption.price : product.discountedPrice}
+                      discountedClassName="text-green-dark"
+                      originalClassName="ml-2 text-base font-normal text-muted"
+                    />
+                    <span className="text-sm text-muted">per {selectedOption ? selectedOption.label : product.unit}</span>
+                  </>
+                )}
               </div>
+              {isWholesaleShopper
+                && wholesalePricingStatus === 'ready'
+                && !hasOptions && (
+                  <p className="wholesale-note" role="status">
+                    Wholesale pricing is not available for this product yet.
+                  </p>
+                )}
+              {isWholesaleShopper
+                && wholesalePricingStatus === 'ready'
+                && hasOptions
+                && !isOptionWholesaleConfigured && (
+                  <p className="wholesale-note" role="status">
+                    Wholesale pricing is not available for this size yet.
+                  </p>
+                )}
               <p className="mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">
                 {product.description}
               </p>
@@ -447,15 +565,17 @@ export function ProductDetails() {
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-green-dark" htmlFor="quantity">
-                    Quantity
+                    Quantity{isOptionWholesaleConfigured && selectedOptionWholesale?.moq
+                      ? ` · MOQ ${selectedOptionWholesale.moq} units`
+                      : ''}
                   </label>
                   <div className="flex h-12 items-center rounded-xl border border-line bg-white">
                     <button
                       className="grid size-11 place-items-center text-xl text-muted transition-colors hover:text-green disabled:cursor-not-allowed disabled:opacity-40"
                       type="button"
                       aria-label="Decrease quantity"
-                      disabled={selectedQuantity === 1 || !canAddToCart}
-                      onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                      disabled={selectedQuantity === quantityFloor || !canAddToCart}
+                      onClick={() => setQuantity((current) => Math.max(quantityFloor, current - 1))}
                     >
                       −
                     </button>

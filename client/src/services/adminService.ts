@@ -429,6 +429,13 @@ interface AdminProductOptionApiResponse {
   stockQuantity: number
   sortOrder: number
   isActive: boolean
+  wholesaleMoq: number | null
+  wholesalePrices: Array<{
+    id: string
+    minQuantity: number
+    maxQuantity: number | null
+    price: string
+  }>
 }
 
 interface AdminProductApiResponse {
@@ -453,6 +460,7 @@ interface AdminProductApiResponse {
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
   options?: AdminProductOptionApiResponse[]
+  archivedOptions?: AdminProductOptionApiResponse[]
   createdAt: string
   updatedAt: string
 }
@@ -462,6 +470,15 @@ export interface ProductOptionDraft {
   label: string
   price: string
   stockQuantity: string
+  wholesaleMoq?: string
+  wholesalePrices?: WholesaleTierDraft[]
+}
+
+export interface WholesaleTierDraft {
+  id?: string
+  minQuantity: string
+  maxQuantity: string
+  price: string
 }
 
 export const isFilledProductOption = (option: ProductOptionDraft): boolean =>
@@ -519,10 +536,33 @@ const formDataFor = (input: ProductFormInput): FormData => {
     price: option.price.trim(),
     stockQuantity: option.stockQuantity.trim() === '' ? 0 : Number(option.stockQuantity),
     sortOrder,
+    wholesaleMoq: option.wholesaleMoq !== undefined && option.wholesaleMoq.trim() !== '' ? Number(option.wholesaleMoq) : null,
+    wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
+      ...(tier.id ? { id: tier.id } : {}),
+      minQuantity: tier.minQuantity.trim() === '' ? null : Number(tier.minQuantity),
+      maxQuantity: tier.maxQuantity.trim() === '' ? null : Number(tier.maxQuantity),
+      price: tier.price.trim(),
+    })),
   }))))
   input.images.forEach((image) => formData.append('images', image))
   return formData
 }
+
+const toProductOption = (option: AdminProductOptionApiResponse): ProductOption => ({
+  id: option.id,
+  label: option.label,
+  price: Number(option.price),
+  stockQuantity: option.stockQuantity,
+  sortOrder: option.sortOrder,
+  isActive: option.isActive,
+  wholesaleMoq: option.wholesaleMoq ?? null,
+  wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
+    id: tier.id,
+    minQuantity: tier.minQuantity,
+    maxQuantity: tier.maxQuantity,
+    price: Number(tier.price),
+  })),
+})
 
 const toProduct = (product: AdminProductApiResponse): Product => ({
   id: product.id,
@@ -548,14 +588,8 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   availabilityStatus: product.availabilityStatus,
   isAvailable: product.isAvailable,
     isWishlisted: false,
-  options: (product.options ?? []).map((option): ProductOption => ({
-    id: option.id,
-    label: option.label,
-    price: Number(option.price),
-    stockQuantity: option.stockQuantity,
-    sortOrder: option.sortOrder,
-    isActive: option.isActive,
-  })),
+  options: (product.options ?? []).map(toProductOption),
+  archivedOptions: (product.archivedOptions ?? []).map(toProductOption),
   createdAt: product.createdAt,
   updatedAt: product.updatedAt,
 })

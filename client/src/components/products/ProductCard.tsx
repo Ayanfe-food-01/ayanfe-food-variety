@@ -4,9 +4,11 @@ import { ProductPrice } from './ProductPrice'
 import { WishlistButton } from './WishlistButton'
 import type { Product } from '../../types/product'
 import { useCart } from '../../hooks/useCart'
+import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { cartItemLineKey } from '../../context/cartContext'
 import { CartIcon } from '../../assets/icons'
 import { useToast } from '../ui/Toast'
+import { formatPrice } from '../../utils/formatPrice'
 import { optimizedImageUrl } from '../../utils/optimizedImageUrl'
 
 interface ProductCardProps {
@@ -16,8 +18,11 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [imageError, setImageError] = useState(false)
   const { addToCart, pendingItemIds } = useCart()
+  const { user, shoppingMode } = useCustomerAuth()
   const { showToast } = useToast()
   const isAdding = pendingItemIds.includes(cartItemLineKey(product.id, null))
+  const isWholesaleShopper = user?.role === 'CUSTOMER' && shoppingMode === 'WHOLESALE'
+  const wholesaleFrom = isWholesaleShopper ? product.wholesaleFrom : null
 
   const handleAddToCart = async () => {
     try {
@@ -36,14 +41,21 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
         <div className="product-card-body">
           <span className="product-name">{product.name}</span>
-          <strong className="product-price">
-            <ProductPrice
-              originalPrice={product.price}
-              discountedPrice={product.discountedPrice}
-              discountedClassName="text-green-dark"
-              originalClassName="ml-1 text-sm font-normal text-muted"
-            />
-          </strong>
+          {wholesaleFrom !== null && wholesaleFrom !== undefined ? (
+            <strong className="product-price product-price-wholesale">
+              <span className="wholesale-price-label">Wholesale from</span>
+              <span className="wholesale-price-value">{formatPrice(wholesaleFrom)}</span>
+            </strong>
+          ) : (
+            <strong className="product-price">
+              <ProductPrice
+                originalPrice={product.price}
+                discountedPrice={product.discountedPrice}
+                discountedClassName="text-green-dark"
+                originalClassName="ml-1 text-sm font-normal text-muted"
+              />
+            </strong>
+          )}
         </div>
       </Link>
       <WishlistButton product={product} className="product-card-wishlist" />

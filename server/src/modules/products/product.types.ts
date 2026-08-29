@@ -7,6 +7,15 @@ export interface ProductOption {
   stockQuantity: number
   sortOrder: number
   isActive: boolean
+  wholesaleMoq?: number | null
+  wholesalePrices?: WholesaleTierInput[]
+}
+
+export interface WholesaleTierInput {
+  id?: string
+  minQuantity: number
+  maxQuantity: number | null
+  price: string
 }
 
 export interface ProductOptionInput {
@@ -16,6 +25,8 @@ export interface ProductOptionInput {
   stockQuantity: number
   sortOrder: number
   isActive?: boolean
+  wholesaleMoq?: number | null
+  wholesalePrices?: WholesaleTierInput[]
 }
 
 export interface Product {
@@ -42,6 +53,7 @@ export interface Product {
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
   isWishlisted: boolean
+  wholesaleFrom?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -100,4 +112,38 @@ export interface ProductInput {
   image?: string
   images?: string[]
   options?: ProductOptionInput[]
+}
+
+export interface WholesalePricingTier {
+  minQuantity: number
+  maxQuantity: number | null
+  price: string
+}
+
+export interface WholesaleOptionPricing {
+  optionId: string
+  label: string
+  moq: number | null
+  tiers: WholesalePricingTier[]
+}
+
+export interface ProductWholesalePricing {
+  productId: string
+  options: WholesaleOptionPricing[]
+}
+
+export interface WholesalePriceLookupInput {
+  productId: string
+  productOptionId: string
+  quantity: number
+}
+
+export interface WholesalePriceLookupResult {
+  productId: string
+  productOptionId: string
+  optionLabel: string
+  quantity: number
+  moq: number | null
+  unitPrice: string
+  tier: WholesalePricingTier
 }

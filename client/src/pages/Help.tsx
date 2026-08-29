@@ -1,14 +1,16 @@
-import type { ComponentType } from 'react'
+import { useMemo, useState, type ComponentType, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   ArrowUpRight,
   CartIcon,
   ClipboardListIcon,
+  CloseIcon,
   CreditCardIcon,
   HelpIcon,
   LayersIcon,
   MailIcon,
   PhoneIcon,
   RefreshCwIcon,
+  SearchIcon,
   TruckIcon,
   UserIcon,
 } from '../assets/icons'
@@ -218,7 +220,8 @@ const helpCategories: HelpCategory[] = [
         answer: (
           <p>
             Yes. Wholesale is available to signed-in customers and does not require any approval. If you choose
-            Wholesale while signed out, you will be asked to sign in or create a free account first.
+            Wholesale while signed out, you will be asked to{' '}
+            <Link to="/login">sign in or create a free account</Link> first.
           </p>
         ),
       },
@@ -335,8 +338,8 @@ const helpCategories: HelpCategory[] = [
         question: 'How do I create an account?',
         answer: (
           <p>
-            Open the sign-in page and tap “Don’t have an account? Sign up”. Enter your name, email address, and a
-            password with at least 6 characters, then verify your email using the link we send you.
+            Open the <Link to="/login">sign-in page</Link> and tap “Don’t have an account? Sign up”. Enter your name,
+            email address, and a password with at least 6 characters, then verify your email using the link we send you.
           </p>
         ),
       },
@@ -344,8 +347,8 @@ const helpCategories: HelpCategory[] = [
         question: 'How do I sign in?',
         answer: (
           <p>
-            On the sign-in page, choose “Continue with Email” and enter your email and password — or choose “Continue
-            with Google” to sign in with your Google account.
+            On the <Link to="/login">sign-in page</Link>, choose “Continue with Email” and enter your email and password
+            — or choose “Continue with Google” to sign in with your Google account.
           </p>
         ),
       },
@@ -353,7 +356,7 @@ const helpCategories: HelpCategory[] = [
         question: 'What if I forgot my password?',
         answer: (
           <p>
-            Tap “Forgot Password?” on the sign-in form and follow the reset link we email you.
+            Tap “Forgot Password?” on the <Link to="/login">sign-in form</Link> and follow the reset link we email you.
           </p>
         ),
       },
@@ -405,12 +408,123 @@ const quickLinks = [
   { label: 'Sign in', href: '/login' },
 ]
 
+const nodeToText = (node: ReactNode): string => {
+  if (node === null || node === undefined || typeof node === 'boolean') return ''
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(nodeToText).join(' ')
+  if (typeof node === 'object' && 'props' in node) {
+    const children = (node as { props: { children?: ReactNode } }).props?.children
+    return nodeToText(children)
+  }
+  return ''
+}
+
+interface SearchIndexCategory {
+  id: string
+  title: string
+  faqs: { question: string; searchText: string }[]
+}
+
+const faqSearchIndex: SearchIndexCategory[] = helpCategories.map((category) => ({
+  id: category.id,
+  title: category.title,
+  faqs: category.faqs.map((faq) => ({
+    question: faq.question,
+    searchText: `${faq.question} ${nodeToText(faq.answer)} ${category.title}`.toLocaleLowerCase('en'),
+  })),
+}))
+
+const searchTokens = (value: string): string[] =>
+  value.toLocaleLowerCase('en').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
+
+interface SearchHit {
+  categoryId: string
+  faq: FaqItem
+  score: number
+}
+
+interface SearchResult {
+  tokens: string[]
+  categories: HelpCategory[] | null
+  total: number
+}
+
+const searchFaqs = (query: string): SearchResult => {
+  const tokens = searchTokens(query)
+  if (tokens.length === 0) return { tokens, categories: null, total: 0 }
+
+  const hits: SearchHit[] = []
+  helpCategories.forEach((category, categoryIndex) => {
+    const indexCategory = faqSearchIndex[categoryIndex]
+    category.faqs.forEach((faq, faqIndex) => {
+      const searchText = indexCategory?.faqs[faqIndex]?.searchText ?? ''
+      const score = tokens.reduce((total, token) => (searchText.includes(token) ? total + 1 : total), 0)
+      if (score > 0) hits.push({ categoryId: category.id, faq, score })
+    })
+  })
+
+  hits.sort((a, b) => b.score - a.score)
+
+  const categories = helpCategories
+    .map((category) => ({
+      ...category,
+      faqs: hits.filter((hit) => hit.categoryId === category.id).map((hit) => hit.faq),
+    }))
+    .filter((category) => category.faqs.length > 0)
+
+  return { tokens, categories: categories.length > 0 ? categories : null, total: hits.length }
+}
+
 export function Help() {
   const { settings } = useStoreSettings()
   const phone = settings?.businessPhone?.trim()
   const email = settings?.businessEmail?.trim()
   const whatsapp = settings?.whatsappNumber?.trim()
   const whatsappHref = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '').replace(/^0/, '234')}` : undefined
+
+  const [query, setQuery] = useState('')
+  const { tokens, categories: searchCategories, total } = useMemo(() => searchFaqs(query), [query])
+  const isSearching = tokens.length > 0
+
+  const clearSearch = () => setQuery('')
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+  }
+
+  const handleCategoryJump = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    const section = document.getElementById(id)
+    if (!section) return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    section.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+    const heading = section.querySelector<HTMLElement>('h2')
+    heading?.setAttribute('tabindex', '-1')
+    heading?.focus({ preventScroll: true })
+  }
+
+  const renderCategorySections = (categories: HelpCategory[]) => (
+    <div className="mt-16 grid gap-14 lg:grid-cols-2 lg:gap-x-12 lg:gap-y-16">
+      {categories.map(({ icon: Icon, id, title, intro, faqs }) => (
+        <section className="faq-section" id={id} key={id} aria-labelledby={`${id}-heading`}>
+          <div className="flex items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-green/10 text-green" aria-hidden="true">
+              <Icon size={19} />
+            </span>
+            <div>
+              <p className="m-0 text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Help topic</p>
+              <h2 id={`${id}-heading`} className="m-0 text-2xl font-bold leading-tight tracking-[-0.03em] text-green-dark sm:text-[1.7rem]">
+                {title}
+              </h2>
+            </div>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-muted">{intro}</p>
+          <FaqAccordion className="mt-6" idPrefix={id} items={faqs} key={`${id}-${query}`} />
+        </section>
+      ))}
+    </div>
+  )
 
   return (
     <>
@@ -442,69 +556,134 @@ export function Help() {
         </section>
 
         <section className="container py-14 sm:py-18 lg:py-24" aria-labelledby="help-topics-heading">
-          <div className="max-w-2xl">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-orange">Browse help topics</p>
+          <div className="mx-auto max-w-2xl">
+            <form className="help-search" role="search" onSubmit={handleSearchSubmit}>
+              <label className="sr-only" htmlFor="help-search-input">
+                Search help questions and answers
+              </label>
+              <div className="help-search-box">
+                <SearchIcon className="help-search-icon" size={20} strokeWidth={2} />
+                <input
+                  className="help-search-input"
+                  id="help-search-input"
+                  type="search"
+                  placeholder="Search for help…"
+                  autoComplete="off"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  aria-controls="help-search-results"
+                />
+                {query.length > 0 && (
+                  <button className="help-search-clear" type="button" onClick={clearSearch} aria-label="Clear search">
+                    <CloseIcon size={14} strokeWidth={2.5} /> Clear
+                  </button>
+                )}
+              </div>
+            </form>
+            {isSearching && (
+              <p className="help-search-meta" role="status" aria-live="polite">
+                {total === 0
+                  ? `No results found for “${query.trim()}”.`
+                  : `We found ${total} ${total === 1 ? 'result' : 'results'} for “${query.trim()}”.`}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-12 max-w-2xl">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-orange">
+              {isSearching ? 'Search results' : 'Browse help topics'}
+            </p>
             <h2 id="help-topics-heading" className="m-0 text-3xl font-bold leading-tight tracking-[-0.04em] text-green-dark sm:text-4xl">
-              What do you need help with?
+              {isSearching ? `Results for “${query.trim()}”` : 'What do you need help with?'}
             </h2>
             <p className="mt-4 text-base leading-7 text-muted">
-              Choose a topic to jump to its questions and answers.
+              {isSearching
+                ? 'These questions and answers match the words you searched for.'
+                : 'Choose a topic to jump to its questions and answers.'}
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-            {helpCategories.map(({ icon: Icon, id, title }) => (
-              <a
-                className="help-category-anchor rounded-2xl border border-line bg-white p-6 transition-colors hover:border-green/40"
-                href={`#${id}`}
-                key={id}
-              >
-                <span className="grid size-12 place-items-center rounded-2xl bg-green/10 text-green" aria-hidden="true">
-                  <Icon size={22} />
-                </span>
-                <span className="mt-5 block text-lg font-bold text-green-dark">{title}</span>
-                <span className="mt-2 flex items-center gap-1.5 text-sm font-bold text-green">
-                  View answers <ArrowUpRight size={15} />
-                </span>
-              </a>
-            ))}
-          </div>
-
-          <div className="mt-16 grid gap-14 lg:grid-cols-2 lg:gap-x-12 lg:gap-y-16">
-            {helpCategories.map(({ icon: Icon, id, title, intro, faqs }) => (
-              <section className="faq-section" id={id} key={id} aria-labelledby={`${id}-heading`}>
-                <div className="flex items-center gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-green/10 text-green" aria-hidden="true">
-                    <Icon size={19} />
-                  </span>
-                  <div>
-                    <p className="m-0 text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Help topic</p>
-                    <h2 id={`${id}-heading`} className="m-0 text-2xl font-bold leading-tight tracking-[-0.03em] text-green-dark sm:text-[1.7rem]">
-                      {title}
-                    </h2>
+          <div id="help-search-results">
+            {isSearching ? (
+              searchCategories ? (
+                <div>
+                  {renderCategorySections(searchCategories)}
+                  <div className="mt-16">
+                    <button
+                      className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-5 py-2.5 text-sm font-bold text-green transition-colors hover:border-green/50 hover:bg-sage/20"
+                      type="button"
+                      onClick={clearSearch}
+                    >
+                      ← Browse all help topics
+                    </button>
                   </div>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-muted">{intro}</p>
-                <FaqAccordion className="mt-6" idPrefix={id} items={faqs} />
-              </section>
-            ))}
-          </div>
+              ) : (
+                <div className="help-no-results">
+                  <span className="help-no-results-icon" aria-hidden="true">
+                    <HelpIcon size={28} />
+                  </span>
+                  <h3>Sorry, we couldn’t find an answer.</h3>
+                  <p>Try different words, or contact our team and we’ll be happy to help with your question.</p>
+                  <div className="help-no-results-actions">
+                    <Link className="rounded-xl bg-orange px-6 py-3 font-bold text-white transition-colors hover:bg-orange/90" to="/contact">
+                      Contact support
+                    </Link>
+                    {whatsappHref && (
+                      <a
+                        className="rounded-xl border border-line bg-white px-6 py-3 font-bold text-green transition-colors hover:bg-sage/20"
+                        href={whatsappHref}
+                      >
+                        Chat on WhatsApp
+                      </a>
+                    )}
+                  </div>
+                  <button className="help-no-results-reset" type="button" onClick={clearSearch}>
+                    Clear search
+                  </button>
+                </div>
+              )
+            ) : (
+              <>
+                <div className="mt-10 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+                  {helpCategories.map(({ icon: Icon, id, title }) => (
+                    <a
+                      className="help-category-anchor rounded-2xl border border-line bg-white p-6 transition-colors hover:border-green/40"
+                      href={`#${id}`}
+                      key={id}
+                      onClick={(event) => handleCategoryJump(event, id)}
+                    >
+                      <span className="grid size-12 place-items-center rounded-2xl bg-green/10 text-green" aria-hidden="true">
+                        <Icon size={22} />
+                      </span>
+                      <span className="mt-5 block text-lg font-bold text-green-dark">{title}</span>
+                      <span className="mt-2 flex items-center gap-1.5 text-sm font-bold text-green">
+                        View answers <ArrowUpRight size={15} />
+                      </span>
+                    </a>
+                  ))}
+                </div>
 
-          <div className="mt-16" aria-labelledby="help-shortcuts-heading">
-            <p id="help-shortcuts-heading" className="text-xs font-bold uppercase tracking-[0.16em] text-muted">
-              Popular shortcuts
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {quickLinks.map((link) => (
-                <Link
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-5 py-2.5 text-sm font-bold text-green transition-colors hover:border-green/50 hover:bg-sage/20"
-                  to={link.href}
-                  key={link.href}
-                >
-                  {link.label} <ArrowUpRight size={15} />
-                </Link>
-              ))}
-            </div>
+                {renderCategorySections(helpCategories)}
+
+                <div className="mt-16" aria-labelledby="help-shortcuts-heading">
+                  <p id="help-shortcuts-heading" className="text-xs font-bold uppercase tracking-[0.16em] text-muted">
+                    Popular shortcuts
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {quickLinks.map((link) => (
+                      <Link
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-5 py-2.5 text-sm font-bold text-green transition-colors hover:border-green/50 hover:bg-sage/20"
+                        to={link.href}
+                        key={link.href}
+                      >
+                        {link.label} <ArrowUpRight size={15} />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </section>
 

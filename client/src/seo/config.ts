@@ -9,6 +9,9 @@ export const ABOUT_DESCRIPTION =
 export const CONTACT_TITLE = 'Contact Ayanfe Food Variety'
 export const CONTACT_DESCRIPTION =
   'Contact Ayanfe Food Variety for gluten-free foodstuff, pickup information, and delivery support. Find the business contact details and pickup location.'
+export const HELP_TITLE = 'Help Centre | Ayanfe Food Variety'
+export const HELP_DESCRIPTION =
+  'Find answers about ordering and shopping, payment, delivery and pickup, wholesale shopping, order tracking, returns and refunds, and your account at Ayanfe Food Variety.'
 export const SHOP_TITLE = 'Buy Nigerian Foodstuff Online | Ayanfe Food Variety'
 export const SHOP_DESCRIPTION =
   'Shop Nigerian foodstuff online, including natural pantry staples, grains, oils and everyday essentials with reliable delivery.'

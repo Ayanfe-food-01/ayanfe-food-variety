@@ -32,30 +32,38 @@ function SummaryCard({ label, count, total, emphasis }: { label: string; count: 
 export function Payments() {
   const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState<AdminPaymentsQuery>({ status: 'PENDING', page: 1, pageSize, sort: 'newest' })
-  const [result, setResult] = useState<AdminPaymentsPage | null>(null)
   const [selected, setSelected] = useState<AdminPayment | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [loadedPage, setLoadedPage] = useState<{
+    query: AdminPaymentsQuery
+    result: AdminPaymentsPage | null
+    error: string | null
+  } | null>(null)
   const { showToast } = useToast()
 
   useEffect(() => {
     let current = true
-    setIsLoading(true)
-    setError(null)
-    getAdminPayments(query)
+    const requestQuery = query
+    getAdminPayments(requestQuery)
       .then((page) => {
-        if (current) setResult(page)
+        if (current) setLoadedPage({ query: requestQuery, result: page, error: null })
       })
       .catch((caught: unknown) => {
-        if (current) setError(caught instanceof ApiError ? caught.message : 'Payments could not be loaded.')
-      })
-      .finally(() => {
-        if (current) setIsLoading(false)
+        if (current) {
+          setLoadedPage((prev) => ({
+            query: requestQuery,
+            result: prev?.result ?? null,
+            error: caught instanceof ApiError ? caught.message : 'Payments could not be loaded.',
+          }))
+        }
       })
     return () => { current = false }
   }, [query])
+
+  const isLoading = loadedPage === null || loadedPage.query !== query
+  const error = loadedPage !== null && loadedPage.query === query ? loadedPage.error : null
+  const result = loadedPage !== null && loadedPage.query === query ? loadedPage.result : null
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

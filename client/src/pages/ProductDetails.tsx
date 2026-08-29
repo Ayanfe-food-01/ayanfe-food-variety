@@ -49,11 +49,24 @@ export function ProductDetails() {
   const { user, shoppingMode } = useCustomerAuth()
   const { showToast } = useToast()
   const isWholesaleShopper = user?.role === 'CUSTOMER' && shoppingMode === 'WHOLESALE'
-  const [wholesalePricingOptions, setWholesalePricingOptions] = useState<WholesaleOptionPricing[]>([])
-  const [wholesalePricingStatus, setWholesalePricingStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
-  const [wholesaleUnitPrice, setWholesaleUnitPrice] = useState<number | null>(null)
-  const [wholesaleLookupLoading, setWholesaleLookupLoading] = useState(false)
-  const [wholesaleLookupError, setWholesaleLookupError] = useState<string | null>(null)
+  const [wholesalePricing, setWholesalePricing] = useState<{
+    productId: string
+    status: 'ready' | 'error'
+    options: WholesaleOptionPricing[]
+  } | null>(null)
+  const [wholesaleLookup, setWholesaleLookup] = useState<{
+    context: string
+    unitPrice?: number
+    error?: string
+  } | null>(null)
+
+  const isWholesalePricingVisible = isWholesaleShopper && Boolean(product) && wholesalePricing?.productId === product?.id
+  const effectiveWholesalePricingOptions = isWholesalePricingVisible && product
+    ? (wholesalePricing?.options ?? [])
+    : []
+  const effectiveWholesalePricingStatus = isWholesaleShopper && product
+    ? (isWholesalePricingVisible ? wholesalePricing!.status : 'loading')
+    : 'idle'
 
   const loadProduct = useCallback(async () => {
     await Promise.resolve()
@@ -112,18 +125,18 @@ export function ProductDetails() {
     ? (product.images?.filter(Boolean).length ? product.images.filter(Boolean) : product.image ? [product.image] : [])
     : []
 
+  // Keep the selected image within range whenever the product or its gallery
+  // changes, without synchronising state from an effect.
+  const effectiveActiveImageIndex = productImages.length > 0
+    ? Math.min(activeImageIndex, productImages.length - 1)
+    : 0
+
   useEffect(() => {
     if (productImages.length < 2) return
     const timer = window.setTimeout(() => {
       setActiveImageIndex((current) => (current + 1) % productImages.length)
     }, 5000)
     return () => window.clearTimeout(timer)
-  }, [activeImageIndex, productImages.length])
-
-  useEffect(() => {
-    if (activeImageIndex >= productImages.length && productImages.length > 0) {
-      setActiveImageIndex(0)
-    }
   }, [activeImageIndex, productImages.length])
 
   useEffect(() => {
@@ -135,34 +148,24 @@ export function ProductDetails() {
   }, [loadProduct])
 
   useEffect(() => {
-    if (!isWholesaleShopper || !product) {
-      setWholesalePricingOptions([])
-      setWholesalePricingStatus('idle')
-      setWholesaleUnitPrice(null)
-      setWholesaleLookupError(null)
-      setWholesaleLookupLoading(false)
-      return
-    }
+    if (!isWholesaleShopper || !product) return
     let cancelled = false
     const controller = new AbortController()
-    setWholesalePricingStatus('loading')
-    setWholesaleUnitPrice(null)
-    setWholesaleLookupError(null)
-    getProductWholesalePricing(product.id, controller.signal)
+    const productId = product.id
+    getProductWholesalePricing(productId, controller.signal)
       .then((pricing) => {
         if (cancelled) return
-        setWholesalePricingOptions(pricing.options)
-        setWholesalePricingStatus('ready')
+        setWholesalePricing({ productId, status: 'ready', options: pricing.options })
       })
       .catch(() => {
         if (cancelled) return
-        setWholesalePricingStatus('error')
+        setWholesalePricing({ productId, status: 'error', options: [] })
       })
     return () => {
       cancelled = true
       controller.abort()
     }
-  }, [isWholesaleShopper, product?.id])
+  }, [isWholesaleShopper, product])
 
   const currentCartQuantity = product
     ? items.find((item) => item.id === product.id)?.quantity ?? 0
@@ -182,7 +185,7 @@ export function ProductDetails() {
     : Math.max(0, availableStock - currentCartQuantity)
   const maxSelectableQuantity = Math.max(1, remainingStockForCart)
   const selectedOptionWholesale = hasOptions
-    ? (wholesalePricingOptions.find((option) => option.optionId === selectedOptionId) ?? null)
+    ? (effectiveWholesalePricingOptions.find((option) => option.optionId === selectedOptionId) ?? null)
     : null
   const isOptionWholesaleConfigured = selectedOptionWholesale !== null
   const quantityFloor = isWholesaleShopper && isOptionWholesaleConfigured
@@ -195,45 +198,40 @@ export function ProductDetails() {
     && remainingStockForCart > 0,
   )
 
-  useEffect(() => {
-    setQuantity((current) => Math.max(current, quantityFloor))
-  }, [quantityFloor])
+  const isWholesaleLookupApplicable =
+    isWholesaleShopper && Boolean(product) && Boolean(selectedOption) && selectedOptionWholesale !== null
+  const wholesaleLookupContext = isWholesaleLookupApplicable
+    ? `${product!.id}|${selectedOption!.id}|${selectedQuantity}`
+    : null
+  const currentWholesaleLookup = wholesaleLookupContext !== null && wholesaleLookup?.context === wholesaleLookupContext
+    ? wholesaleLookup
+    : null
+  const effectiveWholesaleUnitPrice = currentWholesaleLookup?.unitPrice ?? null
+  const effectiveWholesaleLookupLoading = isWholesaleLookupApplicable
+    && currentWholesaleLookup === null
+    && effectiveWholesalePricingStatus === 'ready'
+    && selectedOptionWholesale !== null
+  const effectiveWholesaleLookupError = currentWholesaleLookup?.error ?? null
 
   useEffect(() => {
-    if (!isWholesaleShopper || !product || !selectedOption || !selectedOptionWholesale) {
-      setWholesaleUnitPrice(null)
-      setWholesaleLookupError(null)
-      setWholesaleLookupLoading(false)
-      return
-    }
+    if (!isWholesaleLookupApplicable) return
     let cancelled = false
-    setWholesaleLookupLoading(true)
-    setWholesaleLookupError(null)
-    getWholesaleUnitPrice(product.id, selectedOption.id, selectedQuantity)
+    const context = wholesaleLookupContext!
+    getWholesaleUnitPrice(product!.id, selectedOption!.id, selectedQuantity)
       .then((result) => {
-        if (!cancelled) setWholesaleUnitPrice(result.unitPrice)
+        if (!cancelled) setWholesaleLookup({ context, unitPrice: result.unitPrice })
       })
       .catch((error: unknown) => {
         if (cancelled) return
-        setWholesaleUnitPrice(null)
-        setWholesaleLookupError(
-          error instanceof Error ? error.message : 'Wholesale pricing could not be calculated right now.',
-        )
-      })
-      .finally(() => {
-        if (!cancelled) setWholesaleLookupLoading(false)
+        setWholesaleLookup({
+          context,
+          error: error instanceof Error ? error.message : 'Wholesale pricing could not be calculated right now.',
+        })
       })
     return () => {
       cancelled = true
     }
-  }, [
-    isWholesaleShopper,
-    product?.id,
-    selectedOption?.id,
-    selectedQuantity,
-    isOptionWholesaleConfigured,
-    selectedOptionWholesale?.moq,
-  ])
+  }, [isWholesaleLookupApplicable, wholesaleLookupContext, product, selectedOption, selectedQuantity])
 
   const retryProduct = () => {
     setIsLoading(true)
@@ -450,16 +448,16 @@ export function ProductDetails() {
                 onTouchEnd={handleGalleryTouchEnd}
                 onTouchCancel={() => { touchStartX.current = null }}
               >
-                {productImages[activeImageIndex] && !failedImageUrls.has(productImages[activeImageIndex]) ? (
+                {productImages[effectiveActiveImageIndex] && !failedImageUrls.has(productImages[effectiveActiveImageIndex]) ? (
                   <img
                     className="size-full object-cover transition-transform duration-500 hover:scale-[1.02]"
-                    src={optimizedImageUrl(productImages[activeImageIndex], 720)}
-                    alt={`${product.name} image ${activeImageIndex + 1} - Ayanfe Food Variety`}
+                    src={optimizedImageUrl(productImages[effectiveActiveImageIndex], 720)}
+                    alt={`${product.name} image ${effectiveActiveImageIndex + 1} - Ayanfe Food Variety`}
                     width={720}
                     height={720}
-                    loading={activeImageIndex === 0 ? 'eager' : 'lazy'}
-                    fetchPriority={activeImageIndex === 0 ? 'high' : 'auto'}
-                    onError={() => setFailedImageUrls((current) => new Set(current).add(productImages[activeImageIndex]))}
+                    loading={effectiveActiveImageIndex === 0 ? 'eager' : 'lazy'}
+                    fetchPriority={effectiveActiveImageIndex === 0 ? 'high' : 'auto'}
+                    onError={() => setFailedImageUrls((current) => new Set(current).add(productImages[effectiveActiveImageIndex]))}
                   />
                 ) : (
                   <div className="flex size-full items-center justify-center px-8 text-center text-sm font-semibold text-muted" role="img" aria-label={`${product.name} image unavailable`}>
@@ -477,11 +475,11 @@ export function ProductDetails() {
                 <div className="flex flex-wrap items-center justify-center gap-2 bg-white p-3" role="tablist" aria-label="Product images">
                   {productImages.map((image, index) => (
                     <button
-                      className={`overflow-hidden rounded-lg border-2 ${index === activeImageIndex ? 'border-orange' : 'border-transparent'}`}
+                      className={`overflow-hidden rounded-lg border-2 ${index === effectiveActiveImageIndex ? 'border-orange' : 'border-transparent'}`}
                       type="button"
                       role="tab"
                       aria-label={`Show product image ${index + 1}`}
-                      aria-selected={index === activeImageIndex}
+                      aria-selected={index === effectiveActiveImageIndex}
                       onClick={() => selectImage(index)}
                       key={`${image}-${index}`}
                     >
@@ -510,9 +508,9 @@ export function ProductDetails() {
                     moq={selectedOptionWholesale?.moq ?? null}
                     tiers={selectedOptionWholesale?.tiers ?? []}
                     quantity={selectedQuantity}
-                    unitPrice={wholesaleUnitPrice}
-                    isCalculating={wholesaleLookupLoading}
-                    error={wholesaleLookupError}
+                    unitPrice={effectiveWholesaleUnitPrice}
+                    isCalculating={effectiveWholesaleLookupLoading}
+                    error={effectiveWholesaleLookupError}
                   />
                 ) : (
                   <>
@@ -528,14 +526,14 @@ export function ProductDetails() {
                 )}
               </div>
               {isWholesaleShopper
-                && wholesalePricingStatus === 'ready'
+                && effectiveWholesalePricingStatus === 'ready'
                 && !hasOptions && (
                   <p className="wholesale-note" role="status">
                     Wholesale pricing is not available for this product yet.
                   </p>
                 )}
               {isWholesaleShopper
-                && wholesalePricingStatus === 'ready'
+                && effectiveWholesalePricingStatus === 'ready'
                 && hasOptions
                 && !isOptionWholesaleConfigured && (
                   <p className="wholesale-note" role="status">
@@ -571,7 +569,7 @@ export function ProductDetails() {
                       type="button"
                       aria-label="Decrease quantity"
                       disabled={selectedQuantity === quantityFloor || !canAddToCart}
-                      onClick={() => setQuantity((current) => Math.max(quantityFloor, current - 1))}
+                      onClick={() => setQuantity((current) => Math.min(maxSelectableQuantity, Math.max(quantityFloor, current - 1)))}
                     >
                       −
                     </button>
@@ -583,7 +581,7 @@ export function ProductDetails() {
                       type="button"
                       aria-label="Increase quantity"
                       disabled={!canAddToCart || selectedQuantity >= maxSelectableQuantity}
-                      onClick={() => setQuantity((current) => Math.min(maxSelectableQuantity, current + 1))}
+                      onClick={() => setQuantity((current) => Math.min(maxSelectableQuantity, Math.max(quantityFloor, current + 1)))}
                     >
                       +
                     </button>

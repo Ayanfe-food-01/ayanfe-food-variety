@@ -1,5 +1,5 @@
 import { AdminNotificationType, FulfillmentMethod, Prisma, OrderStatus, PaymentMethod, PaymentStatus, ShoppingMode } from '@prisma/client'
-import { prisma } from '../../lib/prisma.js'
+import { prisma, isTransientDatabaseError } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js'
 import type {
@@ -197,9 +197,18 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     throw new HttpError(401, 'Guest checkout access is required.')
   }
 
-  let result: { order: OrderWithItems; created: boolean }
+  let result: { order: OrderWithItems; created: boolean } | null = null
+  // Checkout is the one write path that may safely retry a transient database
+  // error: the checkout key is unique and checked at the start of the
+  // transaction. If a previous attempt committed, the retry simply returns
+  // that existing order instead of creating a duplicate; if it rolled back,
+  // the retry runs cleanly. Only connection/load codes that vanish on a fresh
+  // attempt are retried, and only once.
+  const MAX_CHECKOUT_ATTEMPTS = 2
   try {
-    result = await prisma.$transaction(async (transaction) => {
+    for (let attempt = 1; attempt <= MAX_CHECKOUT_ATTEMPTS; attempt += 1) {
+      try {
+        result = await prisma.$transaction(async (transaction) => {
     const existingOrder = await transaction.order.findUnique({
       where: { checkoutKey: input.checkoutKey },
       include: orderInclude,
@@ -466,6 +475,14 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     })
       return { order, created: true }
     }, { timeout: 60000 })
+      break
+    } catch (retryError: unknown) {
+      if (attempt >= MAX_CHECKOUT_ATTEMPTS || !isTransientDatabaseError(retryError)) {
+        throw retryError
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt))
+    }
+  }
   } catch (error: unknown) {
     const isCheckoutKeyConflict =
       error instanceof Prisma.PrismaClientKnownRequestError
@@ -484,6 +501,10 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       throw new HttpError(409, 'This checkout request cannot be reused.')
     }
     return toOrderResponse(existingOrder)
+  }
+
+  if (!result) {
+    throw new Error('Checkout did not produce an order.')
   }
 
   if (result.created) {

@@ -92,10 +92,7 @@ export function SelectField({
   }, [])
 
   useEffect(() => {
-    if (!isOpen) {
-      setMenuStyle(null)
-      return
-    }
+    if (!isOpen) return
 
     const updateMenuPosition = () => {
       const trigger = wrapperRef.current?.querySelector<HTMLButtonElement>('.select-field-button')
@@ -145,7 +142,7 @@ export function SelectField({
       window.visualViewport?.removeEventListener('resize', updateMenuPosition)
       window.visualViewport?.removeEventListener('scroll', updateMenuPosition)
     }
-  }, [isOpen])
+  }, [isOpen, variant])
 
   const openMenu = (startIndex = selectedIndex >= 0 ? selectedIndex : 0) => {
     if (disabled) return
@@ -200,6 +197,8 @@ export function SelectField({
     }
   }
 
+  const effectiveMenuStyle = isOpen ? menuStyle : null
+
   return (
       <div className={`select-field ${variant === 'filter' ? 'select-field-filter' : ''} ${variant === 'compact' ? 'select-field-compact' : ''} ${className}`} ref={wrapperRef}>
       {name && <input type="hidden" name={name} value={value} />}
@@ -225,14 +224,14 @@ export function SelectField({
         </span>
         <ChevronDownIcon className="select-field-chevron" size={17} aria-hidden="true" />
       </button>
-      {isOpen && options.length > 0 && menuStyle && createPortal(
+      {isOpen && options.length > 0 && effectiveMenuStyle && createPortal(
         <div
           className={`select-field-menu ${variant === 'compact' ? 'select-field-menu-compact' : ''}`}
           id={listboxId}
           ref={menuRef}
           role="listbox"
           aria-label={ariaLabel}
-          style={menuStyle}
+          style={effectiveMenuStyle}
         >
           {options.map((option, index) => (
             <button

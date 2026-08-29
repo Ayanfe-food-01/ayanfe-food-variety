@@ -443,6 +443,7 @@ export function CartProvider({ children }: CartProviderProps) {
       shoppingMode,
       subtotal,
       deliveryFee,
+      total,
       totalQuantity,
     ],
   )

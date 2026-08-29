@@ -31,16 +31,10 @@ export function ProductSearchAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
-  const [isDismissed, setIsDismissed] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const { suggestions, isLoading, hasError } = useProductSearchAutocomplete(value)
   const query = value.trim()
   const canShowSuggestions = query.length >= 2
-
-  useEffect(() => {
-    setActiveIndex(-1)
-    setIsOpen(isFocused && canShowSuggestions && !isDismissed)
-  }, [canShowSuggestions, isDismissed, isFocused, query])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -55,7 +49,6 @@ export function ProductSearchAutocomplete({
   }, [])
 
   const selectProduct = (product: Product) => {
-    setIsDismissed(true)
     onChange(product.name)
     setIsOpen(false)
     setActiveIndex(-1)
@@ -63,7 +56,12 @@ export function ProductSearchAutocomplete({
   }
 
   const handleChange = (nextValue: string) => {
-    setIsDismissed(false)
+    setActiveIndex(-1)
+    if (nextValue.trim().length >= 2) {
+      if (isFocused) setIsOpen(true)
+    } else {
+      setIsOpen(false)
+    }
     onChange(nextValue)
   }
 
@@ -90,7 +88,6 @@ export function ProductSearchAutocomplete({
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    setIsDismissed(true)
     setIsOpen(false)
     setActiveIndex(-1)
     setIsFocused(false)
@@ -110,7 +107,6 @@ export function ProductSearchAutocomplete({
           onFocus={() => {
             setIsFocused(true)
             if (canShowSuggestions) {
-              setIsDismissed(false)
               setIsOpen(true)
             }
           }}

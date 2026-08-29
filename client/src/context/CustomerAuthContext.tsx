@@ -23,7 +23,9 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
   const afterAuthRef = useRef<AuthAction | undefined>(undefined)
   const userRef = useRef(user)
 
-  userRef.current = user
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
 
   useEffect(() => {
     let isCurrent = true

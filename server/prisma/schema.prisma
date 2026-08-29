@@ -218,6 +218,8 @@ model Order {
 
   @@index([userId], map: "orders_user_id_idx")
   @@index([archivedAt], map: "orders_archived_at_idx")
+  @@index([archivedAt, createdAt(sort: Desc)], map: "orders_archived_created_idx")
+  @@index([paymentStatus, orderStatus], map: "orders_payment_order_status_idx")
   @@map("orders")
 }
 
@@ -254,6 +256,7 @@ model PaymentSubmission {
 
   @@index([orderId], map: "payment_submissions_order_id_idx")
   @@index([status], map: "payment_submissions_status_idx")
+  @@index([status, createdAt(sort: Desc)], map: "payment_submissions_status_created_idx")
   @@map("payment_submissions")
 }
 

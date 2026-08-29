@@ -12,22 +12,26 @@ interface ProductSearchAutocompleteState {
   hasError: boolean
 }
 
+const EMPTY_STATE: ProductSearchAutocompleteState = {
+  suggestions: [],
+  isLoading: false,
+  hasError: false,
+}
+
 export function useProductSearchAutocomplete(value: string): ProductSearchAutocompleteState {
-  const [state, setState] = useState<ProductSearchAutocompleteState>({
-    suggestions: [],
-    isLoading: false,
-    hasError: false,
-  })
+  const [result, setResult] = useState<{
+    query: string
+    suggestions: Product[]
+    hasError: boolean
+  } | null>(null)
+
+  const query = value.trim()
+  const isQueryTooShort = query.length < MINIMUM_SEARCH_LENGTH
 
   useEffect(() => {
-    const query = value.trim()
-    if (query.length < MINIMUM_SEARCH_LENGTH) {
-      setState({ suggestions: [], isLoading: false, hasError: false })
-      return
-    }
+    if (isQueryTooShort) return
 
     const controller = new AbortController()
-    setState({ suggestions: [], isLoading: true, hasError: false })
     const timeoutId = window.setTimeout(() => {
       void getProducts({
         search: query,
@@ -36,11 +40,11 @@ export function useProductSearchAutocomplete(value: string): ProductSearchAutoco
       })
         .then((result) => {
           if (controller.signal.aborted) return
-          setState({ suggestions: result.products, isLoading: false, hasError: false })
+          setResult({ query, suggestions: result.products, hasError: false })
         })
         .catch(() => {
           if (controller.signal.aborted) return
-          setState({ suggestions: [], isLoading: false, hasError: true })
+          setResult({ query, suggestions: [], hasError: true })
         })
     }, DEBOUNCE_MS)
 
@@ -48,7 +52,14 @@ export function useProductSearchAutocomplete(value: string): ProductSearchAutoco
       controller.abort()
       window.clearTimeout(timeoutId)
     }
-  }, [value])
+  }, [query, isQueryTooShort])
 
-  return state
+  if (isQueryTooShort) return EMPTY_STATE
+
+  // Only results belonging to the current query are relevant. Anything else
+  // means a search for this exact query is pending (debounce or request).
+  const hasCurrentResult = result !== null && result.query === query
+  return hasCurrentResult
+    ? { suggestions: result!.suggestions, isLoading: false, hasError: result!.hasError }
+    : { suggestions: [], isLoading: true, hasError: false }
 }

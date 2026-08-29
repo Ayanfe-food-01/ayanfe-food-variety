@@ -5,92 +5,91 @@ import type { Product } from '../types/product'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { WishlistContext, type WishlistContextValue } from './wishlistContext'
 
+interface WishlistSnapshot {
+  products: Product[]
+  productIds: Set<string>
+}
+
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const { user } = useCustomerAuth()
-  const [products, setProducts] = useState<Product[]>([])
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set())
+  const userKey = user?.id ?? null
+  const [snapshots, setSnapshots] = useState<Map<string | null, WishlistSnapshot>>(new Map())
+  const [settledKeys, setSettledKeys] = useState<Set<string | null>>(new Set())
   const [pendingProductIds, setPendingProductIds] = useState<Set<string>>(new Set())
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasLoaded, setHasLoaded] = useState(false)
-
-  const refreshWishlist = useCallback(async () => {
-    if (!user) {
-      setProducts([])
-      setWishlistIds(new Set())
-      setHasLoaded(true)
-      setIsLoading(false)
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      const wishlist = await getWishlist()
-      setProducts(wishlist.products)
-      setWishlistIds(new Set(wishlist.productIds))
-      setHasLoaded(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [user])
 
   useEffect(() => {
+    if (userKey === null) return
     let current = true
-    setHasLoaded(false)
-    if (!user) {
-      setProducts([])
-      setWishlistIds(new Set())
-      setIsLoading(false)
-      setHasLoaded(true)
-      return () => { current = false }
-    }
-
-    setIsLoading(true)
     void getWishlist()
       .then((wishlist) => {
         if (!current) return
-        setProducts(wishlist.products)
-        setWishlistIds(new Set(wishlist.productIds))
-        setHasLoaded(true)
+        setSnapshots((prev) => new Map(prev).set(userKey, {
+          products: wishlist.products,
+          productIds: new Set(wishlist.productIds),
+        }))
       })
       .finally(() => {
-        if (current) setIsLoading(false)
+        if (current) setSettledKeys((prev) => new Set(prev).add(userKey))
       })
-
     return () => { current = false }
+  }, [userKey])
+
+  const snapshot = snapshots.get(userKey)
+  const products = useMemo(() => snapshot?.products ?? [], [snapshot])
+  const wishlistIds = useMemo(() => snapshot?.productIds ?? new Set<string>(), [snapshot])
+  const isLoading = userKey !== null && !settledKeys.has(userKey)
+
+  const refreshWishlist = useCallback(async () => {
+    if (!user) return
+    const wishlist = await getWishlist()
+    setSnapshots((prev) => new Map(prev).set(user.id, {
+      products: wishlist.products,
+      productIds: new Set(wishlist.productIds),
+    }))
   }, [user])
 
   const isWishlisted = useCallback((productId: string, fallback = false) => {
     if (!user) return false
-    return hasLoaded ? wishlistIds.has(productId) : fallback
-  }, [hasLoaded, user, wishlistIds])
+    const userSnapshot = snapshots.get(user.id)
+    return userSnapshot !== undefined ? userSnapshot.productIds.has(productId) : fallback
+  }, [snapshots, user])
 
   const toggleWishlist = useCallback(async (product: Product) => {
-    const wasWishlisted = hasLoaded
-      ? wishlistIds.has(product.id)
-      : wishlistIds.has(product.id) || product.isWishlisted
+    const currentIds = snapshots.get(userKey)?.productIds ?? new Set<string>()
+    const hasCurrentLoaded = userKey === null || snapshots.has(userKey)
+    const wasWishlisted = hasCurrentLoaded
+      ? currentIds.has(product.id)
+      : currentIds.has(product.id) || product.isWishlisted
+
     setPendingProductIds((current) => new Set(current).add(product.id))
-    setWishlistIds((current) => {
-      const next = new Set(current)
-      if (wasWishlisted) next.delete(product.id)
-      else next.add(product.id)
+    setSnapshots((prev) => {
+      const base = prev.get(userKey) ?? { products: [], productIds: new Set<string>() }
+      const nextIds = new Set(base.productIds)
+      if (wasWishlisted) nextIds.delete(product.id)
+      else nextIds.add(product.id)
+      const nextProducts = wasWishlisted
+        ? base.products.filter((item) => item.id !== product.id)
+        : base.products.some((item) => item.id === product.id) ? base.products : [product, ...base.products]
+      const next = new Map(prev)
+      next.set(userKey, { products: nextProducts, productIds: nextIds })
       return next
     })
-    setProducts((current) => wasWishlisted
-      ? current.filter((item) => item.id !== product.id)
-      : current.some((item) => item.id === product.id) ? current : [product, ...current])
 
     try {
       return wasWishlisted ? await removeFromWishlist(product.id) : await addToWishlist(product.id)
     } catch (error: unknown) {
-      setWishlistIds((current) => {
-        const next = new Set(current)
-        if (wasWishlisted) next.add(product.id)
-        else next.delete(product.id)
+      setSnapshots((prev) => {
+        const base = prev.get(userKey) ?? { products: [], productIds: new Set<string>() }
+        const nextIds = new Set(base.productIds)
+        if (wasWishlisted) nextIds.add(product.id)
+        else nextIds.delete(product.id)
+        const nextProducts = wasWishlisted
+          ? [product, ...base.products.filter((item) => item.id !== product.id)]
+          : base.products.filter((item) => item.id !== product.id)
+        const next = new Map(prev)
+        next.set(userKey, { products: nextProducts, productIds: nextIds })
         return next
       })
-      setProducts((current) => wasWishlisted
-        ? [product, ...current.filter((item) => item.id !== product.id)]
-        : current.filter((item) => item.id !== product.id))
       throw error instanceof ApiError ? error : new Error('Your wishlist could not be updated.')
     } finally {
       setPendingProductIds((current) => {
@@ -99,7 +98,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         return next
       })
     }
-  }, [hasLoaded, wishlistIds])
+  }, [snapshots, userKey])
 
   const value = useMemo<WishlistContextValue>(() => ({
     products,

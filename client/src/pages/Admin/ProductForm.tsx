@@ -142,12 +142,13 @@ export function ProductForm() {
     if (!id) return
     getAdminProduct(id).then((product) => {
       const existingImages = product.images?.filter(Boolean).length ? product.images.filter(Boolean) : product.image ? [product.image] : []
+      const loadedHasFilledOptions = (product.options ?? []).length > 0
       setForm({
         name: product.name,
         categoryId: product.categoryId ?? '',
         price: String(product.price),
-        discountType: product.discountType ?? '',
-        discountValue: product.discountValue === null ? '' : String(product.discountValue),
+        discountType: loadedHasFilledOptions ? '' : product.discountType ?? '',
+        discountValue: loadedHasFilledOptions ? '' : product.discountValue === null ? '' : String(product.discountValue),
         deliveryFee: String(product.deliveryFee),
         unit: product.unit,
         description: product.description,
@@ -190,10 +191,17 @@ export function ProductForm() {
   }, [id])
 
   const update = <Key extends keyof ProductFormInput>(field: Key, value: ProductFormInput[Key]) => {
-    setForm((current) => ({ ...current, [field]: value }))
-    setFieldErrors((current) => ({ ...current, [field]: undefined }))
-    setError(null)
-  }
+  setForm((current) => {
+    const next = { ...current, [field]: value }
+    if (next.options.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
+      next.discountType = ''
+      next.discountValue = ''
+    }
+    return next
+  })
+  setFieldErrors((current) => ({ ...current, [field]: undefined }))
+  setError(null)
+}
 
   const filledOptions = form.options.filter(isFilledProductOption)
   const hasFilledOptions = filledOptions.length > 0
@@ -202,7 +210,15 @@ export function ProductForm() {
     const archived = archivedOptions[index]
     if (!archived || form.options.length >= MAX_PRODUCT_OPTIONS) return
     setArchivedOptions((current) => current.filter((_, currentIndex) => currentIndex !== index))
-    setForm((current) => ({ ...current, options: [...current.options, archived] }))
+    setForm((current) => {
+      const options = [...current.options, archived]
+      const next = { ...current, options }
+      if (options.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
+        next.discountType = ''
+        next.discountValue = ''
+      }
+      return next
+    })
     setOptionErrors((current) => [...current, {}])
     setError(null)
   }
@@ -216,12 +232,6 @@ export function ProductForm() {
     const number = Number(option.stockQuantity)
     return sum + (Number.isInteger(number) && number >= 0 ? number : 0)
   }, 0)
-
-  useEffect(() => {
-    if (hasFilledOptions && (form.discountType || form.discountValue)) {
-      setForm((current) => ({ ...current, discountType: '', discountValue: '' }))
-    }
-  }, [hasFilledOptions, form.discountType, form.discountValue])
 
   const syncImageDrafts = (nextDrafts: ProductImageDraft[]) => {
     let newImageIndex = 0
@@ -426,7 +436,14 @@ export function ProductForm() {
             errors={optionErrors}
             maxOptions={MAX_PRODUCT_OPTIONS}
             onChange={(nextOptions) => {
-              setForm((current) => ({ ...current, options: nextOptions }))
+              setForm((current) => {
+                const next = { ...current, options: nextOptions }
+                if (nextOptions.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
+                  next.discountType = ''
+                  next.discountValue = ''
+                }
+                return next
+              })
               setOptionErrors(nextOptions.map(() => ({})))
               setError(null)
             }}

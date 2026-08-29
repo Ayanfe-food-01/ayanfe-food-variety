@@ -38,6 +38,7 @@ const toCartItem = (item: CustomerCartItem): CartItem => ({
   availableQuantity: item.availableQuantity,
   canUpdateQuantity: item.canUpdateQuantity,
   availabilityMessage: item.availabilityMessage,
+  minQuantity: item.minQuantity ?? 1,
 })
 
 const isCartItem = (value: unknown): value is CartItem => {
@@ -86,6 +87,9 @@ const readStoredCart = (): CartItem[] => {
       availableQuantity: item.availableQuantity,
       canUpdateQuantity: item.canUpdateQuantity !== false,
       availabilityMessage: item.availabilityMessage ?? null,
+      minQuantity: typeof item.minQuantity === 'number' && Number.isInteger(item.minQuantity) && item.minQuantity >= 1
+        ? item.minQuantity
+        : 1,
     }))
   } catch {
     return []
@@ -123,6 +127,7 @@ const createCartItem = (product: Product, quantity: number, selectedOption: Prod
     availableQuantity,
     canUpdateQuantity: isAvailable,
     availabilityMessage,
+    minQuantity: 1,
   }
 }
 
@@ -138,7 +143,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const [error, setError] = useState<string | null>(null)
   const [pendingItemIds, setPendingItemIds] = useState<string[]>([])
   const [isClearing, setIsClearing] = useState(false)
-  const { user, isLoading: isCustomerAuthLoading } = useCustomerAuth()
+  const { user, isLoading: isCustomerAuthLoading, shoppingMode } = useCustomerAuth()
   const itemsRef = useRef(items)
   const previousUserIdRef = useRef<string | null>(null)
 
@@ -229,7 +234,7 @@ export function CartProvider({ children }: CartProviderProps) {
       isCurrent = false
       clearTimeout(hydrationStateTimer)
     }
-  }, [applySnapshot, isCustomerAuthLoading, user])
+  }, [applySnapshot, isCustomerAuthLoading, shoppingMode, user])
 
   const runItemMutation = useCallback(async (
     lineKey: string,
@@ -329,14 +334,15 @@ export function CartProvider({ children }: CartProviderProps) {
   const decreaseQuantity = useCallback(async (item: CartItem) => {
     const lineKey = cartItemLineKey(item.id, item.productOptionId)
     const currentItem = itemsRef.current.find((candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey)
-    if (!currentItem || currentItem.quantity <= 1 || pendingItemIds.includes(lineKey)) return
+    const minQuantity = currentItem?.minQuantity ?? 1
+    if (!currentItem || currentItem.quantity <= minQuantity || pendingItemIds.includes(lineKey)) return
 
     if (user && currentItem.cartItemId) {
       if (currentItem.canUpdateQuantity === false) return
       const nextQuantity = currentItem.isAvailable
         ? currentItem.quantity - 1
         : Math.min(currentItem.quantity - 1, currentItem.availableQuantity ?? currentItem.quantity - 1)
-      if (nextQuantity < 1) return
+      if (nextQuantity < minQuantity) return
       await runItemMutation(lineKey, () => updateCustomerCartItem(currentItem.cartItemId!, nextQuantity))
       return
     }
@@ -402,6 +408,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const value = useMemo<CartContextValue>(
     () => ({
       items,
+      mode: shoppingMode,
       totalQuantity,
       subtotal,
       deliveryFee,
@@ -433,6 +440,7 @@ export function CartProvider({ children }: CartProviderProps) {
       pendingItemIds,
       refreshCart,
       removeFromCart,
+      shoppingMode,
       subtotal,
       deliveryFee,
       totalQuantity,

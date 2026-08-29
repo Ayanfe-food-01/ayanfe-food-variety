@@ -30,7 +30,7 @@ function QuantityControls({ item, disabled, decreaseDisabled, onDecrease, onIncr
         className="grid size-9 place-items-center text-lg text-muted transition-colors hover:text-green disabled:cursor-not-allowed disabled:opacity-40"
         type="button"
         aria-label={`Decrease ${item.name} quantity`}
-        disabled={disabled || decreaseDisabled || item.quantity === 1}
+        disabled={disabled || decreaseDisabled || item.quantity <= (item.minQuantity ?? 1)}
         onClick={onDecrease}
       >
         −
@@ -98,6 +98,7 @@ function EmptyCart() {
 export function Cart() {
   const {
     items,
+    mode,
     subtotal,
     deliveryFee,
     total,
@@ -170,7 +171,16 @@ export function Cart() {
                 </p>
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                   <div>
-                    <h1 className="m-0 text-4xl font-bold leading-none tracking-[-0.05em] text-green-dark sm:text-5xl">Cart</h1>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h1 className="m-0 text-4xl font-bold leading-none tracking-[-0.05em] text-green-dark sm:text-5xl">Cart</h1>
+                      <span
+                        className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+                          mode === 'WHOLESALE' ? 'bg-orange text-cream' : 'bg-sage text-muted'
+                        }`}
+                      >
+                        {mode === 'WHOLESALE' ? 'Wholesale' : 'Retail'}
+                      </span>
+                    </div>
                     <p className="mt-3 text-sm leading-6 text-muted sm:text-base">
                       {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} ready for your kitchen.
                     </p>
@@ -213,6 +223,11 @@ export function Cart() {
                               <h2 className="m-0 text-lg font-bold text-green-dark sm:text-xl">{item.name}</h2>
                               {item.productOptionLabel && (
                                 <p className="mt-1 text-sm font-semibold text-muted">{item.productOptionLabel}</p>
+                              )}
+                              {typeof item.minQuantity === 'number' && item.minQuantity > 1 && (
+                                <p className="mt-1 text-xs font-semibold text-orange">
+                                  Minimum order: {item.minQuantity} units
+                                </p>
                               )}
                             </div>
                             <button

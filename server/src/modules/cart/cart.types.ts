@@ -1,4 +1,4 @@
-import type { ProductDiscountType } from '@prisma/client'
+import type { ProductDiscountType, ShoppingMode } from '@prisma/client'
 
 export interface CartItemInput {
   productId: string
@@ -20,6 +20,7 @@ export interface CustomerCartItemResponse {
   deliveryFee: string
   image: string
   quantity: number
+  minQuantity: number
   itemSubtotal: string
   isAvailable: boolean
   availableQuantity: number
@@ -28,6 +29,7 @@ export interface CustomerCartItemResponse {
 }
 
 export interface CustomerCartResponse {
+  mode: ShoppingMode
   items: CustomerCartItemResponse[]
   subtotal: string
   deliveryFee: string

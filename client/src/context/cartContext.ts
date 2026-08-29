@@ -1,6 +1,7 @@
 import { createContext } from 'react'
 import type { Product, ProductOption } from '../types/product'
 import type { ProductDiscountType } from '../types/product'
+import type { ShoppingMode } from '../services/authService'
 
 export const cartItemLineKey = (id: string, productOptionId: string | null) => `${id}|${productOptionId ?? ''}`
 
@@ -18,6 +19,7 @@ export interface CartItem {
   deliveryFee: Product['deliveryFee']
   image: Product['image']
   quantity: number
+  minQuantity: number
   itemSubtotal: number
   isAvailable: boolean
   availableQuantity?: number
@@ -27,6 +29,7 @@ export interface CartItem {
 
 export interface CartContextValue {
   items: CartItem[]
+  mode: ShoppingMode
   totalQuantity: number
   subtotal: number
   deliveryFee: number

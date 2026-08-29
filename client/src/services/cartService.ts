@@ -1,5 +1,6 @@
 import { request } from './api'
 import type { ProductDiscountType } from '../types/product'
+import type { ShoppingMode } from './authService'
 
 export interface CustomerCartItem {
   id: string
@@ -15,6 +16,7 @@ export interface CustomerCartItem {
   deliveryFee: string
   image: string
   quantity: number
+  minQuantity: number
   itemSubtotal: string
   isAvailable: boolean
   availableQuantity: number
@@ -24,6 +26,7 @@ export interface CustomerCartItem {
 
 export interface CustomerCartSnapshot {
   items: CustomerCartItem[]
+  mode: ShoppingMode
   subtotal: string
   deliveryFee: string
   totalQuantity: number

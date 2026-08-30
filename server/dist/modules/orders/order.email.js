@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js';
-import { escapeHtml, renderBrandedEmail, sendEmail, } from '../../lib/email/email.service.js';
-const formatPrice = (value) => new Intl.NumberFormat('en-NG', {
+import { escapeHtml, getAppLink, renderBrandedEmail, sendEmail, } from '../../lib/email/email.service.js';
+export const formatPrice = (value) => new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
     maximumFractionDigits: 0,
@@ -16,19 +16,6 @@ const formatDateTime = (value) => new Intl.DateTimeFormat('en-NG', {
     timeStyle: 'short',
     timeZone: 'Africa/Lagos',
 }).format(new Date(value));
-const getAppLink = (path) => {
-    if (!env.publicAppUrl)
-        return null;
-    try {
-        const baseUrl = new URL(env.publicAppUrl);
-        if (!['http:', 'https:'].includes(baseUrl.protocol))
-            return null;
-        return new URL(path.replace(/^\/+/, ''), `${baseUrl.toString().replace(/\/+$/, '')}/`).toString();
-    }
-    catch {
-        return null;
-    }
-};
 const renderOrderItems = (items) => `
   <table role="presentation" class="email-table" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:24px 0;border-collapse:collapse;color:#173b2b;font-size:14px;">
     <thead>

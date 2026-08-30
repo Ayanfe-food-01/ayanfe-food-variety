@@ -1,6 +1,15 @@
-import { FulfillmentMethod, Prisma, QuoteRequestStatus, ShoppingMode, type QuoteRequest } from '@prisma/client'
+import {
+  AdminNotificationType,
+  FulfillmentMethod,
+  Prisma,
+  QuoteRequestStatus,
+  ShoppingMode,
+  type QuoteRequest,
+} from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { createAdminNotification } from '../notifications/notification.service.js'
+import { notifyQuoteReady } from './quote.email.js'
 import type { AuthenticatedUser } from '../auth/auth.types.js'
 import type {
   AdminQuoteRequest,
@@ -243,6 +252,14 @@ export async function createQuoteRequest(
     })
 
     result = { quoteRequest: toQuoteRequestResponse(quoteRequest), created: true }
+
+    await createAdminNotification(transaction, {
+      type: AdminNotificationType.NEW_QUOTE_REQUEST,
+      eventKey: `quote-request:${quoteRequest.id}`,
+      title: 'New quote request received',
+      message: `${quoteRequest.customerName} (${quoteRequest.customerEmail}) requested a quotation for ${quoteRequest.items.length} product(s).`,
+      href: `/admin/quote-requests/${quoteRequest.quoteNumber}`,
+    })
   })
 
   return result ?? { quoteRequest: {} as QuoteRequestResponse, created: false }
@@ -330,7 +347,12 @@ export async function updateAdminQuoteRequestStatus(
     where: { id: existing.id },
     data: { status },
   })
-  return getAdminQuoteRequest(reference)
+  const detail = await getAdminQuoteRequest(reference)
+  if (status === QuoteRequestStatus.QUOTED && detail.quotedTotal !== null) {
+    void notifyQuoteReady(detail).catch((error: unknown) =>
+      console.error('Quotation ready email failed', error))
+  }
+  return detail
 }
 
 export async function updateAdminQuoteRequestNote(
@@ -367,6 +389,7 @@ export async function prepareQuotePricing(
   reference: string,
   input: PrepareQuotePricingInput,
 ): Promise<AdminQuoteRequest> {
+  let quoted = false
   await prisma.$transaction(async (transaction) => {
     const quoteRequest = await transaction.quoteRequest.findUnique({
       where: { quoteNumber: reference },
@@ -431,9 +454,15 @@ export async function prepareQuotePricing(
     if (updated.count !== 1) {
       throw new HttpError(409, 'This quote can no longer be priced because its status changed.')
     }
+    quoted = true
   })
 
-  return getAdminQuoteRequest(reference)
+  const detail = await getAdminQuoteRequest(reference)
+  if (quoted) {
+    void notifyQuoteReady(detail).catch((error: unknown) =>
+      console.error('Quotation ready email failed', error))
+  }
+  return detail
 }
 
 const toCustomerListItem = (quoteRequest: {
@@ -504,7 +533,7 @@ export async function getCustomerQuoteRequest(reference: string, userId: string)
 export async function acceptQuoteRequest(reference: string, userId: string): Promise<QuoteRequestResponse> {
   const existing = await prisma.quoteRequest.findFirst({
     where: { quoteNumber: reference, userId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, customerName: true, quoteNumber: true },
   })
   if (!existing) throw new HttpError(404, 'Quote request not found.')
   if (existing.status === QuoteRequestStatus.ACCEPTED || existing.status === QuoteRequestStatus.COMPLETED) {
@@ -514,13 +543,23 @@ export async function acceptQuoteRequest(reference: string, userId: string): Pro
     throw new HttpError(409, 'This quotation can only be accepted once it has been prepared.')
   }
 
-  const updated = await prisma.quoteRequest.updateMany({
-    where: { id: existing.id, status: QuoteRequestStatus.QUOTED },
-    data: { status: QuoteRequestStatus.ACCEPTED, acceptedAt: new Date() },
+  await prisma.$transaction(async (transaction) => {
+    const updated = await transaction.quoteRequest.updateMany({
+      where: { id: existing.id, status: QuoteRequestStatus.QUOTED },
+      data: { status: QuoteRequestStatus.ACCEPTED, acceptedAt: new Date() },
+    })
+    if (updated.count !== 1) {
+      throw new HttpError(409, 'This quotation can no longer be accepted because its status changed.')
+    }
+    await createAdminNotification(transaction, {
+      type: AdminNotificationType.QUOTE_ACCEPTED,
+      eventKey: `quote-accepted:${existing.id}`,
+      title: 'Quotation accepted',
+      message: `${existing.customerName} accepted quotation ${existing.quoteNumber}.`,
+      href: `/admin/quote-requests/${existing.quoteNumber}`,
+    })
   })
-  if (updated.count !== 1) {
-    throw new HttpError(409, 'This quotation can no longer be accepted because its status changed.')
-  }
+
   return getCustomerQuoteRequest(reference, userId)
 }
 
@@ -536,7 +575,7 @@ export async function rejectQuoteRequest(
 ): Promise<QuoteRequestResponse> {
   const existing = await prisma.quoteRequest.findFirst({
     where: { quoteNumber: reference, userId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, customerName: true, quoteNumber: true },
   })
   if (!existing) throw new HttpError(404, 'Quote request not found.')
   if (existing.status === QuoteRequestStatus.CANCELLED) {
@@ -546,16 +585,27 @@ export async function rejectQuoteRequest(
     throw new HttpError(409, 'This quotation can only be declined once it has been prepared.')
   }
 
-  const updated = await prisma.quoteRequest.updateMany({
-    where: { id: existing.id, status: QuoteRequestStatus.QUOTED },
-    data: {
-      status: QuoteRequestStatus.CANCELLED,
-      rejectedAt: new Date(),
-      rejectionReason: input.reason ?? null,
-    },
+  await prisma.$transaction(async (transaction) => {
+    const updated = await transaction.quoteRequest.updateMany({
+      where: { id: existing.id, status: QuoteRequestStatus.QUOTED },
+      data: {
+        status: QuoteRequestStatus.CANCELLED,
+        rejectedAt: new Date(),
+        rejectionReason: input.reason ?? null,
+      },
+    })
+    if (updated.count !== 1) {
+      throw new HttpError(409, 'This quotation can no longer be declined because its status changed.')
+    }
+    const declineNote = input.reason ? ` Reason: ${input.reason.slice(0, 220)}` : ''
+    await createAdminNotification(transaction, {
+      type: AdminNotificationType.QUOTE_REJECTED,
+      eventKey: `quote-rejected:${existing.id}`,
+      title: 'Quotation declined by customer',
+      message: `${existing.customerName} declined quotation ${existing.quoteNumber}.${declineNote}`.slice(0, 500),
+      href: `/admin/quote-requests/${existing.quoteNumber}`,
+    })
   })
-  if (updated.count !== 1) {
-    throw new HttpError(409, 'This quotation can no longer be declined because its status changed.')
-  }
+
   return getCustomerQuoteRequest(reference, userId)
 }

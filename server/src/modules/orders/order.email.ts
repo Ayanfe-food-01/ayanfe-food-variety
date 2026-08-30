@@ -2,6 +2,7 @@ import type { FulfillmentMethod, OrderStatus, PaymentMethod, PaymentStatus } fro
 import { env } from '../../config/env.js'
 import {
   escapeHtml,
+  getAppLink,
   renderBrandedEmail,
   sendEmail,
   type EmailMessage,
@@ -34,7 +35,7 @@ type CreatedOrderEmail = {
   items: OrderEmailItem[]
 }
 
-const formatPrice = (value: string): string =>
+export const formatPrice = (value: string): string =>
   new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
@@ -59,17 +60,6 @@ const formatDateTime = (value: string): string =>
     timeStyle: 'short',
     timeZone: 'Africa/Lagos',
   }).format(new Date(value))
-
-const getAppLink = (path: string): string | null => {
-  if (!env.publicAppUrl) return null
-  try {
-    const baseUrl = new URL(env.publicAppUrl)
-    if (!['http:', 'https:'].includes(baseUrl.protocol)) return null
-    return new URL(path.replace(/^\/+/, ''), `${baseUrl.toString().replace(/\/+$/, '')}/`).toString()
-  } catch {
-    return null
-  }
-}
 
 const renderOrderItems = (items: OrderEmailItem[]): string => `
   <table role="presentation" class="email-table" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:24px 0;border-collapse:collapse;color:#173b2b;font-size:14px;">

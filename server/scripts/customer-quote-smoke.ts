@@ -265,6 +265,13 @@ async function main() {
 
     console.log('Customer quote smoke test passed.')
   } finally {
+    const smokeReferences = await prisma.quoteRequest.findMany({
+      where: { customerPhone: '+2348099990000' },
+      select: { quoteNumber: true },
+    })
+    await prisma.adminNotification.deleteMany({
+      where: { href: { in: smokeReferences.map((quote) => `/admin/quote-requests/${quote.quoteNumber}`) } },
+    })
     await prisma.quoteRequest.deleteMany({ where: { customerPhone: '+2348099990000' } })
     await prisma.user.deleteMany({ where: { email: { in: [customerEmailA, customerEmailB] } } })
     await prisma.product.deleteMany({ where: { slug: { startsWith: 'smoke-product-' } } })

@@ -1,7 +1,9 @@
 import { request } from './api'
+import type { CreatedOrder } from './orderService'
 
-export type QuoteRequestStatus = 'PENDING' | 'CONTACTED' | 'QUOTED' | 'COMPLETED' | 'CANCELLED'
+export type QuoteRequestStatus = 'PENDING' | 'CONTACTED' | 'QUOTED' | 'ACCEPTED' | 'COMPLETED' | 'CANCELLED'
 export type QuoteShoppingMode = 'RETAIL' | 'WHOLESALE' | null
+export type QuoteFulfillmentMethod = 'PICKUP' | 'DELIVERY'
 
 export interface QuoteRequestItem {
   id: string
@@ -11,6 +13,7 @@ export interface QuoteRequestItem {
   productOptionLabel: string | null
   quantity: number
   note: string | null
+  quotedUnitPrice: string | null
 }
 
 export interface QuoteRequest {
@@ -22,6 +25,14 @@ export interface QuoteRequest {
   message: string | null
   shoppingMode: QuoteShoppingMode
   status: QuoteRequestStatus
+  fulfillmentMethod: QuoteFulfillmentMethod | null
+  quotedSubtotal: string | null
+  deliveryFee: string | null
+  quotedTotal: string | null
+  quotedAt: string | null
+  acceptedAt: string | null
+  rejectedAt: string | null
+  convertedOrderNumber: string | null
   createdAt: string
   updatedAt: string
   items: QuoteRequestItem[]
@@ -63,7 +74,22 @@ export interface AdminQuoteRequestListItem {
 export interface AdminQuoteRequestDetail extends AdminQuoteRequestListItem {
   message: string | null
   adminNote: string | null
+  fulfillmentMethod: QuoteFulfillmentMethod | null
+  quotedSubtotal: string | null
+  deliveryFee: string | null
+  quotedTotal: string | null
+  quotedAt: string | null
+  acceptedAt: string | null
+  rejectedAt: string | null
+  rejectionReason: string | null
+  convertedOrderNumber: string | null
   items: QuoteRequestItem[]
+}
+
+export interface PrepareQuotePricingInput {
+  items: Array<{ itemId: string; quotedUnitPrice: string }>
+  deliveryFee: string
+  fulfillmentMethod: QuoteFulfillmentMethod
 }
 
 export interface AdminQuoteRequestsQuery {
@@ -140,4 +166,93 @@ export async function updateAdminQuoteRequestNote(
     body: JSON.stringify({ note }),
   })
   return response.data.quoteRequest
+}
+
+export async function prepareAdminQuotePricing(
+  reference: string,
+  input: PrepareQuotePricingInput,
+): Promise<AdminQuoteRequestDetail> {
+  const response = await request<AdminQuoteRequestResponse>(`/admin/quotes/${encodeURIComponent(reference)}/price`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.quoteRequest
+}
+
+export interface CustomerQuoteRequestListItem {
+  id: string
+  quoteNumber: string
+  shoppingMode: QuoteShoppingMode
+  status: QuoteRequestStatus
+  itemCount: number
+  quotedTotal: string | null
+  quotedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface CustomerQuoteRequestsResponse {
+  success: true
+  data: { quoteRequests: CustomerQuoteRequestListItem[] }
+}
+
+interface QuoteRequestResponse {
+  success: true
+  message?: string
+  data: { quoteRequest: QuoteRequest }
+}
+
+export async function listCustomerQuoteRequests(): Promise<CustomerQuoteRequestListItem[]> {
+  const response = await request<CustomerQuoteRequestsResponse>('/quotes')
+  return response.data.quoteRequests
+}
+
+export async function getCustomerQuoteRequest(reference: string): Promise<QuoteRequest> {
+  const response = await request<QuoteRequestResponse>(`/quotes/${encodeURIComponent(reference)}`)
+  return response.data.quoteRequest
+}
+
+export async function acceptCustomerQuoteRequest(reference: string): Promise<QuoteRequest> {
+  const response = await request<QuoteRequestResponse>(`/quotes/${encodeURIComponent(reference)}/accept`, {
+    method: 'POST',
+  })
+  return response.data.quoteRequest
+}
+
+export async function rejectCustomerQuoteRequest(
+  reference: string,
+  reason?: string,
+): Promise<QuoteRequest> {
+  const response = await request<QuoteRequestResponse>(`/quotes/${encodeURIComponent(reference)}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(reason ? { reason } : {}),
+  })
+  return response.data.quoteRequest
+}
+
+export interface ConvertQuoteToOrderInput {
+  whatsapp?: string
+  deliveryAddress?: string
+  city?: string
+  deliveryInstructions?: string
+}
+
+interface ConvertQuoteResponse {
+  success: true
+  message: string
+  data: { order: CreatedOrder }
+}
+
+export async function convertQuoteToOrder(
+  reference: string,
+  input: ConvertQuoteToOrderInput = {},
+): Promise<CreatedOrder> {
+  const response = await request<ConvertQuoteResponse>(`/quotes/${encodeURIComponent(reference)}/convert`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.order
 }

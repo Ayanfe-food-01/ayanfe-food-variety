@@ -64,6 +64,7 @@ import {
 import {
   getAdminQuoteRequestController,
   listAdminQuoteRequestsController,
+  prepareAdminQuotePricingController,
   updateAdminQuoteRequestNoteController,
   updateAdminQuoteRequestStatusController,
 } from '../modules/quotes/quote.admin.controller.js'
@@ -106,6 +107,7 @@ adminRoutes.get('/quotes', listAdminQuoteRequestsController)
 adminRoutes.get('/quotes/:reference', getAdminQuoteRequestController)
 adminRoutes.patch('/quotes/:reference/status', updateAdminQuoteRequestStatusController)
 adminRoutes.patch('/quotes/:reference/note', updateAdminQuoteRequestNoteController)
+adminRoutes.post('/quotes/:reference/price', prepareAdminQuotePricingController)
 adminRoutes.get('/notifications', listAdminNotificationsController)
 adminRoutes.post('/notifications/read-all', markAllAdminNotificationsReadController)
 adminRoutes.patch('/notifications/:id/read', markAdminNotificationReadController)

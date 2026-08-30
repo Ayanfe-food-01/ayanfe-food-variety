@@ -2,10 +2,12 @@ import type { RequestHandler } from 'express'
 import {
   getAdminQuoteRequest,
   listAdminQuoteRequests,
+  prepareQuotePricing,
   updateAdminQuoteRequestNote,
   updateAdminQuoteRequestStatus,
 } from './quote.service.js'
 import {
+  validatePrepareQuotePricingInput,
   validateQuoteNumber,
   validateQuoteRequestNoteInput,
   validateQuoteRequestQuery,
@@ -41,5 +43,16 @@ export const updateAdminQuoteRequestNoteController: RequestHandler = async (requ
     success: true,
     message: 'Internal note saved.',
     data: { quoteRequest: await updateAdminQuoteRequestNote(reference, validateQuoteRequestNoteInput(request.body)) },
+  })
+}
+
+export const prepareAdminQuotePricingController: RequestHandler = async (request, response) => {
+  const reference = validateQuoteNumber(request.params.reference)
+  response.json({
+    success: true,
+    message: 'Quotation prepared.',
+    data: {
+      quoteRequest: await prepareQuotePricing(reference, validatePrepareQuotePricingInput(request.body)),
+    },
   })
 }

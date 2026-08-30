@@ -20,6 +20,7 @@ const links = [
   { label: 'Contact', href: '/contact' },
   { label: 'Help', href: '/help' },
   { label: 'Orders', href: '/orders' },
+  { label: 'Quotes', href: '/quotes' },
   { label: 'Track order', href: '/track-order' },
 ]
 

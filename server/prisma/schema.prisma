@@ -83,6 +83,7 @@ enum QuoteRequestStatus {
   PENDING
   CONTACTED
   QUOTED
+  ACCEPTED
   COMPLETED
   CANCELLED
 }
@@ -218,6 +219,7 @@ model Order {
   archivedById     String?       @map("archived_by_id") @db.Uuid
   createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  quoteRequestId      String?     @unique @map("quote_request_id") @db.Uuid
   orderItems          OrderItem[]
   paymentSnapshot     OrderPayment?
   paymentSubmissions PaymentSubmission[]
@@ -225,6 +227,8 @@ model Order {
   stockAdjustments    ProductStockAdjustment[]
   user                User?       @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   archivedBy          User?       @relation("OrderArchiveActor", fields: [archivedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  quoteRequest        QuoteRequest? @relation("QuoteSourceOrder", fields: [quoteRequestId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  convertedQuoteRequests QuoteRequest[] @relation("QuoteConvertedOrder")
 
   @@index([userId], map: "orders_user_id_idx")
   @@index([archivedAt], map: "orders_archived_at_idx")
@@ -577,11 +581,22 @@ model QuoteRequest {
   message      String?           @db.Text
   shoppingMode ShoppingMode?     @map("shopping_mode")
   status       QuoteRequestStatus @default(PENDING)
+  fulfillmentMethod FulfillmentMethod? @map("fulfillment_method")
   adminNote    String?           @map("admin_note") @db.VarChar(2000)
+  quotedSubtotal Decimal?        @map("quoted_subtotal") @db.Decimal(12, 2)
+  deliveryFee  Decimal?          @map("delivery_fee") @db.Decimal(12, 2)
+  quotedTotal  Decimal?          @map("quoted_total") @db.Decimal(12, 2)
+  quotedAt     DateTime?         @map("quoted_at") @db.Timestamptz(6)
+  acceptedAt   DateTime?         @map("accepted_at") @db.Timestamptz(6)
+  rejectedAt   DateTime?         @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason String?        @map("rejection_reason") @db.VarChar(500)
+  convertedOrderId String?       @unique @map("converted_order_id") @db.Uuid
   createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   items        QuoteRequestItem[]
+  convertedOrder Order?          @relation("QuoteConvertedOrder", fields: [convertedOrderId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  orders       Order[]           @relation("QuoteSourceOrder")
 
   @@index([userId, createdAt(sort: Desc)], map: "quote_requests_user_created_idx")
   @@index([userId, status], map: "quote_requests_user_status_idx")
@@ -601,6 +616,7 @@ model QuoteRequestItem {
   productOptionLabel String?   @map("product_option_label") @db.VarChar(80)
   quantity        Int
   note            String?      @db.VarChar(500)
+  quotedUnitPrice Decimal?     @map("quoted_unit_price") @db.Decimal(12, 2)
   quoteRequest    QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   product         Product      @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   productOption   ProductOption? @relation(fields: [productOptionId], references: [id], onDelete: Restrict, onUpdate: NoAction)

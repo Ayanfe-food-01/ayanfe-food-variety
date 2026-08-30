@@ -13,6 +13,8 @@ import { OrderConfirmation } from './pages/OrderConfirmation'
 import { CustomerOrders } from './pages/CustomerOrders'
 import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
+import { CustomerQuotes } from './pages/CustomerQuotes'
+import { CustomerQuoteDetail } from './pages/CustomerQuoteDetail'
 import { TrackOrder } from './pages/TrackOrder'
 import { RequestQuote } from './pages/RequestQuote'
 import { Dashboard } from './pages/Admin/Dashboard'
@@ -147,6 +149,8 @@ function RouteTransition() {
           <Route path="/orders" element={<CustomerOrders />} />
           <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
           <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
+          <Route path="/quotes" element={<CustomerQuotes />} />
+          <Route path="/quotes/:reference" element={<CustomerQuoteDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -193,6 +197,7 @@ function PrivateRouteSeo() {
     || pathname === '/checkout'
     || pathname.startsWith('/admin')
     || pathname.startsWith('/orders')
+    || pathname.startsWith('/quotes')
     || pathname.startsWith('/order-confirmation')
 
   if (!isPrivateRoute) return null
@@ -213,7 +218,9 @@ function PrivateRouteSeo() {
             ? 'Wishlist | Ayanfe Food Variety'
         : pathname === '/checkout'
           ? 'Checkout | Ayanfe Food Variety'
-          : 'Your orders | Ayanfe Food Variety'
+          : pathname.startsWith('/quotes')
+            ? 'Your quotations | Ayanfe Food Variety'
+            : 'Your orders | Ayanfe Food Variety'
 
   return (
     <Seo

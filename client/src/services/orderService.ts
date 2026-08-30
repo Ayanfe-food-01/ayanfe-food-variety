@@ -5,6 +5,7 @@ export type OrderType = 'RETAIL' | 'WHOLESALE'
 export interface CreatedOrder {
   id: string
   orderNumber: string
+  quoteNumber: string | null
   customerName: string
   phone: string
   whatsapp: string | null
@@ -187,6 +188,7 @@ export type FulfillmentMethod = 'PICKUP' | 'DELIVERY'
 export interface AdminOrder {
   orderNumber: string
   id: string
+  quoteNumber: string | null
   customerName: string
   phone: string
   whatsapp: string | null

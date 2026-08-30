@@ -27,6 +27,20 @@ export interface CancellationInput {
   reason?: string
 }
 
+/**
+ * Delivery details a customer supplies when an accepted quotation is converted
+ * into an order. Money and order content never come from here — they are taken
+ * from the quotation snapshot. All fields are optional because pickup orders
+ * need no address; the service requires delivery fields only when the
+ * quotation is fulfilled by delivery.
+ */
+export interface ConvertQuoteToOrderInput {
+  whatsapp?: string
+  deliveryAddress?: string
+  city?: string
+  deliveryInstructions?: string
+}
+
 export interface OrderItemResponse {
   id: string
   productId: string
@@ -47,6 +61,7 @@ export interface OrderItemResponse {
 export interface OrderResponse {
   id: string
   orderNumber: string
+  quoteNumber: string | null
   customerName: string
   phone: string
   whatsapp: string | null

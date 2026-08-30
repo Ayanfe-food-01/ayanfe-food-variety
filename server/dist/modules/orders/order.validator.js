@@ -100,6 +100,18 @@ export function validateCheckoutInput(body) {
             : (() => { throw new HttpError(400, 'Payment method is not supported.'); })(),
     };
 }
+export function validateConvertQuoteInput(body) {
+    if (body === undefined || body === null)
+        return {};
+    if (!isRecord(body))
+        throw new HttpError(400, 'Conversion details are invalid.');
+    return {
+        whatsapp: optionalText(body.whatsapp, 'WhatsApp number', 40),
+        deliveryAddress: optionalText(body.deliveryAddress, 'deliveryAddress', 2000),
+        city: optionalText(body.city, 'city', 120),
+        deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
+    };
+}
 export function validateCancellationInput(body) {
     if (body === undefined || body === null)
         return {};

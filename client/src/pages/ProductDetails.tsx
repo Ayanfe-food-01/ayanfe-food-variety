@@ -6,6 +6,8 @@ import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { ProductPrice } from '../components/products/ProductPrice'
 import { ProductOptionSelector } from '../components/products/ProductOptionSelector'
+import { ReviewStars } from '../components/reviews/ReviewStars'
+import { ProductReviewsSection } from '../components/reviews/ProductReviewsSection'
 import { WholesalePricing } from '../components/products/WholesalePricing'
 import { WishlistButton } from '../components/products/WishlistButton'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
@@ -14,6 +16,7 @@ import { useToast } from '../components/ui/Toast'
 import { useCart } from '../hooks/useCart'
 import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useProductReviews } from '../hooks/useProductReviews'
 import { ApiError } from '../services/api'
 import {
   getProduct,
@@ -48,6 +51,7 @@ export function ProductDetails() {
   const { addToCart, items, pendingItemIds } = useCart()
   const { user, shoppingMode } = useCustomerAuth()
   const { showToast } = useToast()
+  const productReviews = useProductReviews(product ? (product.slug ?? product.id) : null)
   const isWholesaleShopper = user?.role === 'CUSTOMER' && shoppingMode === 'WHOLESALE'
   const [wholesalePricing, setWholesalePricing] = useState<{
     productId: string
@@ -525,6 +529,26 @@ export function ProductDetails() {
                   </>
                 )}
               </div>
+              {productReviews.status === 'ready' && productReviews.summary !== null && (
+                <div className="mt-4">
+                  {productReviews.summary.reviewCount > 0 ? (
+                    <div
+                      className="flex flex-wrap items-center gap-x-2 gap-y-1"
+                      aria-label={`Average rating ${productReviews.summary.averageRating ?? 0} out of 5, based on ${productReviews.summary.reviewCount} ${productReviews.summary.reviewCount === 1 ? 'review' : 'reviews'}`}
+                    >
+                      <ReviewStars value={productReviews.summary.averageRating ?? 0} size={18} />
+                      <span className="font-bold text-green-dark">
+                        {Number((productReviews.summary.averageRating ?? 0).toFixed(1))}
+                      </span>
+                      <span className="text-sm text-muted">
+                        · Based on {productReviews.summary.reviewCount} {productReviews.summary.reviewCount === 1 ? 'review' : 'reviews'}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium text-muted">No reviews yet</p>
+                  )}
+                </div>
+              )}
               {isWholesaleShopper
                 && effectiveWholesalePricingStatus === 'ready'
                 && !hasOptions && (
@@ -626,6 +650,8 @@ export function ProductDetails() {
             </article>
           </div>
         </section>
+
+        <ProductReviewsSection reviews={productReviews} />
 
         <section className="border-t border-line bg-cream py-14 sm:py-18 lg:py-24" aria-labelledby="related-products-heading">
           <div className="container">

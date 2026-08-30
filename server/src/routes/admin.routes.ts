@@ -78,6 +78,14 @@ import {
   updateAdminTestimonialFeaturedController,
   updateAdminTestimonialStatusController,
 } from '../modules/testimonials/testimonial.controller.js'
+import {
+  deleteAdminReviewController,
+  getAdminReviewController,
+  listAdminReviewsController,
+  updateAdminReviewFeaturedController,
+  updateAdminReviewOrderController,
+  updateAdminReviewStatusController,
+} from '../modules/reviews/review.admin.controller.js'
 
 export const adminRoutes = Router()
 
@@ -101,6 +109,12 @@ adminRoutes.patch('/testimonials/:id/status', updateAdminTestimonialStatusContro
 adminRoutes.patch('/testimonials/:id/featured', updateAdminTestimonialFeaturedController)
 adminRoutes.patch('/testimonials/:id', testimonialAvatarUpload, updateAdminTestimonialController)
 adminRoutes.delete('/testimonials/:id', deleteAdminTestimonialController)
+adminRoutes.get('/reviews', listAdminReviewsController)
+adminRoutes.get('/reviews/:id', getAdminReviewController)
+adminRoutes.patch('/reviews/:id/status', updateAdminReviewStatusController)
+adminRoutes.patch('/reviews/:id/featured', updateAdminReviewFeaturedController)
+adminRoutes.patch('/reviews/:id/order', updateAdminReviewOrderController)
+adminRoutes.delete('/reviews/:id', deleteAdminReviewController)
 adminRoutes.get('/products', listAdminProductsController)
 adminRoutes.get('/products/:id', getAdminProductController)
 adminRoutes.post('/products', productImageUpload, createAdminProductController)

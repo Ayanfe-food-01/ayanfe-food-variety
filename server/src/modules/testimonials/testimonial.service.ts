@@ -1,6 +1,10 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import {
+  assertHomepageFeaturedCapacity,
+  getHomepageFeaturedMetrics,
+} from '../customer-stories/customer-stories.service.js'
 import type {
   AdminTestimonialQuery,
   StoredTestimonialImage,
@@ -68,6 +72,7 @@ export async function listAdminTestimonials(query: AdminTestimonialQuery) {
       total,
       totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
     },
+    featured: await getHomepageFeaturedMetrics(),
   }
 }
 
@@ -78,6 +83,9 @@ export async function getAdminTestimonial(id: string): Promise<Testimonial> {
 }
 
 export async function createTestimonial(input: TestimonialInput, image?: StoredTestimonialImage): Promise<Testimonial> {
+  if (input.isActive && input.isFeatured) {
+    await assertHomepageFeaturedCapacity()
+  }
   try {
     return toTestimonial(await prisma.testimonial.create({
       data: {
@@ -100,7 +108,12 @@ export async function updateTestimonial(
   input: TestimonialInput,
   image?: StoredTestimonialImage,
 ): Promise<Testimonial> {
-  await getAdminTestimonial(id)
+  const existing = await getAdminTestimonial(id)
+  const wasDisplayed = existing.isActive && existing.isFeatured
+  const willBeDisplayed = input.isActive && input.isFeatured
+  if (willBeDisplayed && !wasDisplayed) {
+    await assertHomepageFeaturedCapacity()
+  }
   try {
     return toTestimonial(await prisma.testimonial.update({
       where: { id },
@@ -119,6 +132,12 @@ export async function updateTestimonial(
 }
 
 export async function updateTestimonialStatus(id: string, isActive: boolean): Promise<Testimonial> {
+  const existing = await getAdminTestimonial(id)
+  const wasDisplayed = existing.isActive && existing.isFeatured
+  const willBeDisplayed = isActive && existing.isFeatured
+  if (willBeDisplayed && !wasDisplayed) {
+    await assertHomepageFeaturedCapacity()
+  }
   try {
     return toTestimonial(await prisma.testimonial.update({ where: { id }, data: { isActive } }))
   } catch (error: unknown) {
@@ -130,6 +149,15 @@ export async function updateTestimonialStatus(id: string, isActive: boolean): Pr
 }
 
 export async function updateTestimonialFeatured(id: string, isFeatured: boolean): Promise<Testimonial> {
+  const existing = await getAdminTestimonial(id)
+  if (isFeatured && !existing.isActive) {
+    throw new HttpError(409, 'Only active testimonials can be featured on the homepage.')
+  }
+  const wasDisplayed = existing.isActive && existing.isFeatured
+  const willBeDisplayed = isFeatured && existing.isActive
+  if (willBeDisplayed && !wasDisplayed) {
+    await assertHomepageFeaturedCapacity()
+  }
   try {
     return toTestimonial(await prisma.testimonial.update({ where: { id }, data: { isFeatured } }))
   } catch (error: unknown) {

@@ -10,6 +10,7 @@ import { brandingImageUpload, getAdminBrandingController, updateAdminBrandingCon
 import { listAdminNotificationsController, markAdminNotificationReadController, markAllAdminNotificationsReadController, } from '../modules/notifications/notification.controller.js';
 import { getAdminQuoteRequestController, listAdminQuoteRequestsController, prepareAdminQuotePricingController, updateAdminQuoteRequestNoteController, updateAdminQuoteRequestStatusController, } from '../modules/quotes/quote.admin.controller.js';
 import { createAdminTestimonialController, deleteAdminTestimonialController, getAdminTestimonialController, listAdminTestimonialsController, testimonialAvatarUpload, updateAdminTestimonialController, updateAdminTestimonialFeaturedController, updateAdminTestimonialStatusController, } from '../modules/testimonials/testimonial.controller.js';
+import { deleteAdminReviewController, getAdminReviewController, listAdminReviewsController, updateAdminReviewFeaturedController, updateAdminReviewOrderController, updateAdminReviewStatusController, } from '../modules/reviews/review.admin.controller.js';
 export const adminRoutes = Router();
 adminRoutes.use(...requireAdminAccess);
 adminRoutes.get('/categories', listAdminCategoriesController);
@@ -31,6 +32,12 @@ adminRoutes.patch('/testimonials/:id/status', updateAdminTestimonialStatusContro
 adminRoutes.patch('/testimonials/:id/featured', updateAdminTestimonialFeaturedController);
 adminRoutes.patch('/testimonials/:id', testimonialAvatarUpload, updateAdminTestimonialController);
 adminRoutes.delete('/testimonials/:id', deleteAdminTestimonialController);
+adminRoutes.get('/reviews', listAdminReviewsController);
+adminRoutes.get('/reviews/:id', getAdminReviewController);
+adminRoutes.patch('/reviews/:id/status', updateAdminReviewStatusController);
+adminRoutes.patch('/reviews/:id/featured', updateAdminReviewFeaturedController);
+adminRoutes.patch('/reviews/:id/order', updateAdminReviewOrderController);
+adminRoutes.delete('/reviews/:id', deleteAdminReviewController);
 adminRoutes.get('/products', listAdminProductsController);
 adminRoutes.get('/products/:id', getAdminProductController);
 adminRoutes.post('/products', productImageUpload, createAdminProductController);

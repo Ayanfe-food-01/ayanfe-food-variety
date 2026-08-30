@@ -604,6 +604,7 @@ model Review {
   orderItem        OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([productId, status], map: "reviews_product_status_idx")
+  @@index([productId, status, createdAt(sort: Desc)], map: "reviews_public_product_created_idx")
   @@index([productId, isFeatured, displayOrder], map: "reviews_product_featured_order_idx")
   @@index([isFeatured, isActive, displayOrder], map: "reviews_featured_active_order_idx")
   @@index([userId, createdAt(sort: Desc)], map: "reviews_user_created_idx")

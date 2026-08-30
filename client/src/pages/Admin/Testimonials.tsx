@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
+import { ContentTypeBadge } from '../../components/admin/ContentTypeBadge'
+import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -13,26 +15,43 @@ import {
   type AdminTestimonialsPage,
   type AdminTestimonialsQuery,
 } from '../../services/adminService'
+import type { CustomerStory } from '../../services/storeSettingsService'
 import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
 
 const pageSize = 10
 const formatDate = (value: string) => value ? formatCompatibleDate(value) : '—'
 
+const hideBrokenImage = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.style.display = 'none'
+}
+
+const toPreviewStory = (testimonial: AdminTestimonialsPage['testimonials'][number]): CustomerStory => ({
+  id: `testimonial:${testimonial.id}`,
+  type: 'testimonial',
+  authorName: testimonial.authorName,
+  content: testimonial.content,
+  rating: testimonial.rating,
+  verifiedPurchase: false,
+  createdAt: testimonial.createdAt,
+})
+
 interface TestimonialActionsProps {
   testimonial: AdminTestimonialsPage['testimonials'][number]
   isBusy: boolean
+  onPreview: () => void
   onToggleStatus: () => void
   onToggleFeatured: () => void
   onDelete: () => void
 }
 
-function TestimonialActions({ testimonial, isBusy, onToggleStatus, onToggleFeatured, onDelete }: TestimonialActionsProps) {
+function TestimonialActions({ testimonial, isBusy, onPreview, onToggleStatus, onToggleFeatured, onDelete }: TestimonialActionsProps) {
   return (
     <ActionMenu ariaLabel={`Actions for ${testimonial.authorName}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
           <ActionMenuLink to={`/admin/testimonials/${testimonial.id}/edit`} onClick={close}>Edit</ActionMenuLink>
+          <ActionMenuButton onClick={() => { close(); onPreview() }}>Preview homepage card</ActionMenuButton>
           <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{testimonial.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
           <ActionMenuButton onClick={() => { close(); onToggleFeatured() }}>{testimonial.isFeatured ? 'Remove from featured' : 'Mark as featured'}</ActionMenuButton>
           <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
@@ -56,6 +75,7 @@ export function Testimonials() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [previewStory, setPreviewStory] = useState<CustomerStory | null>(null)
   const [testimonialToStatus, setTestimonialToStatus] = useState<AdminTestimonialsPage['testimonials'][number] | null>(null)
   const [testimonialToDelete, setTestimonialToDelete] = useState<AdminTestimonialsPage['testimonials'][number] | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -203,6 +223,17 @@ export function Testimonials() {
         </form>
       </section>
 
+      {result?.featured && (
+        <div className={`mt-6 flex flex-col gap-2 rounded-2xl border px-4 py-3 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 ${result.featured.remaining > 0 ? 'border-line bg-white' : 'border-orange/25 bg-orange/5'}`}>
+          <span className="font-bold text-green-dark">Homepage featured slots:</span>
+          <span className={result.featured.remaining > 0 ? 'text-muted' : 'font-bold text-orange'}>
+            {result.featured.used} of {result.featured.max} used
+            {result.featured.remaining > 0 ? ` · ${result.featured.remaining} available` : ' · limit reached'}
+          </span>
+          <span className="text-xs text-muted">Only active testimonials can be featured on the homepage.</span>
+        </div>
+      )}
+
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
       {isLoading ? (
         <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading testimonials…</div>
@@ -223,22 +254,30 @@ export function Testimonials() {
               <article className="rounded-2xl border border-line bg-cream/45 p-4" key={testimonial.id}>
                 <div className="flex items-start gap-3">
                   <div className="size-12 shrink-0 overflow-hidden rounded-full bg-sage">
-                    {testimonial.avatarUrl && <img className="size-full object-cover" src={testimonial.avatarUrl} alt="" />}
+                    {testimonial.avatarUrl && <img className="size-full object-cover" src={testimonial.avatarUrl} alt="" onError={hideBrokenImage} />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="pr-2 font-bold text-green-dark">{testimonial.authorName}{testimonial.rating ? <span className="ml-2 text-xs font-semibold text-orange">★ {testimonial.rating}/5</span> : null}</p>
                     <p className="mt-1 line-clamp-2 break-words text-xs text-muted">{testimonial.content}</p>
-                    <p className="mt-1 text-xs text-muted">Order {testimonial.displayOrder}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <ContentTypeBadge type="testimonial" />
+                      <span className="text-xs text-muted">Order {testimonial.displayOrder}</span>
+                    </div>
                   </div>
                   <TestimonialActions
                     testimonial={testimonial}
                     isBusy={busyId === testimonial.id || deletingId === testimonial.id}
+                    onPreview={() => setPreviewStory(toPreviewStory(testimonial))}
                     onToggleStatus={() => requestStatusChange(testimonial)}
                     onToggleFeatured={() => void toggleFeatured(testimonial)}
                     onDelete={() => openDeleteConfirmation(testimonial)}
                   />
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
+                  <div>
+                    <dt className="uppercase tracking-[0.12em] text-muted">Content type</dt>
+                    <dd className="mt-1"><ContentTypeBadge type="testimonial" /></dd>
+                  </div>
                   <div>
                     <dt className="uppercase tracking-[0.12em] text-muted">Status</dt>
                     <dd className="mt-1">
@@ -267,19 +306,20 @@ export function Testimonials() {
             <ResponsiveDataTable label="Testimonials table horizontal scroll">
               <table className="w-full min-w-[1180px] whitespace-nowrap text-left text-sm">
                 <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
-                  <tr><th className="px-5 py-4 font-bold">Author</th><th className="px-5 py-4 font-bold">Testimonial</th><th className="px-5 py-4 font-bold">Rating</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Featured</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
+                  <tr><th className="px-5 py-4 font-bold">Author</th><th className="px-5 py-4 font-bold">Testimonial</th><th className="px-5 py-4 font-bold">Type</th><th className="px-5 py-4 font-bold">Rating</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Featured</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {testimonials.map((testimonial) => (
                     <tr key={testimonial.id} className="group">
-                      <td className="w-[260px] max-w-[260px] overflow-hidden px-5 py-4"><div className="flex min-w-[220px] max-w-[260px] items-center gap-3"><div className="size-11 shrink-0 overflow-hidden rounded-full bg-sage">{testimonial.avatarUrl && <img className="size-full object-cover" src={testimonial.avatarUrl} alt="" />}</div><p className="responsive-table-ellipsis font-bold text-green-dark">{testimonial.authorName}</p></div></td>
+                      <td className="w-[260px] max-w-[260px] overflow-hidden px-5 py-4"><div className="flex min-w-[220px] max-w-[260px] items-center gap-3"><div className="size-11 shrink-0 overflow-hidden rounded-full bg-sage">{testimonial.avatarUrl && <img className="size-full object-cover" src={testimonial.avatarUrl} alt="" onError={hideBrokenImage} />}</div><p className="responsive-table-ellipsis font-bold text-green-dark">{testimonial.authorName}</p></div></td>
                       <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><p className="responsive-table-ellipsis max-w-[400px] text-xs leading-5 text-muted">{testimonial.content}</p></td>
+                      <td className="px-5 py-4"><ContentTypeBadge type="testimonial" /></td>
                       <td className="px-5 py-4">{testimonial.rating ? <span className="font-bold text-orange">★ {testimonial.rating}/5</span> : <span className="text-muted">—</span>}</td>
                       <td className="px-5 py-4 text-muted">{testimonial.displayOrder}</td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${testimonial.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{testimonial.isActive ? 'Active' : 'Inactive'}</span></td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${testimonial.isFeatured ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>{testimonial.isFeatured ? 'Featured' : 'Not featured'}</span></td>
                       <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(testimonial.createdAt)}</td>
-                      <td className="px-5 py-4"><TestimonialActions testimonial={testimonial} isBusy={busyId === testimonial.id || deletingId === testimonial.id} onToggleStatus={() => requestStatusChange(testimonial)} onToggleFeatured={() => void toggleFeatured(testimonial)} onDelete={() => openDeleteConfirmation(testimonial)} /></td>
+                      <td className="px-5 py-4"><TestimonialActions testimonial={testimonial} isBusy={busyId === testimonial.id || deletingId === testimonial.id} onPreview={() => setPreviewStory(toPreviewStory(testimonial))} onToggleStatus={() => requestStatusChange(testimonial)} onToggleFeatured={() => void toggleFeatured(testimonial)} onDelete={() => openDeleteConfirmation(testimonial)} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -289,6 +329,7 @@ export function Testimonials() {
           {totalPages > 1 && <div className="flex items-center justify-between gap-4 border-t border-line px-5 py-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
         </div>
       )}
+      {previewStory && <StoryPreviewModal story={previewStory} onClose={() => setPreviewStory(null)} />}
       {testimonialToStatus && (
         <ConfirmDialog
           eyebrow="Change testimonial status"

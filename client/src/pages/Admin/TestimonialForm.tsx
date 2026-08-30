@@ -2,8 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { SubmitButton } from '../../components/ui/SubmitButton'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
+import type { CustomerStory } from '../../services/storeSettingsService'
 import {
   createAdminTestimonial,
   getAdminTestimonial,
@@ -32,6 +34,17 @@ export function TestimonialForm() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isSaving, setIsSaving] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
+
+  const previewStory: CustomerStory = {
+    id: 'testimonial:preview',
+    type: 'testimonial',
+    authorName: form.authorName.trim() || 'Author name',
+    content: form.content.trim() || 'Your testimonial quote will appear here once you type it in.',
+    rating: form.rating === '' || !Number.isFinite(Number(form.rating)) ? null : Number(form.rating),
+    verifiedPurchase: false,
+    createdAt: new Date().toISOString(),
+  }
 
   useEffect(() => {
     if (!id) return
@@ -103,9 +116,10 @@ export function TestimonialForm() {
           <label className="flex items-start gap-3 rounded-xl border border-line bg-cream/50 p-4 text-sm text-green-dark"><input className="mt-0.5 size-4 accent-green" type="checkbox" checked={form.isFeatured} onChange={(event) => setForm({ ...form, isFeatured: event.target.checked })} /><span><span className="block font-bold">Mark as featured</span><span className="mt-1 block text-xs font-normal leading-5 text-muted">Featured testimonials can be highlighted in your storefront testimonial section.</span></span></label>
           {fieldError && <p className="text-sm font-medium text-orange" role="alert">{fieldError}</p>}
           {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-          <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel}>{isEditing ? 'Save changes' : 'Create testimonial'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/testimonials">Cancel</Link></div>
+          <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel}>{isEditing ? 'Save changes' : 'Create testimonial'}</SubmitButton><button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" type="button" onClick={() => setPreviewing(true)}>Preview homepage card</button><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/testimonials">Cancel</Link></div>
         </form>}
       </div>
+      {previewing && <StoryPreviewModal story={previewStory} onClose={() => setPreviewing(false)} />}
     </>
   )
 }

@@ -672,6 +672,7 @@ export interface AdminTestimonialsPage {
     total: number
     totalPages: number
   }
+  featured: HomepageFeaturedMetrics
 }
 
 interface AdminTestimonialsResponse {
@@ -763,4 +764,129 @@ export async function updateAdminTestimonialFeatured(id: string, isFeatured: boo
     body: JSON.stringify({ isFeatured }),
   })
   return response.data.testimonial
+}
+
+export interface HomepageFeaturedMetrics {
+  used: number
+  max: number
+  remaining: number
+}
+
+export type AdminReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface AdminReviewItem {
+  id: string
+  productId: string
+  productName: string
+  productSlug: string
+  productImage: string
+  productOptionLabel: string | null
+  customerId: string | null
+  customerName: string | null
+  orderNumber: string
+  rating: number
+  content: string
+  status: AdminReviewStatus
+  verifiedPurchase: boolean
+  isActive: boolean
+  isFeatured: boolean
+  displayOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminReviewDetail extends AdminReviewItem {
+  customerEmail: string | null
+  productQuantity: number
+  orderCreatedAt: string
+}
+
+export interface AdminReviewsQuery {
+  page: number
+  pageSize: number
+  search?: string
+  status?: 'pending' | 'approved' | 'rejected'
+  verified?: 'verified' | 'not-verified'
+  rating?: string
+}
+
+export interface AdminReviewsPage {
+  reviews: AdminReviewItem[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+  featured: HomepageFeaturedMetrics
+}
+
+interface AdminReviewsResponse {
+  success: true
+  data: AdminReviewsPage
+}
+
+interface AdminReviewResponse {
+  success: true
+  data: { review: AdminReviewDetail }
+}
+
+const adminReviewsQueryString = (query: AdminReviewsQuery): string => {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  })
+  if (query.search) params.set('search', query.search)
+  if (query.status) params.set('status', query.status)
+  if (query.verified) params.set('verified', query.verified)
+  if (query.rating) params.set('rating', query.rating)
+  return params.toString()
+}
+
+export async function getAdminReviews(query: AdminReviewsQuery): Promise<AdminReviewsPage> {
+  const response = await request<AdminReviewsResponse>(`/admin/reviews?${adminReviewsQueryString(query)}`)
+  return response.data
+}
+
+export async function getAdminReview(id: string): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}`)
+  return response.data.review
+}
+
+export async function updateAdminReviewStatus(
+  id: string,
+  status: 'APPROVED' | 'REJECTED',
+): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+  return response.data.review
+}
+
+export async function updateAdminReviewFeatured(id: string, isFeatured: boolean): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}/featured`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isFeatured }),
+  })
+  return response.data.review
+}
+
+export async function updateAdminReviewOrder(id: string, displayOrder: number): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}/order`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayOrder }),
+  })
+  return response.data.review
+}
+
+export async function deleteAdminReview(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/reviews/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirm: true }),
+  })
 }

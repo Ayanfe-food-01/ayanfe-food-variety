@@ -92,7 +92,9 @@ export function ImageUploadField({
       </label>
       {error && <p className="mt-1 text-xs font-normal text-orange" role="alert">{error}</p>}
       {(previewUrl || currentUrl) && (
-        <img className={`mt-3 ${previewClassName}`} src={previewUrl || currentUrl || ''} alt={alt} />
+        <img key={previewUrl || currentUrl} className={`mt-3 ${previewClassName}`} src={previewUrl || currentUrl || ''} alt={alt} onError={(event) => {
+          event.currentTarget.style.display = 'none'
+        }} />
       )}
       {currentUrl && onReset && (
         <button

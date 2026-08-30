@@ -44,6 +44,8 @@ import { Banners } from './pages/Admin/Banners'
 import { BannerForm } from './pages/Admin/BannerForm'
 import { Testimonials } from './pages/Admin/Testimonials'
 import { TestimonialForm } from './pages/Admin/TestimonialForm'
+import { Reviews } from './pages/Admin/Reviews'
+import { ReviewDetail } from './pages/Admin/ReviewDetail'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 import { useRouteToast } from './hooks/useRouteToast'
 import { Seo } from './seo/Seo'
@@ -179,6 +181,8 @@ function RouteTransition() {
           <Route path="/admin/testimonials" element={<RequireAdmin><Testimonials /></RequireAdmin>} />
           <Route path="/admin/testimonials/new" element={<RequireAdmin><TestimonialForm /></RequireAdmin>} />
           <Route path="/admin/testimonials/:id/edit" element={<RequireAdmin><TestimonialForm /></RequireAdmin>} />
+          <Route path="/admin/reviews" element={<RequireAdmin><Reviews /></RequireAdmin>} />
+          <Route path="/admin/reviews/:id" element={<RequireAdmin><ReviewDetail /></RequireAdmin>} />
           <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
           <Route path="/admin/notifications" element={<RequireAdmin><Notifications /></RequireAdmin>} />
           <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />

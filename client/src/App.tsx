@@ -17,6 +17,7 @@ import { CustomerQuotes } from './pages/CustomerQuotes'
 import { CustomerQuoteDetail } from './pages/CustomerQuoteDetail'
 import { TrackOrder } from './pages/TrackOrder'
 import { RequestQuote } from './pages/RequestQuote'
+import { WriteReview } from './pages/WriteReview'
 import { Dashboard } from './pages/Admin/Dashboard'
 import { Analytics } from './pages/Admin/Analytics'
 import { Orders } from './pages/Admin/Orders'
@@ -41,6 +42,8 @@ import { Categories } from './pages/Admin/Categories'
 import { CategoryForm } from './pages/Admin/CategoryForm'
 import { Banners } from './pages/Admin/Banners'
 import { BannerForm } from './pages/Admin/BannerForm'
+import { Testimonials } from './pages/Admin/Testimonials'
+import { TestimonialForm } from './pages/Admin/TestimonialForm'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 import { useRouteToast } from './hooks/useRouteToast'
 import { Seo } from './seo/Seo'
@@ -149,6 +152,7 @@ function RouteTransition() {
           <Route path="/orders" element={<CustomerOrders />} />
           <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
           <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
+          <Route path="/orders/:orderNumber/review/:orderItemId" element={<WriteReview />} />
           <Route path="/quotes" element={<CustomerQuotes />} />
           <Route path="/quotes/:reference" element={<CustomerQuoteDetail />} />
           <Route path="/login" element={<Login />} />
@@ -172,6 +176,9 @@ function RouteTransition() {
           <Route path="/admin/banners" element={<RequireAdmin><Banners /></RequireAdmin>} />
           <Route path="/admin/banners/new" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
           <Route path="/admin/banners/:id/edit" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
+          <Route path="/admin/testimonials" element={<RequireAdmin><Testimonials /></RequireAdmin>} />
+          <Route path="/admin/testimonials/new" element={<RequireAdmin><TestimonialForm /></RequireAdmin>} />
+          <Route path="/admin/testimonials/:id/edit" element={<RequireAdmin><TestimonialForm /></RequireAdmin>} />
           <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
           <Route path="/admin/notifications" element={<RequireAdmin><Notifications /></RequireAdmin>} />
           <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />

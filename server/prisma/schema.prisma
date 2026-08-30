@@ -91,6 +91,12 @@ enum QuoteRequestStatus {
   CANCELLED
 }
 
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Category {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name           String    @unique @db.VarChar(120)
@@ -132,6 +138,7 @@ model Product {
   options     ProductOption[]
   wholesalePriceTiers WholesalePriceTier[]
   quoteRequestItems QuoteRequestItem[]
+  reviews          Review[]
 
   @@index([categoryId], map: "products_category_id_idx")
   @@index([isActive], map: "products_active_idx")
@@ -232,6 +239,7 @@ model Order {
   archivedBy          User?       @relation("OrderArchiveActor", fields: [archivedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
   quoteRequest        QuoteRequest? @relation("QuoteSourceOrder", fields: [quoteRequestId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   convertedQuoteRequests QuoteRequest[] @relation("QuoteConvertedOrder")
+  reviews              Review[]
 
   @@index([userId], map: "orders_user_id_idx")
   @@index([archivedAt], map: "orders_archived_at_idx")
@@ -394,6 +402,7 @@ model User {
   notificationReads AdminNotificationRead[]
   wishlistItems WishlistItem[]
   quoteRequests QuoteRequest[]
+  reviews      Review[]
 
   @@map("users")
 }
@@ -546,6 +555,7 @@ model OrderItem {
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   productOption ProductOption? @relation(fields: [productOptionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  reviews       Review[]
 
   @@index([orderId], map: "order_items_order_id_idx")
   @@index([productId], map: "order_items_product_id_idx")
@@ -571,6 +581,53 @@ model ProductStockAdjustment {
   @@index([orderId], map: "product_stock_adjustments_order_id_idx")
   @@index([productOptionId], map: "product_stock_adjustments_product_option_id_idx")
   @@map("product_stock_adjustments")
+}
+
+model Review {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId        String       @map("product_id") @db.Uuid
+  userId           String?      @map("user_id") @db.Uuid
+  orderId          String       @map("order_id") @db.Uuid
+  orderItemId      String       @unique @map("order_item_id") @db.Uuid
+  rating           Int
+  content          String       @db.Text
+  status           ReviewStatus @default(PENDING)
+  verifiedPurchase Boolean      @default(false) @map("verified_purchase")
+  isActive         Boolean      @default(true) @map("is_active")
+  isFeatured       Boolean      @default(false) @map("is_featured")
+  displayOrder     Int          @default(0) @map("display_order")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  product          Product      @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  order            Order        @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  orderItem        OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([productId, status], map: "reviews_product_status_idx")
+  @@index([productId, isFeatured, displayOrder], map: "reviews_product_featured_order_idx")
+  @@index([isFeatured, isActive, displayOrder], map: "reviews_featured_active_order_idx")
+  @@index([userId, createdAt(sort: Desc)], map: "reviews_user_created_idx")
+  @@index([orderId], map: "reviews_order_id_idx")
+  @@index([status], map: "reviews_status_idx")
+  @@map("reviews")
+}
+
+model Testimonial {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authorName     String   @map("author_name") @db.VarChar(180)
+  content        String   @db.Text
+  rating         Int?
+  avatarUrl      String?  @map("avatar_url") @db.VarChar(1000)
+  avatarPublicId String?  @map("avatar_public_id") @db.VarChar(255)
+  isActive       Boolean  @default(true) @map("is_active")
+  isFeatured     Boolean  @default(false) @map("is_featured")
+  displayOrder   Int      @default(0) @map("display_order")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([isActive, displayOrder], map: "testimonials_active_order_idx")
+  @@index([isActive, isFeatured, displayOrder], map: "testimonials_active_featured_order_idx")
+  @@map("testimonials")
 }
 
 model QuoteRequest {

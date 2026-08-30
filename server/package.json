@@ -22,7 +22,10 @@
     "test:quote-pricing": "tsx scripts/quote-pricing-smoke.ts",
     "test:quote-customer": "tsx scripts/customer-quote-smoke.ts",
     "test:quote-conversion": "tsx scripts/quote-conversion-smoke.ts",
-    "test:quote-notifications": "tsx scripts/quote-notification-smoke.ts"
+    "test:quote-notifications": "tsx scripts/quote-notification-smoke.ts",
+    "test:reviews": "tsx scripts/review-testimonial-db-smoke.ts",
+    "test:testimonials": "tsx scripts/testimonial-smoke.ts",
+    "test:reviews-api": "tsx scripts/review-http-smoke.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

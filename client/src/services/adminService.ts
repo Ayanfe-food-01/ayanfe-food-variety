@@ -641,3 +641,126 @@ export async function updateAdminProductFeatured(id: string, isFeatured: boolean
 export async function deleteAdminProduct(id: string): Promise<void> {
   await request<{ success: true }>(`/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
+
+export interface AdminTestimonial {
+  id: string
+  authorName: string
+  content: string
+  rating: number | null
+  avatarUrl: string | null
+  avatarPublicId: string | null
+  isActive: boolean
+  isFeatured: boolean
+  displayOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminTestimonialsQuery {
+  page: number
+  pageSize: number
+  search?: string
+  status?: 'active' | 'inactive'
+  featured?: 'featured' | 'not-featured'
+}
+
+export interface AdminTestimonialsPage {
+  testimonials: AdminTestimonial[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+interface AdminTestimonialsResponse {
+  success: true
+  data: AdminTestimonialsPage
+}
+
+interface AdminTestimonialResponse {
+  success: true
+  data: { testimonial: AdminTestimonial }
+}
+
+export interface TestimonialInput {
+  authorName: string
+  content: string
+  rating: string
+  displayOrder: number
+  isActive: boolean
+  isFeatured: boolean
+  avatar?: File
+}
+
+const testimonialFormDataFor = (input: TestimonialInput): FormData => {
+  const formData = new FormData()
+  formData.set('authorName', input.authorName)
+  formData.set('content', input.content)
+  formData.set('rating', input.rating)
+  formData.set('displayOrder', String(input.displayOrder))
+  formData.set('isActive', String(input.isActive))
+  formData.set('isFeatured', String(input.isFeatured))
+  if (input.avatar) formData.set('avatar', input.avatar)
+  return formData
+}
+
+const adminTestimonialsQueryString = (query: AdminTestimonialsQuery): string => {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  })
+  if (query.search) params.set('search', query.search)
+  if (query.status) params.set('status', query.status)
+  if (query.featured) params.set('featured', query.featured)
+  return params.toString()
+}
+
+export async function getAdminTestimonials(query: AdminTestimonialsQuery): Promise<AdminTestimonialsPage> {
+  const response = await request<AdminTestimonialsResponse>(`/admin/testimonials?${adminTestimonialsQueryString(query)}`)
+  return response.data
+}
+
+export async function getAdminTestimonial(id: string): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}`)
+  return response.data.testimonial
+}
+
+export async function createAdminTestimonial(input: TestimonialInput): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>('/admin/testimonials', {
+    method: 'POST',
+    body: testimonialFormDataFor(input),
+  })
+  return response.data.testimonial
+}
+
+export async function updateAdminTestimonial(id: string, input: TestimonialInput): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: testimonialFormDataFor(input),
+  })
+  return response.data.testimonial
+}
+
+export async function deleteAdminTestimonial(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/testimonials/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function updateAdminTestimonialStatus(id: string, isActive: boolean): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.testimonial
+}
+
+export async function updateAdminTestimonialFeatured(id: string, isFeatured: boolean): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}/featured`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isFeatured }),
+  })
+  return response.data.testimonial
+}

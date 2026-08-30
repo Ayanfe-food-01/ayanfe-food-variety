@@ -14,6 +14,7 @@ import { formatDate } from '../utils/dateFormat'
 import { lockBodyScroll } from '../utils/browserCompatibility'
 import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 import { OrderTracker } from '../components/orders/OrderTracker'
+import { getOrderReviewEligibility, type ReviewEligibility } from '../services/reviewService'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -31,6 +32,7 @@ export function CustomerOrderDetails() {
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [bank, setBank] = useState<BankDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reviewEligibility, setReviewEligibility] = useState<ReviewEligibility | null>(null)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [cancellationReason, setCancellationReason] = useState('')
   const [otherCancellationReason, setOtherCancellationReason] = useState('')
@@ -55,6 +57,13 @@ export function CustomerOrderDetails() {
     loadOrder
       .then(setOrder)
       .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Order could not be loaded.'))
+    if (user && orderNumber) {
+      getOrderReviewEligibility(orderNumber)
+        .then(setReviewEligibility)
+        .catch(() => {
+          setReviewEligibility(null)
+        })
+    }
     getBankDetails()
       .then(setBank)
       .catch(() => {
@@ -181,11 +190,33 @@ export function CustomerOrderDetails() {
               <h2 className="text-2xl font-bold text-green-dark">Items</h2>
               <div className="mt-5 divide-y divide-line">
                 {order.orderItems.map((item) => (
-                  <div className="flex items-center justify-between gap-4 py-4" key={item.id}>
+                  <div className="flex items-start justify-between gap-4 py-4" key={item.id}>
                     <div>
                       <p className="font-bold text-green-dark">{item.productName}</p>
                         {item.productOptionLabel && <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>}
                         <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery'} {formatPrice(item.deliveryFee)}</p>
+                        {reviewEligibility && !isGuestOrder && (() => {
+                          const reviewInfo = reviewEligibility.items.find((review) => review.id === item.id)
+                          if (!reviewInfo) return null
+                          if (reviewInfo.canReview) {
+                            return (
+                              <Link
+                                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-green/25 bg-sage/40 px-4 py-2 text-xs font-bold text-green-dark transition-colors hover:bg-sage"
+                                to={`/orders/${order.orderNumber}/review/${item.id}`}
+                              >
+                                Write a review <ArrowRight size={14} />
+                              </Link>
+                            )
+                          }
+                          if (reviewInfo.reviewed) {
+                            return (
+                              <span className="mt-3 inline-flex items-center rounded-full bg-cream px-4 py-2 text-xs font-bold text-muted">
+                                Reviewed{reviewInfo.reviewRating ? ` · ${reviewInfo.reviewRating}/5` : ''}
+                              </span>
+                            )
+                          }
+                          return null
+                        })()}
                     </div>
                     <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
                   </div>

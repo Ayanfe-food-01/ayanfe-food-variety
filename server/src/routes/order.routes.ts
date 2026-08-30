@@ -8,6 +8,10 @@ import {
 import { createRateLimit } from '../middleware/rateLimit.js'
 import { optionalCustomerAuthentication, requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
 import { HttpError } from '../utils/http.js'
+import {
+  getCustomerOrderReviewEligibilityController,
+  submitCustomerReviewController,
+} from '../modules/reviews/review.controller.js'
 
 const requireCheckoutRequestHeader: import('express').RequestHandler = (request, _response, next) => {
   if (request.get('X-Checkout-Request') !== '1') {
@@ -23,6 +27,8 @@ orderRoutes.get('/', requireCustomerAuthentication, requireCustomerRole, listCus
 orderRoutes.post('/guest/track', createRateLimit(10, 15 * 60 * 1000), guestOrderTrackingController)
 orderRoutes.get('/guest/:orderNumber', guestOrderController)
 orderRoutes.patch('/:orderNumber/cancel', requireCustomerAuthentication, requireCustomerRole, cancelCustomerOrderController)
+orderRoutes.get('/:orderNumber/review-eligibility', requireCustomerAuthentication, requireCustomerRole, getCustomerOrderReviewEligibilityController)
+orderRoutes.post('/:orderNumber/reviews', requireCustomerAuthentication, requireCustomerRole, createRateLimit(20, 60 * 60 * 1000), submitCustomerReviewController)
 orderRoutes.get('/:orderNumber', requireCustomerAuthentication, requireCustomerRole, getCustomerOrderController)
 orderRoutes.post(
   '/',

@@ -569,6 +569,9 @@ async function findOrCreateGoogleCustomer(identity) {
 }
 export async function loginWithGoogle(code, nonce) {
     const identity = await verifyGoogleAuthorizationCode(code, nonce);
+    return loginWithGoogleIdentity(identity);
+}
+export async function loginWithGoogleIdentity(identity) {
     const result = await findOrCreateGoogleCustomer(identity);
     return {
         user: toUser(result.user),

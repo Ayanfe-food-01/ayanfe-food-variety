@@ -17,7 +17,8 @@
     "db:seed": "prisma db seed",
     "doctor": "tsx scripts/doctor.ts",
     "smoke:production": "node scripts/production-smoke.mjs",
-    "test:inventory": "tsx scripts/inventory-safety-smoke.ts"
+    "test:inventory": "tsx scripts/inventory-safety-smoke.ts",
+    "test:google-oauth": "tsx scripts/google-oauth-smoke.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

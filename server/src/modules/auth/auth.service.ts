@@ -700,6 +700,10 @@ export async function loginWithGoogle(
   nonce: string,
 ): Promise<{ user: AuthenticatedUser; token: string }> {
   const identity = await verifyGoogleAuthorizationCode(code, nonce)
+  return loginWithGoogleIdentity(identity)
+}
+
+export async function loginWithGoogleIdentity(identity: GoogleIdentity): Promise<{ user: AuthenticatedUser; token: string }> {
   const result = await findOrCreateGoogleCustomer(identity)
   return {
     user: toUser(result.user),

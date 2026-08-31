@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, ReviewStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { toPublicProduct } from '../products/product.service.js'
@@ -8,6 +8,10 @@ const wishlistProductInclude = {
   category: true,
   images: { orderBy: { sortOrder: 'asc' } },
   options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
+  reviews: {
+    where: { status: ReviewStatus.APPROVED },
+    select: { rating: true },
+  },
 } satisfies Prisma.ProductInclude
 
 const requireProduct = async (productId: string) => {

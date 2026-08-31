@@ -27,6 +27,8 @@ interface ProductApiResponse {
   isAvailable: boolean
   isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+  averageRating?: number | null
+  reviewCount?: number
   createdAt: string
   updatedAt: string
   options?: ProductOptionApiResponse[]
@@ -111,6 +113,8 @@ const toProduct = (product: ProductApiResponse): Product => {
     || !Number.isInteger(stockQuantity)
     || stockQuantity < 0
     || (wholesaleFrom !== null && (!Number.isFinite(wholesaleFrom) || wholesaleFrom <= 0))
+    || (product.averageRating !== undefined && product.averageRating !== null && (!Number.isFinite(product.averageRating) || product.averageRating < 0 || product.averageRating > 5))
+    || (product.reviewCount !== undefined && (!Number.isInteger(product.reviewCount) || product.reviewCount < 0))
   ) {
     throw new Error('The product data is invalid.')
   }
@@ -169,6 +173,8 @@ const toProduct = (product: ProductApiResponse): Product => {
     isWishlisted: product.isWishlisted,
     options,
     wholesaleFrom,
+    averageRating: product.averageRating === undefined ? undefined : product.averageRating,
+    reviewCount: product.reviewCount === undefined ? undefined : product.reviewCount,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   }

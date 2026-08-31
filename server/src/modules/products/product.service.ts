@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client'
+import { OrderStatus, PaymentStatus, Prisma, ReviewStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { AuthenticatedUser } from '../auth/auth.types.js'
@@ -29,6 +29,10 @@ type ProductWithCategory = Prisma.ProductGetPayload<{
   }
 }>
 
+type ProductWithRatings = ProductWithCategory & {
+  reviews?: ReadonlyArray<{ rating: number }>
+}
+
 type ProductOptionRow = ProductWithCategory['options'][number]
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -36,6 +40,10 @@ const productInclude = {
   category: true,
   images: { orderBy: { sortOrder: 'asc' } },
   options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
+  reviews: {
+    where: { status: ReviewStatus.APPROVED },
+    select: { rating: true },
+  },
 } satisfies Prisma.ProductInclude
 
 const normalizedImages = (product: Pick<ProductWithCategory, 'image' | 'images'>): string[] => {
@@ -240,7 +248,7 @@ async function reconcileOptions(
   }
 }
 
-const toProduct = (product: ProductWithCategory, isWishlisted = false, wholesaleFrom?: string | null): Product => ({
+const toProduct = (product: ProductWithRatings, isWishlisted = false, wholesaleFrom?: string | null): Product => ({
   id: product.id,
   categoryId: product.categoryId,
   categoryName: product.category.name,
@@ -268,11 +276,20 @@ const toProduct = (product: ProductWithCategory, isWishlisted = false, wholesale
   isAvailable: product.isActive && product.stockQuantity > 0,
   isWishlisted,
   wholesaleFrom: wholesaleFrom ?? undefined,
+  averageRating: ratingsSummary(product.reviews ?? []).averageRating,
+  reviewCount: ratingsSummary(product.reviews ?? []).reviewCount,
   createdAt: product.createdAt.toISOString(),
   updatedAt: product.updatedAt.toISOString(),
 })
 
-export const toPublicProduct = (product: ProductWithCategory, isWishlisted = false, wholesaleFrom?: string | null): PublicProduct => {
+const ratingsSummary = (reviews: readonly { rating: number }[]) => {
+  const count = reviews.length
+  if (count === 0) return { averageRating: null as number | null, reviewCount: 0 }
+  const total = reviews.reduce((sum, review) => sum + review.rating, 0)
+  return { averageRating: Math.round((total / count) * 10) / 10, reviewCount: count }
+}
+
+export const toPublicProduct = (product: ProductWithRatings, isWishlisted = false, wholesaleFrom?: string | null): PublicProduct => {
   return toProduct(product, isWishlisted, wholesaleFrom)
 }
 
@@ -298,6 +315,8 @@ interface PopularProductRow {
   createdAt: Date
   updatedAt: Date
   orderedQuantity: bigint
+  averageRating: number | null
+  reviewCount: number
 }
 
 const toPopularProduct = (product: PopularProductRow, images: string[], options: ProductOption[], wholesaleFrom?: string | null): PublicProduct => ({
@@ -332,6 +351,8 @@ const toPopularProduct = (product: PopularProductRow, images: string[], options:
   isAvailable: product.isActive && product.stockQuantity > 0,
   isWishlisted: false,
   wholesaleFrom: wholesaleFrom ?? undefined,
+  averageRating: product.averageRating,
+  reviewCount: product.reviewCount,
   createdAt: product.createdAt.toISOString(),
   updatedAt: product.updatedAt.toISOString(),
 })
@@ -588,7 +609,17 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
       p.stock_quantity AS "stockQuantity",
       p.created_at AS "createdAt",
       p.updated_at AS "updatedAt",
-      COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END), 0)::bigint AS "orderedQuantity"
+      COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END), 0)::bigint AS "orderedQuantity",
+      (
+        SELECT AVG(r.rating)::double precision
+        FROM reviews r
+        WHERE r.product_id = p.id AND r.status = ${ReviewStatus.APPROVED}::"ReviewStatus"
+      ) AS "averageRating",
+      (
+        SELECT COUNT(*)
+        FROM reviews r
+        WHERE r.product_id = p.id AND r.status = ${ReviewStatus.APPROVED}::"ReviewStatus"
+      )::int AS "reviewCount"
     FROM products p
     INNER JOIN categories c ON c.id = p.category_id
     LEFT JOIN order_items oi ON oi.product_id = p.id

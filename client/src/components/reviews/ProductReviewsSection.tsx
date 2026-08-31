@@ -3,7 +3,6 @@ import type { UseProductReviewsResult } from '../../hooks/useProductReviews'
 import type { ProductRatingDistribution, ProductReviewItem } from '../../services/reviewService'
 import { formatReviewDate } from '../../utils/dateFormat'
 import { ReviewStars } from './ReviewStars'
-import { VerifiedPurchaseBadge } from './VerifiedPurchaseBadge'
 
 interface ProductReviewsSectionProps {
   reviews: UseProductReviewsResult
@@ -32,7 +31,6 @@ function ReviewCard({ review }: { review: ProductReviewItem }) {
             size={16}
             label={`${review.rating} out of 5 stars`}
           />
-          {review.verifiedPurchase && <VerifiedPurchaseBadge />}
         </div>
         <blockquote className="mt-3 text-sm leading-6 text-muted sm:text-base sm:leading-7">
           “{review.content}”

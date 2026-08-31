@@ -1,4 +1,3 @@
-import { VerifiedPurchaseBadge } from '../reviews/VerifiedPurchaseBadge'
 import type { CustomerStory } from '../../services/storeSettingsService'
 
 const getInitials = (name: string) =>
@@ -34,10 +33,7 @@ export function CustomerStoryCard({ story }: CustomerStoryCardProps) {
           </span>
         ) : null}
       </div>
-      {story.type === 'review' && story.verifiedPurchase ? (
-        <p className="mt-4"><VerifiedPurchaseBadge /></p>
-      ) : null}
-      <p className={`line-clamp-3 flex-1 text-base leading-7 text-green-dark ${story.type === 'review' && story.verifiedPurchase ? 'mt-4' : 'mt-5'}`}>{story.content}</p>
+      <p className="line-clamp-3 flex-1 text-base leading-7 text-green-dark mt-5">{story.content}</p>
     </article>
   )
 }

@@ -54,6 +54,8 @@ export interface Product {
   isAvailable: boolean
   isWishlisted: boolean
   wholesaleFrom?: string | null
+  averageRating?: number | null
+  reviewCount?: number
   createdAt: string
   updatedAt: string
 }

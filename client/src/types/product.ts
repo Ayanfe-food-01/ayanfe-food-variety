@@ -43,6 +43,8 @@ export interface Product {
   options?: ProductOption[]
   archivedOptions?: ProductOption[]
   wholesaleFrom?: number | null
+  averageRating?: number | null
+  reviewCount?: number
   createdAt?: string
   updatedAt?: string
 }

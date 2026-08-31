@@ -39,6 +39,17 @@
   background: transparent;
 }
 
+.promo-banner-skeleton {
+  background: linear-gradient(90deg, var(--color-line), #eef0e8 50%, var(--color-line));
+  background-size: 200% 100%;
+  animation: promo-skeleton-shimmer 1.3s ease-in-out infinite;
+}
+
+@keyframes promo-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .promo-banner-card>a {
   display: block;
   height: 100%;

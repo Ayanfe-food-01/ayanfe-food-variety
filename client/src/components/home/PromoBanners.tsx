@@ -4,6 +4,19 @@ import type { PromotionalBanner } from '../../services/storeSettingsService'
 
 interface PromoBannersProps {
   banners: PromotionalBanner[]
+  isLoading?: boolean
+}
+
+function PromoBannersSkeleton() {
+  return (
+    <section className="promo-banners-wrap" aria-label="Loading promotional offers" aria-busy="true">
+      <div className="promo-banners-track" aria-hidden="true">
+        {Array.from({ length: 2 }, (_, index) => (
+          <div className="promo-banner-card promo-banner-skeleton" key={index} />
+        ))}
+      </div>
+    </section>
+  )
 }
 
 const destinationFor = (destination: string | null): string | null => {
@@ -45,7 +58,7 @@ function PromoBannerCard({ banner, index }: { banner: PromotionalBanner; index: 
   )
 }
 
-export function PromoBanners({ banners }: PromoBannersProps) {
+export function PromoBanners({ banners, isLoading = false }: PromoBannersProps) {
   const trackRef = useRef<HTMLDivElement>(null)
   const currentIndexRef = useRef(0)
   const autoScrollingRef = useRef(false)
@@ -132,6 +145,8 @@ export function PromoBanners({ banners }: PromoBannersProps) {
       autoScrollingRef.current = false
     }
   }, [banners.length, clearTimers, scheduleNext, centerOn])
+
+  if (isLoading) return <PromoBannersSkeleton />
 
   if (banners.length === 0) return null
 

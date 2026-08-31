@@ -16,14 +16,14 @@ import { DEFAULT_SITE_DESCRIPTION, HOMEPAGE_TITLE, getOrganizationSchema } from 
 
 export function Home() {
   const catalog = useHomeCatalog()
-  const promotionalBanners = usePromotionalBanners()
+  const { banners: promotionalBanners, isLoading: bannersLoading } = usePromotionalBanners()
 
   return <>
     <Seo title={HOMEPAGE_TITLE} description={DEFAULT_SITE_DESCRIPTION} canonicalPath="/" jsonLd={getOrganizationSchema()} />
     <Navbar />
     <PromoBanner />
     <main>
-      <PromoBanners banners={promotionalBanners} />
+      <PromoBanners banners={promotionalBanners} isLoading={bannersLoading} />
       <CategoryRail categories={catalog.categories} isLoading={catalog.isLoading} hasError={catalog.errors.categories} onRetry={catalog.retry} />
       <ProductRail title="Featured products" eyebrow="Handpicked for you" products={catalog.featuredProducts} isLoading={catalog.isLoading} hasError={catalog.errors.featured} onRetry={catalog.retry} hideWhenEmpty />
       <ProductRail title="Popular right now" eyebrow="Customer favourites" products={catalog.popularProducts} isLoading={catalog.isLoading} hasError={catalog.errors.popular} onRetry={catalog.retry} />

@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react'
 import { getPublicBanners, type PromotionalBanner } from '../services/storeSettingsService'
 
-export function usePromotionalBanners(): PromotionalBanner[] {
+export interface PromotionalBannersResult {
+  banners: PromotionalBanner[]
+  isLoading: boolean
+}
+
+export function usePromotionalBanners(): PromotionalBannersResult {
   const [banners, setBanners] = useState<PromotionalBanner[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let isCurrent = true
@@ -14,11 +20,14 @@ export function usePromotionalBanners(): PromotionalBanner[] {
       .catch(() => {
         if (isCurrent) setBanners([])
       })
+      .finally(() => {
+        if (isCurrent) setIsLoading(false)
+      })
 
     return () => {
       isCurrent = false
     }
   }, [])
 
-  return banners
+  return { banners, isLoading }
 }

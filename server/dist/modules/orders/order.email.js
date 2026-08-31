@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js';
-import { escapeHtml, renderBrandedEmail, sendEmail, } from '../../lib/email/email.service.js';
-const formatPrice = (value) => new Intl.NumberFormat('en-NG', {
+import { escapeHtml, getAppLink, renderBrandedEmail, sendEmail, } from '../../lib/email/email.service.js';
+export const formatPrice = (value) => new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
     maximumFractionDigits: 0,
@@ -16,19 +16,6 @@ const formatDateTime = (value) => new Intl.DateTimeFormat('en-NG', {
     timeStyle: 'short',
     timeZone: 'Africa/Lagos',
 }).format(new Date(value));
-const getAppLink = (path) => {
-    if (!env.publicAppUrl)
-        return null;
-    try {
-        const baseUrl = new URL(env.publicAppUrl);
-        if (!['http:', 'https:'].includes(baseUrl.protocol))
-            return null;
-        return new URL(path.replace(/^\/+/, ''), `${baseUrl.toString().replace(/\/+$/, '')}/`).toString();
-    }
-    catch {
-        return null;
-    }
-};
 const renderOrderItems = (items) => `
   <table role="presentation" class="email-table" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:24px 0;border-collapse:collapse;color:#173b2b;font-size:14px;">
     <thead>
@@ -41,7 +28,7 @@ const renderOrderItems = (items) => `
     <tbody>
       ${items.map((item) => `
         <tr style="border-bottom:1px solid #edf1eb;">
-          <td style="padding:13px 0;line-height:1.45;">${escapeHtml(item.name)}<br><span style="color:#66756b;font-size:12px;">${escapeHtml(formatPrice(item.unitPrice))} each</span></td>
+          <td style="padding:13px 0;line-height:1.45;">${escapeHtml(item.name)}${item.optionLabel ? `<br><span style="color:#66756b;font-size:12px;">${escapeHtml(item.optionLabel)}</span>` : ''}<br><span style="color:#66756b;font-size:12px;">${escapeHtml(formatPrice(item.unitPrice))} each</span></td>
           <td align="center" style="padding:13px 8px;color:#58695e;">${item.quantity}</td>
           <td align="right" style="padding:13px 0;font-weight:bold;white-space:nowrap;">${escapeHtml(formatPrice(item.subtotal))}</td>
         </tr>
@@ -110,7 +97,7 @@ const customerOrderMessage = (order) => {
             'Ayanfe Food Variety order confirmation',
             `Hi ${order.customerName},`,
             `Order: ${order.orderNumber}`,
-            ...order.items.map((item) => `${item.name} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
+            ...order.items.map((item) => `${item.name}${item.optionLabel ? ` (${item.optionLabel})` : ''} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
             `Subtotal: ${formatPrice(order.subtotal)}`,
             `Delivery fee: ${formatPrice(order.deliveryFee)}`,
             `Total: ${formatPrice(order.total)}`,
@@ -146,7 +133,7 @@ const adminOrderMessage = (order) => {
             `Customer: ${order.customerName}`,
             `Email: ${order.customerEmail ?? 'Not provided'}`,
             `Phone: ${order.phone}`,
-            ...order.items.map((item) => `${item.name} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
+            ...order.items.map((item) => `${item.name}${item.optionLabel ? ` (${item.optionLabel})` : ''} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
             `Total: ${formatPrice(order.total)}`,
             `Payment method: ${formatPaymentMethod(order.paymentMethod)}`,
             `Payment status: ${formatStatus(order.paymentStatus)}`,

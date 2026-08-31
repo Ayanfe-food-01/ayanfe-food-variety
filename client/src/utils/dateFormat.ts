@@ -12,3 +12,6 @@ const dateTimeOptions: Intl.DateTimeFormatOptions = {
 
 export const formatDate = (value: string, includeTime = false): string =>
   new Intl.DateTimeFormat('en-NG', includeTime ? dateTimeOptions : dateOptions).format(new Date(value))
+
+export const formatReviewDate = (value: string): string =>
+  new Intl.DateTimeFormat('en-NG', { month: 'long', year: 'numeric' }).format(new Date(value))

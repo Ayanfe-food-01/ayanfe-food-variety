@@ -122,6 +122,22 @@ export function renderBrandedEmail(input: BrandedEmailInput): string {
 </html>`
 }
 
+/**
+ * Builds an absolute URL inside the public app, or null when the public app
+ * URL is not configured. Shared by every notification email so links always
+ * point at the app rather than at API internals.
+ */
+export function getAppLink(path: string): string | null {
+  if (!env.publicAppUrl) return null
+  try {
+    const baseUrl = new URL(env.publicAppUrl)
+    if (!['http:', 'https:'].includes(baseUrl.protocol)) return null
+    return new URL(path.replace(/^\/+/, ''), `${baseUrl.toString().replace(/\/+$/, '')}/`).toString()
+  } catch {
+    return null
+  }
+}
+
 export function assertEmailConfigured(): void {
   if (!env.email.resendApiKey?.trim()) {
     throw new EmailServiceError('configuration', 'RESEND_API_KEY is not configured on the server.')

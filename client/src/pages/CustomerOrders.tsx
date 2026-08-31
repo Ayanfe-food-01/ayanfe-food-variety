@@ -20,7 +20,7 @@ const statusClass = (status: string) =>
       : 'bg-sage text-green-dark'
 
 export function CustomerOrders() {
-  const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
+  const { user, isLoading: isAuthLoading, openAuth, shoppingMode } = useCustomerAuth()
   const [orders, setOrders] = useState<CustomerOrderListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,6 +50,12 @@ export function CustomerOrders() {
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Your account</p>
             <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Orders</h1>
             <p className="mt-4 text-base text-muted">View your order history and payment status.</p>
+            {user && (
+              <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-cream px-4 py-2 text-xs font-bold text-green-dark">
+                Shopping mode:
+                <span className={`rounded-full px-3 py-1 uppercase tracking-[0.08em] ${shoppingMode === 'WHOLESALE' ? 'bg-green-dark text-cream' : 'bg-sage text-green-dark'}`}>{shoppingMode}</span>
+              </p>
+            )}
           </div>
         </section>
         <section className="container py-12 sm:py-16 lg:py-24">
@@ -77,10 +83,10 @@ export function CustomerOrders() {
               <div className="divide-y divide-line">
                 {orders.map((order) => (
                   <Link className="flex flex-wrap items-center justify-between gap-4 p-5 transition-colors hover:bg-sage/25 sm:p-6" to={`/orders/${order.orderNumber}`} key={order.id}>
-                    <div>
-                      <p className="text-sm font-bold text-green-dark">{order.orderNumber}</p>
-                       <p className="mt-1 text-xs text-muted">{formatDate(order.createdAt)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}</p>
-                    </div>
+<div>
+                        <p className="text-sm font-bold text-green-dark">{order.orderNumber}</p>
+                         <p className="mt-1 text-xs text-muted">{formatDate(order.createdAt)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup' : 'Delivery'} · {order.orderType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</p>
+                      </div>
                     <div className="flex items-center gap-5">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(order.paymentStatus)}`}>{order.paymentStatus}</span>
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>

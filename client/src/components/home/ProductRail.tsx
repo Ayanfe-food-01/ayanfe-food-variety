@@ -63,7 +63,18 @@ export function ProductRail({
 }
 
 function ProductSkeleton() {
-  return <div className="product-rail" aria-label="Loading products" aria-busy="true">
-    {Array.from({ length: 4 }, (_, index) => <div className="product-skeleton" key={index} />)}
-  </div>
+  return (
+    <div className="product-rail" aria-label="Loading products" aria-busy="true">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div className="product-skeleton" key={index} role="status" aria-label="Loading product">
+          <div className="product-skeleton-media" />
+          <div className="product-skeleton-body">
+            <div className="product-skeleton-line" />
+            <div className="product-skeleton-line" />
+          </div>
+          <div className="product-skeleton-action" />
+        </div>
+      ))}
+    </div>
+  )
 }

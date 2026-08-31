@@ -73,6 +73,128 @@ const discountFields = (typeValue, value, originalPrice) => {
     }
     return { discountType, discountValue };
 };
+export const MAX_PRODUCT_OPTIONS = 50;
+export const MAX_WHOLESALE_TIERS = 30;
+const positiveIntegerValue = (value, field) => {
+    const number = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN;
+    if (!Number.isInteger(number) || number < 1 || number > 1000000000) {
+        throw new HttpError(400, `${field} must be a whole number of 1 or more.`);
+    }
+    return number;
+};
+const wholesaleTierInput = (value, position) => {
+    if (!isRecord(value))
+        throw new HttpError(400, 'Each wholesale unit tier must be an object.');
+    const minQuantity = positiveIntegerValue(value.minQuantity, 'Minimum wholesale quantity');
+    const maxQuantity = value.maxQuantity === undefined || value.maxQuantity === null || String(value.maxQuantity).trim() === ''
+        ? null
+        : positiveIntegerValue(value.maxQuantity, 'Maximum wholesale quantity');
+    if (maxQuantity !== null && maxQuantity < minQuantity) {
+        throw new HttpError(400, `In tier ${position}, the maximum quantity cannot be lower than the minimum quantity.`);
+    }
+    const id = value.id === undefined || value.id === null ? undefined : (() => {
+        const raw = String(value.id).trim();
+        if (!UUID_PATTERN.test(raw))
+            throw new HttpError(400, 'Wholesale tier ID is invalid.');
+        return raw;
+    })();
+    return { id, minQuantity, maxQuantity, price: moneyValue(value.price, `Tier ${position} price`, false) };
+};
+const parseWholesaleTiers = (value) => {
+    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+        return undefined;
+    }
+    let parsed = value;
+    if (typeof value === 'string') {
+        try {
+            parsed = JSON.parse(value);
+        }
+        catch {
+            throw new HttpError(400, 'Wholesale pricing must be a valid JSON array.');
+        }
+    }
+    if (!Array.isArray(parsed))
+        throw new HttpError(400, 'Wholesale pricing must be an array.');
+    if (parsed.length > MAX_WHOLESALE_TIERS) {
+        throw new HttpError(400, `Each option can have at most ${MAX_WHOLESALE_TIERS} wholesale tiers.`);
+    }
+    const tiers = parsed.map((tier, index) => wholesaleTierInput(tier, index + 1));
+    tiers.sort((a, b) => a.minQuantity - b.minQuantity || (a.maxQuantity ?? Infinity) - (b.maxQuantity ?? Infinity));
+    for (let index = 1; index < tiers.length; index += 1) {
+        const previous = tiers[index - 1];
+        const current = tiers[index];
+        if (previous.maxQuantity === null) {
+            throw new HttpError(400, 'Only the final wholesale tier can have an unlimited maximum quantity.');
+        }
+        if (current.minQuantity === previous.minQuantity) {
+            throw new HttpError(400, 'Each wholesale quantity range must be unique.');
+        }
+        if (previous.maxQuantity >= current.minQuantity) {
+            throw new HttpError(400, 'Wholesale quantity ranges must not overlap.');
+        }
+    }
+    return tiers;
+};
+const wholesaleMoqValue = (value) => {
+    if (value === undefined || value === null || String(value).trim() === '')
+        return null;
+    return positiveIntegerValue(value, 'Minimum wholesale order');
+};
+const optionInput = (value) => {
+    if (!isRecord(value))
+        throw new HttpError(400, 'Each product option must be an object.');
+    const label = requiredText(value.label, 'Option label', 1, 80);
+    const price = moneyValue(value.price, 'Option price', false);
+    const id = value.id === undefined || value.id === null ? undefined : (() => {
+        const raw = String(value.id).trim();
+        if (!UUID_PATTERN.test(raw))
+            throw new HttpError(400, 'Option ID is invalid.');
+        return raw;
+    })();
+    return {
+        id,
+        label,
+        price,
+        stockQuantity: value.stockQuantity === undefined ? 0 : integerValue(value.stockQuantity, 'Option stock quantity'),
+        sortOrder: value.sortOrder === undefined ? 0 : integerValue(value.sortOrder, 'Option order'),
+        isActive: booleanValue(value.isActive, 'Option availability', true),
+        wholesaleMoq: value.wholesaleMoq === undefined ? undefined : wholesaleMoqValue(value.wholesaleMoq),
+        wholesalePrices: parseWholesaleTiers(value.wholesalePrices),
+    };
+};
+export function parseProductOptions(value) {
+    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+        return undefined;
+    }
+    let parsed = value;
+    if (typeof value === 'string') {
+        try {
+            parsed = JSON.parse(value);
+        }
+        catch {
+            throw new HttpError(400, 'Product options must be a valid JSON array.');
+        }
+    }
+    if (!Array.isArray(parsed))
+        throw new HttpError(400, 'Product options must be an array.');
+    if (parsed.length > MAX_PRODUCT_OPTIONS) {
+        throw new HttpError(400, `A product can have at most ${MAX_PRODUCT_OPTIONS} options.`);
+    }
+    const options = parsed.map(optionInput);
+    const labels = new Set();
+    const orders = new Set();
+    for (const option of options) {
+        const labelKey = option.label.toLowerCase();
+        if (labels.has(labelKey))
+            throw new HttpError(400, `Duplicate option label "${option.label}".`);
+        labels.add(labelKey);
+        if (orders.has(option.sortOrder)) {
+            throw new HttpError(400, 'Option order positions must be unique.');
+        }
+        orders.add(option.sortOrder);
+    }
+    return options;
+}
 export function validateAdminProductId(value) {
     if (!value || !UUID_PATTERN.test(value.trim()))
         throw new HttpError(400, 'Product ID is invalid.');
@@ -84,18 +206,33 @@ export function validateProductFields(body) {
     const categoryId = requiredText(body.categoryId, 'Category', 1, 40);
     if (!UUID_PATTERN.test(categoryId))
         throw new HttpError(400, 'Category is invalid.');
-    const price = priceValue(body.price);
+    const options = parseProductOptions(body.options);
+    const hasOptions = Boolean(options && options.length > 0);
+    let price;
+    if (hasOptions) {
+        const hasProvidedPrice = body.price !== undefined && body.price !== null && String(body.price).trim() !== '';
+        if (hasProvidedPrice)
+            price = priceValue(body.price);
+        if ((body.discountType !== undefined && body.discountType !== null && body.discountType !== '')
+            || (body.discountValue !== undefined && body.discountValue !== null && String(body.discountValue).trim() !== '')) {
+            throw new HttpError(400, 'Discounts cannot be combined with product options.');
+        }
+    }
+    else {
+        price = priceValue(body.price);
+    }
     return {
         name: requiredText(body.name, 'Product name', 2, 180),
         categoryId,
         price,
-        ...discountFields(body.discountType, body.discountValue, price),
+        ...(hasOptions ? { discountType: null, discountValue: null } : discountFields(body.discountType, body.discountValue, price)),
         deliveryFee: deliveryFeeValue(body.deliveryFee),
         unit: requiredText(body.unit, 'Unit', 1, 80),
         description: requiredText(body.description, 'Description', 10, 4000),
         isActive: booleanValue(body.isActive, 'Availability', true),
         isFeatured: booleanValue(body.isFeatured, 'Featured', false),
-        stockQuantity: integerValue(body.stockQuantity, 'Stock quantity'),
+        stockQuantity: hasOptions ? undefined : integerValue(body.stockQuantity, 'Stock quantity'),
+        options,
     };
 }
 export function validateProductImageOrder(body) {
@@ -188,4 +325,28 @@ export function requireProductIdentifier(value) {
         throw new HttpError(400, 'product id is required');
     }
     return identifier;
+}
+export function validateWholesalePriceInput(body) {
+    if (!isRecord(body))
+        throw new HttpError(400, 'Wholesale pricing request is required.');
+    const productId = requiredText(body.productId, 'Product', 1, 40);
+    if (!UUID_PATTERN.test(productId))
+        throw new HttpError(400, 'Product is invalid.');
+    const rawOptionId = body.productOptionId;
+    if (rawOptionId === undefined || rawOptionId === null || String(rawOptionId).trim() === '') {
+        throw new HttpError(400, 'Select a product size first.');
+    }
+    const productOptionId = String(rawOptionId).trim();
+    if (!UUID_PATTERN.test(productOptionId))
+        throw new HttpError(400, 'Product size is invalid.');
+    const rawQuantity = body.quantity;
+    const quantity = typeof rawQuantity === 'number'
+        ? rawQuantity
+        : typeof rawQuantity === 'string' && rawQuantity.trim()
+            ? Number(rawQuantity)
+            : NaN;
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000000000) {
+        throw new HttpError(400, 'Quantity must be a whole number of 1 or more.');
+    }
+    return { productId, productOptionId, quantity };
 }

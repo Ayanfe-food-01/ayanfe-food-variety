@@ -1,11 +1,14 @@
 import { getApiUrl, request } from './api'
 
+export type ShoppingMode = 'RETAIL' | 'WHOLESALE'
+
 export interface AuthenticatedUser {
   id: string
   name: string
   email: string
   phone: string | null
   role: 'ADMIN' | 'CUSTOMER'
+  shoppingMode: ShoppingMode
 }
 
 interface AuthResponse {
@@ -42,6 +45,7 @@ export interface CustomerUser {
   email: string
   phone: string | null
   role: 'CUSTOMER'
+  shoppingMode: ShoppingMode
 }
 
 interface CustomerAuthResponse {
@@ -85,6 +89,15 @@ export async function getCurrentCustomer(): Promise<CustomerUser> {
 
 export async function logoutCustomer(): Promise<void> {
   await request<void>('/auth/customer/logout', { method: 'POST' })
+}
+
+export async function setShoppingMode(mode: ShoppingMode): Promise<CustomerUser> {
+  const response = await request<CustomerAuthResponse>('/auth/customer/shopping-mode', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode }),
+  })
+  return response.data.user
 }
 
 export async function getCustomerProviders(): Promise<{ google: boolean; message: string }> {

@@ -6,6 +6,7 @@ import { updateAdminOrderStatus } from '../src/modules/admin/admin.service.js'
 import { checkoutCustomerCart } from '../src/modules/orders/order.service.js'
 import { PaymentMethod } from '@prisma/client'
 import { HttpError } from '../src/utils/http.js'
+import { ShoppingMode } from '@prisma/client'
 
 const slug = `inventory-smoke-${Date.now()}`
 const checkoutInput = (checkoutKey: string) => ({
@@ -87,26 +88,26 @@ async function main() {
   })
 
   const createSmokeOrder = async (productId: string, quantity: number) => {
-    await clearCustomerCart(customer.id)
-    await addCustomerCartItem(customer.id, { productId, quantity })
+    await clearCustomerCart(customer.id, ShoppingMode.RETAIL)
+    await addCustomerCartItem(customer.id, ShoppingMode.RETAIL, { productId, quantity })
     return checkoutCustomerCart(customer.id, checkoutInput(randomUUID()))
   }
 
   try {
-    const addedCart = await addCustomerCartItem(customer.id, { productId: cartProduct.id, quantity: 2 })
+    const addedCart = await addCustomerCartItem(customer.id, ShoppingMode.RETAIL, { productId: cartProduct.id, quantity: 2 })
     if (addedCart.items[0]?.quantity !== 2) throw new Error('Available product was not added to cart.')
     await expectHttpError(
-      addCustomerCartItem(customer.id, { productId: outOfStockProduct.id, quantity: 1 }),
+      addCustomerCartItem(customer.id, ShoppingMode.RETAIL, { productId: outOfStockProduct.id, quantity: 1 }),
       409,
     )
     await expectHttpError(
-      addCustomerCartItem(customer.id, { productId: cartProduct.id, quantity: 4 }),
+      addCustomerCartItem(customer.id, ShoppingMode.RETAIL, { productId: cartProduct.id, quantity: 4 }),
       409,
     )
     const cartItem = await prisma.customerCartItem.findFirstOrThrow({
       where: { cart: { userId: customer.id }, productId: cartProduct.id },
     })
-    await expectHttpError(updateCustomerCartItem(customer.id, cartItem.id, 6), 409)
+    await expectHttpError(updateCustomerCartItem(customer.id, ShoppingMode.RETAIL, cartItem.id, 6), 409)
 
     await expectHttpError(createSmokeOrder(rollbackProduct.id, 4), 409)
     const rollbackState = await prisma.product.findUniqueOrThrow({ where: { id: rollbackProduct.id } })
@@ -114,8 +115,8 @@ async function main() {
     const rollbackOrders = await prisma.order.count({ where: { orderItems: { some: { productId: rollbackProduct.id } } } })
     if (rollbackOrders !== 0) throw new Error('Failed checkout created a partial order.')
 
-    await clearCustomerCart(customer.id)
-    await addCustomerCartItem(customer.id, { productId: concurrentProduct.id, quantity: 1 })
+    await clearCustomerCart(customer.id, ShoppingMode.RETAIL)
+    await addCustomerCartItem(customer.id, ShoppingMode.RETAIL, { productId: concurrentProduct.id, quantity: 1 })
     const results = await Promise.allSettled([
       checkoutCustomerCart(customer.id, checkoutInput(randomUUID())),
       checkoutCustomerCart(customer.id, checkoutInput(randomUUID())),
@@ -149,7 +150,7 @@ async function main() {
 
     console.log('Inventory safety smoke test passed.')
   } finally {
-    await clearCustomerCart(customer.id)
+    await clearCustomerCart(customer.id, ShoppingMode.RETAIL)
     await prisma.productStockAdjustment.deleteMany({ where: { productId: { in: [cartProduct.id, outOfStockProduct.id, concurrentProduct.id, rollbackProduct.id] } } })
     await prisma.order.deleteMany({ where: { orderItems: { some: { productId: { in: [cartProduct.id, outOfStockProduct.id, concurrentProduct.id, rollbackProduct.id] } } } } })
     await prisma.product.deleteMany({ where: { id: { in: [cartProduct.id, outOfStockProduct.id, concurrentProduct.id, rollbackProduct.id] } } })

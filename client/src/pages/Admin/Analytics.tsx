@@ -16,22 +16,28 @@ const formatPrice = (value: string) =>
 
 export function Analytics() {
   const [range, setRange] = useState<AnalyticsRange>('month')
-  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [analyticsByRange, setAnalyticsByRange] = useState<Partial<Record<AnalyticsRange, AdminAnalytics>>>({})
+  const [errorsByRange, setErrorsByRange] = useState<Partial<Record<AnalyticsRange, string>>>({})
 
   useEffect(() => {
     let current = true
-    setError(null)
-    setAnalytics(null)
     getAdminAnalytics(range)
       .then((result) => {
-        if (current) setAnalytics(result)
+        if (current) setAnalyticsByRange((prev) => ({ ...prev, [range]: result }))
       })
       .catch((caught: unknown) => {
-        if (current) setError(caught instanceof ApiError ? caught.message : 'Analytics could not be loaded.')
+        if (current) {
+          setErrorsByRange((prev) => ({
+            ...prev,
+            [range]: caught instanceof ApiError ? caught.message : 'Analytics could not be loaded.',
+          }))
+        }
       })
     return () => { current = false }
   }, [range])
+
+  const analytics = analyticsByRange[range] ?? null
+  const error = errorsByRange[range] ?? null
 
   const summary = analytics?.summary
   const metrics = analytics?.metrics

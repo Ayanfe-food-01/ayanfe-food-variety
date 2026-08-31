@@ -1,230 +1,162 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, ShoppingMode } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { CartItemInput, CustomerCartResponse } from './cart.types.js'
-import { calculateDiscountedPrice } from '../products/product.pricing.js'
+import { cartInclude, toCartResponse, type CartPayload } from './cart.serializer.js'
+import { assertProductCanFulfill, assertWholesaleFulfillment, findFulfillmentContext } from './cart.fulfillment.js'
 
-const cartInclude = {
-  items: {
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          unit: true,
-          price: true,
-           discountType: true,
-           discountValue: true,
-           deliveryFee: true,
-          image: true,
-          isActive: true,
-          stockQuantity: true,
-          category: { select: { isActive: true } },
-        },
-      },
-    },
-    orderBy: { createdAt: 'asc' as const },
-  },
-} satisfies Prisma.CustomerCartInclude
-
-function toCartResponse(cart: Prisma.CustomerCartGetPayload<{ include: typeof cartInclude }>): CustomerCartResponse {
-  let subtotal = new Prisma.Decimal(0)
-  let deliveryFee = new Prisma.Decimal(0)
-  let totalQuantity = 0
-
-  const items = cart.items.map((item) => {
-    const discountedPrice = calculateDiscountedPrice(
-      item.product.price,
-      item.product.discountType,
-      item.product.discountValue,
-    )
-    const itemSubtotal = discountedPrice.mul(item.quantity)
-    const itemDeliveryFee = item.product.deliveryFee.mul(item.quantity)
-    const isProductActive = item.product.isActive && item.product.category.isActive
-    const canUpdateQuantity = isProductActive && item.product.stockQuantity > 0
-    const isAvailable = isProductActive && item.product.stockQuantity >= item.quantity && item.product.stockQuantity > 0
-    const availabilityMessage = !isProductActive
-      ? 'This product is no longer available.'
-      : item.product.stockQuantity === 0
-        ? 'This product is out of stock.'
-        : item.product.stockQuantity < item.quantity
-          ? `Only ${item.product.stockQuantity} unit(s) are currently available.`
-          : null
-
-    subtotal = subtotal.add(itemSubtotal)
-    deliveryFee = deliveryFee.add(itemDeliveryFee)
-    totalQuantity += item.quantity
-
-    return {
-      id: item.id,
-      productId: item.product.id,
-      name: item.product.name,
-      unit: item.product.unit,
-       price: discountedPrice.toString(),
-       originalPrice: item.product.price.toString(),
-       discountType: item.product.discountType,
-       discountValue: item.product.discountValue?.toString() ?? null,
-      deliveryFee: itemDeliveryFee.toString(),
-      image: item.product.image,
-      quantity: item.quantity,
-      itemSubtotal: itemSubtotal.toString(),
-      isAvailable,
-      availableQuantity: item.product.stockQuantity,
-      canUpdateQuantity,
-      availabilityMessage,
-    }
+const upsertCustomerCart = async (
+  transaction: Prisma.TransactionClient,
+  userId: string,
+  mode: ShoppingMode,
+) =>
+  transaction.customerCart.upsert({
+    where: { userId_mode: { userId, mode } },
+    create: { userId, mode },
+    update: {},
   })
 
-  return {
-    items,
-    subtotal: subtotal.toString(),
-    deliveryFee: deliveryFee.toString(),
-    totalQuantity,
-    canCheckout: items.length > 0 && items.every((item) =>
-      item.isAvailable
-      && Number.isInteger(item.quantity)
-      && item.quantity >= 1
-      && item.quantity <= 1000,
-    ),
-  }
-}
+const findCartLine = (
+  transaction: Prisma.TransactionClient,
+  cartId: string,
+  productId: string,
+  productOptionId: string | null,
+) => transaction.customerCartItem.findFirst({
+  where: { cartId, productId, productOptionId: productOptionId ?? null },
+})
 
-const assertProductCanFulfill = (
-  product: { id: string; isActive: boolean; stockQuantity: number; category?: { isActive: boolean } } | null | undefined,
-  quantity: number,
-) => {
-  if (!product) throw new HttpError(404, 'Product no longer exists or is unavailable.')
-  if (!product.isActive || product.category?.isActive === false || product.stockQuantity === 0) {
-    throw new HttpError(409, 'Product is unavailable.')
-  }
-  if (quantity > product.stockQuantity) {
-    throw new HttpError(409, `Insufficient stock. Only ${product.stockQuantity} unit(s) are currently available.`)
-  }
-}
+const findCartWithItems = (transaction: Prisma.TransactionClient, cartId: string) =>
+  transaction.customerCart.findUniqueOrThrow({
+    where: { id: cartId },
+    include: cartInclude,
+  })
 
-async function getCartForUser(userId: string) {
-  return getOrCreateCart(userId)
-}
-
-async function getOrCreateCart(userId: string) {
-  return prisma.customerCart.upsert({
-    where: { userId },
-    create: { userId },
+const getOrCreateCart = async (userId: string, mode: ShoppingMode) =>
+  prisma.customerCart.upsert({
+    where: { userId_mode: { userId, mode } },
+    create: { userId, mode },
     update: {},
     include: cartInclude,
   })
+
+export async function getCustomerCart(userId: string, mode: ShoppingMode): Promise<CustomerCartResponse> {
+  return toCartResponse(await getOrCreateCart(userId, mode))
 }
 
-export async function getCustomerCart(userId: string): Promise<CustomerCartResponse> {
-  return toCartResponse(await getCartForUser(userId))
+const assertFulfillment = (product: Awaited<ReturnType<typeof findFulfillmentContext>>, mode: ShoppingMode, quantity: number) => {
+  assertProductCanFulfill(product, quantity)
+  assertWholesaleFulfillment(product, mode, quantity)
 }
 
 export async function addCustomerCartItem(
   userId: string,
+  mode: ShoppingMode,
   item: CartItemInput,
 ): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
-    const product = await transaction.product.findUnique({
-      where: { id: item.productId },
-      select: { id: true, isActive: true, stockQuantity: true, category: { select: { isActive: true } } },
-    })
-    assertProductCanFulfill(product, item.quantity)
+    const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+    if (!product) throw new HttpError(404, 'Product no longer exists or is unavailable.')
+    if (item.productOptionId && !product.option) {
+      throw new HttpError(404, 'Product option no longer exists or is unavailable.')
+    }
+    assertFulfillment(product, mode, item.quantity)
 
-    const cart = await transaction.customerCart.upsert({
-      where: { userId },
-      create: { userId },
-      update: {},
-    })
-    const existing = await transaction.customerCartItem.findUnique({
-      where: { cartId_productId: { cartId: cart.id, productId: item.productId } },
-    })
+    const cart = await upsertCustomerCart(transaction, userId, mode)
+    const existing = await findCartLine(transaction, cart.id, item.productId, item.productOptionId)
 
     if (existing) {
       const nextQuantity = existing.quantity + item.quantity
       if (nextQuantity > 1000) throw new HttpError(400, 'Cart quantity cannot exceed 1000.')
-      assertProductCanFulfill(product, nextQuantity)
+      assertFulfillment(product, mode, nextQuantity)
       await transaction.customerCartItem.update({
         where: { id: existing.id },
         data: { quantity: nextQuantity },
       })
     } else {
       await transaction.customerCartItem.create({
-        data: { cartId: cart.id, productId: item.productId, quantity: item.quantity },
+        data: {
+          cartId: cart.id,
+          productId: item.productId,
+          productOptionId: item.productOptionId,
+          quantity: item.quantity,
+        },
       })
     }
 
-    return transaction.customerCart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude })
-  }).then(toCartResponse)
+    return findCartWithItems(transaction, cart.id)
+  }, { timeout: 15000 }).then(toCartResponse)
 }
 
 export async function updateCustomerCartItem(
   userId: string,
+  mode: ShoppingMode,
   cartItemId: string,
   quantity: number,
 ): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
     const item = await transaction.customerCartItem.findFirst({
-      where: { id: cartItemId, cart: { userId } },
-      include: { product: { select: { isActive: true, stockQuantity: true, category: { select: { isActive: true } } } } },
+      where: { id: cartItemId, cart: { userId, mode } },
+      select: { id: true, cartId: true, productId: true, productOptionId: true },
     })
     if (!item) throw new HttpError(404, 'Cart item not found.')
-    assertProductCanFulfill({ id: item.productId, ...item.product }, quantity)
+    const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+    assertFulfillment(product, mode, quantity)
 
     await transaction.customerCartItem.update({
       where: { id: item.id },
       data: { quantity },
     })
-    return transaction.customerCart.findUniqueOrThrow({
-      where: { id: item.cartId },
-      include: cartInclude,
-    })
-  }).then(toCartResponse)
+    return findCartWithItems(transaction, item.cartId)
+  }, { timeout: 15000 }).then(toCartResponse)
 }
 
-export async function removeCustomerCartItem(userId: string, cartItemId: string): Promise<CustomerCartResponse> {
+export async function removeCustomerCartItem(
+  userId: string,
+  mode: ShoppingMode,
+  cartItemId: string,
+): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
     const result = await transaction.customerCartItem.deleteMany({
-      where: { id: cartItemId, cart: { userId } },
+      where: { id: cartItemId, cart: { userId, mode } },
     })
     if (result.count !== 1) throw new HttpError(404, 'Cart item not found.')
     return transaction.customerCart.findUniqueOrThrow({
-      where: { userId },
+      where: { userId_mode: { userId, mode } },
       include: cartInclude,
     })
-  }).then(toCartResponse)
+  }, { timeout: 15000 }).then(toCartResponse)
 }
 
-export async function clearCustomerCart(userId: string): Promise<CustomerCartResponse> {
+export async function clearCustomerCart(userId: string, mode: ShoppingMode): Promise<CustomerCartResponse> {
   const cart = await prisma.customerCart.upsert({
-    where: { userId },
-    create: { userId },
+    where: { userId_mode: { userId, mode } },
+    create: { userId, mode },
     update: {},
     include: cartInclude,
   })
   if (cart.items.length === 0) return toCartResponse(cart)
 
   await prisma.customerCartItem.deleteMany({ where: { cartId: cart.id } })
-  return toCartResponse(await getCartForUser(userId))
+  return toCartResponse(await getOrCreateCart(userId, mode))
 }
 
-export async function mergeCustomerCart(userId: string, items: CartItemInput[]): Promise<CustomerCartResponse> {
+export async function mergeCustomerCart(
+  userId: string,
+  mode: ShoppingMode,
+  items: CartItemInput[],
+): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
-    const cart = await transaction.customerCart.upsert({
-      where: { userId },
-      create: { userId },
-      update: {},
-    })
+    const cart = await upsertCustomerCart(transaction, userId, mode)
     for (const item of items) {
-      const product = await transaction.product.findUnique({
-        where: { id: item.productId },
-        select: { id: true, isActive: true, stockQuantity: true, category: { select: { isActive: true } } },
-      })
-      const existing = await transaction.customerCartItem.findUnique({
-        where: { cartId_productId: { cartId: cart.id, productId: item.productId } },
-      })
+      const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+      if (!product) throw new HttpError(404, 'Product no longer exists or is unavailable.')
+      if (item.productOptionId && !product.option) {
+        throw new HttpError(404, 'Product option no longer exists or is unavailable.')
+      }
+      const existing = await findCartLine(transaction, cart.id, item.productId, item.productOptionId)
       const nextQuantity = (existing?.quantity ?? 0) + item.quantity
-      assertProductCanFulfill(product, nextQuantity)
       if (nextQuantity > 1000) throw new HttpError(400, 'Cart quantity cannot exceed 1000.')
+      assertFulfillment(product, mode, nextQuantity)
       if (existing) {
         await transaction.customerCartItem.update({
           where: { id: existing.id },
@@ -232,34 +164,45 @@ export async function mergeCustomerCart(userId: string, items: CartItemInput[]):
         })
       } else {
         await transaction.customerCartItem.create({
-          data: { cartId: cart.id, productId: item.productId, quantity: item.quantity },
+          data: {
+            cartId: cart.id,
+            productId: item.productId,
+            productOptionId: item.productOptionId,
+            quantity: item.quantity,
+          },
         })
       }
     }
-    return transaction.customerCart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude })
-  }).then(toCartResponse)
+    return findCartWithItems(transaction, cart.id)
+  }, { timeout: 15000 }).then(toCartResponse)
 }
 
-export async function replaceCustomerCart(userId: string, items: CartItemInput[]): Promise<CustomerCartResponse> {
+export async function replaceCustomerCart(
+  userId: string,
+  mode: ShoppingMode,
+  items: CartItemInput[],
+): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
-    const cart = await transaction.customerCart.upsert({
-      where: { userId },
-      create: { userId },
-      update: {},
-    })
+    const cart = await upsertCustomerCart(transaction, userId, mode)
     for (const item of items) {
-      const product = await transaction.product.findUnique({
-        where: { id: item.productId },
-        select: { id: true, isActive: true, stockQuantity: true, category: { select: { isActive: true } } },
-      })
-      assertProductCanFulfill(product, item.quantity)
+      const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+      if (!product) throw new HttpError(404, 'Product no longer exists or is unavailable.')
+      if (item.productOptionId && !product.option) {
+        throw new HttpError(404, 'Product option no longer exists or is unavailable.')
+      }
+      assertFulfillment(product, mode, item.quantity)
     }
     await transaction.customerCartItem.deleteMany({ where: { cartId: cart.id } })
     if (items.length > 0) {
       await transaction.customerCartItem.createMany({
-        data: items.map((item) => ({ cartId: cart.id, productId: item.productId, quantity: item.quantity })),
+        data: items.map((item) => ({
+          cartId: cart.id,
+          productId: item.productId,
+          productOptionId: item.productOptionId,
+          quantity: item.quantity,
+        })),
       })
     }
-    return transaction.customerCart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude })
-  }).then(toCartResponse)
+    return findCartWithItems(transaction, cart.id)
+  }, { timeout: 15000 }).then(toCartResponse)
 }

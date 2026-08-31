@@ -20,6 +20,7 @@ interface SelectFieldProps {
   'aria-describedby'?: string
   disabled?: boolean
   required?: boolean
+  disabledOptions?: readonly string[]
 }
 
 export function SelectField({
@@ -35,6 +36,7 @@ export function SelectField({
   'aria-describedby': ariaDescribedBy,
   disabled = false,
   required = false,
+  disabledOptions = [],
 }: SelectFieldProps) {
   const listboxId = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -44,6 +46,33 @@ export function SelectField({
   const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null)
   const selectedIndex = options.findIndex((option) => option.value === value)
   const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined
+
+  const isOptionIndexDisabled = (index: number) => {
+    const option = options[index]
+    return !option || disabledOptions.includes(option.value)
+  }
+
+  const clampToEnabledIndex = (index: number) => {
+    if (options.length === 0) return -1
+    for (let offset = 0; offset < options.length; offset += 1) {
+      const candidate = index + offset
+      if (candidate < options.length && !isOptionIndexDisabled(candidate)) return candidate
+    }
+    for (let offset = 1; offset < options.length; offset += 1) {
+      const candidate = index - offset
+      if (candidate >= 0 && !isOptionIndexDisabled(candidate)) return candidate
+    }
+    return -1
+  }
+
+  const nextEnabledIndex = (start: number, direction: 1 | -1) => {
+    let index = start
+    for (let step = 0; step < options.length; step += 1) {
+      index = (index + direction + options.length) % options.length
+      if (!isOptionIndexDisabled(index)) return index
+    }
+    return -1
+  }
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -63,10 +92,7 @@ export function SelectField({
   }, [])
 
   useEffect(() => {
-    if (!isOpen) {
-      setMenuStyle(null)
-      return
-    }
+    if (!isOpen) return
 
     const updateMenuPosition = () => {
       const trigger = wrapperRef.current?.querySelector<HTMLButtonElement>('.select-field-button')
@@ -116,12 +142,12 @@ export function SelectField({
       window.visualViewport?.removeEventListener('resize', updateMenuPosition)
       window.visualViewport?.removeEventListener('scroll', updateMenuPosition)
     }
-  }, [isOpen])
+  }, [isOpen, variant])
 
   const openMenu = (startIndex = selectedIndex >= 0 ? selectedIndex : 0) => {
     if (disabled) return
     setIsOpen(true)
-    setHighlightedIndex(startIndex)
+    setHighlightedIndex(clampToEnabledIndex(startIndex))
   }
 
   const closeMenu = () => {
@@ -130,6 +156,7 @@ export function SelectField({
   }
 
   const chooseOption = (option: SelectOption) => {
+    if (disabledOptions.includes(option.value)) return
     onChange(option.value)
     closeMenu()
   }
@@ -150,16 +177,16 @@ export function SelectField({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      setHighlightedIndex((current) => Math.min(current + 1, options.length - 1))
+      setHighlightedIndex((current) => nextEnabledIndex(current, 1))
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      setHighlightedIndex((current) => Math.max(current - 1, 0))
+      setHighlightedIndex((current) => nextEnabledIndex(current, -1))
     } else if (event.key === 'Home') {
       event.preventDefault()
-      setHighlightedIndex(0)
+      setHighlightedIndex(clampToEnabledIndex(0))
     } else if (event.key === 'End') {
       event.preventDefault()
-      setHighlightedIndex(Math.max(options.length - 1, 0))
+      setHighlightedIndex(clampToEnabledIndex(options.length - 1))
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       const option = options[highlightedIndex]
@@ -169,6 +196,8 @@ export function SelectField({
       closeMenu()
     }
   }
+
+  const effectiveMenuStyle = isOpen ? menuStyle : null
 
   return (
       <div className={`select-field ${variant === 'filter' ? 'select-field-filter' : ''} ${variant === 'compact' ? 'select-field-compact' : ''} ${className}`} ref={wrapperRef}>
@@ -195,19 +224,21 @@ export function SelectField({
         </span>
         <ChevronDownIcon className="select-field-chevron" size={17} aria-hidden="true" />
       </button>
-      {isOpen && options.length > 0 && menuStyle && createPortal(
+      {isOpen && options.length > 0 && effectiveMenuStyle && createPortal(
         <div
           className={`select-field-menu ${variant === 'compact' ? 'select-field-menu-compact' : ''}`}
           id={listboxId}
           ref={menuRef}
           role="listbox"
           aria-label={ariaLabel}
-          style={menuStyle}
+          style={effectiveMenuStyle}
         >
           {options.map((option, index) => (
             <button
+              aria-disabled={disabledOptions.includes(option.value)}
               aria-selected={option.value === value}
-              className={`select-field-option ${highlightedIndex === index ? 'is-highlighted' : ''} ${option.value === value ? 'is-selected' : ''}`}
+              className={`select-field-option ${highlightedIndex === index ? 'is-highlighted' : ''} ${option.value === value ? 'is-selected' : ''} ${disabledOptions.includes(option.value) ? 'is-disabled' : ''}`}
+              disabled={disabledOptions.includes(option.value)}
               id={`${listboxId}-option-${index}`}
               key={option.value}
               onClick={() => chooseOption(option)}

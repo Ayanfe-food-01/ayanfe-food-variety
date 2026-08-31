@@ -1,12 +1,16 @@
 import { request } from './api'
 
+export type OrderType = 'RETAIL' | 'WHOLESALE'
+
 export interface CreatedOrder {
   id: string
   orderNumber: string
+  quoteNumber: string | null
   customerName: string
   phone: string
   whatsapp: string | null
   fulfillmentMethod: FulfillmentMethod
+  orderType: OrderType
   email: string | null
   deliveryAddress: string
   city: string
@@ -19,6 +23,8 @@ export interface CreatedOrder {
     id: string
     productId: string
     productName: string
+    productOptionId: string | null
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string
@@ -26,6 +32,7 @@ export interface CreatedOrder {
     product: { id: string; slug: string; image: string }
   }>
   paymentStatus: CustomerPaymentStatus
+  paymentConfirmedAt: string | null
   orderStatus: OrderStatus
   cancellationReason: string | null
   cancelledAt: string | null
@@ -60,6 +67,7 @@ export interface CreatedOrder {
 export interface GuestOrder {
   orderNumber: string
   fulfillmentMethod: FulfillmentMethod
+  orderType: OrderType
   deliveryAddress: string
   city: string
   subtotal: string
@@ -72,6 +80,7 @@ export interface GuestOrder {
   orderItems: Array<{
     id: string
     productName: string
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string
@@ -90,6 +99,7 @@ export interface CustomerOrderListItem {
   orderNumber: string
   customerName: string
   fulfillmentMethod: FulfillmentMethod
+  orderType: OrderType
   total: string
   paymentStatus: CustomerPaymentStatus
   orderStatus: OrderStatus
@@ -114,7 +124,7 @@ interface GuestOrderResponse {
 export async function checkoutCustomerCart(input: {
   checkoutKey: string
   guestAccessToken?: string
-  cartItems?: Array<{ productId: string; quantity: number }>
+  cartItems?: Array<{ productId: string; productOptionId?: string | null; quantity: number }>
   customerName: string
   phone: string
   email: string
@@ -173,16 +183,18 @@ export async function cancelCustomerOrder(orderNumber: string, reason?: string):
 export type OrderStatus = 'ORDER_PLACED' | 'PROCESSING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
-export type PaymentMethod = 'BANK_TRANSFER'
+export type PaymentMethod = 'BANK_TRANSFER' | 'PAYSTACK'
 export type FulfillmentMethod = 'PICKUP' | 'DELIVERY'
 
 export interface AdminOrder {
   orderNumber: string
   id: string
+  quoteNumber: string | null
   customerName: string
   phone: string
   whatsapp: string | null
   fulfillmentMethod: FulfillmentMethod
+  shoppingMode: OrderType
   email: string | null
   deliveryAddress: string
   city: string
@@ -202,6 +214,8 @@ export interface AdminOrder {
     id: string
     productId: string
     productName: string
+    productOptionId: string | null
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string
@@ -242,6 +256,7 @@ export interface AdminOrderListItem {
   email: string | null
   phone: string
   fulfillmentMethod: FulfillmentMethod
+  shoppingMode: OrderType
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus

@@ -1,10 +1,11 @@
-import type { FulfillmentMethod, OrderStatus, PaymentMethod } from '@prisma/client'
+import type { FulfillmentMethod, OrderStatus, PaymentMethod, ShoppingMode } from '@prisma/client'
 
 export interface CheckoutInput {
   checkoutKey: string
   guestAccessToken?: string
   cartItems?: Array<{
     productId: string
+    productOptionId?: string | null
     quantity: number
   }>
   customerName: string
@@ -26,10 +27,26 @@ export interface CancellationInput {
   reason?: string
 }
 
+/**
+ * Delivery details a customer supplies when an accepted quotation is converted
+ * into an order. Money and order content never come from here — they are taken
+ * from the quotation snapshot. All fields are optional because pickup orders
+ * need no address; the service requires delivery fields only when the
+ * quotation is fulfilled by delivery.
+ */
+export interface ConvertQuoteToOrderInput {
+  whatsapp?: string
+  deliveryAddress?: string
+  city?: string
+  deliveryInstructions?: string
+}
+
 export interface OrderItemResponse {
   id: string
   productId: string
   productName: string
+  productOptionId: string | null
+  productOptionLabel: string | null
   unitPrice: string
   quantity: number
   subtotal: string
@@ -44,10 +61,12 @@ export interface OrderItemResponse {
 export interface OrderResponse {
   id: string
   orderNumber: string
+  quoteNumber: string | null
   customerName: string
   phone: string
   whatsapp: string | null
   fulfillmentMethod: FulfillmentMethod
+  orderType: ShoppingMode
   email: string | null
   deliveryAddress: string
   city: string
@@ -57,6 +76,7 @@ export interface OrderResponse {
   total: string
   paymentMethod: PaymentMethod
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
+  paymentConfirmedAt: string | null
   orderStatus: OrderStatus
   cancellationReason: string | null
   cancelledAt: string | null
@@ -75,6 +95,7 @@ export interface OrderResponse {
 export interface GuestOrderResponse {
   orderNumber: string
   fulfillmentMethod: FulfillmentMethod
+  orderType: ShoppingMode
   deliveryAddress: string
   city: string
   subtotal: string
@@ -87,6 +108,7 @@ export interface GuestOrderResponse {
   orderItems: Array<{
     id: string
     productName: string
+    productOptionLabel: string | null
     unitPrice: string
     quantity: number
     subtotal: string

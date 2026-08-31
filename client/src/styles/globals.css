@@ -3,6 +3,7 @@
 @import "./storefront-layout.css";
 @import "./storefront-home.css";
 @import "./site-interactions.css";
+@import "./help.css";
 @import "./admin-theme.css";
 
 @theme {
@@ -125,8 +126,6 @@
   }
 }
 
-@layer components {
-}
 
 @layer utilities {
   .container {

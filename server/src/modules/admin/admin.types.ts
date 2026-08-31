@@ -5,6 +5,7 @@ import type {
   PaymentRejectionReason,
   PaymentSubmissionStatus,
   PaymentStatus,
+  ShoppingMode,
 } from '@prisma/client'
 
 export interface DashboardStats {
@@ -51,6 +52,7 @@ export interface AdminOrderListItem {
   email: string | null
   phone: string
   fulfillmentMethod: FulfillmentMethod
+  shoppingMode: ShoppingMode
   total: string
   paymentStatus: PaymentStatus
   orderStatus: OrderStatus

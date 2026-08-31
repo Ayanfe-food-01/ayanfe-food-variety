@@ -129,6 +129,12 @@ export function TrackOrder() {
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Order found</p>
                   <h2 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark">{order.orderNumber}</h2>
                   <p className="mt-2 text-sm text-muted">Placed {formatDate(order.createdAt)}</p>
+                  <p className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
+                    <span className={order.orderType === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
+                    <span className={order.orderType === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>
+                      {order.orderType === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}
+                    </span>
+                  </p>
                 </div>
                 <div className="text-left sm:text-right">
                   <p className="text-sm text-muted">Current status</p>
@@ -174,6 +180,7 @@ export function TrackOrder() {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-green-dark">{item.productName}</p>
+                        {item.productOptionLabel && <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>}
                         <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)}</p>
                       </div>
                       <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>

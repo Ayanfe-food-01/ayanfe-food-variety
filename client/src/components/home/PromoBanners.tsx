@@ -1,9 +1,22 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { PromotionalBanner } from '../../services/storeSettingsService'
 
 interface PromoBannersProps {
   banners: PromotionalBanner[]
+  isLoading?: boolean
+}
+
+function PromoBannersSkeleton() {
+  return (
+    <section className="promo-banners-wrap" aria-label="Loading promotional offers" aria-busy="true">
+      <div className="promo-banners-track" aria-hidden="true">
+        {Array.from({ length: 2 }, (_, index) => (
+          <div className="promo-banner-card promo-banner-skeleton" key={index} />
+        ))}
+      </div>
+    </section>
+  )
 }
 
 const destinationFor = (destination: string | null): string | null => {
@@ -45,13 +58,14 @@ function PromoBannerCard({ banner, index }: { banner: PromotionalBanner; index: 
   )
 }
 
-export function PromoBanners({ banners }: PromoBannersProps) {
+export function PromoBanners({ banners, isLoading = false }: PromoBannersProps) {
   const trackRef = useRef<HTMLDivElement>(null)
   const currentIndexRef = useRef(0)
   const autoScrollingRef = useRef(false)
   const timerRef = useRef<number | null>(null)
   const autoScrollFinishTimerRef = useRef<number | null>(null)
   const scheduleNextRef = useRef<() => void>(() => undefined)
+  const [activeIndex, setActiveIndex] = useState(0)
 
   const clearTimers = useCallback(() => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
@@ -60,21 +74,45 @@ export function PromoBanners({ banners }: PromoBannersProps) {
     autoScrollFinishTimerRef.current = null
   }, [])
 
+  const centerOn = useCallback((index: number, behavior: ScrollBehavior) => {
+    const track = trackRef.current
+    if (!track || track.children.length === 0) return
+    const target = track.children[index] as HTMLElement | undefined
+    if (!target) return
+    track.scrollTo({ left: target.offsetLeft + target.offsetWidth / 2 - track.clientWidth / 2, behavior })
+  }, [])
+
+  const goTo = useCallback((index: number) => {
+    const track = trackRef.current
+    if (!track || track.children.length === 0) return
+    const target = track.children[index] as HTMLElement | undefined
+    if (!target) return
+    currentIndexRef.current = index
+    setActiveIndex(index)
+    autoScrollingRef.current = true
+    centerOn(index, 'smooth')
+    autoScrollFinishTimerRef.current = window.setTimeout(() => {
+      autoScrollingRef.current = false
+      scheduleNextRef.current()
+    }, 700)
+  }, [centerOn])
+
   const updateCurrentIndex = useCallback(() => {
     const track = trackRef.current
     if (!track || track.children.length === 0) return
 
+    const viewportCenter = track.scrollLeft + track.clientWidth / 2
     const nearestIndex = Array.from(track.children).reduce(
       (closestIndex, child, index) => {
         const closestChild = track.children[closestIndex] as HTMLElement
         const currentChild = child as HTMLElement
-        return Math.abs(currentChild.offsetLeft - track.scrollLeft) < Math.abs(closestChild.offsetLeft - track.scrollLeft)
-          ? index
-          : closestIndex
+        const distanceFor = (el: HTMLElement) => Math.abs(el.offsetLeft + el.offsetWidth / 2 - viewportCenter)
+        return distanceFor(currentChild) < distanceFor(closestChild) ? index : closestIndex
       },
       0,
     )
     currentIndexRef.current = nearestIndex
+    setActiveIndex(nearestIndex)
   }, [])
 
   const scheduleNext = useCallback(() => {
@@ -85,18 +123,9 @@ export function PromoBanners({ banners }: PromoBannersProps) {
       const track = trackRef.current
       if (!track || track.children.length < 2) return
 
-      const nextIndex = (currentIndexRef.current + 1) % track.children.length
-      const nextCard = track.children[nextIndex] as HTMLElement
-      currentIndexRef.current = nextIndex
-      autoScrollingRef.current = true
-      track.scrollTo({ left: nextCard.offsetLeft, behavior: 'smooth' })
-
-      autoScrollFinishTimerRef.current = window.setTimeout(() => {
-        autoScrollingRef.current = false
-        scheduleNextRef.current()
-      }, 700)
+      goTo((currentIndexRef.current + 1) % track.children.length)
     }, 5000)
-  }, [banners.length, clearTimers])
+  }, [banners.length, clearTimers, goTo])
 
   useEffect(() => {
     scheduleNextRef.current = scheduleNext
@@ -108,14 +137,16 @@ export function PromoBanners({ banners }: PromoBannersProps) {
   useEffect(() => {
     currentIndexRef.current = 0
     autoScrollingRef.current = false
-    trackRef.current?.scrollTo({ left: 0, behavior: 'auto' })
+    centerOn(0, 'auto')
     scheduleNext()
 
     return () => {
       clearTimers()
       autoScrollingRef.current = false
     }
-  }, [banners.length, clearTimers, scheduleNext])
+  }, [banners.length, clearTimers, scheduleNext, centerOn])
+
+  if (isLoading) return <PromoBannersSkeleton />
 
   if (banners.length === 0) return null
 
@@ -130,7 +161,6 @@ export function PromoBanners({ banners }: PromoBannersProps) {
 
   return (
     <section className="promo-banners-wrap" aria-label="Promotional offers">
-      <div className="container">
         <div
           className="promo-banners-track"
           ref={trackRef}
@@ -147,7 +177,21 @@ export function PromoBanners({ banners }: PromoBannersProps) {
             <PromoBannerCard banner={banner} index={index} key={banner.id} />
           ))}
         </div>
-      </div>
+        {banners.length > 1 && (
+          <div className="promo-dots" role="tablist" aria-label="Choose promotional slide">
+            {banners.map((banner, index) => (
+              <button
+                type="button"
+                key={banner.id}
+                className={`promo-dot${index === activeIndex ? ' is-active' : ''}`}
+                aria-label={`Go to slide ${index + 1}`}
+                aria-selected={index === activeIndex}
+                role="tab"
+                onClick={() => goTo(index)}
+              />
+            ))}
+          </div>
+        )}
     </section>
   )
 }

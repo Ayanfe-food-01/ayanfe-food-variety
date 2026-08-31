@@ -1,6 +1,6 @@
 import { promisify } from 'node:util';
 import { createHmac, randomBytes, randomInt, scrypt as nodeScrypt, timingSafeEqual, } from 'node:crypto';
-import { UserRole } from '@prisma/client';
+import { ShoppingMode, UserRole } from '@prisma/client';
 import { env } from '../../config/env.js';
 import { prisma } from '../../lib/prisma.js';
 import { HttpError } from '../../utils/http.js';
@@ -22,6 +22,7 @@ const toUser = (user) => ({
     email: user.email,
     phone: user.phone ?? null,
     role: user.role,
+    shoppingMode: user.shoppingMode ?? ShoppingMode.RETAIL,
 });
 export const authCookie = {
     name: SESSION_COOKIE_NAME,
@@ -488,6 +489,13 @@ export async function revokeCustomerSession(token) {
         data: { revokedAt: new Date() },
     });
 }
+export async function setCustomerShoppingMode(userId, mode) {
+    const user = await prisma.user.update({
+        where: { id: userId },
+        data: { shoppingMode: mode },
+    });
+    return toUser(user);
+}
 async function findOrCreateGoogleCustomer(identity) {
     try {
         return await prisma.$transaction(async (transaction) => {
@@ -498,11 +506,18 @@ async function findOrCreateGoogleCustomer(identity) {
                 if (userBySubject.role !== UserRole.CUSTOMER || userBySubject.email !== identity.email) {
                     throw new HttpError(409, 'This Google account cannot be used for this customer account.');
                 }
-                return {
-                    user: userBySubject,
-                    verificationCode: null,
-                    createdForVerification: false,
-                };
+                if (!userBySubject.emailVerified) {
+                    await transaction.customerEmailVerification.deleteMany({
+                        where: { userId: userBySubject.id },
+                    });
+                    return {
+                        user: await transaction.user.update({
+                            where: { id: userBySubject.id },
+                            data: { emailVerified: true },
+                        }),
+                    };
+                }
+                return { user: userBySubject };
             }
             const userByEmail = await transaction.user.findUnique({
                 where: { email: identity.email },
@@ -514,23 +529,20 @@ async function findOrCreateGoogleCustomer(identity) {
                 if (userByEmail.googleSubject && userByEmail.googleSubject !== identity.subject) {
                     throw new HttpError(409, 'This email is already linked to another Google account.');
                 }
+                await transaction.customerEmailVerification.deleteMany({
+                    where: { userId: userByEmail.id },
+                });
                 const linkedUser = await transaction.user.update({
                     where: { id: userByEmail.id },
                     data: {
                         authProvider: 'GOOGLE',
                         googleSubject: identity.subject,
-                        emailVerified: userByEmail.emailVerified,
+                        emailVerified: true,
                         name: userByEmail.name || identity.name,
                     },
                 });
-                return {
-                    user: linkedUser,
-                    verificationCode: null,
-                    createdForVerification: false,
-                };
+                return { user: linkedUser };
             }
-            const code = generateVerificationCode();
-            const now = new Date();
             const createdUser = await transaction.user.create({
                 data: {
                     name: identity.name,
@@ -539,22 +551,10 @@ async function findOrCreateGoogleCustomer(identity) {
                     role: UserRole.CUSTOMER,
                     authProvider: 'GOOGLE',
                     googleSubject: identity.subject,
-                    emailVerified: false,
+                    emailVerified: true,
                 },
             });
-            await transaction.customerEmailVerification.create({
-                data: {
-                    userId: createdUser.id,
-                    otpHash: hashVerificationCode(createdUser.id, code),
-                    expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
-                    requestWindowStart: now,
-                },
-            });
-            return {
-                user: createdUser,
-                verificationCode: code,
-                createdForVerification: true,
-            };
+            return { user: createdUser };
         });
     }
     catch (error) {
@@ -567,66 +567,12 @@ async function findOrCreateGoogleCustomer(identity) {
         throw new HttpError(409, 'This Google account could not be linked safely.');
     }
 }
-const getVerificationSecondsRemaining = (expiresAt) => Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 1000));
-async function cleanupNewGoogleCustomer(userId, googleSubject) {
-    try {
-        await prisma.user.deleteMany({
-            where: {
-                id: userId,
-                googleSubject,
-                emailVerified: false,
-            },
-        });
-    }
-    catch (error) {
-        console.error(JSON.stringify({
-            event: 'google_customer_verification_cleanup_failed',
-            errorName: error instanceof Error ? error.name : 'UnknownError',
-        }));
-    }
-}
-async function ensureGoogleCustomerVerification(result, googleSubject) {
-    if (result.verificationCode) {
-        try {
-            await sendCustomerVerificationEmail({
-                recipient: result.user.email,
-                code: result.verificationCode,
-            });
-        }
-        catch (error) {
-            if (result.createdForVerification) {
-                await cleanupNewGoogleCustomer(result.user.id, googleSubject);
-            }
-            logVerificationEvent('google_email_verification_delivery_failed', result.user.email);
-            throw getEmailDeliveryError(error);
-        }
-        const pending = await prisma.customerEmailVerification.findUnique({
-            where: { userId: result.user.id },
-            select: { expiresAt: true },
-        });
-        return pending ? getVerificationSecondsRemaining(pending.expiresAt) : VERIFICATION_TTL_MS / 1000;
-    }
-    const pending = await prisma.customerEmailVerification.findUnique({
-        where: { userId: result.user.id },
-        select: { expiresAt: true },
-    });
-    if (pending && pending.expiresAt > new Date()) {
-        return getVerificationSecondsRemaining(pending.expiresAt);
-    }
-    const resent = await resendCustomerVerificationEmail({ email: result.user.email });
-    return resent.verificationExpiresInSeconds;
-}
 export async function loginWithGoogle(code, nonce) {
     const identity = await verifyGoogleAuthorizationCode(code, nonce);
+    return loginWithGoogleIdentity(identity);
+}
+export async function loginWithGoogleIdentity(identity) {
     const result = await findOrCreateGoogleCustomer(identity);
-    if (!result.user.emailVerified) {
-        const verificationExpiresInSeconds = await ensureGoogleCustomerVerification(result, identity.subject);
-        return {
-            verificationRequired: true,
-            email: result.user.email,
-            verificationExpiresInSeconds,
-        };
-    }
     return {
         user: toUser(result.user),
         token: (await createSession(result.user, 'customer')).token,

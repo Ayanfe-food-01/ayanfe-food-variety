@@ -1,29 +1,49 @@
-import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client'
+import { OrderStatus, PaymentStatus, Prisma, ReviewStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import type { AuthenticatedUser } from '../auth/auth.types.js'
 import type {
   AdminProductQuery,
   Product,
   ProductInput,
+  ProductOption,
+  ProductOptionInput,
+  ProductWholesalePricing,
   PublicCategoryProductSection,
   PublicProduct,
   PublicProductPage,
   PublicProductQuery,
+  WholesaleOptionPricing,
+  WholesalePriceLookupInput,
+  WholesalePriceLookupResult,
 } from './product.types.js'
 import { createLowStockNotificationIfNeeded, recordStockAdjustment } from '../inventory/inventory.service.js'
 import { calculateDiscountedPrice } from './product.pricing.js'
+import { assertWholesaleOrderable, findWholesaleTier, wholesaleUnitPriceFromOption } from './wholesale.pricing.js'
 
 type ProductWithCategory = Prisma.ProductGetPayload<{
   include: {
     category: true
     images: { orderBy: { sortOrder: 'asc' } }
+    options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] }
   }
 }>
+
+type ProductWithRatings = ProductWithCategory & {
+  reviews?: ReadonlyArray<{ rating: number }>
+}
+
+type ProductOptionRow = ProductWithCategory['options'][number]
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const productInclude = {
   category: true,
   images: { orderBy: { sortOrder: 'asc' } },
+  options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
+  reviews: {
+    where: { status: ReviewStatus.APPROVED },
+    select: { rating: true },
+  },
 } satisfies Prisma.ProductInclude
 
 const normalizedImages = (product: Pick<ProductWithCategory, 'image' | 'images'>): string[] => {
@@ -34,13 +54,201 @@ const normalizedImages = (product: Pick<ProductWithCategory, 'image' | 'images'>
     : storedImages
 }
 
+const toOption = (option: ProductOptionRow): ProductOption => ({
+  id: option.id,
+  label: option.label,
+  price: option.price.toString(),
+  stockQuantity: option.stockQuantity,
+  sortOrder: option.sortOrder,
+  isActive: option.isActive,
+})
+
+const normalizedOptions = (options: readonly ProductOptionRow[]): ProductOption[] =>
+  options.filter((option) => option.isActive).map(toOption)
+
+const adminProductInclude = {
+  ...productInclude,
+  options: {
+    ...productInclude.options,
+    include: { wholesalePriceTiers: { orderBy: { minQuantity: 'asc' as const } } },
+  },
+} satisfies Prisma.ProductInclude
+
+type AdminProduct = Prisma.ProductGetPayload<{ include: typeof adminProductInclude }>
+type AdminProductOptionRow = AdminProduct['options'][number]
+
+const toAdminOption = (option: AdminProductOptionRow): ProductOption => ({
+  ...toOption(option),
+  wholesaleMoq: option.wholesaleMoq,
+  wholesalePrices: option.wholesalePriceTiers.map((tier) => ({
+    id: tier.id,
+    minQuantity: tier.minQuantity,
+    maxQuantity: tier.maxQuantity,
+    price: tier.price.toString(),
+  })),
+})
+
 const inputImages = (input: ProductInput): string[] => {
   const images = input.images?.filter(Boolean) ?? (input.image ? [input.image] : [])
   if (images.length === 0) throw new HttpError(400, 'At least one product image is required.')
   return images
 }
 
-const toProduct = (product: ProductWithCategory, isWishlisted = false): Product => ({
+const optionStockSum = (options: ProductInput['options']): number =>
+  (options ?? []).reduce((sum, option) => sum + option.stockQuantity, 0)
+
+const optionPriceFloor = (options: ProductInput['options'] | undefined): string => {
+  if (!options || options.length === 0) return ''
+  return options.reduce(
+    (lowest, option) => (lowest === '' || Number(option.price) < Number(lowest) ? option.price : lowest),
+    '',
+  )
+}
+
+const optionCreateRows = (options: ProductInput['options'] | undefined) =>
+  (options ?? []).map((option) => ({
+    label: option.label,
+    price: option.price,
+    stockQuantity: option.stockQuantity,
+    sortOrder: option.sortOrder,
+    isActive: option.isActive ?? true,
+    wholesaleMoq: option.wholesaleMoq ?? null,
+  }))
+
+const syncWholesaleTiers = async (
+  transaction: Prisma.TransactionClient,
+  productId: string,
+  productOptionId: string,
+  tiers: ProductOptionInput['wholesalePrices'],
+): Promise<void> => {
+  await transaction.wholesalePriceTier.deleteMany({ where: { productOptionId } })
+  if (!tiers || tiers.length === 0) return
+  await transaction.wholesalePriceTier.createMany({
+    data: tiers.map((tier) => ({
+      productId,
+      productOptionId,
+      minQuantity: tier.minQuantity,
+      maxQuantity: tier.maxQuantity,
+      price: tier.price,
+    })),
+  })
+}
+
+const ARCHIVE_PREFIX = 'Archived · '
+const archivedOptionLabel = (label: string): string => `${ARCHIVE_PREFIX}${label}`
+
+async function reconcileOptions(
+  transaction: Prisma.TransactionClient,
+  productId: string,
+  submitted: NonNullable<ProductInput['options']>,
+): Promise<void> {
+  const existing = await transaction.productOption.findMany({ where: { productId } })
+  const existingById = new Map(existing.map((option) => [option.id, option]))
+  const archivedLabels = existing.reduce<Map<string, string>>((map, option) => {
+    if (!option.isActive) {
+      let originalLabel = option.label
+      while (originalLabel.startsWith(ARCHIVE_PREFIX)) originalLabel = originalLabel.slice(ARCHIVE_PREFIX.length)
+      map.set(originalLabel.toLowerCase(), option.id)
+    }
+    return map
+  }, new Map())
+
+  const upserted = new Set<string>()
+  let sortOrder = 0
+  for (const option of submitted) {
+    const target = option.id ? existingById.get(option.id) : undefined
+    const labelKey = option.label.toLowerCase()
+    if (target) {
+      const archived = archivedLabels.get(labelKey)
+      if (archived && archived !== target.id) {
+        throw new HttpError(400, `A removed option with the label "${option.label}" cannot be re-used for this product.`)
+      }
+      if (archived && archived === target.id) archivedLabels.delete(labelKey)
+      upserted.add(target.id)
+      await transaction.productOption.update({
+        where: { id: target.id },
+        data: {
+          label: option.label,
+          price: option.price,
+          stockQuantity: option.stockQuantity,
+          sortOrder,
+          isActive: true,
+          wholesaleMoq: option.wholesaleMoq ?? null,
+        },
+      })
+      await syncWholesaleTiers(transaction, productId, target.id, option.wholesalePrices)
+    } else {
+      const revived = archivedLabels.get(labelKey)
+      if (revived) {
+        const alreadyLive = existing.some((row) => row.isActive && row.label.toLowerCase() === labelKey)
+        if (alreadyLive) {
+          throw new HttpError(400, `An option with the label "${option.label}" already exists for this product.`)
+        }
+        archivedLabels.delete(labelKey)
+        upserted.add(revived)
+        await transaction.productOption.update({
+          where: { id: revived },
+          data: {
+            label: option.label,
+            price: option.price,
+            stockQuantity: option.stockQuantity,
+            sortOrder,
+            isActive: true,
+            wholesaleMoq: option.wholesaleMoq ?? null,
+          },
+        })
+        await syncWholesaleTiers(transaction, productId, revived, option.wholesalePrices)
+      } else {
+        const created = await transaction.productOption.create({
+          data: {
+            productId,
+            label: option.label,
+            price: option.price,
+            stockQuantity: option.stockQuantity,
+            sortOrder,
+            isActive: true,
+            wholesaleMoq: option.wholesaleMoq ?? null,
+          },
+        })
+        await syncWholesaleTiers(transaction, productId, created.id, option.wholesalePrices)
+        upserted.add(created.id)
+      }
+    }
+    sortOrder += 1
+  }
+
+  const removed = existing.filter((option) => !upserted.has(option.id))
+  if (removed.length > 0) {
+    const removedIds = removed.map((option) => option.id)
+    const [orderRefs, cartRefs] = await Promise.all([
+      transaction.orderItem.groupBy({
+        by: ['productOptionId'],
+        where: { productOptionId: { in: removedIds } },
+        _count: { _all: true },
+      }),
+      transaction.customerCartItem.groupBy({
+        by: ['productOptionId'],
+        where: { productOptionId: { in: removedIds } },
+        _count: { _all: true },
+      }),
+    ])
+    const referenced = new Set(
+      [...orderRefs, ...cartRefs].map((row) => row.productOptionId) as string[],
+    )
+    for (const option of removed) {
+      if (referenced.has(option.id)) {
+        await transaction.productOption.update({
+          where: { id: option.id },
+          data: { label: option.label.startsWith(ARCHIVE_PREFIX) ? option.label : archivedOptionLabel(option.label), isActive: false },
+        })
+        continue
+      }
+      await transaction.productOption.delete({ where: { id: option.id } })
+    }
+  }
+}
+
+const toProduct = (product: ProductWithRatings, isWishlisted = false, wholesaleFrom?: string | null): Product => ({
   id: product.id,
   categoryId: product.categoryId,
   categoryName: product.category.name,
@@ -56,6 +264,7 @@ const toProduct = (product: ProductWithCategory, isWishlisted = false): Product 
   unit: product.unit,
   image: product.image,
   images: normalizedImages(product),
+  options: normalizedOptions(product.options),
   isActive: product.isActive,
   isFeatured: product.isFeatured,
   stockQuantity: product.stockQuantity,
@@ -66,12 +275,22 @@ const toProduct = (product: ProductWithCategory, isWishlisted = false): Product 
       : 'IN_STOCK',
   isAvailable: product.isActive && product.stockQuantity > 0,
   isWishlisted,
+  wholesaleFrom: wholesaleFrom ?? undefined,
+  averageRating: ratingsSummary(product.reviews ?? []).averageRating,
+  reviewCount: ratingsSummary(product.reviews ?? []).reviewCount,
   createdAt: product.createdAt.toISOString(),
   updatedAt: product.updatedAt.toISOString(),
 })
 
-export const toPublicProduct = (product: ProductWithCategory, isWishlisted = false): PublicProduct => {
-  return toProduct(product, isWishlisted)
+const ratingsSummary = (reviews: readonly { rating: number }[]) => {
+  const count = reviews.length
+  if (count === 0) return { averageRating: null as number | null, reviewCount: 0 }
+  const total = reviews.reduce((sum, review) => sum + review.rating, 0)
+  return { averageRating: Math.round((total / count) * 10) / 10, reviewCount: count }
+}
+
+export const toPublicProduct = (product: ProductWithRatings, isWishlisted = false, wholesaleFrom?: string | null): PublicProduct => {
+  return toProduct(product, isWishlisted, wholesaleFrom)
 }
 
 interface PopularProductRow {
@@ -96,9 +315,11 @@ interface PopularProductRow {
   createdAt: Date
   updatedAt: Date
   orderedQuantity: bigint
+  averageRating: number | null
+  reviewCount: number
 }
 
-const toPopularProduct = (product: PopularProductRow, images: string[]): PublicProduct => ({
+const toPopularProduct = (product: PopularProductRow, images: string[], options: ProductOption[], wholesaleFrom?: string | null): PublicProduct => ({
   id: product.id,
   categoryId: product.categoryId,
   categoryName: product.categoryName,
@@ -118,6 +339,7 @@ const toPopularProduct = (product: PopularProductRow, images: string[]): PublicP
   unit: product.unit,
   image: product.image,
   images,
+  options,
   isActive: product.isActive,
   isFeatured: product.isFeatured,
   stockQuantity: product.stockQuantity,
@@ -128,11 +350,126 @@ const toPopularProduct = (product: PopularProductRow, images: string[]): PublicP
       : 'IN_STOCK',
   isAvailable: product.isActive && product.stockQuantity > 0,
   isWishlisted: false,
+  wholesaleFrom: wholesaleFrom ?? undefined,
+  averageRating: product.averageRating,
+  reviewCount: product.reviewCount,
   createdAt: product.createdAt.toISOString(),
   updatedAt: product.updatedAt.toISOString(),
 })
 
-export async function getProducts(query: PublicProductQuery, wishlistUserId?: string): Promise<PublicProductPage> {
+export const isWholesaleCustomer = (user: AuthenticatedUser | null | undefined): boolean => {
+  return Boolean(user && user.role === 'CUSTOMER' && user.shoppingMode === 'WHOLESALE')
+}
+
+interface WholesaleFromTier {
+  minQuantity: number
+  maxQuantity: number | null
+  price: Prisma.Decimal
+}
+
+const wholesaleFromPrice = (moq: number | null, tiers: WholesaleFromTier[]): string | null => {
+  if (tiers.length === 0) return null
+  const quantity = moq ?? 1
+  const applicable = findWholesaleTier(tiers, quantity) ?? tiers[0]!
+  return applicable.price.toString()
+}
+
+const getProductWholesaleFromMap = async (productIds: string[]): Promise<Map<string, string | null>> => {
+  const map = new Map<string, string | null>()
+  if (productIds.length === 0) return map
+
+  const rows = await prisma.productOption.findMany({
+    where: {
+      productId: { in: productIds },
+      isActive: true,
+      wholesalePriceTiers: { some: {} },
+    },
+    select: {
+      productId: true,
+      wholesaleMoq: true,
+      wholesalePriceTiers: {
+        orderBy: { minQuantity: 'asc' },
+        select: { minQuantity: true, maxQuantity: true, price: true },
+      },
+    },
+  })
+
+  for (const row of rows) {
+    const candidate = wholesaleFromPrice(row.wholesaleMoq, row.wholesalePriceTiers)
+    if (candidate === null) continue
+    const current = map.get(row.productId)
+    if (current === undefined || Number(candidate) < Number(current)) {
+      map.set(row.productId, candidate)
+    }
+  }
+  return map
+}
+
+export async function getProductWholesalePricing(productId: string): Promise<ProductWholesalePricing | null> {
+  const product = await prisma.product.findFirst({
+    where: { id: productId, isActive: true, category: { isActive: true } },
+    select: { id: true },
+  })
+  if (!product) return null
+
+  const options = await prisma.productOption.findMany({
+    where: { productId, isActive: true, wholesalePriceTiers: { some: {} } },
+    orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    include: { wholesalePriceTiers: { orderBy: { minQuantity: 'asc' } } },
+  })
+
+  return {
+    productId,
+    options: options.map((option) => ({
+      optionId: option.id,
+      label: option.label,
+      moq: option.wholesaleMoq,
+      tiers: option.wholesalePriceTiers.map((tier) => ({
+        minQuantity: tier.minQuantity,
+        maxQuantity: tier.maxQuantity,
+        price: tier.price.toString(),
+      })),
+    })),
+  }
+}
+
+export async function lookupWholesalePrice(input: WholesalePriceLookupInput): Promise<WholesalePriceLookupResult> {
+  const product = await prisma.product.findFirst({
+    where: { id: input.productId, isActive: true, category: { isActive: true } },
+    select: { id: true },
+  })
+  if (!product) throw new HttpError(404, 'The product was not found.')
+
+  const option = await prisma.productOption.findFirst({
+    where: { id: input.productOptionId, productId: input.productId },
+  })
+  if (!option || !option.isActive) throw new HttpError(404, 'The product size was not found.')
+
+  const tiers = await prisma.wholesalePriceTier.findMany({
+    where: { productId: input.productId, productOptionId: input.productOptionId },
+    orderBy: { minQuantity: 'asc' },
+  })
+  if (tiers.length === 0) {
+    throw new HttpError(409, 'Wholesale pricing is not available for this size yet.')
+  }
+
+  assertWholesaleOrderable({ wholesaleMoq: option.wholesaleMoq, wholesalePriceTiers: tiers }, input.quantity)
+
+  const tier = findWholesaleTier(tiers, input.quantity)!
+  const unitPrice = wholesaleUnitPriceFromOption({ wholesaleMoq: option.wholesaleMoq, wholesalePriceTiers: tiers }, input.quantity)!
+
+  return {
+    productId: input.productId,
+    productOptionId: input.productOptionId,
+    optionLabel: option.label,
+    quantity: input.quantity,
+    moq: option.wholesaleMoq,
+    unitPrice: unitPrice.toString(),
+    tier: { minQuantity: tier.minQuantity, maxQuantity: tier.maxQuantity, price: tier.price.toString() },
+  }
+}
+
+export async function getProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
   const where: Prisma.ProductWhereInput = {
     isActive: true,
     category: { isActive: true },
@@ -179,8 +516,16 @@ export async function getProducts(query: PublicProductQuery, wishlistUserId?: st
       })).map((item) => item.productId))
     : new Set<string>()
 
+  const wholesaleFromMap = includeWholesale
+    ? await getProductWholesaleFromMap(products.map((product) => product.id))
+    : null
+
   return {
-    products: products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
+    products: products.map((product) => toPublicProduct(
+      product,
+      wishlistProductIds.has(product.id),
+      wholesaleFromMap?.get(product.id),
+    )),
     pagination: {
       page: query.page,
       limit: query.limit,
@@ -193,6 +538,7 @@ export async function getProducts(query: PublicProductQuery, wishlistUserId?: st
 export async function getCategoryProductSections(
   limit: number,
   wishlistUserId?: string,
+  includeWholesale = false,
 ): Promise<PublicCategoryProductSection[]> {
   const categories = await prisma.category.findMany({
     where: {
@@ -205,6 +551,7 @@ export async function getCategoryProductSections(
          include: {
            category: true,
            images: { orderBy: { sortOrder: 'asc' } },
+           options: { orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }] },
          },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
@@ -221,6 +568,10 @@ export async function getCategoryProductSections(
       })).map((item) => item.productId))
     : new Set<string>()
 
+  const wholesaleFromMap = includeWholesale
+    ? await getProductWholesaleFromMap(products.map((product) => product.id))
+    : null
+
   return categories
     .filter((category) => category.products.length > 0)
     .map((category) => ({
@@ -229,11 +580,15 @@ export async function getCategoryProductSections(
         name: category.name,
         slug: category.slug,
       },
-      products: category.products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
+      products: category.products.map((product) => toPublicProduct(
+        product,
+        wishlistProductIds.has(product.id),
+        wholesaleFromMap?.get(product.id),
+      )),
     }))
 }
 
-export async function getPopularProducts(query: PublicProductQuery, wishlistUserId?: string): Promise<PublicProductPage> {
+export async function getPopularProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
   const products = await prisma.$queryRaw<PopularProductRow[]>(Prisma.sql`
     SELECT
       p.id,
@@ -254,7 +609,17 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
       p.stock_quantity AS "stockQuantity",
       p.created_at AS "createdAt",
       p.updated_at AS "updatedAt",
-      COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END), 0)::bigint AS "orderedQuantity"
+      COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END), 0)::bigint AS "orderedQuantity",
+      (
+        SELECT AVG(r.rating)::double precision
+        FROM reviews r
+        WHERE r.product_id = p.id AND r.status = ${ReviewStatus.APPROVED}::"ReviewStatus"
+      ) AS "averageRating",
+      (
+        SELECT COUNT(*)
+        FROM reviews r
+        WHERE r.product_id = p.id AND r.status = ${ReviewStatus.APPROVED}::"ReviewStatus"
+      )::int AS "reviewCount"
     FROM products p
     INNER JOIN categories c ON c.id = p.category_id
     LEFT JOIN order_items oi ON oi.product_id = p.id
@@ -308,9 +673,30 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
     imagesByProduct.set(image.productId, current)
   }
 
+  const productIds = products.map((product) => product.id)
+  const optionRows = productIds.length
+    ? await prisma.productOption.findMany({
+        where: { productId: { in: productIds }, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      })
+    : []
+  const optionsByProduct = new Map<string, ProductOption[]>()
+  for (const row of optionRows) {
+    const current = optionsByProduct.get(row.productId) ?? []
+    current.push(toOption(row))
+    optionsByProduct.set(row.productId, current)
+  }
+
+  const wholesaleFromMap = includeWholesale ? await getProductWholesaleFromMap(productIds) : null
+
   return {
     products: products.map((product) => ({
-      ...toPopularProduct(product, imagesByProduct.get(product.id) ?? [product.image]),
+      ...toPopularProduct(
+        product,
+        imagesByProduct.get(product.id) ?? [product.image],
+        optionsByProduct.get(product.id) ?? [],
+        wholesaleFromMap?.get(product.id),
+      ),
       isWishlisted: wishlistProductIds.has(product.id),
     })),
     pagination: {
@@ -322,11 +708,11 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
   }
 }
 
-export async function getNewArrivals(query: PublicProductQuery, wishlistUserId?: string): Promise<PublicProductPage> {
-  return getProducts({ ...query, sort: 'newest' }, wishlistUserId)
+export async function getNewArrivals(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
+  return getProducts({ ...query, sort: 'newest' }, wishlistUserId, includeWholesale)
 }
 
-export async function getFeaturedProducts(query: PublicProductQuery, wishlistUserId?: string): Promise<PublicProductPage> {
+export async function getFeaturedProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
   const where: Prisma.ProductWhereInput = {
     isFeatured: true,
     isActive: true,
@@ -347,8 +733,16 @@ export async function getFeaturedProducts(query: PublicProductQuery, wishlistUse
       })).map((item) => item.productId))
     : new Set<string>()
 
+  const wholesaleFromMap = includeWholesale
+    ? await getProductWholesaleFromMap(products.map((product) => product.id))
+    : null
+
   return {
-    products: products.map((product) => toPublicProduct(product, wishlistProductIds.has(product.id))),
+    products: products.map((product) => toPublicProduct(
+      product,
+      wishlistProductIds.has(product.id),
+      wholesaleFromMap?.get(product.id),
+    )),
     pagination: {
       page: query.page,
       limit: query.limit,
@@ -358,7 +752,7 @@ export async function getFeaturedProducts(query: PublicProductQuery, wishlistUse
   }
 }
 
-export async function getProductById(identifier: string, wishlistUserId?: string): Promise<PublicProduct | null> {
+export async function getProductById(identifier: string, wishlistUserId?: string, includeWholesale = false): Promise<PublicProduct | null> {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)
   const product = await prisma.product.findFirst({
     where: isUuid
@@ -374,7 +768,8 @@ export async function getProductById(identifier: string, wishlistUserId?: string
         select: { id: true },
       }))
     : false
-  return toPublicProduct(product, isWishlisted)
+  const wholesaleFromMap = includeWholesale ? await getProductWholesaleFromMap([product.id]) : null
+  return toPublicProduct(product, isWishlisted, wholesaleFromMap?.get(product.id))
 }
 
 const slugify = (value: string): string => {
@@ -403,7 +798,11 @@ export const validateProductCategory = async (categoryId: string) => {
   if (!category.isActive) throw new HttpError(400, 'The selected category is inactive.')
 }
 
-const toAdminProduct = (product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): Product => toProduct(product)
+const toAdminProduct = (product: AdminProduct): Product => ({
+  ...toProduct(product),
+  options: product.options.filter((option) => option.isActive).map(toAdminOption),
+  archivedOptions: product.options.filter((option) => !option.isActive).map(toAdminOption),
+})
 
 export async function listAdminProducts(query: AdminProductQuery) {
   const where: Prisma.ProductWhereInput = {}
@@ -425,7 +824,7 @@ export async function listAdminProducts(query: AdminProductQuery) {
     prisma.product.count({ where }),
     prisma.product.findMany({
       where,
-      include: productInclude,
+      include: adminProductInclude,
       orderBy: { createdAt: 'desc' },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
@@ -444,7 +843,7 @@ export async function listAdminProducts(query: AdminProductQuery) {
 }
 
 export async function getAdminProduct(id: string): Promise<Product> {
-  const product = await prisma.product.findUnique({ where: { id }, include: productInclude })
+  const product = await prisma.product.findUnique({ where: { id }, include: adminProductInclude })
   if (!product) throw new HttpError(404, 'Product not found.')
   return toAdminProduct(product)
 }
@@ -452,6 +851,7 @@ export async function getAdminProduct(id: string): Promise<Product> {
 export async function createProduct(input: ProductInput, adminId: string): Promise<Product> {
   await validateProductCategory(input.categoryId)
   const images = inputImages(input)
+  const hasOptions = Boolean(input.options && input.options.length > 0)
   try {
     const product = await prisma.$transaction(async (transaction) => {
       const created = await transaction.product.create({
@@ -460,7 +860,7 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
           name: input.name,
           slug: await uniqueSlug(input.name),
           description: input.description,
-          price: input.price,
+          price: input.price ?? optionPriceFloor(input.options),
           discountType: input.discountType,
           discountValue: input.discountValue,
           deliveryFee: input.deliveryFee,
@@ -469,10 +869,19 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
            images: { create: images.map((url, sortOrder) => ({ url, sortOrder })) },
           isActive: input.isActive,
           isFeatured: input.isFeatured,
-          stockQuantity: input.stockQuantity,
+          stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : 0),
+          ...(hasOptions ? { options: { create: optionCreateRows(input.options) } } : {}),
         },
-        include: productInclude,
+        include: adminProductInclude,
       })
+      if (created.options.length > 0) {
+        for (const option of input.options ?? []) {
+          const optionRow = created.options.find((row) => row.sortOrder === option.sortOrder)
+          if (optionRow) {
+            await syncWholesaleTiers(transaction, created.id, optionRow.id, option.wholesalePrices)
+          }
+        }
+      }
       if (created.stockQuantity > 0) {
         const adjustment = await recordStockAdjustment(transaction, {
           productId: created.id,
@@ -493,7 +902,7 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
         }
       }
       return created
-    })
+    }, { timeout: 15000 })
     return toAdminProduct(product)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -506,6 +915,8 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
 export async function updateProduct(input: ProductInput, adminId: string, id: string): Promise<Product> {
   await validateProductCategory(input.categoryId)
   const images = inputImages(input)
+  const hasOptions = Boolean(input.options && input.options.length > 0)
+  const replacesOptions = input.options !== undefined
   try {
     const product = await prisma.$transaction(async (transaction) => {
       const currentRows = await transaction.$queryRaw<Array<{ id: string; stock_quantity: number }>>(
@@ -516,6 +927,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
       )
       const current = currentRows[0]
       if (!current) throw new HttpError(404, 'Product not found.')
+      if (replacesOptions) await reconcileOptions(transaction, id, input.options!)
       const updated = await transaction.product.update({
         where: { id },
         data: {
@@ -523,7 +935,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           name: input.name,
           slug: await uniqueSlug(input.name, id),
           description: input.description,
-          price: input.price,
+          price: input.price ?? (hasOptions ? optionPriceFloor(input.options) : undefined),
           discountType: input.discountType,
           discountValue: input.discountValue,
           deliveryFee: input.deliveryFee,
@@ -535,9 +947,9 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
            },
           isActive: input.isActive,
           isFeatured: input.isFeatured,
-          stockQuantity: input.stockQuantity,
+          stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : undefined),
         },
-        include: productInclude,
+        include: adminProductInclude,
       })
       if (updated.stockQuantity !== current.stock_quantity) {
         const adjustment = await recordStockAdjustment(transaction, {
@@ -559,7 +971,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
         }
       }
       return updated
-    })
+    }, { timeout: 60000 })
     return toAdminProduct(product)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -573,7 +985,7 @@ export async function updateProductStatus(id: string, isActive: boolean): Promis
   const product = await prisma.product.update({
     where: { id },
     data: { isActive },
-    include: productInclude,
+    include: adminProductInclude,
   }).catch((error: unknown) => {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new HttpError(404, 'Product not found.')
@@ -587,7 +999,7 @@ export async function updateProductFeatured(id: string, isFeatured: boolean): Pr
   const product = await prisma.product.update({
     where: { id },
     data: { isFeatured },
-    include: productInclude,
+    include: adminProductInclude,
   }).catch((error: unknown) => {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new HttpError(404, 'Product not found.')

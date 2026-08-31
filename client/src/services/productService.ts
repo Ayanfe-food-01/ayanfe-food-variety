@@ -1,5 +1,9 @@
 import { request } from './api'
-import type { Product } from '../types/product'
+import type {
+  Product,
+  ProductWholesalePricing,
+  WholesalePriceResult,
+} from '../types/product'
 
 interface ProductApiResponse {
   id: string
@@ -23,8 +27,12 @@ interface ProductApiResponse {
   isAvailable: boolean
   isWishlisted: boolean
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+  averageRating?: number | null
+  reviewCount?: number
   createdAt: string
   updatedAt: string
+  options?: ProductOptionApiResponse[]
+  wholesaleFrom?: string | null
 }
 
 interface ProductListResponse {
@@ -36,6 +44,15 @@ interface ProductListResponse {
 
 interface ProductResponse {
   data: ProductApiResponse
+}
+
+interface ProductOptionApiResponse {
+  id: string
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive: boolean
 }
 
 export interface ProductQuery {
@@ -81,6 +98,9 @@ const toProduct = (product: ProductApiResponse): Product => {
   const discountValue = product.discountValue === null ? null : Number(product.discountValue)
   const deliveryFee = Number(product.deliveryFee)
   const stockQuantity = Number(product.stockQuantity)
+  const wholesaleFrom = product.wholesaleFrom === undefined || product.wholesaleFrom === null
+    ? null
+    : Number(product.wholesaleFrom)
 
   if (
     !Number.isFinite(price)
@@ -92,9 +112,38 @@ const toProduct = (product: ProductApiResponse): Product => {
     || deliveryFee < 0
     || !Number.isInteger(stockQuantity)
     || stockQuantity < 0
+    || (wholesaleFrom !== null && (!Number.isFinite(wholesaleFrom) || wholesaleFrom <= 0))
+    || (product.averageRating !== undefined && product.averageRating !== null && (!Number.isFinite(product.averageRating) || product.averageRating < 0 || product.averageRating > 5))
+    || (product.reviewCount !== undefined && (!Number.isInteger(product.reviewCount) || product.reviewCount < 0))
   ) {
     throw new Error('The product data is invalid.')
   }
+
+  const options: Product['options'] = product.options !== undefined
+    ? product.options.map((option) => {
+      const optionPrice = Number(option.price)
+
+      if (
+        !Number.isFinite(optionPrice)
+        || optionPrice <= 0
+        || !Number.isInteger(option.stockQuantity)
+        || option.stockQuantity < 0
+        || !Number.isInteger(option.sortOrder)
+        || option.sortOrder < 0
+      ) {
+        throw new Error('The product data is invalid.')
+      }
+
+      return {
+        id: option.id,
+        label: option.label,
+        price: optionPrice,
+        stockQuantity: option.stockQuantity,
+        sortOrder: option.sortOrder,
+        isActive: option.isActive,
+      }
+    })
+    : undefined
 
   return {
     id: product.id,
@@ -122,6 +171,10 @@ const toProduct = (product: ProductApiResponse): Product => {
     isFeatured: product.isFeatured,
     isAvailable: product.isAvailable,
     isWishlisted: product.isWishlisted,
+    options,
+    wholesaleFrom,
+    averageRating: product.averageRating === undefined ? undefined : product.averageRating,
+    reviewCount: product.reviewCount === undefined ? undefined : product.reviewCount,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   }
@@ -200,4 +253,91 @@ export async function getFeaturedProducts(query: Omit<ProductQuery, 'sort'> = {}
 export async function getProduct(id: string): Promise<Product> {
   const response = await request<ProductResponse>(`/products/${encodeURIComponent(id)}`)
   return toProduct(response.data)
+}
+
+interface ProductWholesalePricingResponse {
+  data: {
+    productId: string
+    options: Array<{
+      optionId: string
+      label: string
+      moq: number | null
+      tiers: Array<{ minQuantity: number; maxQuantity: number | null; price: string }>
+    }>
+  }
+}
+
+interface WholesalePriceResponse {
+  data: {
+    productId: string
+    productOptionId: string
+    optionLabel: string
+    quantity: number
+    moq: number | null
+    unitPrice: string
+    tier: { minQuantity: number; maxQuantity: number | null; price: string }
+  }
+}
+
+export async function getProductWholesalePricing(id: string, signal?: AbortSignal): Promise<ProductWholesalePricing> {
+  const response = await request<ProductWholesalePricingResponse>(
+    `/products/${encodeURIComponent(id)}/wholesale`,
+    { signal },
+  )
+  return {
+    productId: response.data.productId,
+    options: response.data.options.map((option) => {
+      if (option.moq !== null && (!Number.isInteger(option.moq) || option.moq < 1)) {
+        throw new Error('The wholesale pricing data is invalid.')
+      }
+      return {
+        optionId: option.optionId,
+        label: option.label,
+        moq: option.moq,
+        tiers: option.tiers.map((tier) => {
+          const price = Number(tier.price)
+          if (!Number.isFinite(price) || price <= 0) {
+            throw new Error('The wholesale pricing data is invalid.')
+          }
+          if (!Number.isInteger(tier.minQuantity) || tier.minQuantity < 1) {
+            throw new Error('The wholesale pricing data is invalid.')
+          }
+          if (tier.maxQuantity !== null && (!Number.isInteger(tier.maxQuantity) || tier.maxQuantity < tier.minQuantity)) {
+            throw new Error('The wholesale pricing data is invalid.')
+          }
+          return { minQuantity: tier.minQuantity, maxQuantity: tier.maxQuantity, price }
+        }),
+      }
+    }),
+  }
+}
+
+export async function getWholesaleUnitPrice(
+  productId: string,
+  productOptionId: string,
+  quantity: number,
+): Promise<WholesalePriceResult> {
+  const response = await request<WholesalePriceResponse>('/products/wholesale-price', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ productId, productOptionId, quantity }),
+  })
+  const unitPrice = Number(response.data.unitPrice)
+  const tierPrice = Number(response.data.tier.price)
+  if (!Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isFinite(tierPrice) || tierPrice <= 0) {
+    throw new Error('The wholesale pricing data is invalid.')
+  }
+  return {
+    productId: response.data.productId,
+    productOptionId: response.data.productOptionId,
+    optionLabel: response.data.optionLabel,
+    quantity: response.data.quantity,
+    moq: response.data.moq,
+    unitPrice,
+    tier: {
+      minQuantity: response.data.tier.minQuantity,
+      maxQuantity: response.data.tier.maxQuantity,
+      price: tierPrice,
+    },
+  }
 }

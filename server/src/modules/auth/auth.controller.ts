@@ -18,6 +18,7 @@ import {
   resetPassword,
   verifyCustomerEmail,
   readAuthCookie,
+  setCustomerShoppingMode,
 } from './auth.service.js'
 import {
   createGoogleOAuthState,
@@ -35,6 +36,7 @@ import {
   validateLoginInput,
   validatePasswordResetInput,
   validatePasswordResetRequestInput,
+  validateShoppingModeInput,
 } from './auth.validator.js'
 
 export const loginController: RequestHandler = async (request, response) => {
@@ -108,6 +110,14 @@ export const customerMeController: RequestHandler = async (request, response) =>
   response.json({ success: true, data: { user } })
 }
 
+export const customerShoppingModeController: RequestHandler = async (request, response) => {
+  const user = await setCustomerShoppingMode(
+    request.authenticatedUser!.id,
+    validateShoppingModeInput(request.body),
+  )
+  response.json({ success: true, data: { user } })
+}
+
 export const customerProvidersController: RequestHandler = (_request, response) => {
   response.json({
     success: true,
@@ -169,16 +179,6 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
 
   try {
     const result = await loginWithGoogle(code, nonceCookie)
-    if ('verificationRequired' in result) {
-      response.clearCookie(authCookie.name, authCookie.options)
-      response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
-      response.redirect(getOAuthFrontendUrl(
-        'verification',
-        result.email,
-        result.verificationExpiresInSeconds,
-      ).toString())
-      return
-    }
     response.clearCookie(authCookie.name, authCookie.options)
     setCustomerCookie(response, result.token)
     response.redirect(getOAuthFrontendUrl('success').toString())

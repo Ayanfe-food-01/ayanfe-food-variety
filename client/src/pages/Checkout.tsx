@@ -14,10 +14,12 @@ import { calculateCheckoutTotals } from '../components/checkout/checkoutCalculat
 import { initialCheckoutForm, validateCheckoutForm } from '../components/checkout/checkoutValidation'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../components/checkout/types'
 import { useCart } from '../hooks/useCart'
+import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
+import { initializeGuestPaystackPayment, initializePaystackPayment } from '../services/paymentService'
 import { createRequestKey } from '../utils/browserCompatibility'
 import { saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 import { clearGuestCheckout, isGuestCheckoutMarked, markGuestCheckout } from '../utils/guestCheckout'
@@ -100,6 +102,7 @@ function EmptyCheckout() {
 export function Checkout() {
   const {
     items,
+    mode,
     subtotal,
     deliveryFee,
     totalQuantity,
@@ -222,7 +225,11 @@ export function Checkout() {
           ? {}
           : {
               guestAccessToken,
-              cartItems: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
+              cartItems: items.map((item) => ({
+                productId: item.id,
+                productOptionId: item.productOptionId ?? null,
+                quantity: item.quantity,
+              })),
             }),
         customerName: form.fullName.trim(),
         phone: form.phone.trim(),
@@ -238,12 +245,33 @@ export function Checkout() {
         paymentMethod: form.paymentMethod,
       })
 
-      // The API removes only the purchased cart rows. Refreshing keeps the
-      // cart badge correct without clearing items added in another tab.
-      await refreshCart()
+      // Keep the guest access token available for the Paystack return page and
+      // for the confirmation page, which both load the order themselves.
       if (!user) {
         saveGuestOrderAccessToken(order.orderNumber, guestAccessToken)
       }
+
+      if (form.paymentMethod === 'PAYSTACK') {
+        const callbackUrl = `${window.location.origin}/order-confirmation/${encodeURIComponent(order.orderNumber)}${user ? '' : `?access=${encodeURIComponent(guestAccessToken)}`}`
+        const payment = user
+          ? await initializePaystackPayment({ orderId: order.id, callbackUrl })
+          : await initializeGuestPaystackPayment({ orderId: order.id, guestAccessToken, callbackUrl })
+
+        // Leave straight for Paystack. We do NOT refresh the cart here: doing so
+        // flips the global cart loading flag, which would momentarily swap this
+        // page out for the skeleton loader and jump the scroll position. The cart
+        // is re-hydrated when the customer returns from Paystack.
+        clearSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
+        clearSessionValue(CHECKOUT_KEY_STORAGE_KEY)
+        clearSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY)
+        clearGuestCheckout()
+        window.location.assign(payment.authorizationUrl)
+        return
+      }
+
+      // The API removes only the purchased cart rows. Refreshing keeps the
+      // cart badge correct without clearing items added in another tab.
+      await refreshCart()
       clearSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
       clearSessionValue(CHECKOUT_KEY_STORAGE_KEY)
       clearSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY)
@@ -272,7 +300,7 @@ export function Checkout() {
     form.fulfillmentMethod,
   )
 
-  if (isCustomerAuthLoading || isCartLoading) {
+  if (isCustomerAuthLoading || (isCartLoading && !isSubmitting)) {
     return (
       <>
         <Navbar />
@@ -315,6 +343,9 @@ export function Checkout() {
              <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
               Choose pickup or delivery, confirm your details, and place your order securely.
             </p>
+             <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-green-dark">
+               {mode === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}
+             </p>
           </div>
         </section>
 
@@ -368,13 +399,19 @@ export function Checkout() {
             </form>
 
             <aside className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-28" aria-labelledby="checkout-summary-heading">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
+                <span className={mode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
+                <span className={mode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>
+                  {mode === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}
+                </span>
+              </div>
               <div className="flex items-center justify-between gap-4">
                 <h2 id="checkout-summary-heading" className="m-0 text-2xl font-bold tracking-[-0.03em] text-green-dark">Your order</h2>
                 <Link className="text-xs font-bold text-green transition-colors hover:text-orange" to="/cart">Edit cart</Link>
               </div>
               <div className="mt-6 space-y-5">
                 {items.map((item) => (
-                  <div className="flex gap-3" key={item.id}>
+                  <div className="flex gap-3" key={cartItemLineKey(item.id, item.productOptionId)}>
                     <div className="relative shrink-0">
                       {item.image ? (
                         <img className="size-16 rounded-xl object-cover" src={item.image} alt={item.name} />
@@ -385,6 +422,9 @@ export function Checkout() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="m-0 truncate text-sm font-bold text-green-dark">{item.name}</p>
+                      {item.productOptionLabel && (
+                        <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>
+                      )}
                        <p className="mt-1 text-xs text-muted">
                          {item.unit} · <ProductPrice
                            originalPrice={item.originalPrice}

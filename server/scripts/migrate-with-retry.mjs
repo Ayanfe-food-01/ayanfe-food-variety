@@ -1,7 +1,11 @@
 import { spawn } from 'node:child_process'
 import { access } from 'node:fs/promises'
 import { constants } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
+import dotenv from 'dotenv'
+
+dotenv.config({ path: fileURLToPath(new URL('../../.env', import.meta.url)), quiet: true })
 
 const maxAttempts = 3
 const retryDelaysMs = [5000, 10000]

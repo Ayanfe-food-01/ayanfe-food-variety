@@ -9,12 +9,26 @@
     "start": "npm run prisma:migrate:retry && node dist/server.js",
     "typecheck": "npm run prisma:generate && tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy",
+    "prisma:validate": "node scripts/load-env.mjs validate",
+    "prisma:migrate": "node scripts/load-env.mjs migrate deploy",
+    "prisma:migrate:status": "node scripts/load-env.mjs migrate status",
     "prisma:migrate:retry": "node scripts/migrate-with-retry.mjs",
     "admin:create": "tsx scripts/create-initial-admin.ts",
+    "db:seed": "prisma db seed",
     "doctor": "tsx scripts/doctor.ts",
     "smoke:production": "node scripts/production-smoke.mjs",
-    "test:inventory": "tsx scripts/inventory-safety-smoke.ts"
+    "test:inventory": "tsx scripts/inventory-safety-smoke.ts",
+    "test:google-oauth": "tsx scripts/google-oauth-smoke.ts",
+    "test:quote-pricing": "tsx scripts/quote-pricing-smoke.ts",
+    "test:quote-customer": "tsx scripts/customer-quote-smoke.ts",
+    "test:quote-conversion": "tsx scripts/quote-conversion-smoke.ts",
+    "test:quote-notifications": "tsx scripts/quote-notification-smoke.ts",
+    "test:reviews": "tsx scripts/review-testimonial-db-smoke.ts",
+    "test:testimonials": "tsx scripts/testimonial-smoke.ts",
+    "test:reviews-api": "tsx scripts/review-http-smoke.ts",
+    "test:product-reviews-api": "tsx scripts/product-reviews-smoke.ts",
+    "test:reviews-admin": "tsx scripts/reviews-admin-smoke.ts",
+    "test:customer-stories": "tsx scripts/customer-stories-smoke.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -32,5 +46,8 @@
     "@types/node": "^24.13.3",
     "tsx": "^4.19.4",
     "typescript": "^6.0.2"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed/seed-admin.ts"
   }
 }

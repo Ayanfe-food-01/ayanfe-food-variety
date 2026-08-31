@@ -38,23 +38,13 @@ const requireGoogleOAuthConfiguration = (): {
   return { clientId, clientSecret, redirectUri }
 }
 
-export const getOAuthFrontendUrl = (
-  status: 'success' | 'verification' | 'cancelled' | 'unavailable' | 'failed',
-  email?: string,
-  verificationExpiresInSeconds?: number,
-): URL => {
+export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
   const frontendOrigin = env.nodeEnv === 'production'
     ? env.publicAppUrl ?? env.corsOrigins[0]
     : env.corsOrigins[0] ?? env.publicAppUrl
   if (!frontendOrigin) throw new HttpError(503, 'The authentication redirect is not configured.')
-  const url = new URL(status === 'verification' ? '/verify-email' : '/login', frontendOrigin)
-  if (status === 'verification') {
-    url.searchParams.set('oauth', 'google')
-    if (email) url.searchParams.set('email', email)
-    if (verificationExpiresInSeconds) {
-      url.searchParams.set('verification_expires_in', String(Math.max(0, Math.ceil(verificationExpiresInSeconds))))
-    }
-  } else if (status !== 'success') {
+  const url = new URL('/login', frontendOrigin)
+  if (status !== 'success') {
     url.searchParams.set('oauth_error', `google_${status}`)
   } else {
     url.searchParams.set('oauth', 'google')

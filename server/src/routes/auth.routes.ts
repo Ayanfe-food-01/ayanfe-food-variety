@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { createRateLimit } from '../middleware/rateLimit.js'
+import { requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
 import {
   loginController,
   logoutController,
@@ -13,6 +14,7 @@ import {
   customerSignupController,
   customerVerifyEmailController,
   customerResendVerificationController,
+  customerShoppingModeController,
   passwordResetRequestController,
   passwordResetController,
 } from '../modules/auth/auth.controller.js'
@@ -34,5 +36,11 @@ authRoutes.post('/customer/verify-email', createRateLimit(20, 15 * 60 * 1000), c
 authRoutes.post('/customer/resend-verification', createRateLimit(5, 15 * 60 * 1000), customerResendVerificationController)
 authRoutes.post('/customer/logout', customerLogoutController)
 authRoutes.get('/customer/me', customerMeController)
+authRoutes.patch(
+  '/customer/shopping-mode',
+  requireCustomerAuthentication,
+  requireCustomerRole,
+  customerShoppingModeController,
+)
 authRoutes.post('/forgot-password', createRateLimit(5, 15 * 60 * 1000), passwordResetRequestController)
 authRoutes.post('/reset-password', createRateLimit(10, 15 * 60 * 1000), passwordResetController)

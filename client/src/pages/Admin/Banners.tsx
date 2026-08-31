@@ -51,17 +51,19 @@ export function Banners() {
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useToast()
 
-  const loadBanners = () => {
-    setIsLoading(true)
-    setError(null)
-    getAdminBanners()
-      .then(setBanners)
-      .catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Promotional banners could not be loaded.'))
-      .finally(() => setIsLoading(false))
-  }
-
   useEffect(() => {
-    loadBanners()
+    let current = true
+    getAdminBanners()
+      .then((items) => {
+        if (current) setBanners(items)
+      })
+      .catch((caught: unknown) => {
+        if (current) setError(caught instanceof ApiError ? caught.message : 'Promotional banners could not be loaded.')
+      })
+      .finally(() => {
+        if (current) setIsLoading(false)
+      })
+    return () => { current = false }
   }, [])
 
   const requestStatusChange = (banner: AdminBanner) => {

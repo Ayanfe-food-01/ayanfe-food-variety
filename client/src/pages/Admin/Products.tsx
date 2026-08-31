@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
-import { FeaturedStatus, getFeaturedActionLabel } from '../../components/admin/FeaturedStatus'
+import { FeaturedStatus } from '../../components/admin/FeaturedStatus'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -25,6 +25,9 @@ const pageSize = 10
 
 const formatDate = (value: string) =>
   formatCompatibleDate(value)
+
+const getFeaturedActionLabel = (isFeatured: boolean): string =>
+  isFeatured ? 'Remove from featured' : 'Mark as featured'
 
 interface ProductActionsProps {
   product: AdminProductsPage['products'][number]

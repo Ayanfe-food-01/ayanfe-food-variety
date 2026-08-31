@@ -148,8 +148,8 @@ export function StoreSettings() {
                 previewUrl={logoPreview}
                 error={logoError ?? undefined}
                 previewClassName="h-40 w-full max-w-md rounded-2xl bg-sage/30 object-contain p-4"
-                 onReset={() => void resetBrandingAsset('logo')}
-                 isResetting={isBrandingSaving}
+                 onRemove={() => void resetBrandingAsset('logo')}
+                 isRemoving={isBrandingSaving}
                 onChange={(file, previewUrl, uploadError) => {
                   if (logoPreview) URL.revokeObjectURL(logoPreview)
                   setLogoFile(file)
@@ -165,10 +165,10 @@ export function StoreSettings() {
                 previewUrl={faviconPreview}
                 error={faviconError ?? undefined}
                 accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                previewClassName="mt-3 size-32 rounded-2xl bg-sage/30 object-contain p-5"
+                previewClassName="size-32 rounded-2xl bg-sage/30 object-contain p-5"
                 validateFile={validateSquareFavicon}
-                 onReset={() => void resetBrandingAsset('favicon')}
-                 isResetting={isBrandingSaving}
+                 onRemove={() => void resetBrandingAsset('favicon')}
+                 isRemoving={isBrandingSaving}
                 onChange={(file, previewUrl, uploadError) => {
                   if (faviconPreview) URL.revokeObjectURL(faviconPreview)
                   setFaviconFile(file)

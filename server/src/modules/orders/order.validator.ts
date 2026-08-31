@@ -1,6 +1,6 @@
 import { HttpError } from '../../utils/http.js'
 import { FulfillmentMethod, PaymentMethod } from '@prisma/client'
-import type { CancellationInput, CheckoutInput, GuestOrderTrackingInput } from './order.types.js'
+import type { CancellationInput, CheckoutInput, ConvertQuoteToOrderInput, GuestOrderTrackingInput } from './order.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -63,7 +63,19 @@ const validateCartItems = (value: unknown): CheckoutInput['cartItems'] | undefin
     if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) {
       throw new HttpError(400, 'Guest cart quantities are invalid.')
     }
-    return { productId: item.productId.trim(), quantity: item.quantity as number }
+    const productOptionId = item.productOptionId
+    if (
+      productOptionId !== undefined
+      && productOptionId !== null
+      && (typeof productOptionId !== 'string' || !UUID_PATTERN.test(productOptionId.trim()))
+    ) {
+      throw new HttpError(400, 'Guest cart product options are invalid.')
+    }
+    return {
+      productId: item.productId.trim(),
+      productOptionId: typeof productOptionId === 'string' && productOptionId.trim() ? productOptionId.trim() : null,
+      quantity: item.quantity as number,
+    }
   })
 }
 
@@ -98,9 +110,21 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
           deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
         }
       : {}),
-    paymentMethod: body.paymentMethod === PaymentMethod.BANK_TRANSFER
-      ? PaymentMethod.BANK_TRANSFER
+    paymentMethod: body.paymentMethod === PaymentMethod.BANK_TRANSFER || body.paymentMethod === PaymentMethod.PAYSTACK
+      ? body.paymentMethod
       : (() => { throw new HttpError(400, 'Payment method is not supported.') })(),
+  }
+}
+
+export function validateConvertQuoteInput(body: unknown): ConvertQuoteToOrderInput {
+  if (body === undefined || body === null) return {}
+  if (!isRecord(body)) throw new HttpError(400, 'Conversion details are invalid.')
+
+  return {
+    whatsapp: optionalText(body.whatsapp, 'WhatsApp number', 40),
+    deliveryAddress: optionalText(body.deliveryAddress, 'deliveryAddress', 2000),
+    city: optionalText(body.city, 'city', 120),
+    deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
   }
 }
 

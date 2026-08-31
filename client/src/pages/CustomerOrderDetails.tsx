@@ -1,11 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useCart } from '../hooks/useCart'
 import { ApiError } from '../services/api'
-import { getBankDetails, type BankDetails } from '../services/paymentService'
+import {
+  getBankDetails,
+  initializeGuestPaystackPayment,
+  initializePaystackPayment,
+  verifyGuestPaystackPayment,
+  verifyPaystackPayment,
+  type BankDetails,
+} from '../services/paymentService'
 import { cancelCustomerOrder, getCustomerOrder, getGuestOrder, type CreatedOrder } from '../services/orderService'
 import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
@@ -14,6 +22,7 @@ import { formatDate } from '../utils/dateFormat'
 import { lockBodyScroll } from '../utils/browserCompatibility'
 import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 import { OrderTracker } from '../components/orders/OrderTracker'
+import { getOrderReviewEligibility, type ReviewEligibility } from '../services/reviewService'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
@@ -31,11 +40,20 @@ export function CustomerOrderDetails() {
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [bank, setBank] = useState<BankDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reviewEligibility, setReviewEligibility] = useState<ReviewEligibility | null>(null)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [cancellationReason, setCancellationReason] = useState('')
   const [otherCancellationReason, setOtherCancellationReason] = useState('')
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
+  const [gatewayStatus, setGatewayStatus] = useState<
+    | { kind: 'checking' }
+    | { kind: 'success' }
+    | { kind: 'unconfirmed' }
+    | { kind: 'error'; message: string }
+  >({ kind: 'checking' })
+  const [isPaying, setIsPaying] = useState(false)
+  const { refreshCart } = useCart()
   const accessFromUrl = new URLSearchParams(location.search).get('access')
   const guestAccessToken = orderNumber
     ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
@@ -55,6 +73,13 @@ export function CustomerOrderDetails() {
     loadOrder
       .then(setOrder)
       .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Order could not be loaded.'))
+    if (user && orderNumber) {
+      getOrderReviewEligibility(orderNumber)
+        .then(setReviewEligibility)
+        .catch(() => {
+          setReviewEligibility(null)
+        })
+    }
     getBankDetails()
       .then(setBank)
       .catch(() => {
@@ -97,6 +122,64 @@ export function CustomerOrderDetails() {
     }
   }
 
+  // Confirm an unfinished Paystack payment directly with the provider once the
+  // order loads, so the customer always sees the true (server-confirmed) state.
+  const fetchGatewayVerification = useCallback(async () => {
+    if (!order || order.paymentMethod !== 'PAYSTACK') return null
+    return user
+      ? await verifyPaystackPayment({ orderId: order.id })
+      : guestAccessToken
+        ? await verifyGuestPaystackPayment({ orderId: order.id, guestAccessToken })
+        : null
+  }, [guestAccessToken, order, user])
+
+  const applyGatewayVerification = useCallback((verification: Awaited<ReturnType<typeof fetchGatewayVerification>>) => {
+    if (!verification || verification.status !== 'SUCCESSFUL') {
+      setGatewayStatus({ kind: 'unconfirmed' })
+      return
+    }
+    setGatewayStatus({ kind: 'success' })
+    void (user ? getCustomerOrder(order!.orderNumber) : getGuestOrder(order!.orderNumber, guestAccessToken!))
+      .then(setOrder)
+      .catch(() => {
+        // The confirmation page will reflect the update; keep showing the order.
+      })
+    refreshCart()
+  }, [guestAccessToken, order, refreshCart, user])
+
+  const gatewayVerificationFailed = useCallback((reason: unknown) => {
+    setGatewayStatus({
+      kind: 'error',
+      message: reason instanceof ApiError ? reason.message : 'Your payment status could not be checked right now.',
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!order || order.paymentMethod !== 'PAYSTACK') return
+    void fetchGatewayVerification().then(applyGatewayVerification).catch(gatewayVerificationFailed)
+  }, [applyGatewayVerification, fetchGatewayVerification, gatewayVerificationFailed, order])
+
+  const payOnline = async () => {
+    if (!order || !orderNumber || isPaying) return
+    setIsPaying(true)
+    try {
+      const init = user
+        ? await initializePaystackPayment({ orderId: order.id, callbackUrl: window.location.href })
+        : await initializeGuestPaystackPayment({
+            orderId: order.id,
+            guestAccessToken: guestAccessToken!,
+            callbackUrl: window.location.href,
+          })
+      window.location.assign(init.authorizationUrl)
+    } catch (caught: unknown) {
+      setIsPaying(false)
+      setGatewayStatus({
+        kind: 'error',
+        message: caught instanceof ApiError ? caught.message : 'The payment could not be started right now.',
+      })
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -122,6 +205,12 @@ export function CustomerOrderDetails() {
                 <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark">{order.orderNumber}</h1>
                 <p className="mt-2 text-sm text-muted">
                    Placed {formatDate(order.createdAt)}
+                </p>
+                <p className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
+                  <span className={order.orderType === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
+                  <span className={order.orderType === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>
+                    {order.orderType === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}
+                  </span>
                 </p>
               </div>
               <div className="text-left text-sm sm:text-right">
@@ -175,10 +264,33 @@ export function CustomerOrderDetails() {
               <h2 className="text-2xl font-bold text-green-dark">Items</h2>
               <div className="mt-5 divide-y divide-line">
                 {order.orderItems.map((item) => (
-                  <div className="flex items-center justify-between gap-4 py-4" key={item.id}>
+                  <div className="flex items-start justify-between gap-4 py-4" key={item.id}>
                     <div>
                       <p className="font-bold text-green-dark">{item.productName}</p>
+                        {item.productOptionLabel && <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>}
                         <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)} · {order.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery'} {formatPrice(item.deliveryFee)}</p>
+                        {reviewEligibility && !isGuestOrder && (() => {
+                          const reviewInfo = reviewEligibility.items.find((review) => review.id === item.id)
+                          if (!reviewInfo) return null
+                          if (reviewInfo.canReview) {
+                            return (
+                              <Link
+                                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-green/25 bg-sage/40 px-4 py-2 text-xs font-bold text-green-dark transition-colors hover:bg-sage"
+                                to={`/orders/${order.orderNumber}/review/${item.id}`}
+                              >
+                                Write a review <ArrowRight size={14} />
+                              </Link>
+                            )
+                          }
+                          if (reviewInfo.reviewed) {
+                            return (
+                              <span className="mt-3 inline-flex items-center rounded-full bg-cream px-4 py-2 text-xs font-bold text-muted">
+                                Reviewed{reviewInfo.reviewRating ? ` · ${reviewInfo.reviewRating}/5` : ''}
+                              </span>
+                            )
+                          }
+                          return null
+                        })()}
                     </div>
                     <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
                   </div>
@@ -190,7 +302,42 @@ export function CustomerOrderDetails() {
                 <div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div>
               </div>
             </div>
-            {order.paymentStatus !== 'PAID' && (
+            {order.paymentStatus !== 'PAID' && (order.paymentMethod === 'PAYSTACK' ? (
+              <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
+                <h2 className="text-xl font-bold text-green-dark">Payment verification</h2>
+                {gatewayStatus.kind === 'checking' && (
+                  <p className="mt-3 text-sm leading-6 text-muted">Checking your payment status with the provider…</p>
+                )}
+                {gatewayStatus.kind === 'unconfirmed' && (
+                  <>
+                    <p className="mt-3 text-sm leading-6 text-muted">
+                      Your Paystack payment has not been completed or could not be confirmed yet. You can try paying again.
+                    </p>
+                    <button
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-60"
+                      type="button"
+                      onClick={() => void payOnline()}
+                      disabled={isPaying}
+                    >
+                      {isPaying ? 'Starting payment…' : 'Pay now'} <ArrowRight size={16} />
+                    </button>
+                  </>
+                )}
+                {gatewayStatus.kind === 'error' && (
+                  <>
+                    <p className="mt-3 text-sm leading-6 text-muted">{gatewayStatus.message}</p>
+                    <button
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-60"
+                      type="button"
+                      onClick={() => void payOnline()}
+                      disabled={isPaying}
+                    >
+                      {isPaying ? 'Starting payment…' : 'Pay now'} <ArrowRight size={16} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
               <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
                 <h2 className="text-xl font-bold text-green-dark">Payment verification</h2>
                 {order.paymentSubmissions[0]?.status === 'PENDING' ? (
@@ -216,7 +363,7 @@ export function CustomerOrderDetails() {
                   </>
                 )}
               </div>
-            )}
+            ))}
             {order.paymentSubmissions.length > 0 && (
               <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
                 <h2 className="text-xl font-bold text-green-dark">Payment submissions</h2>

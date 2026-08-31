@@ -122,6 +122,96 @@ export async function submitGuestPaymentProof(input: {
   return response.data.payment
 }
 
+export interface PaystackPaymentInit {
+  orderId: string
+  provider: 'PAYSTACK'
+  providerReference: string
+  authorizationUrl: string
+  amount: string
+  currency: string
+  status: 'PENDING'
+}
+
+interface PaymentInitResponse {
+  success: true
+  message: string
+  data: { payment: PaystackPaymentInit }
+}
+
+export async function initializePaystackPayment(input: {
+  orderId: string
+  callbackUrl?: string
+}): Promise<PaystackPaymentInit> {
+  const response = await request<PaymentInitResponse>('/payments/paystack/initialize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId: input.orderId, callbackUrl: input.callbackUrl }),
+  })
+  return response.data.payment
+}
+
+export async function initializeGuestPaystackPayment(input: {
+  orderId: string
+  guestAccessToken: string
+  callbackUrl?: string
+}): Promise<PaystackPaymentInit> {
+  const response = await request<PaymentInitResponse>('/payments/paystack/initialize-guest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      orderId: input.orderId,
+      guestAccessToken: input.guestAccessToken,
+      callbackUrl: input.callbackUrl,
+    }),
+  })
+  return response.data.payment
+}
+
+export interface PaystackPaymentVerification {
+  orderId: string
+  orderNumber: string
+  provider: 'PAYSTACK'
+  providerReference: string
+  /** Confirmed state of the stored Payment record (never inferred client-side). */
+  status: 'PENDING' | 'SUCCESSFUL' | 'FAILED'
+  paymentStatus: 'PENDING' | 'PAID'
+  amount: string
+  currency: string
+  paidAt: string | null
+}
+
+interface PaymentVerifyResponse {
+  success: true
+  message: string
+  data: { verification: PaystackPaymentVerification }
+}
+
+export async function verifyPaystackPayment(input: {
+  orderId: string
+}): Promise<PaystackPaymentVerification> {
+  const response = await request<PaymentVerifyResponse>('/payments/paystack/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId: input.orderId }),
+  })
+  return response.data.verification
+}
+
+export async function verifyGuestPaystackPayment(input: {
+  orderId: string
+  guestAccessToken: string
+}): Promise<PaystackPaymentVerification> {
+  const response = await request<PaymentVerifyResponse>('/payments/paystack/verify-guest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      orderId: input.orderId,
+      guestAccessToken: input.guestAccessToken,
+    }),
+  })
+  return response.data.verification
+}
+
 export interface AdminPaymentsQuery {
   search?: string
   status?: 'PENDING' | 'VERIFIED' | 'REJECTED'

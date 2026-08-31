@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: new URL('../../../.env', import.meta.url), quiet: true });
 const parsePort = (value) => {
     const port = Number(value ?? 8000);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -72,6 +73,18 @@ export const env = {
         cloudName: process.env.CLOUDINARY_CLOUD_NAME,
         apiKey: process.env.CLOUDINARY_API_KEY,
         apiSecret: process.env.CLOUDINARY_API_SECRET,
+    },
+    payments: {
+        // Which gateway provider is active for online payments. Leave blank to keep
+        // online payment disabled (the project falls back to bank transfer).
+        // Provider-specific keys are read by the provider module in a later phase.
+        provider: (process.env.PAYMENT_PROVIDER?.trim() || ''),
+        currency: process.env.PAYMENT_CURRENCY?.trim() || 'NGN',
+        paystack: {
+            secretKey: process.env.PAYSTACK_SECRET_KEY?.trim(),
+            publicKey: process.env.PAYSTACK_PUBLIC_KEY?.trim(),
+            webhookSecret: process.env.PAYSTACK_WEBHOOK_SECRET?.trim(),
+        },
     },
     email: {
         resendApiKey: process.env.RESEND_API_KEY?.trim(),

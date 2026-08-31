@@ -172,10 +172,12 @@ export function PaymentMethodSection({
                   />
                   <span>
                     <span className="block text-sm font-bold text-green-dark">
-                      {method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod}
+                      {method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod === 'PAYSTACK' ? 'Paystack' : method.paymentMethod}
                     </span>
                     <span className="mt-1 block text-xs leading-5 text-muted">
-                      Transfer the order total using the account details below.
+                      {method.paymentMethod === 'BANK_TRANSFER'
+                        ? 'Transfer the order total using the account details below.'
+                        : 'Pay online securely with Paystack using card, bank, USSD, or QR.'}
                     </span>
                   </span>
                 </span>
@@ -202,6 +204,15 @@ export function PaymentMethodSection({
               </div>
             </dl>
             <p className="mt-3 whitespace-pre-line text-xs leading-5 text-muted">{selectedSettings.instructions}</p>
+          </div>
+        )}
+        {selectedSettings?.paymentMethod === 'PAYSTACK' && (
+          <div className="mt-5 rounded-2xl border border-green/20 bg-sage/20 p-5">
+            <p className="text-sm font-bold text-green-dark">Paystack payment</p>
+            <p className="mt-3 text-xs leading-5 text-muted">
+              After placing your order you will be redirected to Paystack to complete the payment securely. Your order
+              stays pending until the payment is confirmed by the store.
+            </p>
           </div>
         )}
       </fieldset>

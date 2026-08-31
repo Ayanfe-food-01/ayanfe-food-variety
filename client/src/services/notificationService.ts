@@ -6,6 +6,9 @@ export type AdminNotificationType =
   | 'PAYMENT_CONFIRMED'
   | 'CUSTOMER_ORDER_CANCELLED'
   | 'LOW_STOCK'
+  | 'NEW_QUOTE_REQUEST'
+  | 'QUOTE_ACCEPTED'
+  | 'QUOTE_REJECTED'
 
 export interface AdminNotification {
   id: string

@@ -61,6 +61,31 @@ import {
   markAdminNotificationReadController,
   markAllAdminNotificationsReadController,
 } from '../modules/notifications/notification.controller.js'
+import {
+  getAdminQuoteRequestController,
+  listAdminQuoteRequestsController,
+  prepareAdminQuotePricingController,
+  updateAdminQuoteRequestNoteController,
+  updateAdminQuoteRequestStatusController,
+} from '../modules/quotes/quote.admin.controller.js'
+import {
+  createAdminTestimonialController,
+  deleteAdminTestimonialController,
+  getAdminTestimonialController,
+  listAdminTestimonialsController,
+  testimonialAvatarUpload,
+  updateAdminTestimonialController,
+  updateAdminTestimonialFeaturedController,
+  updateAdminTestimonialStatusController,
+} from '../modules/testimonials/testimonial.controller.js'
+import {
+  deleteAdminReviewController,
+  getAdminReviewController,
+  listAdminReviewsController,
+  updateAdminReviewFeaturedController,
+  updateAdminReviewOrderController,
+  updateAdminReviewStatusController,
+} from '../modules/reviews/review.admin.controller.js'
 
 export const adminRoutes = Router()
 
@@ -77,6 +102,19 @@ adminRoutes.get('/banners/:id', getAdminBannerController)
 adminRoutes.patch('/banners/:id/status', updateAdminBannerStatusController)
 adminRoutes.patch('/banners/:id', bannerImageUpload, updateAdminBannerController)
 adminRoutes.delete('/banners/:id', deleteAdminBannerController)
+adminRoutes.get('/testimonials', listAdminTestimonialsController)
+adminRoutes.post('/testimonials', testimonialAvatarUpload, createAdminTestimonialController)
+adminRoutes.get('/testimonials/:id', getAdminTestimonialController)
+adminRoutes.patch('/testimonials/:id/status', updateAdminTestimonialStatusController)
+adminRoutes.patch('/testimonials/:id/featured', updateAdminTestimonialFeaturedController)
+adminRoutes.patch('/testimonials/:id', testimonialAvatarUpload, updateAdminTestimonialController)
+adminRoutes.delete('/testimonials/:id', deleteAdminTestimonialController)
+adminRoutes.get('/reviews', listAdminReviewsController)
+adminRoutes.get('/reviews/:id', getAdminReviewController)
+adminRoutes.patch('/reviews/:id/status', updateAdminReviewStatusController)
+adminRoutes.patch('/reviews/:id/featured', updateAdminReviewFeaturedController)
+adminRoutes.patch('/reviews/:id/order', updateAdminReviewOrderController)
+adminRoutes.delete('/reviews/:id', deleteAdminReviewController)
 adminRoutes.get('/products', listAdminProductsController)
 adminRoutes.get('/products/:id', getAdminProductController)
 adminRoutes.post('/products', productImageUpload, createAdminProductController)
@@ -96,6 +134,11 @@ adminRoutes.get('/payments', listAdminPaymentsController)
 adminRoutes.get('/payments/:id', getAdminPaymentController)
 adminRoutes.post('/payments/:id/verify', verifyAdminPaymentController)
 adminRoutes.post('/payments/:id/reject', rejectAdminPaymentController)
+adminRoutes.get('/quotes', listAdminQuoteRequestsController)
+adminRoutes.get('/quotes/:reference', getAdminQuoteRequestController)
+adminRoutes.patch('/quotes/:reference/status', updateAdminQuoteRequestStatusController)
+adminRoutes.patch('/quotes/:reference/note', updateAdminQuoteRequestNoteController)
+adminRoutes.post('/quotes/:reference/price', prepareAdminQuotePricingController)
 adminRoutes.get('/notifications', listAdminNotificationsController)
 adminRoutes.post('/notifications/read-all', markAllAdminNotificationsReadController)
 adminRoutes.patch('/notifications/:id/read', markAdminNotificationReadController)

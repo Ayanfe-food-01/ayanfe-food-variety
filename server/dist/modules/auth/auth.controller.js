@@ -1,7 +1,7 @@
-import { authCookie, changeAdminPassword, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, loginWithGoogle, revokeCustomerSession, revokeSession, signupCustomer, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, readAuthCookie, } from './auth.service.js';
+import { authCookie, changeAdminPassword, getAuthenticatedUser, getAuthenticatedCustomer, getCustomerSessionToken, customerAuthCookie, getSessionToken, login, loginCustomer, loginWithGoogle, revokeCustomerSession, revokeSession, signupCustomer, resendCustomerVerificationEmail, requestPasswordReset, resetPassword, verifyCustomerEmail, readAuthCookie, setCustomerShoppingMode, } from './auth.service.js';
 import { createGoogleOAuthState, getGoogleAuthorizationUrl, getOAuthFrontendUrl, googleOAuthStateCookie, isGoogleOAuthConfigured, } from './auth.google.js';
 import { HttpError } from '../../utils/http.js';
-import { validateCustomerEmailVerificationInput, validateCustomerSignupInput, validateCustomerVerificationEmailInput, validateAdminPasswordChangeInput, validateLoginInput, validatePasswordResetInput, validatePasswordResetRequestInput, } from './auth.validator.js';
+import { validateCustomerEmailVerificationInput, validateCustomerSignupInput, validateCustomerVerificationEmailInput, validateAdminPasswordChangeInput, validateLoginInput, validatePasswordResetInput, validatePasswordResetRequestInput, validateShoppingModeInput, } from './auth.validator.js';
 export const loginController = async (request, response) => {
     const result = await login(validateLoginInput(request.body));
     const cookie = result.sessionType === 'admin' ? authCookie : customerAuthCookie;
@@ -65,6 +65,10 @@ export const customerMeController = async (request, response) => {
     }
     response.json({ success: true, data: { user } });
 };
+export const customerShoppingModeController = async (request, response) => {
+    const user = await setCustomerShoppingMode(request.authenticatedUser.id, validateShoppingModeInput(request.body));
+    response.json({ success: true, data: { user } });
+};
 export const customerProvidersController = (_request, response) => {
     response.json({
         success: true,
@@ -122,12 +126,6 @@ export const customerGoogleCallbackController = async (request, response, next) 
     }
     try {
         const result = await loginWithGoogle(code, nonceCookie);
-        if ('verificationRequired' in result) {
-            response.clearCookie(authCookie.name, authCookie.options);
-            response.clearCookie(customerAuthCookie.name, customerAuthCookie.options);
-            response.redirect(getOAuthFrontendUrl('verification', result.email, result.verificationExpiresInSeconds).toString());
-            return;
-        }
         response.clearCookie(authCookie.name, authCookie.options);
         setCustomerCookie(response, result.token);
         response.redirect(getOAuthFrontendUrl('success').toString());

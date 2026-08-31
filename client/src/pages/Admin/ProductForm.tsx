@@ -1,13 +1,91 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
+import { CloseIcon } from '../../assets/icons'
 import { FeaturedToggle } from '../../components/admin/FeaturedToggle'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { OptionInputField, type OptionRowErrors, type OptionTierRowErrors } from '../../components/admin/OptionInputField'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { SelectField } from '../../components/ui/SelectField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
-import { createAdminProduct, getAdminCategories, getAdminProduct, updateAdminProduct, type ProductFormInput } from '../../services/adminService'
+import { formatPrice } from '../../utils/formatPrice'
+import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
 import type { Category } from '../../types/category'
+
+const MAX_PRODUCT_OPTIONS = 50
+
+const ARCHIVED_PREFIX = 'Archived · '
+const archivedDisplayLabel = (label: string): string => {
+  let cleaned = label
+  while (cleaned.startsWith(ARCHIVED_PREFIX)) cleaned = cleaned.slice(ARCHIVED_PREFIX.length)
+  return cleaned
+}
+
+const MONEY_PATTERN = /^\d+(?:\.\d{1,2})?$/
+const WHOLE_PATTERN = /^\d+$/
+const isValidMoney = (value: string) => MONEY_PATTERN.test(value.trim()) && Number(value.trim()) > 0
+const isValidWhole = (value: string) => WHOLE_PATTERN.test(value.trim()) && Number(value.trim()) >= 1
+
+type WholesaleValidation = {
+  wholesaleMoq?: string
+  wholesalePrices?: string
+  wholesaleTierErrors?: Record<number, OptionTierRowErrors>
+}
+
+const validateWholesale = (option: ProductOptionDraft): WholesaleValidation => {
+  const errors: WholesaleValidation = {}
+  const moq = option.wholesaleMoq?.trim() ?? ''
+  if (moq !== '' && !isValidWhole(moq)) errors.wholesaleMoq = 'Enter a whole number of 1 or more.'
+
+  const tiers = option.wholesalePrices ?? []
+  const filledIndexes = tiers.map((tier) => tier.minQuantity.trim() !== '' || tier.maxQuantity.trim() !== '' || tier.price.trim() !== '')
+  if (filledIndexes.every((filled) => !filled)) return errors
+
+  const tierErrors: Record<number, OptionTierRowErrors> = {}
+  const validTiers: Array<{ min: number; max: number | null }> = []
+  tiers.forEach((tier, tierIndex) => {
+    if (!filledIndexes[tierIndex]) return
+    const row: OptionTierRowErrors = {}
+    const min = tier.minQuantity.trim()
+    const max = tier.maxQuantity.trim()
+    const price = tier.price.trim()
+    let minValue: number | null = null
+    if (!isValidWhole(min)) row.minQuantity = 'Enter a whole number of 1 or more.'
+    else minValue = Number(min)
+    let maxValue: number | null = null
+    if (max !== '') {
+      const maxIsInvalid = !isValidWhole(max) || (minValue !== null && Number(max) < minValue)
+      if (maxIsInvalid) row.maxQuantity = 'Enter a maximum quantity of 1 or more.'
+      else maxValue = Number(max)
+    }
+    if (!isValidMoney(price)) row.price = 'Enter a price greater than zero with up to 2 decimals.'
+    if (Object.keys(row).length > 0) tierErrors[tierIndex] = row
+    if (minValue !== null && !row.minQuantity && !row.maxQuantity && !row.price) {
+      validTiers.push({ min: minValue, max: maxValue })
+    }
+  })
+
+  validTiers.sort((a, b) => a.min - b.min)
+  for (let index = 1; index < validTiers.length; index += 1) {
+    const previous = validTiers[index - 1]!
+    const current = validTiers[index]!
+    if (previous.max === null) {
+      errors.wholesalePrices = 'Only the final tier can have an unlimited maximum quantity, for example 50+.'
+      break
+    }
+    if (current.min === previous.min) {
+      errors.wholesalePrices = 'Each quantity range must be unique.'
+      break
+    }
+    if (previous.max >= current.min) {
+      errors.wholesalePrices = 'Quantity ranges must not overlap.'
+      break
+    }
+  }
+
+  if (Object.keys(tierErrors).length > 0) errors.wholesaleTierErrors = tierErrors
+  return errors
+}
 
 const initialForm: ProductFormInput = {
   name: '',
@@ -24,6 +102,7 @@ const initialForm: ProductFormInput = {
   images: [],
   existingImages: [],
   imageOrder: [],
+  options: [],
 }
 
 interface ProductImageDraft {
@@ -39,6 +118,7 @@ export function ProductForm() {
   const isEditing = Boolean(id)
   const navigate = useNavigate()
   const [form, setForm] = useState<ProductFormInput>(initialForm)
+  const [archivedOptions, setArchivedOptions] = useState<ProductOptionDraft[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [imageDrafts, setImageDrafts] = useState<ProductImageDraft[]>([])
   const [isLoading, setIsLoading] = useState(isEditing)
@@ -46,6 +126,7 @@ export function ProductForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
+  const [optionErrors, setOptionErrors] = useState<OptionRowErrors[]>([])
 
   useEffect(() => {
     let current = true
@@ -62,12 +143,13 @@ export function ProductForm() {
     if (!id) return
     getAdminProduct(id).then((product) => {
       const existingImages = product.images?.filter(Boolean).length ? product.images.filter(Boolean) : product.image ? [product.image] : []
+      const loadedHasFilledOptions = (product.options ?? []).length > 0
       setForm({
         name: product.name,
         categoryId: product.categoryId ?? '',
         price: String(product.price),
-        discountType: product.discountType ?? '',
-        discountValue: product.discountValue === null ? '' : String(product.discountValue),
+        discountType: loadedHasFilledOptions ? '' : product.discountType ?? '',
+        discountValue: loadedHasFilledOptions ? '' : product.discountValue === null ? '' : String(product.discountValue),
         deliveryFee: String(product.deliveryFee),
         unit: product.unit,
         description: product.description,
@@ -77,17 +159,80 @@ export function ProductForm() {
         images: [],
         existingImages,
         imageOrder: existingImages.map((image) => `existing:${image}`),
+        options: (product.options ?? []).map((option) => ({
+          id: option.id,
+          label: option.label,
+          price: String(option.price),
+          stockQuantity: String(option.stockQuantity),
+          wholesaleMoq: option.wholesaleMoq === null || option.wholesaleMoq === undefined ? undefined : String(option.wholesaleMoq),
+          wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
+            id: tier.id,
+            minQuantity: String(tier.minQuantity),
+            maxQuantity: tier.maxQuantity === null ? '' : String(tier.maxQuantity),
+            price: String(tier.price),
+          })),
+        })),
       })
+      setArchivedOptions((product.archivedOptions ?? []).map((option) => ({
+        id: option.id,
+        label: archivedDisplayLabel(option.label),
+        price: String(option.price),
+        stockQuantity: String(option.stockQuantity),
+        wholesaleMoq: option.wholesaleMoq === null || option.wholesaleMoq === undefined ? undefined : String(option.wholesaleMoq),
+        wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
+          id: tier.id,
+          minQuantity: String(tier.minQuantity),
+          maxQuantity: tier.maxQuantity === null ? '' : String(tier.maxQuantity),
+          price: String(tier.price),
+        })),
+      })))
       setImageDrafts(existingImages.map((url, index) => ({ id: `existing-${index}-${url}`, url })))
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
     return () => { current = false }
   }, [id])
 
   const update = <Key extends keyof ProductFormInput>(field: Key, value: ProductFormInput[Key]) => {
-    setForm((current) => ({ ...current, [field]: value }))
-    setFieldErrors((current) => ({ ...current, [field]: undefined }))
+  setForm((current) => {
+    const next = { ...current, [field]: value }
+    if (next.options.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
+      next.discountType = ''
+      next.discountValue = ''
+    }
+    return next
+  })
+  setFieldErrors((current) => ({ ...current, [field]: undefined }))
+  setError(null)
+}
+
+  const filledOptions = form.options.filter(isFilledProductOption)
+  const hasFilledOptions = filledOptions.length > 0
+
+  const restoreArchivedOption = (index: number) => {
+    const archived = archivedOptions[index]
+    if (!archived || form.options.length >= MAX_PRODUCT_OPTIONS) return
+    setArchivedOptions((current) => current.filter((_, currentIndex) => currentIndex !== index))
+    setForm((current) => {
+      const options = [...current.options, archived]
+      const next = { ...current, options }
+      if (options.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
+        next.discountType = ''
+        next.discountValue = ''
+      }
+      return next
+    })
+    setOptionErrors((current) => [...current, {}])
     setError(null)
   }
+
+  const validOptionPrices = filledOptions.flatMap((option) => {
+    const number = Number(option.price)
+    return Number.isFinite(number) && number > 0 ? [number] : []
+  })
+  const derivedPrice = hasFilledOptions && validOptionPrices.length > 0 ? String(Math.min(...validOptionPrices)) : form.price
+  const derivedStock = filledOptions.reduce((sum, option) => {
+    const number = Number(option.stockQuantity)
+    return sum + (Number.isInteger(number) && number >= 0 ? number : 0)
+  }, 0)
 
   const syncImageDrafts = (nextDrafts: ProductImageDraft[]) => {
     let newImageIndex = 0
@@ -142,8 +287,9 @@ export function ProductForm() {
     if (!value) update('discountValue', '')
   }
 
-  const validate = (): FormErrors => {
+  const validate = (): { fieldErrors: FormErrors; optionErrors: OptionRowErrors[] } => {
     const nextErrors: FormErrors = {}
+    const optionErrors: OptionRowErrors[] = []
     const name = form.name.trim()
     const unit = form.unit.trim()
     const description = form.description.trim()
@@ -151,31 +297,67 @@ export function ProductForm() {
     const discountValue = form.discountValue.trim()
     const deliveryFee = form.deliveryFee.trim()
     const stock = Number(form.stockQuantity)
+    const filledIndexes = form.options.map(isFilledProductOption)
+    const hasFilledOptions = filledIndexes.length > 0 && filledIndexes.some(Boolean)
+
     if (name.length < 2 || name.length > 180) nextErrors.name = 'Use 2 to 180 characters.'
     if (!form.categoryId) nextErrors.categoryId = 'Select an active category.'
     else if (categories.find((category) => category.id === form.categoryId)?.isActive !== true) nextErrors.categoryId = 'Select an active category.'
-    if (!/^\d+(?:\.\d{1,2})?$/.test(price) || Number(price) <= 0) nextErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
-    if (form.discountType && (!/^\d+(?:\.\d{1,2})?$/.test(discountValue) || Number(discountValue) <= 0)) {
-      nextErrors.discountValue = 'Enter a discount greater than zero with up to 2 decimals.'
-    } else if (form.discountType === 'PERCENTAGE' && Number(discountValue) > 100) {
-      nextErrors.discountValue = 'Percentage discount cannot be greater than 100.'
-    } else if (form.discountType === 'FIXED' && Number(discountValue) > Number(price)) {
-      nextErrors.discountValue = 'Fixed discount cannot be greater than the product price.'
+
+    if (hasFilledOptions) {
+      if (form.discountType || form.discountValue) nextErrors.discountType = 'Discounts cannot be combined with options.'
+    } else {
+      if (!/^\d+(?:\.\d{1,2})?$/.test(price) || Number(price) <= 0) nextErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
+      if (form.discountType && (!/^\d+(?:\.\d{1,2})?$/.test(discountValue) || Number(discountValue) <= 0)) {
+        nextErrors.discountValue = 'Enter a discount greater than zero with up to 2 decimals.'
+      } else if (form.discountType === 'PERCENTAGE' && Number(discountValue) > 100) {
+        nextErrors.discountValue = 'Percentage discount cannot be greater than 100.'
+      } else if (form.discountType === 'FIXED' && Number(discountValue) > Number(price)) {
+        nextErrors.discountValue = 'Fixed discount cannot be greater than the product price.'
+      }
+      if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
     }
+
     if (!/^\d+(?:\.\d{1,2})?$/.test(deliveryFee) || !Number.isFinite(Number(deliveryFee)) || Number(deliveryFee) < 0) nextErrors.deliveryFee = 'Enter a delivery fee of zero or more with up to 2 decimals.'
     if (!unit || unit.length > 80) nextErrors.unit = 'Enter a unit using up to 80 characters.'
     if (description.length < 10 || description.length > 4000) nextErrors.description = 'Use 10 to 4,000 characters.'
-    if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
     if (imageDrafts.length === 0) nextErrors.image = 'Select at least one product image.'
-    return nextErrors
+
+    const labels = new Set<string>()
+    form.options.forEach((option, index) => {
+      const rowErrors: OptionRowErrors = {}
+      if (!filledIndexes[index]) {
+        optionErrors.push(rowErrors)
+        return
+      }
+      const label = option.label.trim()
+      const optionPrice = option.price.trim()
+      const optionStock = option.stockQuantity.trim()
+      if (!label) rowErrors.label = 'Enter a label, for example 5 kg bag.'
+      else if (label.length > 80) rowErrors.label = 'Use up to 80 characters.'
+      if (!/^\d+(?:\.\d{1,2})?$/.test(optionPrice) || Number(optionPrice) <= 0) rowErrors.price = 'Enter a price greater than zero with up to 2 decimals.'
+      if (optionStock !== '' && (!/^\d+$/.test(optionStock) || Number(optionStock) < 0)) rowErrors.stockQuantity = 'Enter a non-negative whole number.'
+      const labelKey = label.toLowerCase()
+      if (label && labels.has(labelKey)) rowErrors.label = 'Each option label must be unique.'
+      if (label) labels.add(labelKey)
+      const wholesaleErrors = validateWholesale(option)
+      if (wholesaleErrors.wholesaleMoq) rowErrors.wholesaleMoq = wholesaleErrors.wholesaleMoq
+      if (wholesaleErrors.wholesalePrices) rowErrors.wholesalePrices = wholesaleErrors.wholesalePrices
+      if (wholesaleErrors.wholesaleTierErrors) rowErrors.wholesaleTierErrors = wholesaleErrors.wholesaleTierErrors
+      optionErrors.push(rowErrors)
+    })
+
+    return { fieldErrors: nextErrors, optionErrors }
   }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
-    const nextErrors = validate()
-    if (Object.keys(nextErrors).length > 0) {
-      setFieldErrors(nextErrors)
+    const validation = validate()
+    const hasOptionErrors = validation.optionErrors.some((errors) => Object.keys(errors).length > 0)
+    if (Object.keys(validation.fieldErrors).length > 0 || hasOptionErrors) {
+      setFieldErrors(validation.fieldErrors)
+      setOptionErrors(validation.optionErrors)
       setError('Please correct the highlighted fields.')
       return
     }
@@ -224,28 +406,66 @@ export function ProductForm() {
               required
               value={form.categoryId}
             />{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
-             <label className="text-sm font-bold text-green-dark">Price (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('price')} type="text" inputMode="decimal" value={form.price} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required />{fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
+             <label className="text-sm font-bold text-green-dark">Price (NGN){hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('price')} type="text" inputMode="decimal" value={hasFilledOptions ? derivedPrice : form.price} disabled={hasFilledOptions} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Set to the lowest option price.</span> : fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
              <div className="sm:col-span-2">
-               <div className="grid gap-5 sm:grid-cols-2">
-                 <label className="text-sm font-bold text-green-dark">Discount type (optional)<SelectField
-                   className="mt-2 w-full"
-                   {...fieldProps('discountType')}
-                   onChange={updateDiscountType}
-                   options={[
-                     { value: '', label: 'No discount' },
-                     { value: 'PERCENTAGE', label: 'Percentage discount' },
-                     { value: 'FIXED', label: 'Fixed amount discount' },
-                   ]}
-                   value={form.discountType}
-                 />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
-                 {form.discountType && <label className="text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
-               </div>
-               <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>
+               {hasFilledOptions ? (
+                 <p className="rounded-xl border border-dashed border-green/25 bg-sage/25 px-4 py-3 text-xs font-normal text-muted">Discounts are not available for products with quantity/size options.</p>
+               ) : (
+                 <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="text-sm font-bold text-green-dark">Discount type (optional)<SelectField
+                    className="mt-2 w-full"
+                    {...fieldProps('discountType')}
+                    onChange={updateDiscountType}
+                    options={[
+                      { value: '', label: 'No discount' },
+                      { value: 'PERCENTAGE', label: 'Percentage discount' },
+                      { value: 'FIXED', label: 'Fixed amount discount' },
+                    ]}
+                    value={form.discountType}
+                  />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
+                  {form.discountType && <label className="text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
+                 </div>
+               )}
+               {!hasFilledOptions && <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>}
              </div>
              <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
             <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('unit')} value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required />{fieldErrors.unit && <span className="mt-1 block text-xs font-normal text-orange" id="unit-error">{fieldErrors.unit}</span>}</label>
-            <label className="text-sm font-bold text-green-dark">Stock quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={form.stockQuantity} onChange={(event) => update('stockQuantity', event.target.value)} required />{fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
+            <label className="text-sm font-bold text-green-dark">Stock quantity{hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={hasFilledOptions ? String(derivedStock) : form.stockQuantity} disabled={hasFilledOptions} onChange={(event) => update('stockQuantity', event.target.value)} required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Total stock is the sum of all option stock.</span> : fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
           </div>
+          <OptionInputField
+            options={form.options}
+            errors={optionErrors}
+            maxOptions={MAX_PRODUCT_OPTIONS}
+            onChange={(nextOptions) => {
+              setForm((current) => {
+                const next = { ...current, options: nextOptions }
+                if (nextOptions.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
+                  next.discountType = ''
+                  next.discountValue = ''
+                }
+                return next
+              })
+              setOptionErrors(nextOptions.map(() => ({})))
+              setError(null)
+            }}
+          />
+          {archivedOptions.length > 0 && (
+            <div className="rounded-2xl border border-line bg-cream/40 p-4">
+              <p className="m-0 text-sm font-bold text-green-dark">Previously removed sizes</p>
+              <p className="mt-1 text-xs font-normal text-muted">These sizes are still linked to past orders and customer carts, so they were kept rather than deleted. Restore one to sell it again — its details are filled from the last saved values.</p>
+              <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-white">
+                {archivedOptions.map((option, index) => (
+                  <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={option.id ?? `archived-${index}`}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-green-dark">{option.label}</p>
+                      <p className="mt-0.5 text-xs font-normal text-muted">{formatPrice(Number(option.price))} · {option.stockQuantity} in stock</p>
+                    </div>
+                    <button className="shrink-0 rounded-xl border border-line bg-white px-4 py-2 text-xs font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" aria-label={`Restore option ${option.label}`} disabled={form.options.length >= MAX_PRODUCT_OPTIONS} onClick={() => restoreArchivedOption(index)}>Restore</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <label className="block text-sm font-bold text-green-dark">Description<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('description')} value={form.description} onChange={(event) => update('description', event.target.value)} maxLength={4000} required />{fieldErrors.description && <span className="mt-1 block text-xs font-normal text-orange" id="description-error">{fieldErrors.description}</span>}<span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/4,000 characters</span></label>
             <ImageUploadField
               label="Product images"
@@ -266,9 +486,9 @@ export function ProductForm() {
                   {imageDrafts.map((draft, index) => (
                     <div className="relative overflow-hidden rounded-xl border border-line bg-white" key={draft.id}>
                       <img className="aspect-square w-full object-cover" src={draft.url} alt={`${form.name || 'Product'} image ${index + 1}`} />
+                      <button className="absolute right-1.5 top-1.5 z-10 grid size-6 place-items-center rounded-full border border-white/40 bg-green-dark/75 text-white shadow-sm transition-colors hover:bg-orange" type="button" aria-label={`Remove product image ${index + 1}`} onClick={() => removeImage(index)}><CloseIcon size={12} /></button>
                       <div className="flex items-center justify-between gap-1 border-t border-line p-2">
                         <span className="min-w-0 truncate text-[11px] font-bold text-green-dark">{index === 0 ? 'Primary' : `Image ${index + 1}`}</span>
-                        <button className="text-xs font-bold text-orange hover:text-green-dark" type="button" onClick={() => removeImage(index)}>Remove</button>
                       </div>
                       <div className="flex gap-1 px-2 pb-2">
                         <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image left" disabled={index === 0} onClick={() => moveImage(index, -1)}>←</button>

@@ -8,6 +8,9 @@ import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete
 import { useWishlist } from '../../hooks/useWishlist'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { DEFAULT_LOGO_PATH } from '../../seo/config'
+import { ShoppingModeSwitch } from './ShoppingModeSwitch'
+import { CartDrawer } from '../cart/CartDrawer'
+import { useMarketUi } from '../../hooks/useMarketUi'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -15,13 +18,16 @@ const links = [
   { label: 'New arrivals', href: '/new-arrivals' },
   { label: 'About us', href: '/about' },
   { label: 'Contact', href: '/contact' },
+  { label: 'Help', href: '/help' },
   { label: 'Orders', href: '/orders' },
+  { label: 'Quotes', href: '/quotes' },
   { label: 'Track order', href: '/track-order' },
 ]
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const { isCartDrawerOpen, openCartDrawer, closeCartDrawer } = useMarketUi()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const closeMenuButtonRef = useRef<HTMLButtonElement>(null)
@@ -122,14 +128,22 @@ export function Navbar() {
           <Link className="account-link" to={user ? '/orders' : '/login'} aria-label={user ? 'Open your orders' : 'Sign in'}>
             <UserIcon size={22} /><span className="desktop-only">{user ? 'Account' : 'Sign in'}</span>
           </Link>
-          <Link className="cart-link" to="/cart" aria-label={`Cart with ${totalQuantity} items`}>
+          <button
+            className="cart-link"
+            type="button"
+            aria-label={`Open cart with ${totalQuantity} items`}
+            aria-haspopup="dialog"
+            aria-expanded={isCartDrawerOpen}
+            onClick={openCartDrawer}
+          >
             <CartIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
-          </Link>
+          </button>
         </div>
       </nav>
       <div className="desktop-nav container">
         {links.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
         <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+        <ShoppingModeSwitch className="desktop-shopping-mode" />
         {user && <button type="button" onClick={() => void logout()}>Log out</button>}
       </div>
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
@@ -150,12 +164,14 @@ export function Navbar() {
           placeholder="Search the store"
           ariaLabel="Search the store"
         />
+        <ShoppingModeSwitch className="mobile-shopping-mode" />
         <div className="mobile-links">
           {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
            <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
         </div>
         {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <Link className="logout-link" to="/login" onClick={() => setIsMenuOpen(false)}>Sign in</Link>}
       </aside>
+      <CartDrawer open={isCartDrawerOpen} onClose={closeCartDrawer} />
     </header>
   )
 }

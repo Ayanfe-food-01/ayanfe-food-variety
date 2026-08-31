@@ -1,15 +1,12 @@
 import { RevealOnScroll } from '../ui/RevealOnScroll'
-import { testimonials } from '../../data/testimonials'
-
-const getInitials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
+import { useCustomerStories } from '../../hooks/useCustomerStories'
+import { CustomerStoryCard } from './CustomerStoryCard'
 
 export function Testimonials() {
+  const stories = useCustomerStories()
+
+  if (stories.length === 0) return null
+
   return (
     <RevealOnScroll>
       <section className="border-y border-line bg-sage/25 py-16 sm:py-20 lg:py-24" aria-labelledby="testimonials-heading">
@@ -20,7 +17,7 @@ export function Testimonials() {
               Customer stories
             </p>
             <h2 id="testimonials-heading" className="m-0 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">
-              Kind words from our community.
+              What Our Customers Say
             </h2>
             <p className="mt-4 text-base leading-7 text-muted">
               Trusted by shoppers who want quality foodstuff delivered with care.
@@ -28,28 +25,8 @@ export function Testimonials() {
           </div>
 
           <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <article className="flex h-full flex-col rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7" key={testimonial.name}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className="grid size-10 shrink-0 place-items-center rounded-full bg-sage text-xs font-bold text-green-dark"
-                      aria-hidden="true"
-                    >
-                      {getInitials(testimonial.name)}
-                    </span>
-                    <p className="m-0 truncate text-xs font-bold uppercase tracking-[0.14em] text-muted">
-                      {testimonial.name}
-                    </p>
-                  </div>
-                  {testimonial.rating && (
-                    <span className="text-lg leading-none tracking-[0.1em] text-orange" aria-label={`${testimonial.rating} out of 5 stars`}>
-                      {'★'.repeat(testimonial.rating)}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-5 flex-1 text-base leading-7 text-green-dark">{testimonial.text}</p>
-              </article>
+            {stories.map((story) => (
+              <CustomerStoryCard key={story.id} story={story} />
             ))}
           </div>
         </div>

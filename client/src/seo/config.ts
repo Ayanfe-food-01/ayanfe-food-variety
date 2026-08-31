@@ -9,6 +9,18 @@ export const ABOUT_DESCRIPTION =
 export const CONTACT_TITLE = 'Contact Ayanfe Food Variety'
 export const CONTACT_DESCRIPTION =
   'Contact Ayanfe Food Variety for gluten-free foodstuff, pickup information, and delivery support. Find the business contact details and pickup location.'
+export const HELP_TITLE = 'Help Centre | Ayanfe Food Variety'
+export const HELP_DESCRIPTION =
+  'Find answers about ordering and shopping, payment, delivery and pickup, wholesale shopping, order tracking, returns and refunds, and your account at Ayanfe Food Variety.'
+export const RETURN_REFUND_TITLE = 'Return & Refund Policy | Ayanfe Food Variety'
+export const RETURN_REFUND_DESCRIPTION =
+  'Read Ayanfe Food Variety return and refund policy for food and consumable products — eligibility, non-returnable items, and how to report damaged, incorrect or missing products.'
+export const PRIVACY_POLICY_TITLE = 'Privacy Policy | Ayanfe Food Variety'
+export const PRIVACY_POLICY_DESCRIPTION =
+  'Read how Ayanfe Food Variety collects, uses, stores and protects your personal information — including account, order, payment, reviews and cookies, and the third-party services we work with.'
+export const TERMS_TITLE = 'Terms & Conditions | Ayanfe Food Variety'
+export const TERMS_DESCRIPTION =
+  'Read the terms for using Ayanfe Food Variety’s website — including customer accounts, product information, pricing and orders, payments, delivery, returns and refunds, and customer reviews.'
 export const SHOP_TITLE = 'Buy Nigerian Foodstuff Online | Ayanfe Food Variety'
 export const SHOP_DESCRIPTION =
   'Shop Nigerian foodstuff online, including natural pantry staples, grains, oils and everyday essentials with reliable delivery.'

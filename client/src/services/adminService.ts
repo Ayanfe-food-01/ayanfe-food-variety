@@ -1,5 +1,5 @@
 import { request } from './api'
-import type { Product } from '../types/product'
+import type { Product, ProductOption } from '../types/product'
 import type { Category } from '../types/category'
 import type { PaymentMethod } from './orderService'
 
@@ -422,6 +422,22 @@ export async function updateAdminCategoryStatus(id: string, isActive: boolean): 
   return response.data.category
 }
 
+interface AdminProductOptionApiResponse {
+  id: string
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive: boolean
+  wholesaleMoq: number | null
+  wholesalePrices: Array<{
+    id: string
+    minQuantity: number
+    maxQuantity: number | null
+    price: string
+  }>
+}
+
 interface AdminProductApiResponse {
   id: string
   categoryId: string
@@ -443,9 +459,30 @@ interface AdminProductApiResponse {
   stockQuantity: number
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
+  options?: AdminProductOptionApiResponse[]
+  archivedOptions?: AdminProductOptionApiResponse[]
   createdAt: string
   updatedAt: string
 }
+
+export interface ProductOptionDraft {
+  id?: string
+  label: string
+  price: string
+  stockQuantity: string
+  wholesaleMoq?: string
+  wholesalePrices?: WholesaleTierDraft[]
+}
+
+export interface WholesaleTierDraft {
+  id?: string
+  minQuantity: string
+  maxQuantity: string
+  price: string
+}
+
+export const isFilledProductOption = (option: ProductOptionDraft): boolean =>
+  option.label.trim() !== '' || option.price.trim() !== '' || option.stockQuantity.trim() !== ''
 
 export interface ProductFormInput {
   name: string
@@ -462,6 +499,7 @@ export interface ProductFormInput {
   images: File[]
   existingImages: string[]
   imageOrder: string[]
+  options: ProductOptionDraft[]
 }
 
 const toQueryString = (query: AdminProductsQuery): string => {
@@ -477,22 +515,54 @@ const toQueryString = (query: AdminProductsQuery): string => {
 
 const formDataFor = (input: ProductFormInput): FormData => {
   const formData = new FormData()
+  const options = input.options.filter(isFilledProductOption)
+  const hasOptions = options.length > 0
   formData.set('name', input.name)
   formData.set('categoryId', input.categoryId)
-  formData.set('price', input.price)
-  formData.set('discountType', input.discountType)
-  formData.set('discountValue', input.discountValue)
+  formData.set('price', hasOptions ? '' : input.price)
+  formData.set('discountType', hasOptions ? '' : input.discountType)
+  formData.set('discountValue', hasOptions ? '' : input.discountValue)
   formData.set('deliveryFee', input.deliveryFee)
   formData.set('unit', input.unit)
   formData.set('description', input.description)
-  formData.set('stockQuantity', input.stockQuantity)
+  formData.set('stockQuantity', hasOptions ? '' : input.stockQuantity)
   formData.set('isActive', String(input.isActive))
   formData.set('isFeatured', String(input.isFeatured))
   formData.set('existingImages', JSON.stringify(input.existingImages))
   formData.set('imageOrder', JSON.stringify(input.imageOrder))
+  formData.set('options', JSON.stringify(options.map((option, sortOrder) => ({
+    ...(option.id ? { id: option.id } : {}),
+    label: option.label.trim(),
+    price: option.price.trim(),
+    stockQuantity: option.stockQuantity.trim() === '' ? 0 : Number(option.stockQuantity),
+    sortOrder,
+    wholesaleMoq: option.wholesaleMoq !== undefined && option.wholesaleMoq.trim() !== '' ? Number(option.wholesaleMoq) : null,
+    wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
+      ...(tier.id ? { id: tier.id } : {}),
+      minQuantity: tier.minQuantity.trim() === '' ? null : Number(tier.minQuantity),
+      maxQuantity: tier.maxQuantity.trim() === '' ? null : Number(tier.maxQuantity),
+      price: tier.price.trim(),
+    })),
+  }))))
   input.images.forEach((image) => formData.append('images', image))
   return formData
 }
+
+const toProductOption = (option: AdminProductOptionApiResponse): ProductOption => ({
+  id: option.id,
+  label: option.label,
+  price: Number(option.price),
+  stockQuantity: option.stockQuantity,
+  sortOrder: option.sortOrder,
+  isActive: option.isActive,
+  wholesaleMoq: option.wholesaleMoq ?? null,
+  wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
+    id: tier.id,
+    minQuantity: tier.minQuantity,
+    maxQuantity: tier.maxQuantity,
+    price: Number(tier.price),
+  })),
+})
 
 const toProduct = (product: AdminProductApiResponse): Product => ({
   id: product.id,
@@ -518,6 +588,8 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   availabilityStatus: product.availabilityStatus,
   isAvailable: product.isAvailable,
     isWishlisted: false,
+  options: (product.options ?? []).map(toProductOption),
+  archivedOptions: (product.archivedOptions ?? []).map(toProductOption),
   createdAt: product.createdAt,
   updatedAt: product.updatedAt,
 })
@@ -568,4 +640,255 @@ export async function updateAdminProductFeatured(id: string, isFeatured: boolean
 
 export async function deleteAdminProduct(id: string): Promise<void> {
   await request<{ success: true }>(`/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export interface AdminTestimonial {
+  id: string
+  authorName: string
+  content: string
+  rating: number | null
+  avatarUrl: string | null
+  avatarPublicId: string | null
+  isActive: boolean
+  isFeatured: boolean
+  displayOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminTestimonialsQuery {
+  page: number
+  pageSize: number
+  search?: string
+  status?: 'active' | 'inactive'
+  featured?: 'featured' | 'not-featured'
+}
+
+export interface AdminTestimonialsPage {
+  testimonials: AdminTestimonial[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+  featured: HomepageFeaturedMetrics
+}
+
+interface AdminTestimonialsResponse {
+  success: true
+  data: AdminTestimonialsPage
+}
+
+interface AdminTestimonialResponse {
+  success: true
+  data: { testimonial: AdminTestimonial }
+}
+
+export interface TestimonialInput {
+  authorName: string
+  content: string
+  rating: string
+  displayOrder: number
+  isActive: boolean
+  isFeatured: boolean
+  avatar?: File
+  removeAvatar?: boolean
+}
+
+const testimonialFormDataFor = (input: TestimonialInput): FormData => {
+  const formData = new FormData()
+  formData.set('authorName', input.authorName)
+  formData.set('content', input.content)
+  formData.set('rating', input.rating)
+  formData.set('displayOrder', String(input.displayOrder))
+  formData.set('isActive', String(input.isActive))
+  formData.set('isFeatured', String(input.isFeatured))
+  if (input.avatar) formData.set('avatar', input.avatar)
+  if (input.removeAvatar) formData.set('removeAvatar', 'true')
+  return formData
+}
+
+const adminTestimonialsQueryString = (query: AdminTestimonialsQuery): string => {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  })
+  if (query.search) params.set('search', query.search)
+  if (query.status) params.set('status', query.status)
+  if (query.featured) params.set('featured', query.featured)
+  return params.toString()
+}
+
+export async function getAdminTestimonials(query: AdminTestimonialsQuery): Promise<AdminTestimonialsPage> {
+  const response = await request<AdminTestimonialsResponse>(`/admin/testimonials?${adminTestimonialsQueryString(query)}`)
+  return response.data
+}
+
+export async function getAdminTestimonial(id: string): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}`)
+  return response.data.testimonial
+}
+
+export async function createAdminTestimonial(input: TestimonialInput): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>('/admin/testimonials', {
+    method: 'POST',
+    body: testimonialFormDataFor(input),
+  })
+  return response.data.testimonial
+}
+
+export async function updateAdminTestimonial(id: string, input: TestimonialInput): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: testimonialFormDataFor(input),
+  })
+  return response.data.testimonial
+}
+
+export async function deleteAdminTestimonial(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/testimonials/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function updateAdminTestimonialStatus(id: string, isActive: boolean): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.testimonial
+}
+
+export async function updateAdminTestimonialFeatured(id: string, isFeatured: boolean): Promise<AdminTestimonial> {
+  const response = await request<AdminTestimonialResponse>(`/admin/testimonials/${encodeURIComponent(id)}/featured`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isFeatured }),
+  })
+  return response.data.testimonial
+}
+
+export interface HomepageFeaturedMetrics {
+  used: number
+  max: number
+  remaining: number
+}
+
+export type AdminReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface AdminReviewItem {
+  id: string
+  productId: string
+  productName: string
+  productSlug: string
+  productImage: string
+  productOptionLabel: string | null
+  customerId: string | null
+  customerName: string | null
+  orderNumber: string
+  rating: number
+  content: string
+  status: AdminReviewStatus
+  verifiedPurchase: boolean
+  isActive: boolean
+  isFeatured: boolean
+  displayOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminReviewDetail extends AdminReviewItem {
+  customerEmail: string | null
+  productQuantity: number
+  orderCreatedAt: string
+}
+
+export interface AdminReviewsQuery {
+  page: number
+  pageSize: number
+  search?: string
+  status?: 'pending' | 'approved' | 'rejected'
+  verified?: 'verified' | 'not-verified'
+  rating?: string
+}
+
+export interface AdminReviewsPage {
+  reviews: AdminReviewItem[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+  featured: HomepageFeaturedMetrics
+}
+
+interface AdminReviewsResponse {
+  success: true
+  data: AdminReviewsPage
+}
+
+interface AdminReviewResponse {
+  success: true
+  data: { review: AdminReviewDetail }
+}
+
+const adminReviewsQueryString = (query: AdminReviewsQuery): string => {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  })
+  if (query.search) params.set('search', query.search)
+  if (query.status) params.set('status', query.status)
+  if (query.verified) params.set('verified', query.verified)
+  if (query.rating) params.set('rating', query.rating)
+  return params.toString()
+}
+
+export async function getAdminReviews(query: AdminReviewsQuery): Promise<AdminReviewsPage> {
+  const response = await request<AdminReviewsResponse>(`/admin/reviews?${adminReviewsQueryString(query)}`)
+  return response.data
+}
+
+export async function getAdminReview(id: string): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}`)
+  return response.data.review
+}
+
+export async function updateAdminReviewStatus(
+  id: string,
+  status: 'APPROVED' | 'REJECTED',
+): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+  return response.data.review
+}
+
+export async function updateAdminReviewFeatured(id: string, isFeatured: boolean): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}/featured`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isFeatured }),
+  })
+  return response.data.review
+}
+
+export async function updateAdminReviewOrder(id: string, displayOrder: number): Promise<AdminReviewDetail> {
+  const response = await request<AdminReviewResponse>(`/admin/reviews/${encodeURIComponent(id)}/order`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayOrder }),
+  })
+  return response.data.review
+}
+
+export async function deleteAdminReview(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/reviews/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirm: true }),
+  })
 }

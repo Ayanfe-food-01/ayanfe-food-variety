@@ -7,7 +7,7 @@ import {
   getSessionToken,
   customerAuthCookie,
 } from '../modules/auth/auth.service.js'
-import { UserRole } from '@prisma/client'
+import { UserRole, ShoppingMode } from '@prisma/client'
 
 export const requireAuthentication: RequestHandler = async (request, _response, next) => {
   const user = await getAuthenticatedUser(getSessionToken(request.headers.cookie))
@@ -43,6 +43,18 @@ export const requireCustomerAuthentication: RequestHandler = async (request, res
 export const requireCustomerRole: RequestHandler = (request, _response, next) => {
   if (!request.authenticatedUser || request.authenticatedUser.role !== UserRole.CUSTOMER) {
     next(new HttpError(403, 'Customer access is required.'))
+    return
+  }
+  next()
+}
+
+export const requireWholesaleMode: RequestHandler = (request, _response, next) => {
+  if (
+    !request.authenticatedUser
+    || request.authenticatedUser.role !== UserRole.CUSTOMER
+    || request.authenticatedUser.shoppingMode !== ShoppingMode.WHOLESALE
+  ) {
+    next(new HttpError(403, 'Switch to Wholesale mode to access wholesale pricing.'))
     return
   }
   next()

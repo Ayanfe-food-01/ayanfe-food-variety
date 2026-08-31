@@ -1,5 +1,34 @@
 import type { ProductDiscountType } from '@prisma/client'
 
+export interface ProductOption {
+  id: string
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive: boolean
+  wholesaleMoq?: number | null
+  wholesalePrices?: WholesaleTierInput[]
+}
+
+export interface WholesaleTierInput {
+  id?: string
+  minQuantity: number
+  maxQuantity: number | null
+  price: string
+}
+
+export interface ProductOptionInput {
+  id?: string
+  label: string
+  price: string
+  stockQuantity: number
+  sortOrder: number
+  isActive?: boolean
+  wholesaleMoq?: number | null
+  wholesalePrices?: WholesaleTierInput[]
+}
+
 export interface Product {
   id: string
   categoryId: string
@@ -16,12 +45,17 @@ export interface Product {
   unit: string
   image: string
   images: string[]
+  options: ProductOption[]
+  archivedOptions?: ProductOption[]
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
   isWishlisted: boolean
+  wholesaleFrom?: string | null
+  averageRating?: number | null
+  reviewCount?: number
   createdAt: string
   updatedAt: string
 }
@@ -68,7 +102,7 @@ export interface AdminProductQuery {
 export interface ProductInput {
   name: string
   categoryId: string
-  price: string
+  price?: string
   discountType: ProductDiscountType | null
   discountValue: string | null
   deliveryFee: string
@@ -76,7 +110,42 @@ export interface ProductInput {
   description: string
   isActive: boolean
   isFeatured: boolean
-  stockQuantity: number
+  stockQuantity?: number
   image?: string
   images?: string[]
+  options?: ProductOptionInput[]
+}
+
+export interface WholesalePricingTier {
+  minQuantity: number
+  maxQuantity: number | null
+  price: string
+}
+
+export interface WholesaleOptionPricing {
+  optionId: string
+  label: string
+  moq: number | null
+  tiers: WholesalePricingTier[]
+}
+
+export interface ProductWholesalePricing {
+  productId: string
+  options: WholesaleOptionPricing[]
+}
+
+export interface WholesalePriceLookupInput {
+  productId: string
+  productOptionId: string
+  quantity: number
+}
+
+export interface WholesalePriceLookupResult {
+  productId: string
+  productOptionId: string
+  optionLabel: string
+  quantity: number
+  moq: number | null
+  unitPrice: string
+  tier: WholesalePricingTier
 }

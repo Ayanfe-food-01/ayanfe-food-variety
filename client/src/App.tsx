@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { About } from './pages/About'
 import { Contact } from './pages/Contact'
+import { Help } from './pages/Help'
+import { ReturnRefundPolicy } from './pages/ReturnRefundPolicy'
+import { PrivacyPolicy } from './pages/PrivacyPolicy'
+import { TermsAndConditions } from './pages/TermsAndConditions'
 import { Shop } from './pages/Shop'
 import { ProductDetails } from './pages/ProductDetails'
 import { Cart } from './pages/Cart'
@@ -12,13 +16,19 @@ import { OrderConfirmation } from './pages/OrderConfirmation'
 import { CustomerOrders } from './pages/CustomerOrders'
 import { CustomerOrderDetails } from './pages/CustomerOrderDetails'
 import { CustomerPaymentProof } from './pages/CustomerPaymentProof'
+import { CustomerQuotes } from './pages/CustomerQuotes'
+import { CustomerQuoteDetail } from './pages/CustomerQuoteDetail'
 import { TrackOrder } from './pages/TrackOrder'
+import { RequestQuote } from './pages/RequestQuote'
+import { WriteReview } from './pages/WriteReview'
 import { Dashboard } from './pages/Admin/Dashboard'
 import { Analytics } from './pages/Admin/Analytics'
 import { Orders } from './pages/Admin/Orders'
 import { OrderDetail } from './pages/Admin/OrderDetail'
 import { Payments } from './pages/Admin/Payments'
 import { Notifications } from './pages/Admin/Notifications'
+import { QuoteRequests } from './pages/Admin/QuoteRequests'
+import { QuoteRequestDetail } from './pages/Admin/QuoteRequestDetail'
 import { Settings } from './pages/Admin/Settings'
 import { StoreSettings } from './pages/Admin/StoreSettings'
 import { PaymentSettings } from './pages/Admin/PaymentSettings'
@@ -35,18 +45,24 @@ import { Categories } from './pages/Admin/Categories'
 import { CategoryForm } from './pages/Admin/CategoryForm'
 import { Banners } from './pages/Admin/Banners'
 import { BannerForm } from './pages/Admin/BannerForm'
+import { Testimonials } from './pages/Admin/Testimonials'
+import { TestimonialForm } from './pages/Admin/TestimonialForm'
+import { Reviews } from './pages/Admin/Reviews'
+import { ReviewDetail } from './pages/Admin/ReviewDetail'
 import { RequireAdmin } from './components/admin/RequireAdmin'
 import { useRouteToast } from './hooks/useRouteToast'
 import { Seo } from './seo/Seo'
 import { BrandingHead } from './seo/BrandingHead'
 import { DEFAULT_LOGO_PATH } from './seo/config'
 import { useStoreSettings } from './hooks/useStoreSettings'
+import { WhatsAppFloatButton } from './components/layout/WhatsAppFloatButton'
+import { scrollToTopInstant } from './utils/browserCompatibility'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
 
-  useEffect(() => {
-    window.scrollTo(0, 0)
+  useLayoutEffect(() => {
+    scrollToTopInstant()
   }, [pathname, search])
 
   return null
@@ -128,6 +144,10 @@ function RouteTransition() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/return-refund-policy" element={<ReturnRefundPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/new-arrivals" element={<Shop newArrivalsOnly />} />
           <Route path="/product/:id" element={<ProductDetails />} />
@@ -136,9 +156,13 @@ function RouteTransition() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
           <Route path="/track-order" element={<TrackOrder />} />
+          <Route path="/request-a-quote" element={<RequestQuote />} />
           <Route path="/orders" element={<CustomerOrders />} />
           <Route path="/orders/:orderNumber" element={<CustomerOrderDetails />} />
           <Route path="/orders/:orderNumber/payment-proof" element={<CustomerPaymentProof />} />
+          <Route path="/orders/:orderNumber/review/:orderItemId" element={<WriteReview />} />
+          <Route path="/quotes" element={<CustomerQuotes />} />
+          <Route path="/quotes/:reference" element={<CustomerQuoteDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -148,6 +172,8 @@ function RouteTransition() {
           <Route path="/admin/analytics" element={<RequireAdmin><Analytics /></RequireAdmin>} />
           <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />
           <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
+          <Route path="/admin/quote-requests" element={<RequireAdmin><QuoteRequests /></RequireAdmin>} />
+          <Route path="/admin/quote-requests/:reference" element={<RequireAdmin><QuoteRequestDetail /></RequireAdmin>} />
           <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />
           <Route path="/admin/products/new" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
           <Route path="/admin/products/:id" element={<RequireAdmin><ProductView /></RequireAdmin>} />
@@ -158,6 +184,11 @@ function RouteTransition() {
           <Route path="/admin/banners" element={<RequireAdmin><Banners /></RequireAdmin>} />
           <Route path="/admin/banners/new" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
           <Route path="/admin/banners/:id/edit" element={<RequireAdmin><BannerForm /></RequireAdmin>} />
+          <Route path="/admin/testimonials" element={<RequireAdmin><Testimonials /></RequireAdmin>} />
+          <Route path="/admin/testimonials/new" element={<RequireAdmin><TestimonialForm /></RequireAdmin>} />
+          <Route path="/admin/testimonials/:id/edit" element={<RequireAdmin><TestimonialForm /></RequireAdmin>} />
+          <Route path="/admin/reviews" element={<RequireAdmin><Reviews /></RequireAdmin>} />
+          <Route path="/admin/reviews/:id" element={<RequireAdmin><ReviewDetail /></RequireAdmin>} />
           <Route path="/admin/payments" element={<RequireAdmin><Payments /></RequireAdmin>} />
           <Route path="/admin/notifications" element={<RequireAdmin><Notifications /></RequireAdmin>} />
           <Route path="/admin/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
@@ -183,6 +214,7 @@ function PrivateRouteSeo() {
     || pathname === '/checkout'
     || pathname.startsWith('/admin')
     || pathname.startsWith('/orders')
+    || pathname.startsWith('/quotes')
     || pathname.startsWith('/order-confirmation')
 
   if (!isPrivateRoute) return null
@@ -203,7 +235,9 @@ function PrivateRouteSeo() {
             ? 'Wishlist | Ayanfe Food Variety'
         : pathname === '/checkout'
           ? 'Checkout | Ayanfe Food Variety'
-          : 'Your orders | Ayanfe Food Variety'
+          : pathname.startsWith('/quotes')
+            ? 'Your quotations | Ayanfe Food Variety'
+            : 'Your orders | Ayanfe Food Variety'
 
   return (
     <Seo
@@ -216,6 +250,9 @@ function PrivateRouteSeo() {
 }
 
 function App() {
+  const location = useLocation()
+  const isAdminRoute = location.pathname.startsWith('/admin')
+
   return (
     <>
       <BrandingHead />
@@ -223,6 +260,7 @@ function App() {
       <RouteToastBridge />
       <PrivateRouteSeo />
       <RouteTransition />
+      {!isAdminRoute && <WhatsAppFloatButton />}
     </>
   )
 }

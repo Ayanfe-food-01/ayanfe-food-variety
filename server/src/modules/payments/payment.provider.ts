@@ -44,8 +44,12 @@ export interface PaymentVerifyResult {
   provider: PaymentProvider
   providerReference: string
   status: 'SUCCESSFUL' | 'FAILED' | 'UNCONFIRMED'
-  /** Amount charged by the provider, in major units, as a string. */
+  /** Gross amount actually charged to the customer by the provider, in major units, as a string. */
   amountInNaira: string | null
+  /** The exact amount this instance asked the provider to collect, in major units, as a string. */
+  requestedAmountInNaira: string | null
+  /** Provider's own processing charge, in major units, as a string (null when unknown). */
+  feesInNaira: string | null
   currency: string | null
   paidAt: string | null
   /** Provider-specific notes, omitted from client-visible responses. */
@@ -110,6 +114,12 @@ export const getProviderAdapter = (provider: PaymentProvider): PaymentProviderAd
             amountInNaira:
               result.amountInKobo === '' ? null
                 : new Prisma.Decimal(result.amountInKobo).div(100).toString(),
+            requestedAmountInNaira:
+              result.requestedAmountInKobo === '' ? null
+                : new Prisma.Decimal(result.requestedAmountInKobo).div(100).toString(),
+            feesInNaira:
+              result.feesInKobo === '' ? null
+                : new Prisma.Decimal(result.feesInKobo).div(100).toString(),
             currency: result.currency === '' ? null : result.currency,
             paidAt: result.paidAt,
             providerMetadata: { channel: result.channel },

@@ -257,9 +257,10 @@ export function Checkout() {
           ? await initializePaystackPayment({ orderId: order.id, callbackUrl })
           : await initializeGuestPaystackPayment({ orderId: order.id, guestAccessToken, callbackUrl })
 
-        // The API removes only the purchased cart rows. Refreshing keeps the
-        // cart badge correct without clearing items added in another tab.
-        await refreshCart()
+        // Leave straight for Paystack. We do NOT refresh the cart here: doing so
+        // flips the global cart loading flag, which would momentarily swap this
+        // page out for the skeleton loader and jump the scroll position. The cart
+        // is re-hydrated when the customer returns from Paystack.
         clearSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
         clearSessionValue(CHECKOUT_KEY_STORAGE_KEY)
         clearSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY)
@@ -299,7 +300,7 @@ export function Checkout() {
     form.fulfillmentMethod,
   )
 
-  if (isCustomerAuthLoading || isCartLoading) {
+  if (isCustomerAuthLoading || (isCartLoading && !isSubmitting)) {
     return (
       <>
         <Navbar />

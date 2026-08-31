@@ -251,6 +251,62 @@ const expectedCurrencyMatches =
   (received: string | null): boolean =>
     Boolean(received && received.toUpperCase() === expected.toUpperCase())
 
+// Validates the amount of a successful Paystack transaction in a way that
+// supports BOTH merchant fee configurations automatically, without hardcoding
+// any fee percentage/flat formula and without a customerPaysFee flag.
+//
+// Paystack's verify response reports three authoritative figures (all in the
+// currency's minor unit, e.g. kobo):
+//   requested_amount - what THIS instance asked Paystack to collect. It equals
+//                      the stored order total (in kobo) and is set server-side
+//                      at initialization, so it is immune to later manipulation.
+//   fees             - Paystack's own processing charge for the transaction,
+//                      reported directly by Paystack (never derived by us).
+//   amount           - the gross amount actually charged to the customer:
+//                        = requested_amount  when the merchant absorbs the fee
+//                        = requested_amount + fees when the fee is passed to the
+//                          customer (Paystack also charges a fee on the added fee,
+//                          but its `fees` field already reflects the final total).
+//
+// The tamper-proof gate is that `requested_amount` must EXACTLY equal the stored
+// order total: an attacker cannot inflate the expected value because this amount
+// was chosen by the server and locked to a unique, server-verified reference.
+// Separately, we require the charged amount to be at least the requested amount
+// and the gap (if any) to equal Paystack's own reported fee — so an arbitrary
+// overcharge that is not exactly Paystack's fee can never pass.
+function paystackAmountMatches(
+  expected: string | Prisma.Decimal,
+  result: Pick<PaymentVerifyResult, 'amountInNaira' | 'requestedAmountInNaira' | 'feesInNaira'>,
+): boolean {
+  if (!result.amountInNaira || !result.requestedAmountInNaira) return false
+  const expectedTotal = new Prisma.Decimal(expected.toString())
+  let charged: Prisma.Decimal
+  let requested: Prisma.Decimal
+  let fee: Prisma.Decimal | null
+  try {
+    charged = new Prisma.Decimal(result.amountInNaira)
+    requested = new Prisma.Decimal(result.requestedAmountInNaira)
+    fee = result.feesInNaira === null ? null : new Prisma.Decimal(result.feesInNaira)
+  } catch {
+    return false
+  }
+  if (!charged.isFinite() || !requested.isFinite() || !expectedTotal.isFinite()) return false
+  if (fee !== null && !fee.isFinite()) return false
+
+  // 1) The requested amount must be exactly the stored order total (> 0).
+  if (!requested.equals(expectedTotal) || !requested.gt(0)) return false
+
+  // 2) The customer must never be charged less than the requested amount.
+  if (charged.lt(requested)) return false
+
+  // 3) The gap between the charged and requested amounts must be exactly
+  //    Paystack's own reported fee (customer-pays case) or zero
+  //    (merchant-absorbs case). We read `fees`; we do not compute it.
+  const surplus = charged.minus(requested)
+  if (fee !== null && fee.gte(0) && surplus.equals(fee)) return true
+  return surplus.isZero()
+}
+
 // ---------------------------------------------------------------------------
 // Shared atomic settle.
 //
@@ -266,10 +322,43 @@ interface SettleOutcome {
   releasedCartIds: string[]
 }
 
+// Merge the verified provider amounts into the Payment's provider_metadata JSON
+// column. Order value (Payment.amount) stays as the order total; the actual
+// provider transaction breakdown is stored here so the two are never conflated.
+// Existing init metadata (authorizationUrl/accessCode) is preserved.
+function buildSettledProviderMetadata(
+  existing: Prisma.JsonValue | null,
+  result?: Pick<PaymentVerifyResult, 'amountInNaira' | 'requestedAmountInNaira' | 'feesInNaira' | 'providerMetadata'>,
+): Prisma.InputJsonValue {
+  const base: Record<string, unknown> =
+    existing && typeof existing === 'object' && !Array.isArray(existing)
+      ? { ...(existing as Record<string, unknown>) }
+      : {}
+  return {
+    ...base,
+    ...(result?.amountInNaira != null ? { amountCharged: result.amountInNaira } : {}),
+    ...(result?.requestedAmountInNaira != null ? { requestedAmount: result.requestedAmountInNaira } : {}),
+    ...(result?.feesInNaira != null ? { processingFee: result.feesInNaira } : {}),
+    ...(derivedChannel(null, result) ? { channel: derivedChannel(null, result) } : {}),
+  } as Prisma.InputJsonValue
+}
+
+// Resolve the payment channel from verified provider metadata, falling back to
+// the currently stored method. Channel flows through providerMetadata.{channel}.
+function derivedChannel(
+  current: string | null | undefined,
+  result?: Pick<PaymentVerifyResult, 'providerMetadata'>,
+): string | null {
+  const meta = result?.providerMetadata as Record<string, unknown> | undefined
+  const fromMeta = typeof meta?.channel === 'string' ? meta.channel : null
+  return fromMeta ?? current ?? null
+}
+
 async function settleSuccessfulPayment(
   order: Order,
   payment: Payment,
   paidAt: string | null,
+  result?: Pick<PaymentVerifyResult, 'amountInNaira' | 'requestedAmountInNaira' | 'feesInNaira' | 'providerMetadata'>,
 ): Promise<SettleOutcome> {
   const settled = await prisma.$transaction(async (transaction) => {
     await transaction.$queryRaw(
@@ -287,7 +376,15 @@ async function settleSuccessfulPayment(
     const paidAtValue = new Date()
     await transaction.payment.updateMany({
       where: { id: payment.id, status: PaymentRecordStatus.PENDING },
-      data: { status: PaymentRecordStatus.SUCCESSFUL, completedAt: paidAtValue },
+      data: {
+        status: PaymentRecordStatus.SUCCESSFUL,
+        completedAt: paidAtValue,
+        method: derivedChannel(payment.method, result) ?? undefined,
+        // Persist the actual provider transaction breakdown so the Payment
+        // record can represent the true amount charged (and Paystack's fee)
+        // even when it differs from the order total due to fee handling.
+        providerMetadata: buildSettledProviderMetadata(payment.providerMetadata, result),
+      },
     })
     await transaction.order.updateMany({
       where: { id: order.id, paymentStatus: { not: 'PAID' } },
@@ -464,7 +561,7 @@ export async function verifyOrderPayment(
   // amount and currency match what we authorized, and only then atomically mark
   // the Payment record successful and the order paid. The order row is locked
   // so two concurrent verifies serialize; state guards make the writes safe.
-  const matchesAmount = expectedAmountMatches(payment.amount)(result.amountInNaira)
+  const matchesAmount = paystackAmountMatches(payment.amount, result)
   const matchesCurrency = expectedCurrencyMatches(payment.currency)(result.currency)
 
   if (!matchesAmount || !matchesCurrency) {
@@ -472,13 +569,16 @@ export async function verifyOrderPayment(
       orderId: order.id,
       provider,
       providerReference: payment.providerReference,
+      expectedAmount: payment.amount.toString(),
+      requestedAmount: result.requestedAmountInNaira,
       receivedAmount: result.amountInNaira,
+      fees: result.feesInNaira,
       receivedCurrency: result.currency,
     })
     throw new HttpError(422, 'The payment could not be confirmed because the charged amount or currency did not match the order. Please contact support.')
   }
 
-  const settled = await settleSuccessfulPayment(order, payment, result.paidAt ?? null)
+  const settled = await settleSuccessfulPayment(order, payment, result.paidAt ?? null, result)
 
   if (settled.alreadySettled) {
     const current = await prisma.payment.findUnique({ where: { id: payment.id } })
@@ -592,21 +692,24 @@ export async function reconcilePaymentFromWebhook(
     return 'ignored'
   }
 
-  const matchesAmount = expectedAmountMatches(payment.amount)(result.amountInNaira)
+  const matchesAmount = paystackAmountMatches(payment.amount, result)
   const matchesCurrency = expectedCurrencyMatches(payment.currency)(result.currency)
 
   if (!matchesAmount || !matchesCurrency) {
     console.error(matchesAmount ? 'paystack_webhook_currency_mismatch' : 'paystack_webhook_amount_mismatch', {
       orderId: order.id,
       providerReference: payment.providerReference,
+      expectedAmount: payment.amount.toString(),
+      requestedAmount: result.requestedAmountInNaira,
       receivedAmount: result.amountInNaira,
+      fees: result.feesInNaira,
       receivedCurrency: result.currency,
     })
     return 'ignored'
   }
 
   try {
-    const settled = await settleSuccessfulPayment(order, payment, result.paidAt ?? null)
+    const settled = await settleSuccessfulPayment(order, payment, result.paidAt ?? null, result)
 
     if (settled.alreadySettled) {
       return 'already-settled'

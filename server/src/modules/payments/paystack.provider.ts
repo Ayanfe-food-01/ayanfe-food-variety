@@ -119,8 +119,26 @@ export interface PaystackVerifyResult {
   /** Provider-level outcome of the verification call. */
   status: 'success' | 'failed' | 'abandoned' | 'pending'
   providerReference: string
-  /** Amount charged by the provider, in minor units (kobo). */
+  /**
+   * Gross amount actually charged to the customer, in minor units (kobo).
+   * When the merchant passes Paystack's processing fee on to the customer this
+   * is `requestedAmountInKobo + feesInKobo`; when the merchant absorbs the fee
+   * it equals `requestedAmountInKobo`.
+   */
   amountInKobo: string
+  /**
+   * The exact amount this instance asked Paystack to collect, in minor units
+   * (kobo), as reported back by Paystack. This is the server-controlled value
+   * (it is what the backend sent at initialization) and is unaffected by how
+   * the merchant configured fee responsibility. It is the authoritative figure
+   * to compare against the stored order total.
+   */
+  requestedAmountInKobo: string
+  /**
+   * Paystack's own processing charge for this transaction, in minor units
+   * (kobo), as reported by the verify response. Never derived by the app.
+   */
+  feesInKobo: string
   currency: string
   paidAt: string | null
   channel: string | null
@@ -130,6 +148,8 @@ interface PaystackVerifyResponseData {
   status?: unknown
   reference?: unknown
   amount?: unknown
+  requested_amount?: unknown
+  fees?: unknown
   currency?: unknown
   paid_at?: unknown
   channel?: unknown
@@ -182,6 +202,8 @@ export async function verifyPaystackTransaction(
       status: 'abandoned',
       providerReference,
       amountInKobo: '',
+      requestedAmountInKobo: '',
+      feesInKobo: '',
       currency: '',
       paidAt: null,
       channel: null,
@@ -210,6 +232,10 @@ export async function verifyPaystackTransaction(
   const echoedReference = typeof payload.data.reference === 'string' ? payload.data.reference : null
   const amountInKobo = typeof payload.data.amount === 'string' ? payload.data.amount
     : typeof payload.data.amount === 'number' ? String(payload.data.amount) : null
+  const requestedAmountInKobo = typeof payload.data.requested_amount === 'string' ? payload.data.requested_amount
+    : typeof payload.data.requested_amount === 'number' ? String(payload.data.requested_amount) : null
+  const feesInKobo = typeof payload.data.fees === 'string' ? payload.data.fees
+    : typeof payload.data.fees === 'number' ? String(payload.data.fees) : null
   const currency = typeof payload.data.currency === 'string' ? payload.data.currency.toUpperCase() : null
 
   if (!echoedReference || echoedReference !== providerReference) {
@@ -224,6 +250,15 @@ export async function verifyPaystackTransaction(
     status: status as PaystackVerifyResult['status'],
     providerReference: echoedReference,
     amountInKobo: amountInKobo ?? '',
+    // `requested_amount` is the authoritative requested value and is present on
+    // current Paystack verify responses; if a future response omits it we fall
+    // back to `amount` so the strict requested-amount check still behaves.
+    requestedAmountInKobo:
+      requestedAmountInKobo ?? amountInKobo ?? '',
+    // `fees` is authoritative and present on current responses; default to 0
+    // only when absent so the fee-consistency check degrades to the
+    // merchant-absorbs case (amount == requested).
+    feesInKobo: feesInKobo ?? '',
     currency: currency ?? '',
     paidAt: typeof payload.data.paid_at === 'string' ? payload.data.paid_at : null,
     channel: typeof payload.data.channel === 'string' ? payload.data.channel : null,

@@ -1,11 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useCart } from '../hooks/useCart'
 import { ApiError } from '../services/api'
-import { getBankDetails, type BankDetails } from '../services/paymentService'
+import {
+  getBankDetails,
+  initializeGuestPaystackPayment,
+  initializePaystackPayment,
+  verifyGuestPaystackPayment,
+  verifyPaystackPayment,
+  type BankDetails,
+} from '../services/paymentService'
 import { cancelCustomerOrder, getCustomerOrder, getGuestOrder, type CreatedOrder } from '../services/orderService'
 import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
@@ -38,6 +46,14 @@ export function CustomerOrderDetails() {
   const [otherCancellationReason, setOtherCancellationReason] = useState('')
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
+  const [gatewayStatus, setGatewayStatus] = useState<
+    | { kind: 'checking' }
+    | { kind: 'success' }
+    | { kind: 'unconfirmed' }
+    | { kind: 'error'; message: string }
+  >({ kind: 'checking' })
+  const [isPaying, setIsPaying] = useState(false)
+  const { refreshCart } = useCart()
   const accessFromUrl = new URLSearchParams(location.search).get('access')
   const guestAccessToken = orderNumber
     ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
@@ -103,6 +119,64 @@ export function CustomerOrderDetails() {
       setCancelError(caught instanceof ApiError ? caught.message : 'The order could not be cancelled.')
     } finally {
       setIsCancelling(false)
+    }
+  }
+
+  // Confirm an unfinished Paystack payment directly with the provider once the
+  // order loads, so the customer always sees the true (server-confirmed) state.
+  const fetchGatewayVerification = useCallback(async () => {
+    if (!order || order.paymentMethod !== 'PAYSTACK') return null
+    return user
+      ? await verifyPaystackPayment({ orderId: order.id })
+      : guestAccessToken
+        ? await verifyGuestPaystackPayment({ orderId: order.id, guestAccessToken })
+        : null
+  }, [guestAccessToken, order, user])
+
+  const applyGatewayVerification = useCallback((verification: Awaited<ReturnType<typeof fetchGatewayVerification>>) => {
+    if (!verification || verification.status !== 'SUCCESSFUL') {
+      setGatewayStatus({ kind: 'unconfirmed' })
+      return
+    }
+    setGatewayStatus({ kind: 'success' })
+    void (user ? getCustomerOrder(order!.orderNumber) : getGuestOrder(order!.orderNumber, guestAccessToken!))
+      .then(setOrder)
+      .catch(() => {
+        // The confirmation page will reflect the update; keep showing the order.
+      })
+    refreshCart()
+  }, [guestAccessToken, order, refreshCart, user])
+
+  const gatewayVerificationFailed = useCallback((reason: unknown) => {
+    setGatewayStatus({
+      kind: 'error',
+      message: reason instanceof ApiError ? reason.message : 'Your payment status could not be checked right now.',
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!order || order.paymentMethod !== 'PAYSTACK') return
+    void fetchGatewayVerification().then(applyGatewayVerification).catch(gatewayVerificationFailed)
+  }, [applyGatewayVerification, fetchGatewayVerification, gatewayVerificationFailed, order])
+
+  const payOnline = async () => {
+    if (!order || !orderNumber || isPaying) return
+    setIsPaying(true)
+    try {
+      const init = user
+        ? await initializePaystackPayment({ orderId: order.id, callbackUrl: window.location.href })
+        : await initializeGuestPaystackPayment({
+            orderId: order.id,
+            guestAccessToken: guestAccessToken!,
+            callbackUrl: window.location.href,
+          })
+      window.location.assign(init.authorizationUrl)
+    } catch (caught: unknown) {
+      setIsPaying(false)
+      setGatewayStatus({
+        kind: 'error',
+        message: caught instanceof ApiError ? caught.message : 'The payment could not be started right now.',
+      })
     }
   }
 
@@ -228,7 +302,42 @@ export function CustomerOrderDetails() {
                 <div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div>
               </div>
             </div>
-            {order.paymentStatus !== 'PAID' && (
+            {order.paymentStatus !== 'PAID' && (order.paymentMethod === 'PAYSTACK' ? (
+              <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
+                <h2 className="text-xl font-bold text-green-dark">Payment verification</h2>
+                {gatewayStatus.kind === 'checking' && (
+                  <p className="mt-3 text-sm leading-6 text-muted">Checking your payment status with the provider…</p>
+                )}
+                {gatewayStatus.kind === 'unconfirmed' && (
+                  <>
+                    <p className="mt-3 text-sm leading-6 text-muted">
+                      Your Paystack payment has not been completed or could not be confirmed yet. You can try paying again.
+                    </p>
+                    <button
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-60"
+                      type="button"
+                      onClick={() => void payOnline()}
+                      disabled={isPaying}
+                    >
+                      {isPaying ? 'Starting payment…' : 'Pay now'} <ArrowRight size={16} />
+                    </button>
+                  </>
+                )}
+                {gatewayStatus.kind === 'error' && (
+                  <>
+                    <p className="mt-3 text-sm leading-6 text-muted">{gatewayStatus.message}</p>
+                    <button
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-60"
+                      type="button"
+                      onClick={() => void payOnline()}
+                      disabled={isPaying}
+                    >
+                      {isPaying ? 'Starting payment…' : 'Pay now'} <ArrowRight size={16} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
               <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
                 <h2 className="text-xl font-bold text-green-dark">Payment verification</h2>
                 {order.paymentSubmissions[0]?.status === 'PENDING' ? (
@@ -254,7 +363,7 @@ export function CustomerOrderDetails() {
                   </>
                 )}
               </div>
-            )}
+            ))}
             {order.paymentSubmissions.length > 0 && (
               <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
                 <h2 className="text-xl font-bold text-green-dark">Payment submissions</h2>

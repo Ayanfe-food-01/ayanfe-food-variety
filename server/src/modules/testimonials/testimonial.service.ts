@@ -107,6 +107,7 @@ export async function updateTestimonial(
   id: string,
   input: TestimonialInput,
   image?: StoredTestimonialImage,
+  removeAvatar = false,
 ): Promise<Testimonial> {
   const existing = await getAdminTestimonial(id)
   const wasDisplayed = existing.isActive && existing.isFeatured
@@ -120,7 +121,11 @@ export async function updateTestimonial(
       data: {
         ...input,
         rating: input.rating,
-        ...(image ? { avatarUrl: image.url, avatarPublicId: image.publicId } : {}),
+        ...(image
+          ? { avatarUrl: image.url, avatarPublicId: image.publicId }
+          : removeAvatar
+            ? { avatarUrl: null, avatarPublicId: null }
+            : {}),
       },
     }))
   } catch (error: unknown) {

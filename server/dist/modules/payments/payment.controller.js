@@ -1,7 +1,8 @@
 import multer from 'multer';
 import { HttpError } from '../../utils/http.js';
 import { getBankDetails, submitPayment, } from './payment.service.js';
-import { validateSubmitPaymentInput, } from './payment.validator.js';
+import { validatePaymentInitInput, validatePaymentVerifyInput, validateSubmitPaymentInput, } from './payment.validator.js';
+import { initializeOrderPayment, verifyOrderPayment } from './payment.gateway.js';
 const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -37,5 +38,32 @@ export const submitPaymentController = async (request, response) => {
         success: true,
         message: 'Payment proof submitted and awaiting verification.',
         data: { payment: submission },
+    });
+};
+export const initializePaymentController = async (request, response) => {
+    const input = validatePaymentInitInput(request.body);
+    const payment = await initializeOrderPayment({
+        orderId: input.orderId,
+        authenticatedUserId: request.authenticatedUser?.id,
+        guestAccessToken: input.guestAccessToken,
+        callbackUrl: input.callbackUrl,
+    });
+    response.json({
+        success: true,
+        message: 'Payment initialized. Complete the transaction at the provider.',
+        data: { payment },
+    });
+};
+export const verifyPaymentController = async (request, response) => {
+    const input = validatePaymentVerifyInput(request.body);
+    const verification = await verifyOrderPayment({
+        orderId: input.orderId,
+        authenticatedUserId: request.authenticatedUser?.id,
+        guestAccessToken: input.guestAccessToken,
+    });
+    response.json({
+        success: true,
+        message: 'Payment status checked.',
+        data: { verification },
     });
 };

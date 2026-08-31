@@ -110,8 +110,8 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
           deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
         }
       : {}),
-    paymentMethod: body.paymentMethod === PaymentMethod.BANK_TRANSFER
-      ? PaymentMethod.BANK_TRANSFER
+    paymentMethod: body.paymentMethod === PaymentMethod.BANK_TRANSFER || body.paymentMethod === PaymentMethod.PAYSTACK
+      ? body.paymentMethod
       : (() => { throw new HttpError(400, 'Payment method is not supported.') })(),
   }
 }

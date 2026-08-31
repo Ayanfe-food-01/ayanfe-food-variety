@@ -30,6 +30,7 @@ export function TestimonialForm() {
   const [currentAvatar, setCurrentAvatar] = useState<string | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
+  const [removeAvatar, setRemoveAvatar] = useState(false)
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(isEditing)
@@ -59,6 +60,8 @@ export function TestimonialForm() {
           isFeatured: testimonial.isFeatured,
         })
         setCurrentAvatar(testimonial.avatarUrl)
+        setAvatarPreview(null)
+        setRemoveAvatar(false)
       })
       .catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Testimonial could not be loaded.'))
       .finally(() => setIsLoading(false))
@@ -81,7 +84,7 @@ export function TestimonialForm() {
     setFieldError(null)
     setIsSaving(true)
     try {
-      const input = { ...form, authorName, content }
+      const input = { ...form, authorName, content, removeAvatar: isEditing && removeAvatar }
       if (isEditing && id) await updateAdminTestimonial(id, input)
       else await createAdminTestimonial(input)
       navigate('/admin/testimonials', {
@@ -110,7 +113,7 @@ export function TestimonialForm() {
             <label className="block text-sm font-bold text-green-dark">Rating <span className="font-normal text-muted">(optional)</span><input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" type="number" min="1" max="5" step="1" value={form.rating} onChange={(event) => setForm({ ...form, rating: event.target.value })} placeholder="5" /><span className="mt-1 block text-xs font-normal text-muted">A whole number between 1 and 5.</span></label>
           </div>
           <label className="block text-sm font-bold text-green-dark">Testimonial<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={form.content} onChange={(event) => { setForm({ ...form, content: event.target.value }); setFieldError(null) }} maxLength={2000} required placeholder="“Their jollof rice brought the taste of home back to my kitchen.”" /></label>
-          <ImageUploadField label={`Profile image${isEditing ? ' (optional replacement)' : ''}`} helperText={`JPG, PNG, or WEBP up to ${isEditing ? '5 MB. Leave empty to keep the current image.' : '5 MB; optional.'}`} alt="Author avatar preview" currentUrl={currentAvatar} previewUrl={avatarPreview} error={imageError ?? undefined} required={false} previewClassName="size-28 rounded-full object-cover" onChange={(file, preview, uploadError) => { setForm((current) => ({ ...current, avatar: file })); setAvatarPreview(preview); setImageError(uploadError) }} />
+          <ImageUploadField label={`Profile image${isEditing ? ' (optional replacement)' : ''}`} helperText={`JPG, PNG, or WEBP up to ${isEditing ? '5 MB. Leave empty to keep the current image.' : '5 MB; optional.'}`} alt="Author avatar preview" currentUrl={currentAvatar} previewUrl={avatarPreview} error={imageError ?? undefined} required={false} previewClassName="size-28 rounded-full object-cover" onRemove={() => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); setAvatarPreview(null); setForm((current) => ({ ...current, avatar: undefined })); setRemoveAvatar(true) }} onChange={(file, preview, uploadError) => { setForm((current) => ({ ...current, avatar: file })); setAvatarPreview(preview); setImageError(uploadError); if (file) setRemoveAvatar(false) }} />
           <label className="block text-sm font-bold text-green-dark">Display order<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" type="number" min="0" max="999999" step="1" value={form.displayOrder} onChange={(event) => setForm({ ...form, displayOrder: Math.max(0, Number(event.target.value) || 0) })} /><span className="mt-1 block text-xs font-normal text-muted">Lower numbers appear first when labels are shown.</span></label>
           <label className="flex items-start gap-3 rounded-xl border border-line bg-cream/50 p-4 text-sm text-green-dark"><input className="mt-0.5 size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} /><span><span className="block font-bold">Active</span><span className="mt-1 block text-xs font-normal leading-5 text-muted">Inactive testimonials remain saved in the admin portal but are hidden from customers.</span></span></label>
           <label className="flex items-start gap-3 rounded-xl border border-line bg-cream/50 p-4 text-sm text-green-dark"><input className="mt-0.5 size-4 accent-green" type="checkbox" checked={form.isFeatured} onChange={(event) => setForm({ ...form, isFeatured: event.target.checked })} /><span><span className="block font-bold">Mark as featured</span><span className="mt-1 block text-xs font-normal leading-5 text-muted">Featured testimonials can be highlighted in your storefront testimonial section.</span></span></label>

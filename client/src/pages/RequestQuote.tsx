@@ -12,6 +12,7 @@ import { getProduct } from '../services/productService'
 import { createQuoteRequest, type QuoteRequest } from '../services/quoteService'
 import type { Product } from '../types/product'
 import { formatPrice } from '../utils/formatPrice'
+import { scrollToTopInstant } from '../utils/browserCompatibility'
 import { Seo } from '../seo/Seo'
 
 const MAX_LINES = 50
@@ -226,6 +227,7 @@ export function RequestQuote() {
         })),
       })
       setSubmittedRequest(created)
+      scrollToTopInstant()
     } catch (error: unknown) {
       setSubmitError(error instanceof ApiError ? error.message : 'Your request could not be submitted right now.')
     } finally {

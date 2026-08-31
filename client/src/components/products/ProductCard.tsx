@@ -10,6 +10,7 @@ import { CartIcon } from '../../assets/icons'
 import { useToast } from '../ui/Toast'
 import { formatPrice } from '../../utils/formatPrice'
 import { optimizedImageUrl } from '../../utils/optimizedImageUrl'
+import { ProductOptionsModal } from './ProductOptionsModal'
 
 interface ProductCardProps {
   product: Product
@@ -17,12 +18,14 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [imageError, setImageError] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(false)
   const { addToCart, pendingItemIds } = useCart()
   const { user, shoppingMode } = useCustomerAuth()
   const { showToast } = useToast()
   const isAdding = pendingItemIds.includes(cartItemLineKey(product.id, null))
   const isWholesaleShopper = user?.role === 'CUSTOMER' && shoppingMode === 'WHOLESALE'
   const wholesaleFrom = isWholesaleShopper ? product.wholesaleFrom : null
+  const hasOptions = Boolean(product.options && product.options.length > 0)
 
   const handleAddToCart = async () => {
     try {
@@ -60,15 +63,16 @@ export function ProductCard({ product }: ProductCardProps) {
       </Link>
       <WishlistButton product={product} className="product-card-wishlist" />
       <div className="product-card-actions">
-        {product.options && product.options.length > 0 ? (
-          <Link
+        {hasOptions ? (
+          <button
             className="product-card-add"
-            to={`/product/${product.slug ?? product.id}`}
-            aria-label={`Choose a size or quantity for ${product.name}`}
+            type="button"
+            onClick={() => setOptionsOpen(true)}
+            aria-label={`Select options for ${product.name}`}
           >
             <CartIcon size={15} />
-            Choose size
-          </Link>
+            Select options
+          </button>
         ) : (
           <button
             className="product-card-add"
@@ -82,6 +86,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </button>
         )}
       </div>
+      {optionsOpen && <ProductOptionsModal product={product} onClose={() => setOptionsOpen(false)} />}
     </article>
   )
 }

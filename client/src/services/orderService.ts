@@ -32,6 +32,7 @@ export interface CreatedOrder {
     product: { id: string; slug: string; image: string }
   }>
   paymentStatus: CustomerPaymentStatus
+  paymentConfirmedAt: string | null
   orderStatus: OrderStatus
   cancellationReason: string | null
   cancelledAt: string | null
@@ -182,7 +183,7 @@ export async function cancelCustomerOrder(orderNumber: string, reason?: string):
 export type OrderStatus = 'ORDER_PLACED' | 'PROCESSING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED'
 export type CustomerPaymentStatus = 'PENDING' | 'PAID' | 'REJECTED'
-export type PaymentMethod = 'BANK_TRANSFER'
+export type PaymentMethod = 'BANK_TRANSFER' | 'PAYSTACK'
 export type FulfillmentMethod = 'PICKUP' | 'DELIVERY'
 
 export interface AdminOrder {

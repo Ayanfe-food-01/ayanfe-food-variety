@@ -14,6 +14,7 @@ import { formatDate } from '../../utils/dateFormat'
 import { formatPrice } from '../../utils/formatPrice'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
+import { scrollToTopInstant } from '../../utils/browserCompatibility'
 
 const statusClass = (status: QuoteRequestStatus) => {
   if (status === 'COMPLETED' || status === 'ACCEPTED') return 'bg-green/10 text-green'
@@ -130,6 +131,7 @@ export function QuoteRequestDetail() {
       setQuote(updated)
       setStatus(updated.status)
       showToast('Quotation prepared.', 'success')
+      scrollToTopInstant()
     } catch (caught: unknown) {
       showToast(caught instanceof ApiError ? caught.message : 'The quotation could not be prepared.', 'error')
     } finally {
@@ -204,7 +206,7 @@ export function QuoteRequestDetail() {
           <h2 className="text-lg font-bold text-green-dark">Requested items</h2>
           <span className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{quote.items.length} {quote.items.length === 1 ? 'item' : 'items'}</span>
         </div>
-        <div className="mt-4 overflow-hidden rounded-xl border border-line">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
               <tr>
@@ -237,7 +239,7 @@ export function QuoteRequestDetail() {
             <p className="mt-1 text-sm text-muted">Enter a quoted unit price for each requested item and an optional delivery fee. Totals are calculated on the server and saved as a snapshot, so later catalog price changes never affect this quotation.</p>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-line">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-line">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
                 <tr>
@@ -377,7 +379,7 @@ export function QuoteRequestDetail() {
               </Link>
             )}
           </div>
-          <div className="mt-4 overflow-hidden rounded-xl border border-line">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-line">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
                 <tr>

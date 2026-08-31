@@ -49,6 +49,41 @@ export const validateSubmitPaymentInput = (body) => {
 export const validatePaymentSubmissionId = (value) => {
     return validateOrderId(value);
 };
+export const validatePaymentInitInput = (body) => {
+    if (!body || typeof body !== 'object')
+        throw new HttpError(400, 'Order ID is required.');
+    const input = body;
+    const orderId = validateOrderId(input.orderId);
+    let guestAccessToken;
+    if (input.guestAccessToken !== undefined && input.guestAccessToken !== null && input.guestAccessToken !== '') {
+        if (typeof input.guestAccessToken !== 'string' || !uuidPattern.test(input.guestAccessToken.trim())) {
+            throw new HttpError(400, 'Guest access token is invalid.');
+        }
+        guestAccessToken = input.guestAccessToken.trim();
+    }
+    let callbackUrl;
+    if (input.callbackUrl !== undefined && input.callbackUrl !== null && input.callbackUrl !== '') {
+        if (typeof input.callbackUrl !== 'string' || input.callbackUrl.trim().length > 2000) {
+            throw new HttpError(400, 'Payment return URL is invalid.');
+        }
+        callbackUrl = input.callbackUrl.trim();
+    }
+    return { orderId, guestAccessToken, callbackUrl };
+};
+export const validatePaymentVerifyInput = (body) => {
+    if (!body || typeof body !== 'object')
+        throw new HttpError(400, 'Order ID is required.');
+    const input = body;
+    const orderId = validateOrderId(input.orderId);
+    let guestAccessToken;
+    if (input.guestAccessToken !== undefined && input.guestAccessToken !== null && input.guestAccessToken !== '') {
+        if (typeof input.guestAccessToken !== 'string' || !uuidPattern.test(input.guestAccessToken.trim())) {
+            throw new HttpError(400, 'Guest access token is invalid.');
+        }
+        guestAccessToken = input.guestAccessToken.trim();
+    }
+    return { orderId, guestAccessToken };
+};
 export const validateReviewPaymentInput = (body, isRejection) => {
     if (!body || typeof body !== 'object') {
         if (isRejection)

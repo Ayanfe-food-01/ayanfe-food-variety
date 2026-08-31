@@ -693,6 +693,7 @@ export interface TestimonialInput {
   isActive: boolean
   isFeatured: boolean
   avatar?: File
+  removeAvatar?: boolean
 }
 
 const testimonialFormDataFor = (input: TestimonialInput): FormData => {
@@ -704,6 +705,7 @@ const testimonialFormDataFor = (input: TestimonialInput): FormData => {
   formData.set('isActive', String(input.isActive))
   formData.set('isFeatured', String(input.isFeatured))
   if (input.avatar) formData.set('avatar', input.avatar)
+  if (input.removeAvatar) formData.set('removeAvatar', 'true')
   return formData
 }
 

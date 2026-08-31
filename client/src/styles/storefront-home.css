@@ -106,6 +106,14 @@
 .product-card-add { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; border: 1px solid var(--color-green); border-radius: 9px; background: var(--color-green); color: white; font-size: 12px; font-weight: 800; cursor: pointer; transition: background .2s, border-color .2s, transform .2s; }
 .product-card-add:hover, .product-card-add:focus-visible { border-color: var(--color-green-dark); background: var(--color-green-dark); transform: translateY(-1px); }
 .product-card-add:disabled { cursor: wait; opacity: .55; transform: none; }
+.product-options-panel {
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100svh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .wishlist-empty-icon { display: flex; justify-content: center; color: var(--color-green-dark); }
 .product-skeleton { min-height: 315px; border-radius: 14px; background: var(--color-sage); animation: pulse 1.5s infinite ease-in-out; }
 .section-message { display: flex; align-items: center; justify-content: center; gap: 13px; min-height: 100px; border: 1px dashed var(--color-green); border-radius: 12px; color: var(--color-muted); font-size: 13px; }

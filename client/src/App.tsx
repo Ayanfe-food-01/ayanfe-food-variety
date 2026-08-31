@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { About } from './pages/About'
@@ -58,7 +58,7 @@ import { scrollToTopInstant } from './utils/browserCompatibility'
 function ScrollToTop() {
   const { pathname, search } = useLocation()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     scrollToTopInstant()
   }, [pathname, search])
 

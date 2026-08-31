@@ -76,6 +76,7 @@ export interface OrderResponse {
   total: string
   paymentMethod: PaymentMethod
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
+  paymentConfirmedAt: string | null
   orderStatus: OrderStatus
   cancellationReason: string | null
   cancelledAt: string | null

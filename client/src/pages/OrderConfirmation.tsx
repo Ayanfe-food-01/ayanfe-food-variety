@@ -1,23 +1,59 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useCart } from '../hooks/useCart'
 import { ApiError } from '../services/api'
 import { getCustomerOrder, getGuestOrder, type CreatedOrder } from '../services/orderService'
+import {
+  initializeGuestPaystackPayment,
+  initializePaystackPayment,
+  verifyGuestPaystackPayment,
+  verifyPaystackPayment,
+  type PaystackPaymentVerification,
+} from '../services/paymentService'
 import { formatOrderStatus } from '../utils/orderStatus'
 import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
 
+type GatewayStatus =
+  | { kind: 'checking' }
+  | { kind: 'success'; verification: PaystackPaymentVerification }
+  | { kind: 'unconfirmed'; message: string }
+  | { kind: 'error'; message: string }
+
+const gatewayCopy: Record<GatewayStatus['kind'], { title: string; body: string }> = {
+  checking: {
+    title: 'Confirming your payment',
+    body: 'We are checking the payment status with your provider. This only takes a moment.',
+  },
+  success: {
+    title: 'Payment confirmed',
+    body: 'Thank you! Your payment has been confirmed and your order is now being prepared.',
+  },
+  unconfirmed: {
+    title: 'Payment not completed',
+    body: 'Your payment did not go through, or the order has not been paid yet. You can try paying again.',
+  },
+  error: {
+    title: 'Payment status could not be checked',
+    body: 'We could not confirm your payment right now. You can try again, or start the payment over.',
+  },
+}
+
 export function OrderConfirmation() {
   const { orderNumber } = useParams()
   const location = useLocation()
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
+  const { refreshCart } = useCart()
   const [order, setOrder] = useState<CreatedOrder | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus>({ kind: 'checking' })
+  const [isPayingAgain, setIsPayingAgain] = useState(false)
   const accessFromUrl = new URLSearchParams(location.search).get('access')
   const guestAccessToken = orderNumber
     ? accessFromUrl || getGuestOrderAccessToken(orderNumber)
@@ -39,6 +75,111 @@ export function OrderConfirmation() {
       .then(setOrder)
       .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Your order confirmation could not be loaded.'))
   }, [guestAccessToken, isAuthLoading, orderNumber, user])
+
+  // Fetch the server-confirmed verification verdict. The gateway return URL alone
+  // is never treated as proof of payment.
+  const fetchVerification = useCallback(async (): Promise<PaystackPaymentVerification | null> => {
+    if (!orderNumber || !order) return null
+    return user
+      ? await verifyPaystackPayment({ orderId: order.id })
+      : guestAccessToken
+        ? await verifyGuestPaystackPayment({ orderId: order.id, guestAccessToken })
+        : null
+  }, [guestAccessToken, order, orderNumber, user])
+
+  const applyVerification = useCallback((verification: PaystackPaymentVerification | null) => {
+    if (!verification) return
+    if (verification.status === 'SUCCESSFUL') {
+      setGatewayStatus({ kind: 'success', verification })
+      refreshCart()
+    } else {
+      setGatewayStatus({ kind: 'unconfirmed', message: gatewayCopy.unconfirmed.body })
+    }
+  }, [refreshCart])
+
+  const verificationFailed = useCallback((reason: unknown) => {
+    setGatewayStatus({
+      kind: 'error',
+      message: reason instanceof ApiError ? reason.message : 'Your payment status could not be checked right now.',
+    })
+  }, [])
+
+  const retryCheck = () => {
+    setGatewayStatus({ kind: 'checking' })
+    void fetchVerification().then(applyVerification).catch(verificationFailed)
+  }
+
+  // Once the order is loaded, confirm an unfinished Paystack payment with the
+  // provider. This runs on return from the provider (or an idempotent re-check
+  // of a previous attempt).
+  useEffect(() => {
+    if (!order) return
+    if (order.paymentMethod !== 'PAYSTACK') return
+    void fetchVerification().then(applyVerification).catch(verificationFailed)
+  }, [applyVerification, fetchVerification, order, verificationFailed])
+
+  const payAgain = async () => {
+    if (!orderNumber || !order || isPayingAgain) return
+    setIsPayingAgain(true)
+    try {
+      const init = user
+        ? await initializePaystackPayment({ orderId: order.id, callbackUrl: window.location.href })
+        : await initializeGuestPaystackPayment({
+            orderId: order.id,
+            guestAccessToken: guestAccessToken!,
+            callbackUrl: window.location.href,
+          })
+      window.location.assign(init.authorizationUrl)
+    } catch (reason: unknown) {
+      setIsPayingAgain(false)
+      setGatewayStatus({
+        kind: 'error',
+        message: reason instanceof ApiError ? reason.message : 'The payment could not be started right now.',
+      })
+    }
+  }
+
+  const paystackBanner = (() => {
+    if (!order || order.paymentMethod !== 'PAYSTACK') return null
+    const copy = gatewayCopy[gatewayStatus.kind]
+    return (
+      <div className={`mt-6 rounded-2xl border p-6 shadow-sm sm:p-8 ${
+        gatewayStatus.kind === 'success'
+          ? 'border-green/25 bg-sage/30'
+          : gatewayStatus.kind === 'unconfirmed'
+            ? 'border-orange/25 bg-orange/5'
+            : 'border-line bg-white'
+      }`}>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Next step</p>
+        <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">{copy.title}</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">{copy.body}</p>
+        {gatewayStatus.kind === 'checking' && (
+          <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-orange">Checking…</p>
+        )}
+        {gatewayStatus.kind !== 'success' && gatewayStatus.kind !== 'checking' && (
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              className="inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:opacity-60"
+              type="button"
+              onClick={() => void payAgain()}
+              disabled={isPayingAgain}
+            >
+              {isPayingAgain ? 'Starting payment…' : 'Pay now'} <ArrowRight size={16} />
+            </button>
+            {gatewayStatus.kind === 'error' && (
+              <button
+                className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-sage"
+                type="button"
+                onClick={retryCheck}
+              >
+                Try again
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  })()
 
   return (
     <>
@@ -65,7 +206,11 @@ export function OrderConfirmation() {
               <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Order received</p>
               <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Thank you for your order</h1>
               <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted">
-                Your order has been created successfully. Payment is still pending and will be handled separately.
+                {order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'success'
+                  ? 'Your order has been created successfully and your payment has been confirmed.'
+                  : order.paymentMethod === 'PAYSTACK'
+                    ? 'Your order has been created successfully. Payment is still pending and will be confirmed once complete.'
+                    : 'Your order has been created successfully. Payment is still pending and will be handled separately.'}
               </p>
               <div className="mt-7 inline-flex items-center gap-3 rounded-full bg-white px-5 py-3 text-sm">
                 <span className="text-muted">Order number</span>
@@ -84,23 +229,27 @@ export function OrderConfirmation() {
               )}
             </div>
 
-             <div className="mt-6 rounded-2xl border border-green/25 bg-sage/30 p-6 shadow-sm sm:p-8">
-               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Next step</p>
-               <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Send your payment proof</h2>
-               <p className="mt-2 text-sm leading-6 text-muted">
-                 After completing the transfer using the details shown during checkout, send your receipt so we can verify your payment.
-               </p>
-                <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof${guestOrderSuffix}`}>
-                 Submit payment proof <ArrowRight size={16} />
-               </Link>
-             </div>
+             {order.paymentMethod === 'PAYSTACK' ? (
+               paystackBanner
+             ) : (
+               <div className="mt-6 rounded-2xl border border-green/25 bg-sage/30 p-6 shadow-sm sm:p-8">
+                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Next step</p>
+                 <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Send your payment proof</h2>
+                 <p className="mt-2 text-sm leading-6 text-muted">
+                   After completing the transfer using the details shown during checkout, send your receipt so we can verify your payment.
+                 </p>
+                  <Link className="mt-5 inline-flex items-center gap-2 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to={`/orders/${order.orderNumber}/payment-proof${guestOrderSuffix}`}>
+                   Submit payment proof <ArrowRight size={16} />
+                 </Link>
+               </div>
+             )}
 
             <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-2xl font-bold text-green-dark">Order summary</h2>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{order.orderType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</span>
-                  <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">Payment pending</span>
+                  <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'success' ? 'Payment confirmed' : 'Payment pending'}</span>
                 </div>
               </div>
               <div className="mt-5 divide-y divide-line">
@@ -146,7 +295,9 @@ export function OrderConfirmation() {
               <div className="rounded-2xl border border-line bg-cream/60 p-6">
                 <h2 className="text-xl font-bold text-green-dark">What happens next?</h2>
                 <p className="mt-3 text-sm leading-6 text-muted">
-                  Payment remains pending until it is handled separately. Keep your order number for future reference.
+                  {order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'success'
+                    ? 'Your payment has been confirmed. Your order will be prepared and you will be notified when it is ready.'
+                    : 'Payment remains pending until it is confirmed. Keep your order number for future reference.'}
                 </p>
                  <p className="mt-4 text-sm font-bold text-green-dark">Order status: {formatOrderStatus(order.orderStatus)}</p>
               </div>

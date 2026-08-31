@@ -7,6 +7,7 @@ import { deductStock, restoreStock } from '../inventory/inventory.service.js';
 import { calculateDiscountedPrice } from '../products/product.pricing.js';
 import { assertWholesaleOrderable, wholesaleUnitPriceFromOption } from '../products/wholesale.pricing.js';
 import { createAdminNotification } from '../notifications/notification.service.js';
+import { isOnlinePaymentEnabled } from '../payments/payment.provider.js';
 const toPaymentSubmissionResponse = (submission) => ({
     id: submission.id,
     senderName: submission.senderName,
@@ -46,6 +47,7 @@ const toOrderResponse = (order) => {
         total: order.total.toString(),
         paymentMethod: order.paymentMethod,
         paymentStatus,
+        paymentConfirmedAt: order.paymentConfirmedAt?.toISOString() ?? null,
         orderStatus: order.orderStatus,
         cancellationReason: order.cancellationReason,
         cancelledAt: order.cancelledAt?.toISOString() ?? null,
@@ -203,15 +205,25 @@ export async function checkoutCustomerCart(userId, input) {
                         if (cartItems.length === 0)
                             throw new HttpError(400, 'Your cart is empty.');
                     }
-                    const paymentSettings = await transaction.paymentSettings.findUnique({
-                        where: {
-                            singletonKey_paymentMethod: {
-                                singletonKey: 'default',
-                                paymentMethod: input.paymentMethod,
+                    // For bank transfer the stored payment settings are the availability and
+                    // belongs-in-snapshot source. For gateway (Paystack) orders there is no
+                    // bank row to snapshot; availability is the provider configuration.
+                    const paymentSettings = input.paymentMethod === PaymentMethod.PAYSTACK
+                        ? null
+                        : await transaction.paymentSettings.findUnique({
+                            where: {
+                                singletonKey_paymentMethod: {
+                                    singletonKey: 'default',
+                                    paymentMethod: input.paymentMethod,
+                                },
                             },
-                        },
-                    });
-                    if (!paymentSettings || !paymentSettings.isActive) {
+                        });
+                    if (input.paymentMethod === PaymentMethod.PAYSTACK) {
+                        if (!isOnlinePaymentEnabled()) {
+                            throw new HttpError(400, 'Online payment is not available for this store.');
+                        }
+                    }
+                    else if (!paymentSettings || !paymentSettings.isActive) {
                         throw new HttpError(400, 'The selected payment method is unavailable.');
                     }
                     const invalidQuantity = cartItems.find((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000);
@@ -349,15 +361,27 @@ export async function checkoutCustomerCart(userId, input) {
                                     changedBy: user?.id ?? null,
                                 },
                             },
-                            paymentSnapshot: {
-                                create: {
-                                    paymentMethod: paymentSettings.paymentMethod,
-                                    bankName: paymentSettings.bankName,
-                                    accountName: paymentSettings.accountName,
-                                    accountNumber: paymentSettings.accountNumber,
-                                    instructions: paymentSettings.instructions,
-                                },
-                            },
+                            ...(paymentSettings && input.paymentMethod === PaymentMethod.BANK_TRANSFER
+                                ? {
+                                    paymentSnapshot: {
+                                        create: {
+                                            paymentMethod: paymentSettings.paymentMethod,
+                                            bankName: paymentSettings.bankName,
+                                            accountName: paymentSettings.accountName,
+                                            accountNumber: paymentSettings.accountNumber,
+                                            instructions: paymentSettings.instructions,
+                                        },
+                                    },
+                                }
+                                : {}),
+                            // Gateway orders keep their source cart rows until the payment is
+                            // confirmed, so an abandoned/failed checkout never silently empties the
+                            // cart. The rows are removed atomically on successful verification.
+                            ...(input.paymentMethod === PaymentMethod.PAYSTACK && cartId
+                                ? {
+                                    paymentCartItemIds: cartItems.flatMap((item) => item.id ? [item.id] : []),
+                                }
+                                : {}),
                         },
                         include: orderInclude,
                     });
@@ -383,7 +407,7 @@ export async function checkoutCustomerCart(userId, input) {
                         where: { id: order.id },
                         data: { stockDeductedAt: new Date() },
                     });
-                    if (cartId) {
+                    if (cartId && input.paymentMethod !== PaymentMethod.PAYSTACK) {
                         await transaction.customerCartItem.deleteMany({
                             where: {
                                 id: { in: cartItems.flatMap((item) => item.id ? [item.id] : []) },
@@ -811,7 +835,9 @@ const toGuestOrderResponse = (order) => {
         deliveryFee: fullResponse.deliveryFee,
         total: fullResponse.total,
         paymentStatus: fullResponse.paymentStatus,
-        paymentConfirmedAt: verifiedPayment?.reviewedAt?.toISOString() ?? null,
+        paymentConfirmedAt: fullResponse.paymentConfirmedAt
+            ?? verifiedPayment?.reviewedAt?.toISOString()
+            ?? null,
         orderStatus: fullResponse.orderStatus,
         createdAt: fullResponse.createdAt,
         orderItems: fullResponse.orderItems.map((item) => ({

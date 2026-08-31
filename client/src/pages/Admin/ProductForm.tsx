@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
+import { CloseIcon } from '../../assets/icons'
 import { FeaturedToggle } from '../../components/admin/FeaturedToggle'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { OptionInputField, type OptionRowErrors, type OptionTierRowErrors } from '../../components/admin/OptionInputField'
@@ -485,9 +486,9 @@ export function ProductForm() {
                   {imageDrafts.map((draft, index) => (
                     <div className="relative overflow-hidden rounded-xl border border-line bg-white" key={draft.id}>
                       <img className="aspect-square w-full object-cover" src={draft.url} alt={`${form.name || 'Product'} image ${index + 1}`} />
+                      <button className="absolute right-1.5 top-1.5 z-10 grid size-6 place-items-center rounded-full border border-white/40 bg-green-dark/75 text-white shadow-sm transition-colors hover:bg-orange" type="button" aria-label={`Remove product image ${index + 1}`} onClick={() => removeImage(index)}><CloseIcon size={12} /></button>
                       <div className="flex items-center justify-between gap-1 border-t border-line p-2">
                         <span className="min-w-0 truncate text-[11px] font-bold text-green-dark">{index === 0 ? 'Primary' : `Image ${index + 1}`}</span>
-                        <button className="text-xs font-bold text-orange hover:text-green-dark" type="button" onClick={() => removeImage(index)}>Remove</button>
                       </div>
                       <div className="flex gap-1 px-2 pb-2">
                         <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image left" disabled={index === 0} onClick={() => moveImage(index, -1)}>←</button>

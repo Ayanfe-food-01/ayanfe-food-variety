@@ -19,6 +19,7 @@ import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { ApiError } from '../services/api'
 import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
+import { initializeGuestPaystackPayment, initializePaystackPayment } from '../services/paymentService'
 import { createRequestKey } from '../utils/browserCompatibility'
 import { saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
 import { clearGuestCheckout, isGuestCheckoutMarked, markGuestCheckout } from '../utils/guestCheckout'
@@ -244,12 +245,32 @@ export function Checkout() {
         paymentMethod: form.paymentMethod,
       })
 
-      // The API removes only the purchased cart rows. Refreshing keeps the
-      // cart badge correct without clearing items added in another tab.
-      await refreshCart()
+      // Keep the guest access token available for the Paystack return page and
+      // for the confirmation page, which both load the order themselves.
       if (!user) {
         saveGuestOrderAccessToken(order.orderNumber, guestAccessToken)
       }
+
+      if (form.paymentMethod === 'PAYSTACK') {
+        const callbackUrl = `${window.location.origin}/order-confirmation/${encodeURIComponent(order.orderNumber)}${user ? '' : `?access=${encodeURIComponent(guestAccessToken)}`}`
+        const payment = user
+          ? await initializePaystackPayment({ orderId: order.id, callbackUrl })
+          : await initializeGuestPaystackPayment({ orderId: order.id, guestAccessToken, callbackUrl })
+
+        // The API removes only the purchased cart rows. Refreshing keeps the
+        // cart badge correct without clearing items added in another tab.
+        await refreshCart()
+        clearSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
+        clearSessionValue(CHECKOUT_KEY_STORAGE_KEY)
+        clearSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY)
+        clearGuestCheckout()
+        window.location.assign(payment.authorizationUrl)
+        return
+      }
+
+      // The API removes only the purchased cart rows. Refreshing keeps the
+      // cart badge correct without clearing items added in another tab.
+      await refreshCart()
       clearSessionValue(CHECKOUT_DRAFT_STORAGE_KEY)
       clearSessionValue(CHECKOUT_KEY_STORAGE_KEY)
       clearSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY)

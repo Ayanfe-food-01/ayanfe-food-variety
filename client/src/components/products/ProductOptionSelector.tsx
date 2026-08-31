@@ -22,7 +22,7 @@ export function ProductOptionSelector({
     const isUnavailable = option.stockQuantity <= 0
     return (
       <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-green-dark">Choose quantity/size</p>
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-green-dark">Select options</p>
         <div className={`flex h-12 items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 ${isUnavailable ? 'opacity-70' : ''}`}>
           <span className="truncate text-sm font-bold text-green-dark">{option.label}</span>
           <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-muted">
@@ -47,10 +47,10 @@ export function ProductOptionSelector({
   return (
     <div>
       <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-green-dark" htmlFor="product-option-select">
-        Choose quantity/size
+        Select options
       </label>
       <SelectField
-        ariaLabel="Choose a quantity or size option"
+        ariaLabel="Select an option"
         className="product-option-select"
         disabled={disabled}
         disabledOptions={unavailableValues}

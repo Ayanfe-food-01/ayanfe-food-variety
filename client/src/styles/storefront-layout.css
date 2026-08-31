@@ -529,8 +529,9 @@
 .cart-drawer-panel {
   position: relative;
   width: min(560px, 100%);
-  max-height: calc(100dvh - 2rem);
   max-height: calc(100vh - 2rem);
+  max-height: calc(100svh - 2rem);
+  max-height: calc(100dvh - 2rem);
   display: flex;
   flex-direction: column;
   background: var(--color-cream);
@@ -953,8 +954,9 @@
 
 @media (max-width: 767px) {
   .cart-drawer-panel {
-    max-height: calc(100dvh - 2rem);
     max-height: calc(100vh - 2rem);
+    max-height: calc(100svh - 2rem);
+    max-height: calc(100dvh - 2rem);
   }
   .whatsapp-float-button {
     right: 14px;

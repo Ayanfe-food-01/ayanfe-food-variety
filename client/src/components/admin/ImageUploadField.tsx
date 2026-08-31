@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react'
+import { CloseIcon } from '../../assets/icons'
 
 const acceptedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 const maxImageSize = 5 * 1024 * 1024
@@ -17,8 +18,8 @@ interface ImageUploadFieldProps {
   onChange: (file: File | undefined, previewUrl: string | null, error: string | null) => void
   multiple?: boolean
   onMultipleChange?: (files: File[], previewUrls: string[], error: string | null) => void
-  onReset?: () => void
-  isResetting?: boolean
+  onRemove?: () => void
+  isRemoving?: boolean
 }
 
 export function ImageUploadField({
@@ -35,8 +36,8 @@ export function ImageUploadField({
   onChange,
   multiple = false,
   onMultipleChange,
-  onReset,
-  isResetting = false,
+  onRemove,
+  isRemoving = false,
 }: ImageUploadFieldProps) {
   const chooseImage = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])
@@ -76,6 +77,16 @@ export function ImageUploadField({
     else onChange(files[0], previews[0], null)
   }
 
+  const hasImage = Boolean(previewUrl || currentUrl)
+  const showRemove = !multiple && hasImage && Boolean(previewUrl || onRemove)
+  const removeImage = () => {
+    if (previewUrl) {
+      onChange(undefined, null, null)
+      return
+    }
+    onRemove?.()
+  }
+
   return (
     <div>
       <label className="block text-sm font-bold text-green-dark">
@@ -91,20 +102,24 @@ export function ImageUploadField({
         <span className="mt-1 block text-xs font-normal text-muted">{helperText}</span>
       </label>
       {error && <p className="mt-1 text-xs font-normal text-orange" role="alert">{error}</p>}
-      {(previewUrl || currentUrl) && (
-        <img key={previewUrl || currentUrl} className={`mt-3 ${previewClassName}`} src={previewUrl || currentUrl || ''} alt={alt} onError={(event) => {
-          event.currentTarget.style.display = 'none'
-        }} />
-      )}
-      {currentUrl && onReset && (
-        <button
-          className="mt-3 rounded-full border border-green/20 px-4 py-2 text-xs font-bold text-green transition-colors hover:border-orange/30 hover:text-orange disabled:cursor-not-allowed disabled:opacity-60"
-          type="button"
-          onClick={onReset}
-          disabled={isResetting}
-        >
-          {isResetting ? 'Resetting…' : 'Reset to default asset'}
-        </button>
+      {hasImage && (
+        <div className="relative mt-3">
+          <img key={previewUrl || currentUrl} className={`${previewClassName} block`} src={previewUrl || currentUrl || ''} alt={alt} onError={(event) => {
+            event.currentTarget.style.display = 'none'
+          }} />
+          {showRemove && (
+            <button
+              className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-full border border-white/40 bg-green-dark/75 text-white shadow-sm transition-colors hover:bg-orange disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              aria-label={`Remove ${alt}`}
+              title={previewUrl ? 'Remove this new image' : 'Remove image'}
+              onClick={removeImage}
+              disabled={isRemoving}
+            >
+              <CloseIcon size={14} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

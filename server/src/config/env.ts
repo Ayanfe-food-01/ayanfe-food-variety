@@ -91,6 +91,18 @@ export const env = {
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
+  payments: {
+    // Which gateway provider is active for online payments. Leave blank to keep
+    // online payment disabled (the project falls back to bank transfer).
+    // Provider-specific keys are read by the provider module in a later phase.
+    provider: (process.env.PAYMENT_PROVIDER?.trim() || '') as string,
+    currency: process.env.PAYMENT_CURRENCY?.trim() || 'NGN',
+    paystack: {
+      secretKey: process.env.PAYSTACK_SECRET_KEY?.trim(),
+      publicKey: process.env.PAYSTACK_PUBLIC_KEY?.trim(),
+      webhookSecret: process.env.PAYSTACK_WEBHOOK_SECRET?.trim(),
+    },
+  },
   email: {
     resendApiKey: process.env.RESEND_API_KEY?.trim(),
     businessEmail: process.env.BUSINESS_EMAIL?.trim(),

@@ -66,6 +66,11 @@ export function validateTestimonialStatusInput(body: unknown): boolean {
   return booleanValue(body.isActive, 'Testimonial status', false)
 }
 
+export function validateAvatarRemovalFlag(body: unknown): boolean {
+  if (!isRecord(body)) return false
+  return booleanValue(body.removeAvatar, 'Avatar removal flag', false)
+}
+
 export function validateTestimonialFeaturedInput(body: unknown): boolean {
   if (!isRecord(body)) throw new HttpError(400, 'Testimonial featured flag is required.')
   return booleanValue(body.isFeatured, 'Featured flag', false)

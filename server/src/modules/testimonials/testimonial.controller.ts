@@ -12,6 +12,7 @@ import {
 } from './testimonial.service.js'
 import {
   validateAdminTestimonialsQuery,
+  validateAvatarRemovalFlag,
   validateTestimonialFeaturedInput,
   validateTestimonialId,
   validateTestimonialInput,
@@ -79,8 +80,11 @@ export const updateAdminTestimonialController: RequestHandler = async (request, 
   let avatar: Awaited<ReturnType<typeof uploadTestimonialAvatar>> | undefined
   try {
     avatar = request.file ? await uploadTestimonialAvatar(request.file) : undefined
-    const testimonial = await updateTestimonial(testimonialId, validateTestimonialInput(request.body), avatar)
+    const removeAvatar = validateAvatarRemovalFlag(request.body)
+    const testimonial = await updateTestimonial(testimonialId, validateTestimonialInput(request.body), avatar, removeAvatar)
     if (avatar && existing.avatarPublicId && existing.avatarPublicId !== avatar.publicId) {
+      await deleteTestimonialAvatar(existing.avatarPublicId)
+    } else if (removeAvatar && existing.avatarPublicId) {
       await deleteTestimonialAvatar(existing.avatarPublicId)
     }
     response.json({ success: true, message: 'Testimonial updated.', data: { testimonial } })

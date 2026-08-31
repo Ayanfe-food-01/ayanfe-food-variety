@@ -9,6 +9,7 @@ import { ApiError } from '../services/api'
 import { getOrderReviewEligibility, submitProductReview, type ReviewEligibilityItem } from '../services/reviewService'
 import type { CustomerPaymentStatus, OrderStatus } from '../services/orderService'
 import { formatOrderStatus } from '../utils/orderStatus'
+import { scrollToTopInstant } from '../utils/browserCompatibility'
 
 const MAX_REVIEW_LENGTH = 2000
 const MIN_REVIEW_LENGTH = 10
@@ -84,6 +85,7 @@ export function WriteReview() {
     try {
       await submitProductReview(orderNumber, { orderItemId: item.id, rating, content: trimmedContent })
       setSubmitted(true)
+      scrollToTopInstant()
     } catch (caught: unknown) {
       setError(caught instanceof ApiError ? caught.message : 'Your review could not be submitted.')
     } finally {

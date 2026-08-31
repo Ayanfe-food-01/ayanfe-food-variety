@@ -176,6 +176,17 @@ async function main() {
     const statusOn = await updateTestimonialStatus(unrated.id, true)
     if (statusOn.isActive !== true) throw new Error('Status toggle did not reactivate.')
 
+    // --- Avatar: set, then remove via the removal flag ---
+    const baseFields = { authorName: unrated.authorName, content: unrated.content, rating: unrated.rating, displayOrder: unrated.displayOrder, isActive: true, isFeatured: false }
+    const withAvatar = await updateTestimonial(unrated.id, baseFields, { url: 'https://example.test/avatar.png', publicId: 'smoke-avatar' })
+    if (withAvatar.avatarUrl !== 'https://example.test/avatar.png' || withAvatar.avatarPublicId !== 'smoke-avatar') {
+      throw new Error('Avatar replacement did not persist.')
+    }
+    const cleared = await updateTestimonial(unrated.id, baseFields, undefined, true)
+    if (cleared.avatarUrl !== null || cleared.avatarPublicId !== null) {
+      throw new Error('Avatar removal flag did not clear the image.')
+    }
+
     // --- Delete + post-delete 404 ---
     const deletedPublicId = await deleteTestimonial(unrated.id)
     if (deletedPublicId !== null) throw new Error('Avatar-less testimonial should delete with no image id.')

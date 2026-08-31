@@ -1,5 +1,6 @@
 import { PaymentMethod } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
+import { isOnlinePaymentEnabled } from '../payments/payment.provider.js';
 const SETTINGS_KEY = 'default';
 const DEFAULT_STORE_SETTINGS = {
     businessName: 'Ayanfe Food Variety',
@@ -191,6 +192,19 @@ export async function getPublicStoreSettings() {
         }),
     ]);
     const publicPaymentMethods = paymentMethods.map(toPaymentSettings);
+    // When the online gateway is enabled and configured, surface it as an
+    // available checkout method. It is an implicit option, not a stored row: the
+    // gateway requires no bank details to snapshot into an order.
+    if (isOnlinePaymentEnabled()) {
+        publicPaymentMethods.push({
+            paymentMethod: PaymentMethod.PAYSTACK,
+            bankName: '',
+            accountName: '',
+            accountNumber: '',
+            instructions: '',
+            isActive: true,
+        });
+    }
     return {
         store: store ? toStoreSettings(store) : DEFAULT_STORE_SETTINGS,
         payment: publicPaymentMethods.find((method) => method.paymentMethod === PaymentMethod.BANK_TRANSFER) ?? null,

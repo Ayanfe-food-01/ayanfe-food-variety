@@ -382,7 +382,8 @@ const helpCategories: HelpCategory[] = [
           <p>
             We only collect and use the information needed to run our service, such as your order and account details.
             We do not sell your information or use tracking pixels. For the full details on what we collect and how we
-            protect it, please read our <Link to="/privacy-policy">Privacy Policy</Link>.
+            protect it, please read our <Link to="/privacy-policy">Privacy Policy</Link>. The rules for using the
+            website and placing orders are covered in our <Link to="/terms-and-conditions">Terms &amp; Conditions</Link>.
           </p>
         ),
       },

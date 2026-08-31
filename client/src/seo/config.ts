@@ -18,6 +18,9 @@ export const RETURN_REFUND_DESCRIPTION =
 export const PRIVACY_POLICY_TITLE = 'Privacy Policy | Ayanfe Food Variety'
 export const PRIVACY_POLICY_DESCRIPTION =
   'Read how Ayanfe Food Variety collects, uses, stores and protects your personal information — including account, order, payment, reviews and cookies, and the third-party services we work with.'
+export const TERMS_TITLE = 'Terms & Conditions | Ayanfe Food Variety'
+export const TERMS_DESCRIPTION =
+  'Read the terms for using Ayanfe Food Variety’s website — including customer accounts, product information, pricing and orders, payments, delivery, returns and refunds, and customer reviews.'
 export const SHOP_TITLE = 'Buy Nigerian Foodstuff Online | Ayanfe Food Variety'
 export const SHOP_DESCRIPTION =
   'Shop Nigerian foodstuff online, including natural pantry staples, grains, oils and everyday essentials with reliable delivery.'

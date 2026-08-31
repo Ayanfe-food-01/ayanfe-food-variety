@@ -6,6 +6,7 @@ import { errorMiddleware } from './middleware/error.middleware.js';
 import { notFoundMiddleware } from './middleware/notFound.middleware.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { apiRoutes } from './routes/index.js';
+import { paymentWebhookRouter } from './modules/payments/payment.webhook.js';
 import { HttpError } from './utils/http.js';
 import { normalizeOrigin } from './config/env.js';
 const getAllowedOrigin = (origin) => {
@@ -43,6 +44,10 @@ app.use(cors({
     },
     credentials: true,
 }));
+// Webhook endpoint mounted before express.json() so the raw body buffer is
+// available for Paystack HMAC-SHA512 signature verification. Only the
+// /webhook path applies express.raw(); all other routes fall through.
+app.use('/api/v1/payments/paystack', paymentWebhookRouter);
 app.use(express.json({ limit: '1mb' }));
 app.get('/', (_request, response) => {
     response.json({

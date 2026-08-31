@@ -7,6 +7,7 @@ import { HttpError } from '../../utils/http.js'
 import {
   getProviderAdapter,
   requireOnlinePaymentEnabled,
+  type PaymentVerifyResult,
 } from './payment.provider.js'
 import { createPaymentRecord } from './payment.record.js'
 import type { PaymentInitResponse, PaymentVerifyResponse } from './payment.types.js'
@@ -226,6 +227,95 @@ export async function initializeOrderPayment(
 }
 
 // ---------------------------------------------------------------------------
+// Amount / currency guards shared by every confirmation path (frontend
+// verification and webhook reconciliation). The expected value always comes
+// from the authoritative backend record, never from the frontend or the raw
+// webhook payload.
+// ---------------------------------------------------------------------------
+
+const expectedAmountMatches =
+  (expected: string | Prisma.Decimal) =>
+  (received: string | null): boolean => {
+    if (!received) return false
+    try {
+      const parsed = new Prisma.Decimal(received)
+      const want = new Prisma.Decimal(expected.toString())
+      return parsed.isFinite() && want.isFinite() && parsed.equals(want) && parsed.gt(0)
+    } catch {
+      return false
+    }
+  }
+
+const expectedCurrencyMatches =
+  (expected: string) =>
+  (received: string | null): boolean =>
+    Boolean(received && received.toUpperCase() === expected.toUpperCase())
+
+// ---------------------------------------------------------------------------
+// Shared atomic settle.
+//
+// Both the customer-facing verify flow and the server-to-server webhook flow
+// converge here so the Payment and Order state can never diverge, even when
+// a frontend verify races a webhook. The order row is locked with FOR UPDATE
+// and every write is status-guarded, making concurrent settling idempotent.
+// ---------------------------------------------------------------------------
+
+interface SettleOutcome {
+  alreadySettled: boolean
+  /** Source cart row IDs deleted inside the transaction (for post-settle cleanup). */
+  releasedCartIds: string[]
+}
+
+async function settleSuccessfulPayment(
+  order: Order,
+  payment: Payment,
+  paidAt: string | null,
+): Promise<SettleOutcome> {
+  const settled = await prisma.$transaction(async (transaction) => {
+    await transaction.$queryRaw(
+      Prisma.sql`SELECT id FROM orders WHERE id = ${order.id}::uuid FOR UPDATE`,
+    )
+
+    const currentPayment = await transaction.payment.findUnique({ where: { id: payment.id } })
+    if (currentPayment?.status === PaymentRecordStatus.SUCCESSFUL) {
+      return { alreadySettled: true as const, releasedCartIds: [] }
+    }
+    if (currentPayment?.status === PaymentRecordStatus.FAILED || currentPayment == null) {
+      throw new HttpError(409, 'The payment attempt has already been superseded. Start the payment again.')
+    }
+
+    const paidAtValue = new Date()
+    await transaction.payment.updateMany({
+      where: { id: payment.id, status: PaymentRecordStatus.PENDING },
+      data: { status: PaymentRecordStatus.SUCCESSFUL, completedAt: paidAtValue },
+    })
+    await transaction.order.updateMany({
+      where: { id: order.id, paymentStatus: { not: 'PAID' } },
+      data: { paymentStatus: 'PAID', paymentConfirmedAt: paidAtValue },
+    })
+
+    // Release only the cart rows that were checked out with this gateway order.
+    const cartItemIds = Array.isArray(order.paymentCartItemIds)
+      ? (order.paymentCartItemIds as unknown[]).filter((id): id is string => typeof id === 'string')
+      : []
+    if (cartItemIds.length > 0) {
+      await transaction.customerCartItem.deleteMany({ where: { id: { in: cartItemIds } } })
+    }
+
+    return { alreadySettled: false as const, releasedCartIds: cartItemIds }
+  })
+
+  if (!settled.alreadySettled && settled.releasedCartIds.length > 0) {
+    await prisma.order.updateMany({
+      where: { id: order.id },
+      data: { paymentCartItemIds: Prisma.JsonNull },
+    })
+  }
+
+  return settled
+}
+
+// ---------------------------------------------------------------------------
 // Verification.
 //
 // The stored providerReference on the Payment record is the only reference we
@@ -374,16 +464,10 @@ export async function verifyOrderPayment(
   // amount and currency match what we authorized, and only then atomically mark
   // the Payment record successful and the order paid. The order row is locked
   // so two concurrent verifies serialize; state guards make the writes safe.
-  const expectedAmountInNaira = new Prisma.Decimal(order.total.toString())
-  const safeAmount = (value: string | null): boolean => {
-    if (!value) return false
-    const parsed = new Prisma.Decimal(value)
-    return parsed.isFinite() && parsed.equals(expectedAmountInNaira) && parsed.gt(0)
-  }
-  const safeCurrency = (value: string | null): boolean =>
-    Boolean(value && value.toUpperCase() === payment.currency.toUpperCase())
+  const matchesAmount = expectedAmountMatches(payment.amount)(result.amountInNaira)
+  const matchesCurrency = expectedCurrencyMatches(payment.currency)(result.currency)
 
-  if (!safeAmount(result.amountInNaira) || !safeCurrency(result.currency)) {
+  if (!matchesAmount || !matchesCurrency) {
     console.error('paystack_verify_mismatch', {
       orderId: order.id,
       provider,
@@ -394,56 +478,7 @@ export async function verifyOrderPayment(
     throw new HttpError(422, 'The payment could not be confirmed because the charged amount or currency did not match the order. Please contact support.')
   }
 
-  const settled = await prisma.$transaction(async (transaction) => {
-    await transaction.$queryRaw(
-      Prisma.sql`SELECT id FROM orders WHERE id = ${order.id}::uuid FOR UPDATE`,
-    )
-
-    const currentPayment = await transaction.payment.findUnique({ where: { id: payment.id } })
-    if (currentPayment?.status === PaymentRecordStatus.SUCCESSFUL) {
-      return { alreadySettled: true as const }
-    }
-    if (currentPayment?.status === PaymentRecordStatus.FAILED || currentPayment == null) {
-      throw new HttpError(409, 'The payment attempt has already been superseded. Start the payment again.')
-    }
-
-    const paidAt = result.paidAt ?? null
-
-    await transaction.payment.updateMany({
-      where: { id: payment.id, status: PaymentRecordStatus.PENDING },
-      data: {
-        status: PaymentRecordStatus.SUCCESSFUL,
-        completedAt: new Date(),
-      },
-    })
-    await transaction.order.updateMany({
-      where: {
-        id: order.id,
-        paymentStatus: { not: 'PAID' },
-      },
-      data: {
-        paymentStatus: 'PAID',
-        paymentConfirmedAt: new Date(),
-      },
-    })
-
-    // Release only the cart rows that were checked out with this gateway order
-    // (source-of-truth for the "keep the cart until payment is confirmed" rule).
-    const cartItemIds = Array.isArray(order.paymentCartItemIds)
-      ? (order.paymentCartItemIds as unknown[]).filter((id): id is string => typeof id === 'string')
-      : []
-    if (cartItemIds.length > 0) {
-      await transaction.customerCartItem.deleteMany({
-        where: { id: { in: cartItemIds } },
-      })
-    }
-
-    return {
-      alreadySettled: false as const,
-      cartItemIds,
-      paidAt,
-    }
-  })
+  const settled = await settleSuccessfulPayment(order, payment, result.paidAt ?? null)
 
   if (settled.alreadySettled) {
     const current = await prisma.payment.findUnique({ where: { id: payment.id } })
@@ -452,13 +487,153 @@ export async function verifyOrderPayment(
     return toResponse(paid ? 'PAID' : 'PENDING', null, current ?? payment)
   }
 
-  if (settled.cartItemIds.length > 0) {
-    await prisma.order.updateMany({
-      where: { id: order.id },
-      data: { paymentCartItemIds: Prisma.JsonNull },
+  const settledRecord: Payment = { ...payment, status: PaymentRecordStatus.SUCCESSFUL }
+  return toResponse('PAID', result.paidAt ?? null, settledRecord)
+}
+
+// ---------------------------------------------------------------------------
+// Webhook-driven reconciliation.
+//
+// Called after the webhook endpoint has verified the Paystack HMAC signature
+// and confirmed the event is a `charge.success`. The transaction reference in
+// the event is used to locate the internal Payment record. The provider is
+// then asked to verify the transaction a second time server-side, and only
+// the authoritative Amount/Currency from that verification call are compared
+// against the backend Payment record.
+//
+// This function is idempotent: if the same reference arrives again, or if
+// the customer already returned and the verify path settled the payment, the
+// outcome is the same and the event is safely acknowledged.
+// ---------------------------------------------------------------------------
+
+export interface ReconcilePaymentEventInput {
+  providerReference: string
+}
+
+/**
+ * Reconcile a single `charge.success` event from Paystack.
+ *
+ * Return values:
+ * - `'settled'` — the payment was just marked successful and the order is PAID.
+ * - `'already-settled'` — this event was processed before (idempotent ack).
+ * - `'ignored'` — unknown reference, superseded attempt, or verification said
+ *   the transaction was not actually successful; no state was changed.
+ *
+ * Any thrown HttpError 502 (provider unreachable / invalid response) will
+ * bubble to the error middleware and cause a 5xx so Paystack retries later.
+ */
+export async function reconcilePaymentFromWebhook(
+  input: ReconcilePaymentEventInput,
+): Promise<'settled' | 'already-settled' | 'ignored'> {
+  const provider = requireOnlinePaymentEnabled()
+  const adapter = getProviderAdapter(provider)
+
+  const payment = await prisma.payment.findUnique({
+    where: { provider_providerReference: { provider, providerReference: input.providerReference } },
+  })
+
+  if (!payment) {
+    console.error('paystack_webhook_unknown_reference', {
+      provider,
+      providerReference: input.providerReference,
     })
+    return 'ignored'
   }
 
-  const settledRecord: Payment = { ...payment, status: PaymentRecordStatus.SUCCESSFUL }
-  return toResponse('PAID', settled.paidAt, settledRecord)
+  if (payment.status === PaymentRecordStatus.SUCCESSFUL) {
+    console.info('paystack_webhook_duplicate', {
+      orderId: payment.orderId,
+      providerReference: payment.providerReference,
+    })
+    return 'already-settled'
+  }
+
+  // A failed/superseded attempt can never be resurrected into a success by a
+  // late webhook: the customer starts a fresh reference instead.
+  if (payment.status !== PaymentRecordStatus.PENDING) {
+    console.info('paystack_webhook_superseded_attempt', {
+      orderId: payment.orderId,
+      providerReference: payment.providerReference,
+      status: payment.status,
+    })
+    return 'ignored'
+  }
+
+  const order = await prisma.order.findUnique({ where: { id: payment.orderId } })
+  if (!order) {
+    console.error('paystack_webhook_orphan_payment', {
+      orderId: payment.orderId,
+      providerReference: payment.providerReference,
+    })
+    return 'ignored'
+  }
+
+  // Re-verify the transaction with Paystack's API using the Secret Key.
+  // The webhook payload's status/amount/currency are treated as untrusted.
+  let result: PaymentVerifyResult
+  try {
+    result = await adapter.verify({ providerReference: payment.providerReference })
+  } catch (error: unknown) {
+    console.error('paystack_webhook_verification_failure', {
+      orderId: order.id,
+      providerReference: payment.providerReference,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    // Bubble to error middleware → 5xx → Paystack retries the event later.
+    throw error
+  }
+
+  if (result.status !== 'SUCCESSFUL') {
+    console.info('paystack_webhook_not_successful', {
+      orderId: order.id,
+      providerStatus: result.status,
+      providerReference: payment.providerReference,
+    })
+    return 'ignored'
+  }
+
+  const matchesAmount = expectedAmountMatches(payment.amount)(result.amountInNaira)
+  const matchesCurrency = expectedCurrencyMatches(payment.currency)(result.currency)
+
+  if (!matchesAmount || !matchesCurrency) {
+    console.error(matchesAmount ? 'paystack_webhook_currency_mismatch' : 'paystack_webhook_amount_mismatch', {
+      orderId: order.id,
+      providerReference: payment.providerReference,
+      receivedAmount: result.amountInNaira,
+      receivedCurrency: result.currency,
+    })
+    return 'ignored'
+  }
+
+  try {
+    const settled = await settleSuccessfulPayment(order, payment, result.paidAt ?? null)
+
+    if (settled.alreadySettled) {
+      return 'already-settled'
+    }
+
+    console.info('paystack_webhook_reconciled', {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      providerReference: payment.providerReference,
+    })
+    return 'settled'
+  } catch (error: unknown) {
+    // 409 means the attempt was superseded between our pre-check and the
+    // transaction lock. Safe to acknowledge — the newer attempt owns the
+    // payment lifecycle now.
+    if (error instanceof HttpError && error.statusCode === 409) {
+      console.info('paystack_webhook_superseded_race', {
+        orderId: order.id,
+        providerReference: payment.providerReference,
+      })
+      return 'ignored'
+    }
+    console.error('paystack_webhook_db_failure', {
+      orderId: order.id,
+      providerReference: payment.providerReference,
+      error: error instanceof Error ? error.message : 'Unknown database error',
+    })
+    throw error
+  }
 }

@@ -324,7 +324,9 @@ const helpCategories: HelpCategory[] = [
         answer: (
           <p>
             Contact us with your order number and explain the issue. Our team will review it and let you know the next
-            steps — reach us through the <Link to="/contact">Contact page</Link>, WhatsApp, or email.
+            steps — reach us through the <Link to="/contact">Contact page</Link>, WhatsApp, or email. For the full
+            details on eligibility and how returns and refunds are handled, read our{' '}
+            <Link to="/return-refund-policy">Return &amp; Refund Policy</Link>.
           </p>
         ),
       },
@@ -371,6 +373,16 @@ const helpCategories: HelpCategory[] = [
             Guest orders are confirmed with your email address and phone number, and you can track them with the Track
             order page or the secure link you get after checkout. Creating an account keeps all your orders in one
             place.
+          </p>
+        ),
+      },
+      {
+        question: 'How is my personal information handled?',
+        answer: (
+          <p>
+            We only collect and use the information needed to run our service, such as your order and account details.
+            We do not sell your information or use tracking pixels. For the full details on what we collect and how we
+            protect it, please read our <Link to="/privacy-policy">Privacy Policy</Link>.
           </p>
         ),
       },

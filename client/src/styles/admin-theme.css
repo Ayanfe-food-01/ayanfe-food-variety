@@ -10,7 +10,17 @@
     --color-line: #3d5542;
     --color-white: #22362a;
   }
-  .admin-dark .admin-main { --color-green-dark: #e5f0df; }
-  .admin-dark aside { --color-cream: #eef3e9; --color-green-dark: #102519; }
-  .admin-dark .bg-white { background-color: var(--color-white); }
+
+  .admin-dark .admin-main {
+    --color-green-dark: #e5f0df;
+  }
+
+  .admin-dark aside {
+    --color-cream: #eef3e9;
+    --color-green-dark: #102519;
+  }
+
+  .admin-dark .bg-white {
+    background-color: var(--color-white);
+  }
 }

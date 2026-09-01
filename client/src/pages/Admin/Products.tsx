@@ -5,6 +5,7 @@ import { FeaturedStatus } from '../../components/admin/FeaturedStatus'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
 import {
   getAdminCategories,
@@ -69,6 +70,8 @@ export function Products() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
   const [productToStatus, setProductToStatus] = useState<AdminProductsPage['products'][number] | null>(null)
   const [productToDelete, setProductToDelete] = useState<AdminProductsPage['products'][number] | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)

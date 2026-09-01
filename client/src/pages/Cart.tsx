@@ -6,6 +6,7 @@ import { Navbar } from '../components/layout/Navbar'
 import type { CartItem } from '../context/cartContext'
 import { cartItemLineKey } from '../context/cartContext'
 import { useCart } from '../hooks/useCart'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ProductPrice } from '../components/products/ProductPrice'
 
 const formatPrice = (price: number) =>
@@ -115,6 +116,8 @@ export function Cart() {
     removeFromCart,
     clearCart,
   } = useCart()
+
+  useInitialRouteLoad(!isLoading)
 
   if (isLoading) {
     return (

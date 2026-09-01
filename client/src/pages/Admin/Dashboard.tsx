@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { StatCard } from '../../components/admin/StatCard'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { getDashboardStats, type DashboardStats } from '../../services/adminService'
 
 const formatPrice = (value: string) =>
@@ -13,6 +14,8 @@ export function Dashboard() {
   useEffect(() => {
     getDashboardStats().then(setStats).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'Dashboard data could not be loaded.'))
   }, [])
+
+  useInitialRouteLoad(Boolean(stats || error))
 
   return (
     <div>

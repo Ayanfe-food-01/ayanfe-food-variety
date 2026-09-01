@@ -4,6 +4,7 @@ import { ApiError } from '../../services/api'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import {
   createAdminBanner,
   getAdminBanner,
@@ -32,6 +33,8 @@ export function BannerForm() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isSaving, setIsSaving] = useState(false)
+
+  useInitialRouteLoad(!isLoading)
 
   useEffect(() => {
     if (!id) return

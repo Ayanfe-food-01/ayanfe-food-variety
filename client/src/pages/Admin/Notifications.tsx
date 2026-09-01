@@ -9,6 +9,7 @@ import {
   type AdminNotificationsPage,
 } from '../../services/notificationService'
 import { AdminNotificationList } from '../../components/admin/AdminNotificationList'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 20
 
@@ -18,6 +19,8 @@ export function Notifications() {
   const [result, setResult] = useState<AdminNotificationsPage | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
 
   useEffect(() => {
     let current = true

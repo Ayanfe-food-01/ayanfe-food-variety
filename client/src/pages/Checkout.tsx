@@ -16,6 +16,7 @@ import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../com
 import { useCart } from '../hooks/useCart'
 import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
@@ -125,6 +126,9 @@ export function Checkout() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [checkoutKey] = useState(() => readSessionValue(CHECKOUT_KEY_STORAGE_KEY) ?? createRequestKey())
   const [guestAccessToken] = useState(() => readSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY) ?? createRequestKey())
+
+  useInitialRouteLoad(!isCustomerAuthLoading && !(isCartLoading && !isSubmitting))
+
   const guestCheckout = Boolean(
     !user
     && (

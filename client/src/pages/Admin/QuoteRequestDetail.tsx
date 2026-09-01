@@ -14,6 +14,7 @@ import { formatDate } from '../../utils/dateFormat'
 import { formatPrice } from '../../utils/formatPrice'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { scrollToTopInstant } from '../../utils/browserCompatibility'
 
 const statusClass = (status: QuoteRequestStatus) => {
@@ -54,6 +55,9 @@ export function QuoteRequestDetail() {
   const [fulfillmentMethod, setFulfillmentMethod] = useState<QuoteFulfillmentOption>('PICKUP')
   const [quotationError, setQuotationError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
+
   const { showToast } = useToast()
 
   useEffect(() => {

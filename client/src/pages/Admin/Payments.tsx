@@ -14,6 +14,7 @@ import { PaymentReview } from '../../components/admin/PaymentReview'
 import { PaymentTable } from '../../components/admin/PaymentTable'
 import { SelectField } from '../../components/ui/SelectField'
 import { useToast } from '../../components/ui/Toast'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 10
 const formatPrice = (value: string) =>
@@ -64,6 +65,8 @@ export function Payments() {
   const isLoading = loadedPage === null || loadedPage.query !== query
   const error = loadedPage !== null && loadedPage.query === query ? loadedPage.error : null
   const result = loadedPage !== null && loadedPage.query === query ? loadedPage.result : null
+
+  useInitialRouteLoad(!isLoading)
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

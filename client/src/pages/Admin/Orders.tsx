@@ -14,6 +14,7 @@ import { OrderTable } from '../../components/admin/OrderTable'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useToast } from '../../components/ui/Toast'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 10
 
@@ -24,6 +25,8 @@ export function Orders() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState(0)
+
+  useInitialRouteLoad(!isLoading)
   const [busyOrderNumber, setBusyOrderNumber] = useState<string | null>(null)
   const [deleteOrder, setDeleteOrder] = useState<AdminOrderListItem | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)

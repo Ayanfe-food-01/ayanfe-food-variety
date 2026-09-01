@@ -7,6 +7,7 @@ import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { SelectField } from '../components/ui/SelectField'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useProductSearchAutocomplete } from '../hooks/useProductSearchAutocomplete'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import { getProduct } from '../services/productService'
 import { createQuoteRequest, type QuoteRequest } from '../services/quoteService'
@@ -83,6 +84,8 @@ export function RequestQuote() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submittedRequest, setSubmittedRequest] = useState<QuoteRequest | null>(null)
+
+  useInitialRouteLoad(!isLoadingPreselect)
 
   const picker = useProductSearchAutocomplete(pickerSearch)
 

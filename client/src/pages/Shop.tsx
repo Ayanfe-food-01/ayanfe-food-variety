@@ -8,6 +8,7 @@ import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { getCategories } from '../services/categoryService'
 import { ApiError } from '../services/api'
 import { getNewArrivals, getProducts, type ProductPage } from '../services/productService'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import type { Category } from '../types/category'
 import { Seo } from '../seo/Seo'
 import {
@@ -47,6 +48,8 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
   const [isProductsLoading, setIsProductsLoading] = useState(true)
   const [categoriesError, setCategoriesError] = useState(false)
   const [productsError, setProductsError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isProductsLoading)
 
   const loadCategories = useCallback(() => {
     setIsCategoriesLoading(true)

@@ -5,6 +5,7 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useCart } from '../hooks/useCart'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import {
   getBankDetails,
@@ -62,6 +63,8 @@ export function CustomerOrderDetails() {
   const guestOrderSuffix = isGuestOrder
     ? `?access=${encodeURIComponent(guestAccessToken!)}`
     : ''
+
+  useInitialRouteLoad(!isAuthLoading && ((!user && !guestAccessToken) || !!order || !!error))
 
   useEffect(() => {
     if (isAuthLoading || !orderNumber) return

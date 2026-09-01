@@ -5,6 +5,7 @@ import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { SubmitButton } from '../../components/ui/SubmitButton'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import type { CustomerStory } from '../../services/storeSettingsService'
 import {
   createAdminTestimonial,
@@ -36,6 +37,8 @@ export function TestimonialForm() {
   const [isLoading, setIsLoading] = useState(isEditing)
   const [isSaving, setIsSaving] = useState(false)
   const [previewing, setPreviewing] = useState(false)
+
+  useInitialRouteLoad(!isLoading)
 
   const previewStory: CustomerStory = {
     id: 'testimonial:preview',

@@ -17,6 +17,7 @@ import { useCart } from '../hooks/useCart'
 import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useProductReviews } from '../hooks/useProductReviews'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import {
   getProduct,
@@ -63,6 +64,8 @@ export function ProductDetails() {
     unitPrice?: number
     error?: string
   } | null>(null)
+
+  useInitialRouteLoad(!isLoading)
 
   const isWholesalePricingVisible = isWholesaleShopper && Boolean(product) && wholesalePricing?.productId === product?.id
   const effectiveWholesalePricingOptions = isWholesalePricingVisible && product

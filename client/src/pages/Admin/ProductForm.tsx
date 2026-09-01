@@ -1,13 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
-import { CloseIcon } from '../../assets/icons'
+import { CheckIcon, CloseIcon } from '../../assets/icons'
 import { FeaturedToggle } from '../../components/admin/FeaturedToggle'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { OptionInputField, type OptionRowErrors, type OptionTierRowErrors } from '../../components/admin/OptionInputField'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { SelectField } from '../../components/ui/SelectField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { formatPrice } from '../../utils/formatPrice'
 import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
 import type { Category } from '../../types/category'
@@ -105,6 +106,13 @@ const initialForm: ProductFormInput = {
   options: [],
 }
 
+const FORM_STEPS = [
+  { label: 'Basics', title: 'Basic information', hint: 'Name, category, unit and description.' },
+  { label: 'Images', title: 'Product images', hint: 'Upload photos and set the display order.' },
+  { label: 'Pricing & options', title: 'Pricing and sizes', hint: 'Price, stock, delivery and size options.' },
+  { label: 'Review', title: 'Review and save', hint: 'Check the summary before publishing.' },
+]
+
 interface ProductImageDraft {
   id: string
   url: string
@@ -127,6 +135,9 @@ export function ProductForm() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
   const [optionErrors, setOptionErrors] = useState<OptionRowErrors[]>([])
+  const [step, setStep] = useState(0)
+
+  useInitialRouteLoad(!isLoading)
 
   useEffect(() => {
     let current = true
@@ -233,6 +244,11 @@ export function ProductForm() {
     const number = Number(option.stockQuantity)
     return sum + (Number.isInteger(number) && number >= 0 ? number : 0)
   }, 0)
+  const categoryLabel = () => {
+    const category = categories.find((candidate) => candidate.id === form.categoryId)
+    return category ? (category.isActive ? category.name : `${category.name} (inactive)`) : ''
+  }
+  const selectedCategory = categoryLabel()
 
   const syncImageDrafts = (nextDrafts: ProductImageDraft[]) => {
     let newImageIndex = 0
@@ -350,17 +366,14 @@ export function ProductForm() {
     return { fieldErrors: nextErrors, optionErrors }
   }
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError(null)
-    const validation = validate()
-    const hasOptionErrors = validation.optionErrors.some((errors) => Object.keys(errors).length > 0)
-    if (Object.keys(validation.fieldErrors).length > 0 || hasOptionErrors) {
-      setFieldErrors(validation.fieldErrors)
-      setOptionErrors(validation.optionErrors)
-      setError('Please correct the highlighted fields.')
-      return
-    }
+  const errorsOnStep = (index: number, validation: { fieldErrors: FormErrors; optionErrors: OptionRowErrors[] }): boolean => {
+    if (index === 0) return Boolean(validation.fieldErrors.name || validation.fieldErrors.categoryId || validation.fieldErrors.unit || validation.fieldErrors.description)
+    if (index === 1) return Boolean(validation.fieldErrors.image)
+    if (index === 2) return Boolean(validation.fieldErrors.price || validation.fieldErrors.discountType || validation.fieldErrors.discountValue || validation.fieldErrors.deliveryFee || validation.fieldErrors.stockQuantity || validation.optionErrors.some((errors) => Object.keys(errors).length > 0))
+    return false
+  }
+
+  const save = async () => {
     setIsSaving(true)
     try {
       // The API performs the Cloudinary upload as part of this request.
@@ -377,12 +390,67 @@ export function ProductForm() {
     }
   }
 
+  const nextStep = () => {
+    const validation = validate()
+    setFieldErrors(validation.fieldErrors)
+    setOptionErrors(validation.optionErrors)
+    if (errorsOnStep(step, validation)) {
+      setError('Please correct the highlighted fields before continuing.')
+      return
+    }
+    setError(null)
+    setStep((current) => Math.min(FORM_STEPS.length - 1, current + 1))
+  }
+
+  const previousStep = () => {
+    setError(null)
+    setStep((current) => Math.max(0, current - 1))
+  }
+
+  const goToStep = (index: number) => {
+    if (index < 0 || index > step) return
+    setError(null)
+    setStep(index)
+  }
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (step < FORM_STEPS.length - 1) {
+      nextStep()
+      return
+    }
+    setError(null)
+    const validation = validate()
+    const hasOptionErrors = validation.optionErrors.some((errors) => Object.keys(errors).length > 0)
+    if (Object.keys(validation.fieldErrors).length > 0 || hasOptionErrors) {
+      setFieldErrors(validation.fieldErrors)
+      setOptionErrors(validation.optionErrors)
+      const firstBadStep = FORM_STEPS.findIndex((_, index) => errorsOnStep(index, validation))
+      setStep(firstBadStep === -1 ? FORM_STEPS.length - 1 : firstBadStep)
+      setError('Please correct the highlighted fields.')
+      return
+    }
+    await save()
+  }
+
   const fieldProps = (field: keyof FormErrors) => ({
     'aria-invalid': Boolean(fieldErrors[field]),
     'aria-describedby': fieldErrors[field] ? `${field}-error` : undefined,
   })
 
   const progressLabel = getSaveProgressLabel(isEditing ? 'update' : 'create')
+
+  const displayPrice = hasFilledOptions
+    ? (validOptionPrices.length > 0 ? formatPrice(Math.min(...validOptionPrices)) : '—')
+    : (form.price.trim() === '' ? '—' : Number.isFinite(Number(form.price)) && Number(form.price) > 0 ? formatPrice(Number(form.price)) : form.price.trim())
+  const displayDeliveryFee = Number.isFinite(Number(form.deliveryFee)) ? formatPrice(Number(form.deliveryFee)) : form.deliveryFee.trim()
+  const displayStock = hasFilledOptions ? String(derivedStock) : (form.stockQuantity.trim() === '' ? '0' : form.stockQuantity.trim())
+  const displayDiscount = hasFilledOptions
+    ? 'Not available with options'
+    : (form.discountType === '' || form.discountValue.trim() === '' ? 'None' : form.discountType === 'PERCENTAGE' ? `${form.discountValue.trim()}% off` : formatPrice(Number(form.discountValue)))
+  const totalWholesaleTiers = filledOptions.reduce((sum, option) =>
+    sum + (option.wholesalePrices ?? []).filter((tier) => tier.minQuantity.trim() !== '' || tier.maxQuantity.trim() !== '' || tier.price.trim() !== '').length,
+  0)
 
   return (
     <>
@@ -391,119 +459,232 @@ export function ProductForm() {
         <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/products">Back to products</Link>
       </div>
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
-        {isLoading ? <p className="text-sm text-muted">Loading product…</p> : <form className="space-y-5" noValidate onSubmit={submit}>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="text-sm font-bold text-green-dark sm:col-span-2">Product name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('name')} value={form.name} onChange={(event) => update('name', event.target.value)} maxLength={180} required />{fieldErrors.name && <span className="mt-1 block text-xs font-normal text-orange" id="name-error">{fieldErrors.name}</span>}</label>
-            <label className="text-sm font-bold text-green-dark">Category<SelectField
-              className="mt-2 w-full"
-              {...fieldProps('categoryId')}
-              disabled={isCategoriesLoading}
-              onChange={(value) => update('categoryId', value)}
-              options={[
-                { value: '', label: isCategoriesLoading ? 'Loading categories…' : 'Select category' },
-                ...categories.filter((category) => category.isActive).map((category) => ({ value: category.id, label: category.name })),
-              ]}
-              required
-              value={form.categoryId}
-            />{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
-             <label className="text-sm font-bold text-green-dark">Price (NGN){hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('price')} type="text" inputMode="decimal" value={hasFilledOptions ? derivedPrice : form.price} disabled={hasFilledOptions} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Set to the lowest option price.</span> : fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
-             <div className="sm:col-span-2">
-               {hasFilledOptions ? (
-                 <p className="rounded-xl border border-dashed border-green/25 bg-sage/25 px-4 py-3 text-xs font-normal text-muted">Discounts are not available for products with quantity/size options.</p>
-               ) : (
-                 <div className="grid gap-5 sm:grid-cols-2">
-                  <label className="text-sm font-bold text-green-dark">Discount type (optional)<SelectField
-                    className="mt-2 w-full"
-                    {...fieldProps('discountType')}
-                    onChange={updateDiscountType}
-                    options={[
-                      { value: '', label: 'No discount' },
-                      { value: 'PERCENTAGE', label: 'Percentage discount' },
-                      { value: 'FIXED', label: 'Fixed amount discount' },
-                    ]}
-                    value={form.discountType}
-                  />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
-                  {form.discountType && <label className="text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
-                 </div>
-               )}
-               {!hasFilledOptions && <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>}
-             </div>
-             <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
-            <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('unit')} value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required />{fieldErrors.unit && <span className="mt-1 block text-xs font-normal text-orange" id="unit-error">{fieldErrors.unit}</span>}</label>
-            <label className="text-sm font-bold text-green-dark">Stock quantity{hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={hasFilledOptions ? String(derivedStock) : form.stockQuantity} disabled={hasFilledOptions} onChange={(event) => update('stockQuantity', event.target.value)} required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Total stock is the sum of all option stock.</span> : fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
-          </div>
-          <OptionInputField
-            options={form.options}
-            errors={optionErrors}
-            maxOptions={MAX_PRODUCT_OPTIONS}
-            onChange={(nextOptions) => {
-              setForm((current) => {
-                const next = { ...current, options: nextOptions }
-                if (nextOptions.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
-                  next.discountType = ''
-                  next.discountValue = ''
-                }
-                return next
-              })
-              setOptionErrors(nextOptions.map(() => ({})))
-              setError(null)
-            }}
-          />
-          {archivedOptions.length > 0 && (
-            <div className="rounded-2xl border border-line bg-cream/40 p-4">
-              <p className="m-0 text-sm font-bold text-green-dark">Previously removed sizes</p>
-              <p className="mt-1 text-xs font-normal text-muted">These sizes are still linked to past orders and customer carts, so they were kept rather than deleted. Restore one to sell it again — its details are filled from the last saved values.</p>
-              <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-white">
-                {archivedOptions.map((option, index) => (
-                  <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={option.id ?? `archived-${index}`}>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-green-dark">{option.label}</p>
-                      <p className="mt-0.5 text-xs font-normal text-muted">{formatPrice(Number(option.price))} · {option.stockQuantity} in stock</p>
-                    </div>
-                    <button className="shrink-0 rounded-xl border border-line bg-white px-4 py-2 text-xs font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" aria-label={`Restore option ${option.label}`} disabled={form.options.length >= MAX_PRODUCT_OPTIONS} onClick={() => restoreArchivedOption(index)}>Restore</button>
+        {isLoading ? <p className="text-sm font-normal text-muted">Loading product…</p> : (
+          <form className="space-y-6" noValidate onSubmit={submit}>
+            <ol className="flex flex-wrap items-center gap-2 sm:gap-3" aria-label="Product form steps">
+              {FORM_STEPS.map((stepConfig, index) => {
+                const isCurrent = index === step
+                const isDone = index < step
+                const isReached = index <= step
+                return (
+                  <li key={stepConfig.label} className="flex items-center gap-2 sm:gap-3">
+                    <button
+                      className={`flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 transition-colors ${isCurrent ? 'bg-sage/40' : isReached ? 'hover:bg-sage/25' : 'cursor-not-allowed opacity-50'}`}
+                      type="button"
+                      disabled={!isReached}
+                      aria-current={isCurrent ? 'step' : undefined}
+                      onClick={() => goToStep(index)}
+                    >
+                      <span
+                        className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold transition-colors ${isDone || isCurrent ? 'bg-green text-cream' : 'border-2 border-line bg-white text-muted'}`}
+                        aria-hidden
+                      >
+                        {isDone ? <CheckIcon size={14} /> : index + 1}
+                      </span>
+                      <span className={`text-xs font-bold ${isCurrent || isDone ? 'text-green-dark' : 'text-muted'}`}>{stepConfig.label}</span>
+                    </button>
+                    {index < FORM_STEPS.length - 1 && <span className="h-px w-3 bg-line sm:w-4" aria-hidden />}
                   </li>
-                ))}
-              </ul>
+                )
+              })}
+            </ol>
+
+            <div>
+              <h2 className="text-xl font-bold tracking-[-0.02em] text-green-dark">{FORM_STEPS[step].title}</h2>
+              <p className="mt-1 text-sm font-normal text-muted">{FORM_STEPS[step].hint}</p>
             </div>
-          )}
-          <label className="block text-sm font-bold text-green-dark">Description<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('description')} value={form.description} onChange={(event) => update('description', event.target.value)} maxLength={4000} required />{fieldErrors.description && <span className="mt-1 block text-xs font-normal text-orange" id="description-error">{fieldErrors.description}</span>}<span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/4,000 characters</span></label>
-            <ImageUploadField
-              label="Product images"
-              helperText="Add up to 10 JPG, PNG, WEBP, or HEIC/HEIF images. The first image is the primary product image."
-              alt="Product image preview"
-             error={fieldErrors.image}
-              multiple
-              onChange={() => undefined}
-              onMultipleChange={chooseImages}
-           />
-            {imageDrafts.length > 0 && (
-              <div className="rounded-2xl border border-line bg-cream/40 p-4" aria-label="Product image order">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="m-0 text-sm font-bold text-green-dark">Image order</p>
-                  <p className="m-0 text-xs text-muted">{imageDrafts.length}/10 images</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {imageDrafts.map((draft, index) => (
-                    <div className="relative overflow-hidden rounded-xl border border-line bg-white" key={draft.id}>
-                      <img className="aspect-square w-full object-cover" src={draft.url} alt={`${form.name || 'Product'} image ${index + 1}`} />
-                      <button className="absolute right-1.5 top-1.5 z-10 grid size-6 place-items-center rounded-full border border-white/40 bg-green-dark/75 text-white shadow-sm transition-colors hover:bg-orange" type="button" aria-label={`Remove product image ${index + 1}`} onClick={() => removeImage(index)}><CloseIcon size={12} /></button>
-                      <div className="flex items-center justify-between gap-1 border-t border-line p-2">
-                        <span className="min-w-0 truncate text-[11px] font-bold text-green-dark">{index === 0 ? 'Primary' : `Image ${index + 1}`}</span>
-                      </div>
-                      <div className="flex gap-1 px-2 pb-2">
-                        <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image left" disabled={index === 0} onClick={() => moveImage(index, -1)}>←</button>
-                        <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image right" disabled={index === imageDrafts.length - 1} onClick={() => moveImage(index, 1)}>→</button>
-                      </div>
+
+            {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm font-medium text-orange" role="alert">{error}</p>}
+
+            {step === 0 && (
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="text-sm font-bold text-green-dark sm:col-span-2">Product name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('name')} value={form.name} onChange={(event) => update('name', event.target.value)} maxLength={180} required />{fieldErrors.name && <span className="mt-1 block text-xs font-normal text-orange" id="name-error">{fieldErrors.name}</span>}</label>
+                <label className="text-sm font-bold text-green-dark">Category<SelectField
+                  className="mt-2 w-full"
+                  {...fieldProps('categoryId')}
+                  disabled={isCategoriesLoading}
+                  onChange={(value) => update('categoryId', value)}
+                  options={[
+                    { value: '', label: isCategoriesLoading ? 'Loading categories…' : 'Select category' },
+                    ...categories.filter((category) => category.isActive).map((category) => ({ value: category.id, label: category.name })),
+                  ]}
+                  required
+                  value={form.categoryId}
+                />{fieldErrors.categoryId && <span className="mt-1 block text-xs font-normal text-orange" id="categoryId-error">{fieldErrors.categoryId}</span>}</label>
+                <label className="text-sm font-bold text-green-dark">Unit / quantity<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('unit')} value={form.unit} onChange={(event) => update('unit', event.target.value)} maxLength={80} placeholder="5 kg bag" required />{fieldErrors.unit && <span className="mt-1 block text-xs font-normal text-orange" id="unit-error">{fieldErrors.unit}</span>}</label>
+                <label className="text-sm font-bold text-green-dark sm:col-span-2">Description<textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('description')} value={form.description} onChange={(event) => update('description', event.target.value)} maxLength={4000} required />{fieldErrors.description && <span className="mt-1 block text-xs font-normal text-orange" id="description-error">{fieldErrors.description}</span>}<span className="mt-1 block text-xs font-normal text-muted">{form.description.length}/4,000 characters</span></label>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div className="space-y-5">
+                <ImageUploadField
+                  label="Product images"
+                  helperText="Add up to 10 JPG, PNG, WEBP, or HEIC/HEIF images. The first image is the primary product image."
+                  alt="Product image preview"
+                  error={fieldErrors.image}
+                  multiple
+                  onChange={() => undefined}
+                  onMultipleChange={chooseImages}
+                />
+                {imageDrafts.length > 0 && (
+                  <div className="rounded-2xl border border-line bg-cream/40 p-4" aria-label="Product image order">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="m-0 text-sm font-bold text-green-dark">Image order</p>
+                      <p className="m-0 text-xs text-muted">{imageDrafts.length}/10 images</p>
                     </div>
-                  ))}
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {imageDrafts.map((draft, index) => (
+                        <div className="relative overflow-hidden rounded-xl border border-line bg-white" key={draft.id}>
+                          <img className="aspect-square w-full object-cover" src={draft.url} alt={`${form.name || 'Product'} image ${index + 1}`} />
+                          <button className="absolute right-1.5 top-1.5 z-10 grid size-6 place-items-center rounded-full border border-white/40 bg-green-dark/75 text-white shadow-sm transition-colors hover:bg-orange" type="button" aria-label={`Remove product image ${index + 1}`} onClick={() => removeImage(index)}><CloseIcon size={12} /></button>
+                          <div className="flex items-center justify-between gap-1 border-t border-line p-2">
+                            <span className="min-w-0 truncate text-[11px] font-bold text-green-dark">{index === 0 ? 'Primary' : `Image ${index + 1}`}</span>
+                          </div>
+                          <div className="flex gap-1 px-2 pb-2">
+                            <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image left" disabled={index === 0} onClick={() => moveImage(index, -1)}>←</button>
+                            <button className="flex-1 rounded-md border border-line px-1 py-1 text-xs font-bold text-green-dark disabled:opacity-30" type="button" aria-label="Move image right" disabled={index === imageDrafts.length - 1} onClick={() => moveImage(index, 1)}>→</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="text-sm font-bold text-green-dark">Price (NGN){hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('price')} type="text" inputMode="decimal" value={hasFilledOptions ? derivedPrice : form.price} disabled={hasFilledOptions} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Set to the lowest option price.</span> : fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
+                  <label className="text-sm font-bold text-green-dark">Stock quantity{hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={hasFilledOptions ? String(derivedStock) : form.stockQuantity} disabled={hasFilledOptions} onChange={(event) => update('stockQuantity', event.target.value)} required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Total stock is the sum of all option stock.</span> : fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
+                  <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
+                  {hasFilledOptions ? (
+                    <div>
+                      <p className="rounded-xl border border-dashed border-green/25 bg-sage/25 px-4 py-3 text-xs font-normal text-muted">Discounts are not available for products with quantity/size options.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-sm font-bold text-green-dark">Discount type (optional)<SelectField
+                        className="mt-2 w-full"
+                        {...fieldProps('discountType')}
+                        onChange={updateDiscountType}
+                        options={[
+                          { value: '', label: 'No discount' },
+                          { value: 'PERCENTAGE', label: 'Percentage discount' },
+                          { value: 'FIXED', label: 'Fixed amount discount' },
+                        ]}
+                        value={form.discountType}
+                      />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
+                      {form.discountType && <label className="mt-3 block text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
+                      <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>
+                    </div>
+                  )}
+                </div>
+                <OptionInputField
+                  options={form.options}
+                  errors={optionErrors}
+                  maxOptions={MAX_PRODUCT_OPTIONS}
+                  onChange={(nextOptions) => {
+                    setForm((current) => {
+                      const next = { ...current, options: nextOptions }
+                      if (nextOptions.some(isFilledProductOption) && (next.discountType || next.discountValue)) {
+                        next.discountType = ''
+                        next.discountValue = ''
+                      }
+                      return next
+                    })
+                    setOptionErrors(nextOptions.map(() => ({})))
+                    setError(null)
+                  }}
+                />
+                {archivedOptions.length > 0 && (
+                  <div className="rounded-2xl border border-line bg-cream/40 p-4">
+                    <p className="m-0 text-sm font-bold text-green-dark">Previously removed sizes</p>
+                    <p className="mt-1 text-xs font-normal text-muted">These sizes are still linked to past orders and customer carts, so they were kept rather than deleted. Restore one to sell it again — its details are filled from the last saved values.</p>
+                    <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-white">
+                      {archivedOptions.map((option, index) => (
+                        <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={option.id ?? `archived-${index}`}>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-green-dark">{option.label}</p>
+                            <p className="mt-0.5 text-xs font-normal text-muted">{formatPrice(Number(option.price))} · {option.stockQuantity} in stock</p>
+                          </div>
+                          <button className="shrink-0 rounded-xl border border-line bg-white px-4 py-2 text-xs font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" aria-label={`Restore option ${option.label}`} disabled={form.options.length >= MAX_PRODUCT_OPTIONS} onClick={() => restoreArchivedOption(index)}>Restore</button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-line bg-cream/40 p-5 sm:p-6">
+                  <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Product name</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{form.name.trim() || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Category</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{selectedCategory || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Unit / quantity</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{form.unit.trim() || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Delivery fee</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{displayDeliveryFee}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Price</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{displayPrice}</dd>
+                      {hasFilledOptions && <dd className="mt-0.5 text-xs font-normal text-muted">Lowest of {filledOptions.length} option{filledOptions.length === 1 ? '' : 's'}.</dd>}
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Stock quantity</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{displayStock}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Discount</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{displayDiscount}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Product images</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">{imageDrafts.length === 0 ? '—' : `${imageDrafts.length} image${imageDrafts.length === 1 ? '' : 's'}`}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Size options</dt>
+                      <dd className="mt-1 text-sm font-bold text-green-dark">
+                        {filledOptions.length === 0 ? 'None' : `${filledOptions.length} filled option${filledOptions.length === 1 ? '' : 's'}`}
+                        {totalWholesaleTiers > 0 && <span className="text-xs font-normal text-muted"> · {totalWholesaleTiers} wholesale tier{totalWholesaleTiers === 1 ? '' : 's'}</span>}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <div className="space-y-4 border-t border-line pt-5">
+                  <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
+                  <FeaturedToggle checked={form.isFeatured} disabled={isSaving} onChange={(checked) => update('isFeatured', checked)} />
                 </div>
               </div>
             )}
-          <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={form.isActive} onChange={(event) => update('isActive', event.target.checked)} />Available / active for sale</label>
-             <FeaturedToggle checked={form.isFeatured} disabled={isSaving} onChange={(checked) => update('isFeatured', checked)} />
-          {error && <p className="text-sm font-medium text-orange" role="alert">{error}</p>}
-           <div className="flex flex-wrap gap-3"><SubmitButton busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton><Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark" to="/admin/products">Cancel</Link></div>
-        </form>}
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
+              {step > 0 && (
+                <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark transition-colors hover:border-green" type="button" onClick={previousStep}>Back</button>
+              )}
+              <div className="flex-1" />
+              {step < FORM_STEPS.length - 1 ? (
+                <button className="rounded-xl bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark" type="submit">Continue</button>
+              ) : (
+                <SubmitButton busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton>
+              )}
+              <Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark transition-colors hover:border-green" to="/admin/products">Cancel</Link>
+            </div>
+          </form>
+        )}
       </div>
     </>
   )

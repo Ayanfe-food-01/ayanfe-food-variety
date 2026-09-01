@@ -4,6 +4,7 @@ import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import { getCustomerOrders, type CustomerOrderListItem } from '../services/orderService'
 import { formatOrderStatus } from '../utils/orderStatus'
@@ -24,6 +25,8 @@ export function CustomerOrders() {
   const [orders, setOrders] = useState<CustomerOrderListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isAuthLoading && (!user || !isLoading))
 
   useEffect(() => {
     if (isAuthLoading || !user) return

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { About } from './pages/About'
@@ -50,7 +50,9 @@ import { TestimonialForm } from './pages/Admin/TestimonialForm'
 import { Reviews } from './pages/Admin/Reviews'
 import { ReviewDetail } from './pages/Admin/ReviewDetail'
 import { RequireAdmin } from './components/admin/RequireAdmin'
+import { RouteLoadProvider } from './context/RouteLoadContext'
 import { useRouteToast } from './hooks/useRouteToast'
+import { useRouteLoad } from './hooks/useRouteLoad'
 import { Seo } from './seo/Seo'
 import { BrandingHead } from './seo/BrandingHead'
 import { DEFAULT_LOGO_PATH } from './seo/config'
@@ -79,20 +81,7 @@ function RouteTransition() {
   const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
   const locationKey = `${location.pathname}${location.search}${location.hash}`
   const previousLocationKey = useRef(locationKey)
-  const transitionTimeout = useRef<number | undefined>(undefined)
-  const [isRouteLoading, setIsRouteLoading] = useState(false)
-
-  const startRouteTransition = useCallback(() => {
-    if (transitionTimeout.current !== undefined) {
-      window.clearTimeout(transitionTimeout.current)
-    }
-
-    setIsRouteLoading(true)
-    transitionTimeout.current = window.setTimeout(() => {
-      setIsRouteLoading(false)
-      transitionTimeout.current = undefined
-    }, 650)
-  }, [])
+  const { isLoading, beginNavigation } = useRouteLoad()
 
   useEffect(() => {
     const handleInternalNavigation = (event: MouseEvent) => {
@@ -106,11 +95,11 @@ function RouteTransition() {
       const next = `${destination.pathname}${destination.search}${destination.hash}`
 
       if (destination.origin === window.location.origin && next !== current) {
-        startRouteTransition()
+        beginNavigation()
       }
     }
 
-    const handleHistoryNavigation = () => startRouteTransition()
+    const handleHistoryNavigation = () => beginNavigation()
 
     document.addEventListener('click', handleInternalNavigation, true)
     window.addEventListener('popstate', handleHistoryNavigation)
@@ -118,20 +107,19 @@ function RouteTransition() {
     return () => {
       document.removeEventListener('click', handleInternalNavigation, true)
       window.removeEventListener('popstate', handleHistoryNavigation)
-      if (transitionTimeout.current !== undefined) window.clearTimeout(transitionTimeout.current)
     }
-  }, [startRouteTransition])
+  }, [beginNavigation])
 
   useEffect(() => {
     if (previousLocationKey.current !== locationKey) {
       previousLocationKey.current = locationKey
-      startRouteTransition()
+      beginNavigation()
     }
-  }, [locationKey, startRouteTransition])
+  }, [beginNavigation, locationKey])
 
   return (
     <>
-      {isRouteLoading && (
+      {isLoading && (
         <div className="route-loader" role="status" aria-live="polite" aria-label="Loading page">
           <div className="route-loader-mark">
             <span className="route-loader-ring" aria-hidden="true" />
@@ -259,7 +247,9 @@ function App() {
       <ScrollToTop />
       <RouteToastBridge />
       <PrivateRouteSeo />
-      <RouteTransition />
+      <RouteLoadProvider>
+        <RouteTransition />
+      </RouteLoadProvider>
       {!isAdminRoute && <WhatsAppFloatButton />}
     </>
   )

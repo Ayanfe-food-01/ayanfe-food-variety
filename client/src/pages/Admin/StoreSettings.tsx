@@ -11,6 +11,7 @@ import {
 import { useToast } from '../../components/ui/Toast'
 import { SettingsField, SettingsFormState, SettingsPageHeader, SettingsPanel, SettingsSaveButton, SettingsTextArea } from '../../components/admin/SettingsForm'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const emptyStore: StoreInformation = { businessName: '', callToOrderPhone: '', announcementText: '', address: '', description: '' }
 const emptyBranding: StoreBranding = { logoUrl: null, faviconUrl: null }
@@ -44,6 +45,9 @@ export function StoreSettings() {
   const [isSaving, setIsSaving] = useState(false)
   const [isBrandingSaving, setIsBrandingSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
+
   const { showToast } = useToast()
 
   useEffect(() => {

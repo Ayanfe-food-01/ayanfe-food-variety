@@ -4,6 +4,7 @@ import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import {
   listCustomerQuoteRequests,
@@ -29,6 +30,8 @@ export function CustomerQuotes() {
   const [quotes, setQuotes] = useState<CustomerQuoteRequestListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isAuthLoading && (!user || !isLoading))
 
   useEffect(() => {
     if (isAuthLoading || !user) return

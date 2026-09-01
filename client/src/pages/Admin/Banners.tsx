@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { useToast } from '../../components/ui/Toast'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
 import {
   deleteAdminBanner,
@@ -44,6 +45,8 @@ export function Banners() {
   const [banners, setBanners] = useState<AdminBanner[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
   const [bannerToStatus, setBannerToStatus] = useState<AdminBanner | null>(null)
   const [bannerToDelete, setBannerToDelete] = useState<AdminBanner | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)

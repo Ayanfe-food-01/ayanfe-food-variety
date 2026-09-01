@@ -3,6 +3,7 @@ import { ApiError } from '../../services/api'
 import { getAdminAnalytics, type AdminAnalytics, type AnalyticsRange } from '../../services/adminService'
 import { StatCard } from '../../components/admin/StatCard'
 import { RevenueLineChart } from '../../components/admin/RevenueLineChart'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const ranges: Array<{ value: AnalyticsRange; label: string }> = [
   { value: 'today', label: 'Today' },
@@ -38,6 +39,8 @@ export function Analytics() {
 
   const analytics = analyticsByRange[range] ?? null
   const error = errorsByRange[range] ?? null
+
+  useInitialRouteLoad(Boolean(analytics || error))
 
   const summary = analytics?.summary
   const metrics = analytics?.metrics

@@ -4,6 +4,7 @@ import { ApiError } from '../../services/api'
 import { getAdminProduct } from '../../services/adminService'
 import { ProductPrice } from '../../components/products/ProductPrice'
 import { formatPrice } from '../../utils/formatPrice'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import type { Product } from '../../types/product'
 
 export function ProductView() {
@@ -11,6 +12,8 @@ export function ProductView() {
   const [product, setProduct] = useState<Product | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(() => id ? null : 'Product ID is invalid.')
+
+  useInitialRouteLoad(!isLoading)
 
   useEffect(() => {
     if (!id) return

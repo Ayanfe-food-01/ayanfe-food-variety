@@ -4,6 +4,7 @@ import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import { getCustomerOrder, getGuestOrder, type CreatedOrder } from '../services/orderService'
 import { getBankDetails, submitGuestPaymentProof, submitPaymentProof, type BankDetails, type PaymentSubmission } from '../services/paymentService'
@@ -36,6 +37,8 @@ export function CustomerPaymentProof() {
   const guestOrderSuffix = isGuestOrder
     ? `?access=${encodeURIComponent(guestAccessToken!)}`
     : ''
+
+  useInitialRouteLoad(!isAuthLoading && ((!user && !guestAccessToken) || !!order || !!error))
 
   useEffect(() => {
     if (isAuthLoading || !orderNumber) return

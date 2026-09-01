@@ -4,12 +4,15 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { useWishlist } from '../hooks/useWishlist'
 import { Seo } from '../seo/Seo'
 
 export function Wishlist() {
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const { products, isLoading } = useWishlist()
+
+  useInitialRouteLoad(!isAuthLoading && (!user || !isLoading))
 
   return (
     <>

@@ -4,6 +4,7 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import {
   acceptCustomerQuoteRequest,
@@ -34,6 +35,8 @@ export function CustomerQuoteDetail() {
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const [quote, setQuote] = useState<QuoteRequest | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isAuthLoading && (!user || !!quote || !!error))
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false)
   const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false)
   const [declineReason, setDeclineReason] = useState('')

@@ -5,6 +5,7 @@ import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { createAdminCategory, getAdminCategory, updateAdminCategory, type CategoryInput } from '../../services/adminService'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const initialForm: CategoryInput = { name: '', description: '', isActive: true }
 
@@ -17,6 +18,8 @@ export function CategoryForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldError, setFieldError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
   const [imageError, setImageError] = useState<string | null>(null)
   const [currentImage, setCurrentImage] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)

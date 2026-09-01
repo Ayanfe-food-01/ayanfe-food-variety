@@ -16,6 +16,7 @@ import { ImagePreview } from '../../components/ui/ImagePreview'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { OrderDetailActionsMenu } from '../../components/admin/OrderDetailActionsMenu'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { formatDate } from '../../utils/dateFormat'
 
 const formatPrice = (value: string) =>
@@ -40,6 +41,9 @@ export function OrderDetail() {
   const [isArchiveSaving, setIsArchiveSaving] = useState(false)
   const [isDeleteSaving, setIsDeleteSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
+
   const { showToast } = useToast()
   const navigate = useNavigate()
 

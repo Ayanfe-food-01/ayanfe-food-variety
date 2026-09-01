@@ -5,6 +5,7 @@ import { OrderInput } from '../../components/admin/OrderInput'
 import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { useToast } from '../../components/ui/Toast'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
 import {
   deleteAdminReview,
@@ -48,6 +49,8 @@ export function ReviewDetail() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [savingOrder, setSavingOrder] = useState(false)
   const [previewStory, setPreviewStory] = useState<CustomerStory | null>(null)
+
+  useInitialRouteLoad(!isLoading)
 
   useEffect(() => {
     let current = true

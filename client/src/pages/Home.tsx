@@ -11,12 +11,15 @@ import { WhyChooseUs } from '../components/home/WhyChooseUs'
 import { NewsletterSignup } from '../components/home/NewsletterSignup'
 import { useHomeCatalog } from '../hooks/useHomeCatalog'
 import { usePromotionalBanners } from '../hooks/usePromotionalBanners'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { Seo } from '../seo/Seo'
 import { DEFAULT_SITE_DESCRIPTION, HOMEPAGE_TITLE, getOrganizationSchema } from '../seo/config'
 
 export function Home() {
   const catalog = useHomeCatalog()
   const { banners: promotionalBanners, isLoading: bannersLoading } = usePromotionalBanners()
+
+  useInitialRouteLoad(!catalog.isLoading)
 
   return <>
     <Seo title={HOMEPAGE_TITLE} description={DEFAULT_SITE_DESCRIPTION} canonicalPath="/" jsonLd={getOrganizationSchema()} />

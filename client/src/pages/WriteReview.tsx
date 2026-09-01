@@ -5,6 +5,7 @@ import { Navbar } from '../components/layout/Navbar'
 import { StarRating } from '../components/reviews/StarRating'
 import { SubmitButton } from '../components/ui/SubmitButton'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import { getOrderReviewEligibility, submitProductReview, type ReviewEligibilityItem } from '../services/reviewService'
 import type { CustomerPaymentStatus, OrderStatus } from '../services/orderService'
@@ -27,6 +28,8 @@ export function WriteReview() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+
+  useInitialRouteLoad(!isAuthLoading && (!user || !isLoading))
 
   useEffect(() => {
     if (isAuthLoading || !user || !orderNumber) return

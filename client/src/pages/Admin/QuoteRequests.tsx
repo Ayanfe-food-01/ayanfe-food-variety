@@ -8,6 +8,7 @@ import {
 } from '../../services/quoteService'
 import { QuoteTable } from '../../components/admin/QuoteTable'
 import { SelectField } from '../../components/ui/SelectField'
+import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { formatQuoteStatus, getAllQuoteStatuses } from '../../utils/quoteStatus'
 
 const pageSize = 10
@@ -18,6 +19,8 @@ export function QuoteRequests() {
   const [result, setResult] = useState<AdminQuoteRequestsPage | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useInitialRouteLoad(!isLoading)
 
   useEffect(() => {
     let current = true

@@ -218,7 +218,7 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
             {view === 'gateway' ? (
               <>
                 <div className="mt-7">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Your account, your choice</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Welcome</p>
                   <h1 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-green-dark">How would you like to continue?</h1>
                   <p className="mt-3 text-sm leading-6 text-muted">Sign in for account features or continue as a guest to place your order.</p>
                 </div>

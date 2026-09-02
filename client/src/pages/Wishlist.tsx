@@ -36,7 +36,18 @@ export function Wishlist() {
         </div>
 
         {isAuthLoading || (user && isLoading) ? (
-          <div className="rounded-3xl border border-line bg-sage/30 px-6 py-16 text-center text-muted" role="status">Loading your wishlist…</div>
+          <div className="product-grid" role="status" aria-label="Loading your wishlist">
+            {[0, 1, 2, 3].map((index) => (
+              <div className="product-skeleton" key={index}>
+                <div className="product-skeleton-media" />
+                <div className="product-skeleton-body">
+                  <div className="product-skeleton-line" />
+                  <div className="product-skeleton-line" />
+                </div>
+                <div className="product-skeleton-action" />
+              </div>
+            ))}
+          </div>
         ) : !user ? (
           <section className="mx-auto max-w-xl rounded-3xl border border-line bg-sage/30 px-6 py-16 text-center sm:px-10">
              <span className="flex justify-center text-green-dark"><HeartIcon size={36} /></span>

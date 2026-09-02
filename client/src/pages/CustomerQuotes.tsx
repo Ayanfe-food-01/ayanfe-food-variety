@@ -70,7 +70,22 @@ export function CustomerQuotes() {
               </button>
             </div>
           ) : isLoading ? (
-            <p className="rounded-2xl bg-white p-8 text-center text-sm text-muted">Loading your quotes…</p>
+            <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm" role="status" aria-label="Loading your quotes">
+              <div className="divide-y divide-line">
+                {[0, 1, 2].map((row) => (
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6" key={row}>
+                    <div className="space-y-2">
+                      <div className="h-4 w-40 rounded bg-sage animate-pulse" />
+                      <div className="h-3 w-56 rounded bg-sage/70 animate-pulse" />
+                    </div>
+                    <div className="flex items-center gap-5">
+                      <div className="h-6 w-24 rounded-full bg-sage animate-pulse" />
+                      <div className="h-4 w-16 rounded bg-sage animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : error ? (
             <p className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</p>
           ) : quotes.length === 0 ? (

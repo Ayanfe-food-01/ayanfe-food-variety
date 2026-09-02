@@ -16,6 +16,7 @@ export interface CheckoutInput {
   city?: string
   deliveryInstructions?: string
   paymentMethod: PaymentMethod
+  deliveryZoneId?: string
 }
 
 export interface GuestOrderTrackingInput {
@@ -73,6 +74,8 @@ export interface OrderResponse {
   note: string | null
   subtotal: string
   deliveryFee: string
+  deliveryZoneName: string | null
+  deliveryZoneId: string | null
   total: string
   paymentMethod: PaymentMethod
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
@@ -100,6 +103,7 @@ export interface GuestOrderResponse {
   city: string
   subtotal: string
   deliveryFee: string
+  deliveryZoneName: string | null
   total: string
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
   paymentConfirmedAt: string | null

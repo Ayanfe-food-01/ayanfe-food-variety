@@ -86,6 +86,15 @@ import {
   updateAdminReviewOrderController,
   updateAdminReviewStatusController,
 } from '../modules/reviews/review.admin.controller.js'
+import {
+  createAdminDeliveryZoneController,
+  deleteAdminDeliveryZoneController,
+  getAdminDeliveryZoneController,
+  listAdminDeliveryZonesController,
+  reorderAdminDeliveryZonesController,
+  updateAdminDeliveryZoneController,
+  updateAdminDeliveryZoneStatusController,
+} from '../modules/delivery-zones/delivery-zone.controller.js'
 
 export const adminRoutes = Router()
 
@@ -151,3 +160,10 @@ adminRoutes.put('/settings/contact', updateAdminContactInformationController)
 adminRoutes.get('/settings/payment', getAdminPaymentSettingsController)
 adminRoutes.put('/settings/payment', updateAdminPaymentSettingsController)
 adminRoutes.post('/settings/password', changeAdminPasswordController)
+adminRoutes.get('/delivery-zones', listAdminDeliveryZonesController)
+adminRoutes.post('/delivery-zones', createAdminDeliveryZoneController)
+adminRoutes.put('/delivery-zones/reorder', reorderAdminDeliveryZonesController)
+adminRoutes.get('/delivery-zones/:id', getAdminDeliveryZoneController)
+adminRoutes.patch('/delivery-zones/:id/status', updateAdminDeliveryZoneStatusController)
+adminRoutes.patch('/delivery-zones/:id', updateAdminDeliveryZoneController)
+adminRoutes.delete('/delivery-zones/:id', deleteAdminDeliveryZoneController)

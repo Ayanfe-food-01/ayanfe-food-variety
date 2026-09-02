@@ -32,8 +32,6 @@ export interface CartContextValue {
   mode: ShoppingMode
   totalQuantity: number
   subtotal: number
-  deliveryFee: number
-  total: number
   canCheckout: boolean
   isLoading: boolean
   error: string | null

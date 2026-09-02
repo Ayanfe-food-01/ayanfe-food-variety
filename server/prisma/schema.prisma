@@ -218,6 +218,22 @@ model ProductOption {
   @@map("product_options")
 }
 
+model DeliveryZone {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String   @unique @db.VarChar(120)
+  fee                  Decimal  @db.Decimal(12, 2)
+  freeDeliveryThreshold Decimal? @map("free_delivery_threshold") @db.Decimal(12, 2)
+  isActive             Boolean  @default(true) @map("is_active")
+  sortOrder            Int      @default(0) @map("sort_order")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  orders               Order[]
+
+  @@index([isActive, sortOrder], map: "delivery_zones_active_order_idx")
+  @@index([sortOrder], map: "delivery_zones_sort_order_idx")
+  @@map("delivery_zones")
+}
+
 model Order {
   id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderNumber      String      @unique @map("order_number") @db.VarChar(32)
@@ -233,6 +249,11 @@ model Order {
   note             String?
   subtotal         Decimal     @db.Decimal(12, 2)
   deliveryFee      Decimal     @default(0) @map("delivery_fee") @db.Decimal(12, 2)
+  // Delivery zone snapshot captured at order time. The name and fee are stored
+  // directly on the order so historical orders are never affected by later
+  // edits to a zone's fee or name. deliveryZoneId is informational only.
+  deliveryZoneId   String?     @map("delivery_zone_id") @db.Uuid
+  deliveryZoneName String?     @map("delivery_zone_name") @db.VarChar(120)
   total            Decimal     @db.Decimal(12, 2)
   fulfillmentMethod FulfillmentMethod @default(DELIVERY) @map("fulfillment_method")
   shoppingMode    ShoppingMode    @default(RETAIL) @map("shopping_mode")
@@ -262,12 +283,14 @@ model Order {
   archivedBy          User?       @relation("OrderArchiveActor", fields: [archivedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
   quoteRequest        QuoteRequest? @relation("QuoteSourceOrder", fields: [quoteRequestId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   convertedQuoteRequests QuoteRequest[] @relation("QuoteConvertedOrder")
+  deliveryZone        DeliveryZone? @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   reviews              Review[]
 
   @@index([userId], map: "orders_user_id_idx")
   @@index([archivedAt], map: "orders_archived_at_idx")
   @@index([archivedAt, createdAt(sort: Desc)], map: "orders_archived_created_idx")
   @@index([paymentStatus, orderStatus], map: "orders_payment_order_status_idx")
+  @@index([deliveryZoneId], map: "orders_delivery_zone_id_idx")
   @@map("orders")
 }
 

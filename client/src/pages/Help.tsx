@@ -176,8 +176,9 @@ const helpCategories: HelpCategory[] = [
         question: 'How much is delivery?',
         answer: (
           <p>
-            The delivery fee is calculated from the products in your cart and shown on the summary before you place the
-            order. Pickup has no delivery fee.
+            Delivery is priced by delivery zone. During delivery checkout you select your zone and the delivery fee for
+            that zone is shown before you place the order. Some zones offer free delivery once your order reaches a
+            minimum subtotal. Pickup has no delivery fee.
           </p>
         ),
       },

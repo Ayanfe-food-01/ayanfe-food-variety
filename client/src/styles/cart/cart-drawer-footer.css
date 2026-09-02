@@ -128,6 +128,13 @@
   line-height: 1.5;
 }
 
+.cart-drawer-summary-note {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .cart-drawer-checkout {
   display: flex;
   width: 100%;

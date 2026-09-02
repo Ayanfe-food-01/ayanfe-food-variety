@@ -14,7 +14,6 @@ export const cartInclude = {
           price: true,
           discountType: true,
           discountValue: true,
-          deliveryFee: true,
           image: true,
           isActive: true,
           stockQuantity: true,
@@ -73,8 +72,8 @@ export const lineMinQuantity = (item: CartLinePayload, mode: ShoppingMode): numb
 
 export function toCartResponse(cart: CartPayload): CustomerCartResponse {
   let subtotal = new Prisma.Decimal(0)
-  let deliveryFee = new Prisma.Decimal(0)
   let totalQuantity = 0
+  const deliveryFee = 0
 
   const items = cart.items.map((item) => {
     const option = item.productOption
@@ -82,7 +81,6 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
     const stockQuantity = lineStockQuantity(item)
     const minQuantity = lineMinQuantity(item, cart.mode)
     const itemSubtotal = unitPrice.mul(item.quantity)
-    const itemDeliveryFee = item.product.deliveryFee.mul(item.quantity)
     const isProductActive = item.product.isActive && item.product.category.isActive
     const isOptionActive = option ? option.isActive : true
     const isActive = isProductActive && isOptionActive
@@ -103,7 +101,6 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
           : null
 
     subtotal = subtotal.add(itemSubtotal)
-    deliveryFee = deliveryFee.add(itemDeliveryFee)
     totalQuantity += item.quantity
 
     return {
@@ -117,7 +114,7 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
       originalPrice: unitPrice.toString(),
       discountType: option ? null : item.product.discountType,
       discountValue: option ? null : (item.product.discountValue?.toString() ?? null),
-      deliveryFee: itemDeliveryFee.toString(),
+      deliveryFee: '0',
       image: item.product.image,
       quantity: item.quantity,
       minQuantity,
@@ -133,7 +130,7 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
     mode: cart.mode,
     items,
     subtotal: subtotal.toString(),
-    deliveryFee: deliveryFee.toString(),
+    deliveryFee: '0',
     totalQuantity,
     canCheckout: items.length > 0 && items.every((item) =>
       item.isAvailable

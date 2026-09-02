@@ -20,7 +20,12 @@ const configuredApiBaseUrl = import.meta.env.VITE_API_URL
 const apiBaseUrl = normalizeApiBaseUrl(
   configuredApiBaseUrl || (import.meta.env.DEV ? '/api/v1' : undefined),
 )
-const maxNetworkAttempts = 3
+
+// Bounded wait window granted for the API to come up (e.g. a freshly started
+// backend) before a request gives up. Requests poll for readiness instead of
+// failing immediately, which avoids transient startup-timing errors.
+const maxStartupWaitMs = import.meta.env.DEV ? 10_000 : 6_000
+const retryBaseDelayMs = 500
 
 const wait = (milliseconds: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
   if (signal?.aborted) {
@@ -34,9 +39,31 @@ const wait = (milliseconds: number, signal?: AbortSignal) => new Promise<void>((
   }, { once: true })
 })
 
-const networkErrorMessage = () => import.meta.env.DEV
-  ? `Unable to reach the local API at ${apiBaseUrl}. The Start API workflow may still be starting; try again in a moment.`
-  : `Unable to reach the production API at ${apiBaseUrl}. Verify the Vercel VITE_API_URL and Render CORS_ORIGINS settings.`
+// User-facing message for network failures. Deliberately avoids internal
+// details (API paths, backend/workflow names, vendor origins).
+const networkErrorMessage = 'Something went wrong. Please try again in a moment.'
+
+// Polls the API base until it responds or the bounded startup window elapses.
+// A response of any status counts as "reachable" (the server is up); only a
+// network-layer failure (e.g. backend not started) keeps us polling.
+const waitForApiReachable = async (signal?: AbortSignal): Promise<void> => {
+  const deadline = Date.now() + maxStartupWaitMs
+  while (Date.now() < deadline) {
+    const remaining = Math.max(deadline - Date.now(), 0)
+    try {
+      await fetch(apiBaseUrl, {
+        method: 'GET',
+        credentials: 'include',
+        signal,
+        headers: { Accept: 'application/json' },
+      })
+      return
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw error
+      await wait(Math.min(retryBaseDelayMs, remaining), signal)
+    }
+  }
+}
 
 export const getApiUrl = (path: string): string => `${apiBaseUrl}${path}`
 
@@ -55,12 +82,15 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     throw new ApiError('The API URL is not configured for this environment.', 0)
   }
 
-  let response: Response | null = null
+  let response: Response
+
   const method = (options?.method ?? 'GET').toUpperCase()
   const isRetryableRequest = method === 'GET' || method === 'HEAD' || method === 'OPTIONS'
     || Object.entries(options?.headers ?? {}).some(([key, value]) => key.toLowerCase() === 'x-checkout-request' && value === '1')
 
-  for (let attempt = 1; attempt <= maxNetworkAttempts; attempt += 1) {
+  const deadline = Date.now() + (isRetryableRequest ? maxStartupWaitMs : 0)
+
+  while (true) {
     try {
       response = await fetch(`${apiBaseUrl}${path}`, {
         ...options,
@@ -73,12 +103,16 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
       break
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') throw error
-      if (!isRetryableRequest || attempt === maxNetworkAttempts) throw new ApiError(networkErrorMessage(), 0)
-      await wait(attempt * 400, options?.signal ?? undefined)
+      if (!isRetryableRequest) {
+        // Writes are never resent (avoiding duplicate side effects). Instead we
+        // wait for the API to become reachable, then surface the friendly error.
+        await waitForApiReachable(options?.signal ?? undefined)
+        throw new ApiError(networkErrorMessage, 0)
+      }
+      if (Date.now() >= deadline) throw new ApiError(networkErrorMessage, 0)
+      await wait(retryBaseDelayMs, options?.signal ?? undefined)
     }
   }
-  if (!response) throw new ApiError(networkErrorMessage(), 0)
-
   let body: unknown
   try {
     body = await response.json()

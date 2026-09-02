@@ -114,6 +114,8 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
     orderType: order.shoppingMode,
     subtotal: order.subtotal.toString(),
     deliveryFee: order.deliveryFee.toString(),
+    deliveryZoneName: order.deliveryZoneName,
+    deliveryZoneId: order.deliveryZoneId,
     total: order.total.toString(),
     paymentMethod: order.paymentMethod,
     paymentStatus,
@@ -318,7 +320,6 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         price: true,
          discountType: true,
          discountValue: true,
-        deliveryFee: true,
         isActive: true,
         stockQuantity: true,
         category: { select: { isActive: true } },
@@ -396,9 +397,6 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
            product.discountValue,
          )
        const subtotal = unitPrice.mul(item.quantity)
-       const deliveryFee = input.fulfillmentMethod === FulfillmentMethod.DELIVERY
-         ? product.deliveryFee.mul(item.quantity)
-         : new Prisma.Decimal(0)
       return {
         productId: product.id,
         productName: product.name,
@@ -407,17 +405,44 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
          unitPrice,
         quantity: item.quantity,
         subtotal,
-        deliveryFee,
+        deliveryFee: new Prisma.Decimal(0),
       }
     })
     const subtotal = orderItems.reduce(
       (total, item) => total.add(item.subtotal),
       new Prisma.Decimal(0),
     )
-    const totalDeliveryFee = orderItems.reduce(
-      (total, item) => total.add(item.deliveryFee),
-      new Prisma.Decimal(0),
-    )
+
+    // Delivery is zone-based and never per-product. The delivery fee is
+    // authoritative: it is derived from the selected active DeliveryZone and the
+    // server-computed subtotal (with free-delivery threshold applied). The
+    // browser only supplies the deliveryZoneId; name, fee and free-delivery
+    // threshold are never taken from the client.
+    let deliveryZoneId: string | null = null
+    let deliveryZoneName: string | null = null
+    let deliveryFee = new Prisma.Decimal(0)
+    if (input.fulfillmentMethod === FulfillmentMethod.DELIVERY) {
+      if (!input.deliveryZoneId) {
+        throw new HttpError(400, 'Please select a delivery zone.')
+      }
+      const zone = await transaction.deliveryZone.findUnique({
+        where: { id: input.deliveryZoneId },
+        select: { id: true, name: true, fee: true, freeDeliveryThreshold: true, isActive: true },
+      })
+      if (!zone) {
+        throw new HttpError(409, 'The selected delivery zone is no longer available. Please choose another zone.')
+      }
+      if (!zone.isActive) {
+        throw new HttpError(409, 'The selected delivery zone is no longer available. Please choose another zone.')
+      }
+      deliveryZoneId = zone.id
+      deliveryZoneName = zone.name
+      if (zone.freeDeliveryThreshold !== null && subtotal.gte(zone.freeDeliveryThreshold)) {
+        deliveryFee = new Prisma.Decimal(0)
+      } else {
+        deliveryFee = zone.fee
+      }
+    }
     const order = await transaction.order.create({
       data: {
         checkoutKey: input.checkoutKey,
@@ -433,8 +458,10 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
          city: input.city ?? '',
          note: input.deliveryInstructions ?? null,
         subtotal,
-        deliveryFee: totalDeliveryFee,
-        total: subtotal.add(totalDeliveryFee),
+        deliveryZoneId,
+        deliveryZoneName,
+        deliveryFee,
+        total: subtotal.add(deliveryFee),
         paymentMethod: input.paymentMethod,
         paymentStatus: PaymentStatus.PENDING,
         orderStatus: OrderStatus.ORDER_PLACED,
@@ -951,6 +978,7 @@ const toGuestOrderResponse = (order: OrderWithItems): GuestOrderResponse => {
     city: fullResponse.city,
     subtotal: fullResponse.subtotal,
     deliveryFee: fullResponse.deliveryFee,
+    deliveryZoneName: fullResponse.deliveryZoneName,
     total: fullResponse.total,
     paymentStatus: fullResponse.paymentStatus,
     paymentConfirmedAt: fullResponse.paymentConfirmedAt

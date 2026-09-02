@@ -101,8 +101,6 @@ export function Cart() {
     items,
     mode,
     subtotal,
-    deliveryFee,
-    total,
     totalQuantity,
     canCheckout,
     isLoading,
@@ -267,7 +265,6 @@ export function Cart() {
                                 each
                               </p>
                                <p className="mt-1 text-base font-bold text-green-dark">{formatPrice(getItemSubtotal(item))}</p>
-                               <p className="mt-1 text-xs text-muted">{item.deliveryFee === 0 ? 'Delivery: Free' : `Delivery: ${formatPrice(item.deliveryFee)}`}</p>
                             </div>
                           </div>
                         </div>
@@ -287,14 +284,13 @@ export function Cart() {
                       <span>Subtotal</span>
                       <span className="font-bold text-green-dark">{formatPrice(subtotal)}</span>
                     </div>
-                    <div className="flex justify-between gap-4 text-muted">
-                      <span>Delivery fee</span>
-                      <span className="font-bold text-green-dark">{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span>
-                    </div>
                   </div>
+                  <p className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
+                    Delivery is calculated at checkout based on your selected delivery zone and order total.
+                  </p>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="font-bold text-green-dark">Total</span>
-                     <strong className="text-2xl text-green-dark">{formatPrice(total)}</strong>
+                    <span className="font-bold text-green-dark">Estimated total</span>
+                     <strong className="text-2xl text-green-dark">{formatPrice(subtotal)}</strong>
                   </div>
                   {canCheckout ? (
                     <Link

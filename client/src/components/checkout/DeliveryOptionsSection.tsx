@@ -1,4 +1,4 @@
-import type { FulfillmentMethod } from '../../services/orderService'
+import type { DeliveryZone, FulfillmentMethod } from '../../services/orderService'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from './types'
 import {
   checkoutDescriptionClassName,
@@ -13,6 +13,8 @@ interface DeliveryOptionsSectionProps {
   form: CheckoutFormData
   errors: CheckoutFormErrors
   fulfillmentMethod: FulfillmentMethod | ''
+  deliveryZones: DeliveryZone[]
+  subtotal: number
   onChange: (field: CheckoutField, value: string) => void
 }
 
@@ -21,13 +23,23 @@ const deliveryOptions = [
   ['DELIVERY', 'Delivery', 'Have your order brought to your delivery address.'],
 ] as const
 
+const formatNaira = (value: string) => {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return value
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(numeric)
+}
+
 export function DeliveryOptionsSection({
   form,
   errors,
   fulfillmentMethod,
+  deliveryZones,
+  subtotal,
   onChange,
 }: DeliveryOptionsSectionProps) {
   const isDelivery = fulfillmentMethod === 'DELIVERY'
+  const qualifiesForFreeDelivery = (zone: DeliveryZone) =>
+    zone.freeDeliveryThreshold !== null && subtotal >= Number(zone.freeDeliveryThreshold)
 
   return (
     <section className={checkoutSectionClassName}>
@@ -54,7 +66,10 @@ export function DeliveryOptionsSection({
                   name="fulfillmentMethod"
                   value={value}
                   checked={fulfillmentMethod === value}
-                  onChange={() => onChange('fulfillmentMethod', value)}
+                  onChange={() => {
+                    onChange('fulfillmentMethod', value)
+                    if (value === 'PICKUP') onChange('deliveryZoneId', '')
+                  }}
                   aria-describedby="fulfillmentMethod-error"
                 />
                 <span>
@@ -69,6 +84,45 @@ export function DeliveryOptionsSection({
 
         {isDelivery && (
           <div className="mt-8 grid gap-6">
+            {deliveryZones.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-green-dark">Delivery zone <span className="text-orange" aria-hidden="true">*</span></p>
+                <p className="mt-1 text-xs text-muted">Select the zone that covers your delivery address. This determines your delivery fee.</p>
+                <div className="mt-4 space-y-3">
+                  {deliveryZones.map((zone) => {
+                    const isSelected = form.deliveryZoneId === zone.id
+                    return (
+                      <label
+                        key={zone.id}
+                        className={`flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-colors ${
+                          isSelected ? 'border-green bg-sage/30' : 'border-line bg-white hover:border-green/40'
+                        }`}
+                      >
+                        <input
+                          className="mt-0.5 size-4 accent-green"
+                          type="radio"
+                          name="deliveryZone"
+                          value={zone.id}
+                          checked={isSelected}
+                          onChange={() => onChange('deliveryZoneId', zone.id)}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-bold text-green-dark">{zone.name}</span>
+                          {zone.freeDeliveryThreshold && (
+                            <span className="mt-0.5 block text-xs text-muted">
+                              Free delivery on orders above {formatNaira(zone.freeDeliveryThreshold)}
+                            </span>
+                          )}
+                    </span>
+                    <span className="shrink-0 text-sm font-bold text-green-dark">{qualifiesForFreeDelivery(zone) ? 'FREE' : formatNaira(zone.fee)}</span>
+                      </label>
+                    )
+                  })}
+              </div>
+              <CheckoutFieldError id="deliveryZoneId" message={errors.deliveryZone} />
+            </div>
+            )}
+
             <div>
               <label className="text-sm font-bold text-green-dark" htmlFor="address">
                 Delivery address <span className="text-orange" aria-hidden="true">*</span>

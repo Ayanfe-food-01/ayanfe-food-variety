@@ -108,12 +108,21 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
           deliveryAddress: requiredText(body.deliveryAddress, 'deliveryAddress', 2000),
           city: requiredText(body.city, 'city', 120),
           deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
+          deliveryZoneId: validateOptionalDeliveryZoneId(body.deliveryZoneId),
         }
       : {}),
     paymentMethod: body.paymentMethod === PaymentMethod.BANK_TRANSFER || body.paymentMethod === PaymentMethod.PAYSTACK
       ? body.paymentMethod
       : (() => { throw new HttpError(400, 'Payment method is not supported.') })(),
   }
+}
+
+const validateOptionalDeliveryZoneId = (value: unknown): string | undefined => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+    throw new HttpError(400, 'A valid delivery zone is required.')
+  }
+  return value.trim()
 }
 
 export function validateConvertQuoteInput(body: unknown): ConvertQuoteToOrderInput {

@@ -10,6 +10,7 @@ import { cartRoutes } from './cart.routes.js'
 import { storeRoutes } from './store.routes.js'
 import { wishlistRoutes } from './wishlist.routes.js'
 import { quoteRoutes } from './quote.routes.js'
+import { deliveryZoneRoutes } from './delivery-zone.routes.js'
 
 export const apiRoutes = Router()
 
@@ -24,3 +25,4 @@ apiRoutes.use('/cart', cartRoutes)
 apiRoutes.use('/store', storeRoutes)
 apiRoutes.use('/wishlist', wishlistRoutes)
 apiRoutes.use('/quotes', quoteRoutes)
+apiRoutes.use('/delivery-zones', deliveryZoneRoutes)

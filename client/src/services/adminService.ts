@@ -892,3 +892,115 @@ export async function deleteAdminReview(id: string): Promise<void> {
     body: JSON.stringify({ confirm: true }),
   })
 }
+
+export interface AdminDeliveryZone {
+  id: string
+  name: string
+  fee: string
+  freeDeliveryThreshold: string | null
+  isActive: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminDeliveryZonesQuery {
+  page: number
+  pageSize: number
+  search?: string
+  status?: 'active' | 'inactive'
+}
+
+export interface AdminDeliveryZonesPage {
+  zones: AdminDeliveryZone[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+export interface DeliveryZoneInput {
+  name: string
+  fee: number
+  freeDeliveryThreshold: number | null
+  isActive: boolean
+}
+
+interface AdminDeliveryZonesResponse {
+  success: true
+  data: AdminDeliveryZonesPage
+}
+
+interface AdminDeliveryZoneResponse {
+  success: true
+  data: { zone: AdminDeliveryZone }
+}
+
+interface AdminDeliveryZonesReorderResponse {
+  success: true
+  data: { zones: AdminDeliveryZone[] }
+}
+
+const adminDeliveryZonesQueryString = (query: AdminDeliveryZonesQuery): string => {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  })
+  if (query.search) params.set('search', query.search)
+  if (query.status) params.set('status', query.status)
+  return params.toString()
+}
+
+export async function getAdminDeliveryZones(query: AdminDeliveryZonesQuery): Promise<AdminDeliveryZonesPage> {
+  const response = await request<AdminDeliveryZonesResponse>(`/admin/delivery-zones?${adminDeliveryZonesQueryString(query)}`)
+  return response.data
+}
+
+export async function getAdminDeliveryZone(id: string): Promise<AdminDeliveryZone> {
+  const response = await request<AdminDeliveryZoneResponse>(`/admin/delivery-zones/${encodeURIComponent(id)}`)
+  return response.data.zone
+}
+
+export async function createAdminDeliveryZone(input: DeliveryZoneInput): Promise<AdminDeliveryZone> {
+  const response = await request<AdminDeliveryZoneResponse>('/admin/delivery-zones', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.zone
+}
+
+export async function updateAdminDeliveryZone(id: string, input: DeliveryZoneInput): Promise<AdminDeliveryZone> {
+  const response = await request<AdminDeliveryZoneResponse>(`/admin/delivery-zones/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.zone
+}
+
+export async function updateAdminDeliveryZoneStatus(id: string, isActive: boolean): Promise<AdminDeliveryZone> {
+  const response = await request<AdminDeliveryZoneResponse>(`/admin/delivery-zones/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.zone
+}
+
+export async function reorderAdminDeliveryZones(zoneIds: string[]): Promise<AdminDeliveryZone[]> {
+  const response = await request<AdminDeliveryZonesReorderResponse>('/admin/delivery-zones/reorder', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zoneIds }),
+  })
+  return response.data.zones
+}
+
+export async function deleteAdminDeliveryZone(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/delivery-zones/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}

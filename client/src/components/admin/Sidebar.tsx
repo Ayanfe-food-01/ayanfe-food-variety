@@ -16,6 +16,7 @@ const links = [
   { label: 'Quote requests', to: '/admin/quote-requests' },
   { label: 'Products & inventory', to: '/admin/products' },
   { label: 'Categories', to: '/admin/categories' },
+  { label: 'Delivery zones & fees', to: '/admin/delivery-zones' },
   { label: 'Promotional banners', to: '/admin/banners' },
   { label: 'Testimonials', to: '/admin/testimonials' },
   { label: 'Reviews', to: '/admin/reviews' },

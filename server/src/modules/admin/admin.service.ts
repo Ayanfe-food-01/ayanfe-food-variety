@@ -395,6 +395,7 @@ export async function getAdminOrder(orderNumber: string) {
   return {
     ...order,
     subtotal: order.subtotal.toString(),
+    deliveryFee: order.deliveryFee.toString(),
     total: order.total.toString(),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),

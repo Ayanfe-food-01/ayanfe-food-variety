@@ -18,7 +18,7 @@ import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
+import { checkoutCustomerCart, getActiveDeliveryZones, type DeliveryZone, type FulfillmentMethod } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
 import { initializeGuestPaystackPayment, initializePaystackPayment } from '../services/paymentService'
 import { createRequestKey } from '../utils/browserCompatibility'
@@ -105,7 +105,6 @@ export function Checkout() {
     items,
     mode,
     subtotal,
-    deliveryFee,
     totalQuantity,
     canCheckout,
     isLoading: isCartLoading,
@@ -124,6 +123,7 @@ export function Checkout() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentSettings[]>([])
   const [isPaymentLoading, setIsPaymentLoading] = useState(true)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([])
   const [checkoutKey] = useState(() => readSessionValue(CHECKOUT_KEY_STORAGE_KEY) ?? createRequestKey())
   const [guestAccessToken] = useState(() => readSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY) ?? createRequestKey())
 
@@ -176,6 +176,21 @@ export function Checkout() {
         setPaymentError(reason instanceof ApiError ? reason.message : 'Payment methods could not be loaded.')
       })
       .finally(() => setIsPaymentLoading(false))
+  }, [])
+
+  useEffect(() => {
+    getActiveDeliveryZones()
+      .then((zones) => {
+        setDeliveryZones(zones)
+        setForm((currentForm) => {
+          if (currentForm.deliveryZoneId) return currentForm
+          if (zones.length === 1) return { ...currentForm, deliveryZoneId: zones[0].id }
+          return currentForm
+        })
+      })
+      .catch(() => {
+        // Delivery zones are optional for checkout; continue without them.
+      })
   }, [])
 
   useEffect(() => {
@@ -244,6 +259,7 @@ export function Checkout() {
               deliveryAddress: form.address.trim(),
               city: form.city.trim(),
               deliveryInstructions: form.deliveryInstructions.trim() || undefined,
+              ...(form.deliveryZoneId ? { deliveryZoneId: form.deliveryZoneId } : {}),
             }
           : {}),
         paymentMethod: form.paymentMethod,
@@ -298,10 +314,16 @@ export function Checkout() {
   }
 
   const paymentSettings = paymentMethods.find((method) => method.paymentMethod === form.paymentMethod) ?? null
+  const selectedZone = form.deliveryZoneId ? deliveryZones.find((zone) => zone.id === form.deliveryZoneId) ?? null : null
+  const selectedZoneFee = selectedZone
+    ? (selectedZone.freeDeliveryThreshold !== null && subtotal >= Number(selectedZone.freeDeliveryThreshold)
+        ? 0
+        : Number(selectedZone.fee))
+    : null
   const { deliveryFee: checkoutDeliveryFee, total: checkoutTotal } = calculateCheckoutTotals(
     subtotal,
-    deliveryFee,
     form.fulfillmentMethod,
+    selectedZoneFee,
   )
 
   if (isCustomerAuthLoading || (isCartLoading && !isSubmitting)) {
@@ -382,6 +404,8 @@ export function Checkout() {
                 form={form}
                 errors={errors}
                 fulfillmentMethod={form.fulfillmentMethod}
+                deliveryZones={deliveryZones}
+                subtotal={subtotal}
                 onChange={updateField}
               />
 
@@ -445,12 +469,12 @@ export function Checkout() {
               <div className="my-6 space-y-3 border-y border-line py-5 text-sm">
                 <div className="flex justify-between gap-4 text-muted"><span>Items</span><span>{totalQuantity}</span></div>
                 <div className="flex justify-between gap-4 text-muted"><span>Subtotal</span><span className="font-bold text-green-dark">{formatPrice(subtotal)}</span></div>
-                 <div className="flex justify-between gap-4 text-muted"><span>{form.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery fee'}</span><span className="font-bold text-green-dark">{checkoutDeliveryFee === 0 ? 'Free' : formatPrice(checkoutDeliveryFee)}</span></div>
+                 <div className="flex justify-between gap-4 text-muted"><span>{form.fulfillmentMethod === 'PICKUP' ? 'Pickup fee' : 'Delivery fee'}</span><span className="font-bold text-green-dark">{checkoutDeliveryFee === null ? '—' : checkoutDeliveryFee === 0 ? 'FREE' : formatPrice(checkoutDeliveryFee)}</span></div>
               </div>
-               <div className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
-                 <strong className="text-green-dark">{form.fulfillmentMethod === 'PICKUP' ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
-                 {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? 'Your delivery fee is calculated from the products in your cart.' : 'The final total will appear after you select a fulfillment option.'}
-               </div>
+                <div className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
+                  <strong className="text-green-dark">{form.fulfillmentMethod === 'PICKUP' ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
+                  {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? (selectedZone ? `Your delivery fee is based on the ${selectedZone.name} zone.` : deliveryZones.length > 0 ? 'Select a delivery zone to see your delivery fee.' : 'Delivery is unavailable until you select an active delivery zone.') : 'The final total will appear after you select a fulfillment option.'}
+                </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>
                   <strong className="text-2xl text-green-dark">{formatPrice(checkoutTotal)}</strong>

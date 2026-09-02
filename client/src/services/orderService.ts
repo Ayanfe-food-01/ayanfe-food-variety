@@ -17,6 +17,8 @@ export interface CreatedOrder {
   note: string | null
   subtotal: string
   deliveryFee: string
+  deliveryZoneName: string | null
+  deliveryZoneId: string | null
   total: string
   paymentMethod: PaymentMethod
   orderItems: Array<{
@@ -72,6 +74,7 @@ export interface GuestOrder {
   city: string
   subtotal: string
   deliveryFee: string
+  deliveryZoneName: string | null
   total: string
   paymentStatus: CustomerPaymentStatus
   paymentConfirmedAt: string | null
@@ -133,6 +136,7 @@ export async function checkoutCustomerCart(input: {
   city?: string
   deliveryInstructions?: string
   paymentMethod: PaymentMethod
+  deliveryZoneId?: string
 }): Promise<CreatedOrder> {
   const response = await request<CustomerOrderResponse>('/orders', {
     method: 'POST',
@@ -201,6 +205,8 @@ export interface AdminOrder {
   note: string | null
   subtotal: string
   deliveryFee: string
+  deliveryZoneName: string | null
+  deliveryZoneId: string | null
   total: string
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus
@@ -332,4 +338,16 @@ export async function restoreAdminOrder(orderNumber: string): Promise<AdminOrder
 
 export async function deleteAdminOrder(orderNumber: string): Promise<void> {
   await request<{ success: true }>(`/admin/orders/${encodeURIComponent(orderNumber)}`, { method: 'DELETE' })
+}
+
+export interface DeliveryZone {
+  id: string
+  name: string
+  fee: string
+  freeDeliveryThreshold: string | null
+}
+
+export async function getActiveDeliveryZones(): Promise<DeliveryZone[]> {
+  const response = await request<{ data: DeliveryZone[] }>('/delivery-zones')
+  return response.data
 }

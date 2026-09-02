@@ -9,6 +9,7 @@ export const initialCheckoutForm: CheckoutFormData = {
   city: '',
   deliveryInstructions: '',
   paymentMethod: 'BANK_TRANSFER',
+  deliveryZoneId: '',
 }
 
 export function validateCheckoutForm(form: CheckoutFormData): CheckoutFormErrors {
@@ -29,6 +30,7 @@ export function validateCheckoutForm(form: CheckoutFormData): CheckoutFormErrors
   if (form.fulfillmentMethod === 'DELIVERY') {
     if (!form.address.trim()) errors.address = 'Please enter your delivery address.'
     if (!form.city.trim()) errors.city = 'Please enter your city or location.'
+    if (!form.deliveryZoneId) errors.deliveryZone = 'Please select your delivery zone.'
   }
 
   return errors

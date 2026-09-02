@@ -87,8 +87,6 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
     items,
     mode,
     subtotal,
-    deliveryFee,
-    total,
     totalQuantity,
     canCheckout,
     isLoading,
@@ -274,14 +272,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                   <span>Subtotal</span>
                   <span className="cart-drawer-summary-strong">{formatPrice(subtotal)}</span>
                 </div>
-                <div className="cart-drawer-summary-row">
-                  <span>Delivery fee</span>
-                  <span className="cart-drawer-summary-strong">{deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}</span>
-                </div>
-                <div className="cart-drawer-summary-total">
-                  <span>Total</span>
-                  <strong>{formatPrice(total)}</strong>
-                </div>
+                <p className="cart-drawer-summary-note">Delivery is calculated at checkout based on your delivery zone.</p>
               </div>
               {!canCheckout && (
                 <p className="cart-drawer-notice" role="alert">

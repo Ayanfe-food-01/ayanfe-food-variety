@@ -138,7 +138,6 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
   const [items, setItems] = useState<CartItem[]>(readStoredCart)
   const [authoritativeSubtotal, setAuthoritativeSubtotal] = useState<number | null>(null)
-  const [authoritativeDeliveryFee, setAuthoritativeDeliveryFee] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pendingItemIds, setPendingItemIds] = useState<string[]>([])
@@ -162,13 +161,11 @@ export function CartProvider({ children }: CartProviderProps) {
   const applySnapshot = useCallback((snapshot: CustomerCartSnapshot) => {
     setItems(snapshot.items.map(toCartItem))
     setAuthoritativeSubtotal(Number(snapshot.subtotal))
-    setAuthoritativeDeliveryFee(Number(snapshot.deliveryFee))
   }, [])
 
   const refreshCart = useCallback(async () => {
     if (!user) {
       setAuthoritativeSubtotal(null)
-      setAuthoritativeDeliveryFee(null)
       setIsLoading(false)
       return
     }
@@ -192,7 +189,6 @@ export function CartProvider({ children }: CartProviderProps) {
       if (previousUserIdRef.current) {
         setItems([])
         setAuthoritativeSubtotal(null)
-        setAuthoritativeDeliveryFee(null)
         window.localStorage.removeItem(CART_OWNER_STORAGE_KEY)
       }
       previousUserIdRef.current = null
@@ -284,7 +280,6 @@ export function CartProvider({ children }: CartProviderProps) {
 
     setError(null)
     setAuthoritativeSubtotal(null)
-    setAuthoritativeDeliveryFee(null)
     const nextItems = !existingItem
       ? [...itemsRef.current, createCartItem(product, safeQuantity, selectedOption)]
       : itemsRef.current.map((item) =>
@@ -318,7 +313,6 @@ export function CartProvider({ children }: CartProviderProps) {
       return
     }
     setAuthoritativeSubtotal(null)
-    setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => currentItems.map((candidate) =>
       cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey
         ? {
@@ -348,7 +342,6 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     setAuthoritativeSubtotal(null)
-    setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => currentItems.map((candidate) =>
       cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey
         ? {
@@ -372,7 +365,6 @@ export function CartProvider({ children }: CartProviderProps) {
 
     setError(null)
     setAuthoritativeSubtotal(null)
-    setAuthoritativeDeliveryFee(null)
     setItems((currentItems) => currentItems.filter(
       (candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) !== lineKey,
     ))
@@ -388,7 +380,6 @@ export function CartProvider({ children }: CartProviderProps) {
       } else {
         setItems([])
         setAuthoritativeSubtotal(null)
-        setAuthoritativeDeliveryFee(null)
       }
     } catch (caught: unknown) {
       setError(messageFromError(caught))
@@ -400,8 +391,6 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const getItemSubtotal = useCallback((item: CartItem) => item.itemSubtotal, [])
   const subtotal = authoritativeSubtotal ?? items.reduce((total, item) => total + getItemSubtotal(item), 0)
-  const deliveryFee = authoritativeDeliveryFee ?? items.reduce((total, item) => total + item.deliveryFee, 0)
-  const total = subtotal + deliveryFee
   const totalQuantity = items.reduce((total, item) => total + item.quantity, 0)
   const canCheckout = items.length > 0 && items.every((item) => item.isAvailable)
 
@@ -411,8 +400,6 @@ export function CartProvider({ children }: CartProviderProps) {
       mode: shoppingMode,
       totalQuantity,
       subtotal,
-      deliveryFee,
-      total,
       canCheckout,
       isLoading,
       error,
@@ -442,8 +429,6 @@ export function CartProvider({ children }: CartProviderProps) {
       removeFromCart,
       shoppingMode,
       subtotal,
-      deliveryFee,
-      total,
       totalQuantity,
     ],
   )

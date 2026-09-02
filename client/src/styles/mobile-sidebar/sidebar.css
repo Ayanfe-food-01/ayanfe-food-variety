@@ -1,0 +1,20 @@
+@layer components {
+  .sidebar-backdrop { transition: opacity 280ms ease, visibility 0s linear 280ms; }
+  .sidebar-backdrop-open { visibility: visible; transition-delay: 0s; }
+  .sidebar-backdrop-closed { visibility: hidden; }
+  .sidebar-drawer {
+    will-change: transform;
+    transform: translateX(-100%);
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 320ms;
+  }
+  .sidebar-drawer-open { visibility: visible; transform: translateX(0); transition-delay: 0s; }
+  .sidebar-drawer-closed { visibility: hidden; transform: translateX(-100%); }
+}
+
+@media (min-width: 768px) {
+  .sidebar-drawer { position: static; inset: auto; visibility: visible; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-backdrop, .sidebar-drawer { animation: none; transition: none; }
+}

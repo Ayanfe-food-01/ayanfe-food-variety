@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { ApiError } from '../services/api'
 import {
   getCurrentUser,
@@ -10,16 +10,17 @@ import {
 } from '../services/authService'
 import { CustomerAuthContext, type AuthAction, type CustomerAuthContextValue } from './customerAuthContext'
 import { storeAuthReturnPath } from '../utils/authReturn'
+import { LoginModal } from '../components/auth/LoginModal'
 
 interface CustomerAuthProviderProps {
   children: ReactNode
 }
 
 export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
-  const navigate = useNavigate()
   const location = useLocation()
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAuthOpen, setIsAuthOpen] = useState(false)
   const afterAuthRef = useRef<AuthAction | undefined>(undefined)
   const userRef = useRef(user)
 
@@ -49,12 +50,12 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
     afterAuthRef.current = action
     const returnPath = `${location.pathname}${location.search}${location.hash}`
     storeAuthReturnPath(returnPath)
-    navigate('/login', {
-      state: {
-        from: returnPath,
-      },
-    })
-  }, [location.hash, location.pathname, location.search, navigate])
+    setIsAuthOpen(true)
+  }, [location.hash, location.pathname, location.search])
+
+  const closeAuth = useCallback(() => {
+    setIsAuthOpen(false)
+  }, [])
 
   const completeAuthentication = useCallback((authenticatedUser: AuthenticatedUser) => {
     const authenticated = authenticatedUser.role === 'CUSTOMER' ? authenticatedUser : null
@@ -94,6 +95,7 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
     isLoading,
     shoppingMode: user?.shoppingMode ?? 'RETAIL',
     openAuth,
+    closeAuth,
     completeAuthentication,
     completeGuestContinuation,
     setUser,
@@ -104,6 +106,7 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
   return (
     <CustomerAuthContext.Provider value={value}>
       {children}
+      {isAuthOpen && <LoginModal />}
     </CustomerAuthContext.Provider>
   )
 }

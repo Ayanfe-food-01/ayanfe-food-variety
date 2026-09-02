@@ -1,0 +1,36 @@
+.shopping-mode-switch { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.desktop-shopping-mode {
+  margin-left: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 1px solid var(--color-line);
+}
+.desktop-shopping-mode .shopping-mode-label {
+  font-size: 11px;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+.shopping-mode-label { color: var(--color-muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.shopping-mode-toggle { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--color-line); border-radius: 999px; background: #f0f1ee; padding: 3px; }
+.shopping-mode-option { min-height: 32px; border: 0; border-radius: 999px; padding: 0 14px; background: transparent; color: var(--color-muted); font-size: 11px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background-color .2s ease, color .2s ease; }
+.desktop-shopping-mode .shopping-mode-toggle { gap: 3px; padding: 4px; }
+.desktop-shopping-mode .shopping-mode-option { min-height: 38px; padding: 0 18px; font-size: 12px; }
+.shopping-mode-option:hover:not(.is-active) { color: var(--color-green-dark); }
+.shopping-mode-option.is-active { background: var(--color-green-dark); color: var(--color-cream); }
+.shopping-mode-option:disabled { cursor: wait; opacity: .6; }
+.shopping-mode-option:focus-visible { outline: 2px solid var(--color-orange); outline-offset: 2px; }
+.shopping-mode-error { color: var(--color-orange); font-size: 10px; font-weight: 700; }
+
+@media (max-width: 1024px) {
+  .shopping-mode-option { min-height: 30px; padding: 0 11px; font-size: 10px; }
+  .desktop-shopping-mode { gap: 10px; padding-left: 10px; }
+  .desktop-shopping-mode .shopping-mode-option { min-height: 34px; padding: 0 14px; font-size: 11px; }
+}
+
+@media (max-width: 767px) {
+  .mobile-shopping-mode { width: 100%; margin-bottom: 10px; padding-bottom: 14px; }
+  .mobile-shopping-mode .shopping-mode-toggle { display: flex; width: 100%; }
+  .mobile-shopping-mode .shopping-mode-option { flex: 1; min-height: 42px; padding: 0 10px; font-size: 12px; }
+}

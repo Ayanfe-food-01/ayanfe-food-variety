@@ -1,0 +1,143 @@
+/* ---- FAQ accordion ---- */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.faq-item {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: #fffdfc;
+  transition: border-color .2s ease;
+}
+
+.faq-item.is-open {
+  border-color: var(--color-green);
+}
+
+.faq-question-wrap {
+  margin: 0;
+}
+
+.faq-question {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 0;
+  padding: 16px 18px;
+  background: transparent;
+  color: var(--color-green-dark);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.faq-question:hover {
+  background: var(--color-sage);
+}
+
+.faq-question:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: -2px;
+}
+
+.faq-question-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.faq-question-chevron {
+  flex: 0 0 auto;
+  color: var(--color-green);
+  transition: transform .24s ease;
+}
+
+.faq-item.is-open .faq-question-chevron {
+  transform: rotate(180deg);
+}
+
+.faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .28s ease;
+}
+
+.faq-item.is-open .faq-panel {
+  grid-template-rows: 1fr;
+}
+
+.faq-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.faq-answer {
+  padding: 0 18px 18px;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.faq-answer p {
+  margin: 0;
+}
+
+.faq-answer p + p {
+  margin-top: 10px;
+}
+
+.faq-answer ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.faq-answer li {
+  margin: 4px 0;
+}
+
+.faq-answer strong {
+  color: var(--color-green-dark);
+  font-weight: 800;
+}
+
+.faq-answer a {
+  color: var(--color-green);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color .2s ease;
+}
+
+.faq-answer a:hover {
+  color: var(--color-orange);
+}
+
+@media (max-width: 767px) {
+  .faq-question {
+    min-height: 50px;
+    padding: 15px 14px;
+    font-size: 14px;
+  }
+
+  .faq-answer {
+    padding: 0 14px 15px;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-question-chevron,
+  .faq-panel {
+    transition: none;
+  }
+}

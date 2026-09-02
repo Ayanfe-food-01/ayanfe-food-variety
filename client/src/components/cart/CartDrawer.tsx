@@ -165,7 +165,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
           </span>
           <button
             ref={closeButtonRef}
-            className="cart-drawer-close"
+            className="grid size-9 place-items-center rounded-full border border-line bg-transparent text-green-dark cursor-pointer transition-colors duration-200 hover:bg-sage hover:text-green"
             type="button"
             onClick={onClose}
             aria-label="Close cart"

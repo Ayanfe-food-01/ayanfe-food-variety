@@ -24,7 +24,7 @@ export function CategoryRail({ categories, isLoading, hasError, onRetry }: Categ
         {isLoading ? <div className="category-rail" aria-busy="true" aria-label="Loading categories">
           {Array.from({ length: 5 }, (_, index) => <span className="category-skeleton" key={index} />)}
         </div> : hasError ? <div className="section-message" role="alert">
-          <span>Categories are temporarily unavailable.</span><button type="button" onClick={onRetry}>Try again</button>
+          <span>Categories are temporarily unavailable.</span><button type="button" className="border-0 bg-transparent text-orange font-extrabold cursor-pointer" onClick={onRetry}>Try again</button>
         </div> : categories.length ? <div className="category-rail">
           {categories.map((category) => <CategoryCard category={category} key={category.id} />)}
         </div> : <div className="section-message">No categories are available right now.</div>}

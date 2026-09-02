@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { CartIcon, CloseIcon, HeartIcon, MenuIcon, UserIcon } from '../../assets/icons'
+import { CartIcon, CloseIcon, HeartIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
@@ -9,6 +9,7 @@ import { useWishlist } from '../../hooks/useWishlist'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { DEFAULT_LOGO_PATH } from '../../seo/config'
 import { ShoppingModeSwitch } from './ShoppingModeSwitch'
+import { AccountMenu } from './AccountMenu'
 import { CartDrawer } from '../cart/CartDrawer'
 import { useMarketUi } from '../../hooks/useMarketUi'
 
@@ -34,7 +35,7 @@ export function Navbar() {
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const navigate = useNavigate()
   const { totalQuantity } = useCart()
-  const { user, logout } = useCustomerAuth()
+  const { user, logout, openAuth } = useCustomerAuth()
   const { count: wishlistCount } = useWishlist()
   const { settings } = useStoreSettings()
   const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
@@ -89,7 +90,7 @@ export function Navbar() {
   }
 
   return (
-    <header className={`store-header ${isScrolled ? 'is-scrolled' : ''}`}>
+    <>
       <div className="header-utility" aria-label="Store announcements">
         {announcementMessages.length > 0 && (
           <div className="ticker-viewport">
@@ -108,6 +109,7 @@ export function Navbar() {
           </div>
         )}
       </div>
+      <header className={`store-header ${isScrolled ? 'is-scrolled' : ''}`}>
       <nav className="container store-nav" aria-label="Main navigation">
         <button className="icon-button mobile-only" type="button" aria-label="Open navigation menu" onClick={() => setIsMenuOpen(true)}>
           <MenuIcon size={22} />
@@ -125,9 +127,7 @@ export function Navbar() {
           showSubmitButton
         />
         <div className="store-actions">
-          <Link className="account-link" to={user ? '/orders' : '/login'} aria-label={user ? 'Open your orders' : 'Sign in'}>
-            <UserIcon size={22} /><span className="desktop-only">{user ? 'Account' : 'Sign in'}</span>
-          </Link>
+          <AccountMenu />
           <button
             className="cart-link"
             type="button"
@@ -144,7 +144,6 @@ export function Navbar() {
         {links.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
         <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
         <ShoppingModeSwitch className="desktop-shopping-mode" />
-        {user && <button type="button" onClick={() => void logout()}>Log out</button>}
       </div>
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
       <aside className={`mobile-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
@@ -169,9 +168,10 @@ export function Navbar() {
           {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
            <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
         </div>
-        {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <Link className="logout-link" to="/login" onClick={() => setIsMenuOpen(false)}>Sign in</Link>}
+        {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); openAuth() }}>Sign in</button>}
       </aside>
       <CartDrawer open={isCartDrawerOpen} onClose={closeCartDrawer} />
     </header>
+    </>
   )
 }

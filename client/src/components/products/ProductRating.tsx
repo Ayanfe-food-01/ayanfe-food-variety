@@ -14,14 +14,14 @@ export function ProductRating({ rating, count, className = '' }: ProductRatingPr
 
   return (
     <span
-      className={`product-rating${className ? ` ${className}` : ''}`}
+      className={`inline-flex items-center gap-[3px] text-orange text-[10px] leading-none${className ? ` ${className}` : ''}`}
       title={`Rated ${average} out of 5 · ${reviewCount} review${reviewCount === 1 ? '' : 's'}`}
     >
-      <svg aria-hidden="true" className="product-rating-star" viewBox="0 0 24 24" fill="currentColor">
+      <svg aria-hidden="true" className="size-[13px] shrink-0" viewBox="0 0 24 24" fill="currentColor">
         <path d={STAR_PATH} />
       </svg>
-      <span className="product-rating-value">{average}</span>
-      <span className="product-rating-count">({reviewCount})</span>
+      <span className="text-ink font-bold">{average}</span>
+      <span className="text-muted font-semibold">({reviewCount})</span>
     </span>
   )
 }

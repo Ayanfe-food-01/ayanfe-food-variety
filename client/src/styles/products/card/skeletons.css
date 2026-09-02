@@ -1,0 +1,43 @@
+
+.product-skeleton {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: white;
+}
+
+.product-skeleton-media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--color-sage);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.product-skeleton-body {
+  display: grid;
+  flex: 1;
+  gap: 9px;
+  padding: 11px;
+}
+
+.product-skeleton-line {
+  height: 12px;
+  border-radius: 4px;
+  background: var(--color-sage);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.product-skeleton-line:last-child {
+  width: 62%;
+}
+
+.product-skeleton-action {
+  height: 36px;
+  margin: 0 11px 11px;
+  border-radius: 9px;
+  background: var(--color-sage);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+

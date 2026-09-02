@@ -1,0 +1,31 @@
+@layer utilities {
+  .responsive-table-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-table-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+
+  .responsive-table-proxy-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-table-proxy-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .responsive-table-scrollbar-hidden table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .responsive-table-scrollbar-hidden th,
+  .responsive-table-scrollbar-hidden td {
+    overflow-wrap: normal;
+  }
+}

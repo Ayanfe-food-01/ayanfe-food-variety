@@ -314,8 +314,8 @@ export function Testimonials() {
                 <tbody className="divide-y divide-line">
                   {testimonials.map((testimonial) => (
                     <tr key={testimonial.id} className="group">
-                      <td className="w-[260px] max-w-[260px] overflow-hidden px-5 py-4"><div className="flex min-w-[220px] max-w-[260px] items-center gap-3"><div className="size-11 shrink-0 overflow-hidden rounded-full bg-sage">{testimonial.avatarUrl && <img className="size-full object-cover" src={testimonial.avatarUrl} alt="" onError={hideBrokenImage} />}</div><p className="responsive-table-ellipsis font-bold text-green-dark">{testimonial.authorName}</p></div></td>
-                      <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><p className="responsive-table-ellipsis max-w-[400px] text-xs leading-5 text-muted">{testimonial.content}</p></td>
+                      <td className="w-[260px] max-w-[260px] overflow-hidden px-5 py-4"><div className="flex min-w-[220px] max-w-[260px] items-center gap-3"><div className="size-11 shrink-0 overflow-hidden rounded-full bg-sage">{testimonial.avatarUrl && <img className="size-full object-cover" src={testimonial.avatarUrl} alt="" onError={hideBrokenImage} />}</div><p className="block min-w-0 truncate font-bold text-green-dark">{testimonial.authorName}</p></div></td>
+                      <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><p className="block min-w-0 truncate max-w-[400px] text-xs leading-5 text-muted">{testimonial.content}</p></td>
                       <td className="px-5 py-4"><ContentTypeBadge type="testimonial" /></td>
                       <td className="px-5 py-4">{testimonial.rating ? <span className="font-bold text-orange">★ {testimonial.rating}/5</span> : <span className="text-muted">—</span>}</td>
                       <td className="px-5 py-4 text-muted">{testimonial.displayOrder}</td>

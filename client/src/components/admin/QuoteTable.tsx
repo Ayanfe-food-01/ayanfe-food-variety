@@ -74,10 +74,10 @@ export function QuoteTable({ quoteRequests }: QuoteTableProps) {
             <tbody className="divide-y divide-line">
               {quoteRequests.map((quote) => (
                 <tr className="group hover:bg-cream/60" key={quote.quoteNumber}>
-                  <td className="px-5 py-4"><span className="responsive-table-ellipsis max-w-[190px] font-semibold text-green-dark">{quote.quoteNumber}</span></td>
+                  <td className="px-5 py-4"><span className="block min-w-0 truncate max-w-[190px] font-semibold text-green-dark">{quote.quoteNumber}</span></td>
                   <td className="px-5 py-4">
-                    <p className="responsive-table-ellipsis max-w-[270px] font-semibold text-green-dark">{quote.customerName}</p>
-                    <p className="responsive-table-ellipsis mt-1 max-w-[270px] text-xs text-muted">{quote.customerEmail}</p>
+                    <p className="block min-w-0 truncate max-w-[270px] font-semibold text-green-dark">{quote.customerName}</p>
+                    <p className="block min-w-0 truncate mt-1 max-w-[270px] text-xs text-muted">{quote.customerEmail}</p>
                   </td>
                   <td className="whitespace-nowrap px-5 py-4 text-muted">{quote.customerPhone}</td>
                   <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(quote.createdAt, true)}</td>

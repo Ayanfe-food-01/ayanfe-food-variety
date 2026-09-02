@@ -1,0 +1,67 @@
+@keyframes route-loader-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes route-loader-logo-breathe {
+  0%, 100% { opacity: .9; transform: scale(.98); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes route-loader-enter {
+  from { opacity: 0; transform: scale(.82) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes route-content-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@layer components {
+  .route-loader {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    background: rgb(248 248 243 / 62%);
+    -webkit-backdrop-filter: blur(9px);
+    backdrop-filter: blur(9px);
+    animation: route-loader-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .route-loader-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+  }
+
+  .route-loader-mark img {
+    width: 62px;
+    height: 62px;
+    object-fit: contain;
+    animation: route-loader-logo-breathe 900ms ease-in-out infinite;
+  }
+
+  .route-loader-ring {
+    position: absolute;
+    inset: -8px;
+    border: 3px solid rgb(50 79 45 / 14%);
+    border-right-color: var(--color-orange);
+    border-top-color: var(--color-green);
+    border-radius: 50%;
+    animation: route-loader-spin 700ms linear infinite;
+  }
+  .route-content {
+    min-height: 100%;
+    animation: route-content-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loader, .route-loader-mark, .route-loader-ring { animation: none; }
+  .route-loader-mark img { animation: none; }
+  .route-content { animation: none; }
+}

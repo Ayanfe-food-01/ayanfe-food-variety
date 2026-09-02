@@ -73,7 +73,7 @@ export function ProductFilters({
       <div className="shop-sort-row">
         <span className="shop-sort-label">Sort by:</span>
         {sortDisabled ? (
-          <span className="shop-sort-static">Newest</span>
+          <span className="min-w-[110px] py-1 text-green-dark font-bold">Newest</span>
         ) : (
           <SelectField
             ariaLabel="Sort products"

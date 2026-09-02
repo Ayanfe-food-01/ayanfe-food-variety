@@ -103,10 +103,10 @@ export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, on
           <tbody className="divide-y divide-line">
             {orders.map((order) => (
                <tr className="group hover:bg-cream/60" key={order.orderNumber}>
-                <td className="px-5 py-4 font-semibold text-green-dark"><span className="responsive-table-ellipsis max-w-[190px]">{order.orderNumber}</span></td>
+                <td className="px-5 py-4 font-semibold text-green-dark"><span className="block min-w-0 truncate max-w-[190px]">{order.orderNumber}</span></td>
                 <td className="px-5 py-4">
-                  <p className="responsive-table-ellipsis max-w-[270px] font-semibold text-green-dark">{order.customerName}</p>
-                    <p className="responsive-table-ellipsis mt-1 max-w-[270px] text-xs text-muted">{order.email ?? 'No email provided'}</p>
+                  <p className="block min-w-0 truncate max-w-[270px] font-semibold text-green-dark">{order.customerName}</p>
+                    <p className="block min-w-0 truncate mt-1 max-w-[270px] text-xs text-muted">{order.email ?? 'No email provided'}</p>
                 </td>
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{order.phone}</td>
                  <td className="whitespace-nowrap px-5 py-4 text-muted">{formatDate(order.createdAt, true)}</td>

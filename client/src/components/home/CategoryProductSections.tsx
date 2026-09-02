@@ -23,7 +23,7 @@ export function CategoryProductSections({
         <div className="container">
           <div className="section-message" role="alert">
             <span>Category shelves are temporarily unavailable.</span>
-            <button type="button" onClick={onRetry}>Try again</button>
+            <button type="button" className="border-0 bg-transparent text-orange font-extrabold cursor-pointer" onClick={onRetry}>Try again</button>
           </div>
         </div>
       </section>

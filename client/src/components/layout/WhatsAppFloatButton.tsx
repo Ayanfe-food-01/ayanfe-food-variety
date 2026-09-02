@@ -13,7 +13,7 @@ export function WhatsAppFloatButton() {
 
   return (
     <a
-      className="whatsapp-float-button"
+      className="fixed bottom-[18px] right-[18px] z-[55] grid size-14 place-items-center rounded-full bg-[#25d366] text-white shadow-[0_12px_26px_#18271440] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_#1827144d] max-[767px]:bottom-[14px] max-[767px]:right-[14px] max-[767px]:size-[52px] motion-reduce:transition-none motion-reduce:hover:transform-none"
       href={whatsAppChatUrl(whatsappNumber)}
       target="_blank"
       rel="noreferrer"

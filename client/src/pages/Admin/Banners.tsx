@@ -165,7 +165,7 @@ export function Banners() {
                <tbody className="divide-y divide-line">
                 {banners.map((banner) => (
                    <tr key={banner.id} className="group">
-                     <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><div className="flex min-w-[380px] max-w-[388px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="responsive-table-ellipsis font-bold text-green-dark">{banner.title}</p><p className="responsive-table-ellipsis mt-1 text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
+                     <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><div className="flex min-w-[380px] max-w-[388px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="block min-w-0 truncate font-bold text-green-dark">{banner.title}</p><p className="block min-w-0 truncate mt-1 text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 font-bold text-green-dark">{banner.displayOrder}</td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-muted">{formatDate(banner.createdAt)}</td>

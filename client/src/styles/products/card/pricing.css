@@ -1,0 +1,140 @@
+.product-price {
+  color: var(--color-green-dark);
+  font-size: 15px;
+}
+
+.product-price-wholesale {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.wholesale-price-label {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.wholesale-price-value {
+  color: var(--color-green-dark);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.wholesale-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgb(50 79 45 / 25%);
+  border-radius: 999px;
+  background: var(--color-sage);
+  color: var(--color-green-dark);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.wholesale-pricing {
+  margin-top: 22px;
+  border: 1px solid rgb(50 79 45 / 22%);
+  border-radius: 16px;
+  background: #fbfbf7;
+  padding: 14px;
+}
+
+.wholesale-pricing-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.wholesale-moq {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.wholesale-price-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.wholesale-unit-price {
+  color: var(--color-green-dark);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.wholesale-per {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.wholesale-price-error {
+  color: var(--color-orange);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.wholesale-tier-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.wholesale-tier-table th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.wholesale-tier-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-ink);
+}
+
+.wholesale-tier-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.wholesale-tier-table td:last-child {
+  text-align: right;
+  font-weight: 700;
+}
+
+.wholesale-tier-table tbody tr.is-active td {
+  background: var(--color-sage);
+  color: var(--color-green-dark);
+  font-weight: 800;
+}
+
+.wholesale-tier-table tbody tr.is-active td:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.wholesale-tier-table tbody tr.is-active td:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.wholesale-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+

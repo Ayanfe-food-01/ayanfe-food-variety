@@ -61,6 +61,11 @@ export default defineConfig(({ mode }) => {
   const publicAppUrl = (environment.PUBLIC_APP_URL || '').trim().replace(/\/+$/, '')
 
   return {
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),

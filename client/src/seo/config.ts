@@ -27,6 +27,7 @@ export const SHOP_DESCRIPTION =
 export const NEW_ARRIVALS_TITLE = 'New Nigerian Foodstuff Arrivals | Ayanfe Food Variety'
 export const NEW_ARRIVALS_DESCRIPTION =
   'Discover new Nigerian foodstuff arrivals, from natural pantry staples to everyday groceries, with convenient online delivery.'
+export const ACCOUNT_TITLE = 'Account settings | Ayanfe Food Variety'
 export const DEFAULT_LOGO_PATH = '/branding/ayanfe-food-variety-logo.png'
 export const DEFAULT_FAVICON_PATH = DEFAULT_LOGO_PATH
 export const DEFAULT_SOCIAL_IMAGE_PATH = DEFAULT_LOGO_PATH

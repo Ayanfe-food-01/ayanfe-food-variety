@@ -38,6 +38,7 @@ import { Login } from './pages/Login'
 import { VerifyEmail } from './pages/VerifyEmail'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
+import { Account } from './pages/Account'
 import { Products } from './pages/Admin/Products'
 import { ProductForm } from './pages/Admin/ProductForm'
 import { ProductView } from './pages/Admin/ProductView'
@@ -152,6 +153,7 @@ function RouteTransition() {
           <Route path="/quotes" element={<CustomerQuotes />} />
           <Route path="/quotes/:reference" element={<CustomerQuoteDetail />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/account" element={<Account />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
@@ -200,6 +202,7 @@ function PrivateRouteSeo() {
     || pathname === '/cart'
     || pathname === '/wishlist'
     || pathname === '/checkout'
+    || pathname === '/account'
     || pathname.startsWith('/admin')
     || pathname.startsWith('/orders')
     || pathname.startsWith('/quotes')

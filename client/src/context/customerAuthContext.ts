@@ -8,6 +8,7 @@ export interface CustomerAuthContextValue {
   isLoading: boolean
   shoppingMode: ShoppingMode
   openAuth: (afterAuth?: AuthAction) => void
+  closeAuth: () => void
   completeAuthentication: (user: AuthenticatedUser) => void
   completeGuestContinuation: () => void
   setUser: (user: AuthenticatedUser | null) => void

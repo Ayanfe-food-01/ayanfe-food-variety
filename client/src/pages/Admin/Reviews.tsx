@@ -360,10 +360,10 @@ export function Reviews() {
                 <tbody className="divide-y divide-line">
                   {reviews.map((review) => (
                     <tr key={review.id} className="group">
-                      <td className="w-[240px] max-w-[240px] overflow-hidden px-5 py-4"><p className="responsive-table-ellipsis font-bold text-green-dark">{review.customerName ?? 'Verified Customer'}</p><p className="mt-0.5 text-[11px] text-muted">Order {review.orderNumber}</p></td>
-                      <td className="w-[260px] max-w-[260px] overflow-hidden px-5 py-4"><p className="responsive-table-ellipsis text-xs font-semibold text-green-dark">{review.productName}</p>{review.productOptionLabel ? <p className="responsive-table-ellipsis mt-0.5 text-[11px] text-muted">{review.productOptionLabel}</p> : null}</td>
+                      <td className="w-[240px] max-w-[240px] overflow-hidden px-5 py-4"><p className="block min-w-0 truncate font-bold text-green-dark">{review.customerName ?? 'Verified Customer'}</p><p className="mt-0.5 text-[11px] text-muted">Order {review.orderNumber}</p></td>
+                      <td className="w-[260px] max-w-[260px] overflow-hidden px-5 py-4"><p className="block min-w-0 truncate text-xs font-semibold text-green-dark">{review.productName}</p>{review.productOptionLabel ? <p className="block min-w-0 truncate mt-0.5 text-[11px] text-muted">{review.productOptionLabel}</p> : null}</td>
                       <td className="px-5 py-4"><div className="flex items-center gap-2"><ReviewStars value={review.rating} size={14} /><span className="font-bold text-orange">{review.rating}/5</span></div></td>
-                      <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><p className="responsive-table-ellipsis max-w-[400px] text-xs leading-5 text-muted">{review.content}</p></td>
+                      <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><p className="block min-w-0 truncate max-w-[400px] text-xs leading-5 text-muted">{review.content}</p></td>
                       <td className="px-5 py-4">{review.verifiedPurchase ? <VerifiedPurchaseBadge /> : <span className="text-xs text-muted">Not verified</span>}</td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${statusTone[review.status].className}`}>{statusTone[review.status].label}</span></td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${review.isFeatured ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>{review.isFeatured ? 'Featured' : 'Not featured'}</span></td>

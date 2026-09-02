@@ -127,6 +127,7 @@ function ZoneFormModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneForm
               Free delivery threshold
               <span className="ml-1 font-normal text-muted">(₦, optional)</span>
               <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={freeDeliveryThreshold} onChange={(event) => setFreeDeliveryThreshold(event.target.value)} placeholder="Leave empty for none" />
+              <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Orders at or above this amount get free delivery. Leave empty to always charge the delivery fee.</span>
             </label>
           </div>
           <label className="flex items-center gap-3 text-xs font-bold text-green-dark">

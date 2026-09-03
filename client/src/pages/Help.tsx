@@ -176,9 +176,9 @@ const helpCategories: HelpCategory[] = [
         question: 'How much is delivery?',
         answer: (
           <p>
-            Delivery is priced by delivery zone. During delivery checkout you select your zone and the delivery fee for
-            that zone is shown before you place the order. Some zones offer free delivery once your order reaches a
-            minimum subtotal. Pickup has no delivery fee.
+            Delivery is priced by delivery zone. During delivery checkout you choose your state and city, and the
+            matching delivery zone and fee are shown automatically before you place the order. Some zones offer free
+            delivery once your order reaches a minimum subtotal. Pickup has no delivery fee.
           </p>
         ),
       },

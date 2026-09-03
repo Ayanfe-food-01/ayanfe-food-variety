@@ -286,7 +286,7 @@ export function Cart() {
                     </div>
                   </div>
                   <p className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
-                    Delivery is calculated at checkout based on your selected delivery zone and order total.
+                    Delivery is calculated at checkout based on your delivery location and order total.
                   </p>
                   <div className="flex items-center justify-between gap-4">
                     <span className="font-bold text-green-dark">Estimated total</span>

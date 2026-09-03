@@ -167,6 +167,7 @@ function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityA
   const [assigned, setAssigned] = useState<AdminDeliveryZoneAssignedCity[]>([])
   const [selectedStateId, setSelectedStateId] = useState('')
   const [selectedCityId, setSelectedCityId] = useState('')
+  const [citySearch, setCitySearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [localError, setLocalError] = useState<string | null>(null)
   const [busyCityId, setBusyCityId] = useState<string | null>(null)
@@ -196,10 +197,13 @@ function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityA
 
   const selectedState = states?.find((state) => state.id === selectedStateId)
   const assignedIds = new Set(assigned.map((city) => city.id))
-  const cityOptions = (selectedState?.cities ?? []).map((city) => ({
+  const allCityOptions = (selectedState?.cities ?? []).map((city) => ({
     value: city.id,
     label: city.name,
   }))
+  const cityOptions = citySearch.trim()
+    ? allCityOptions.filter((c) => c.label.toLowerCase().includes(citySearch.trim().toLowerCase()))
+    : allCityOptions
   const disabledCityIds = Array.from(assignedIds)
 
   const addCity = async () => {
@@ -211,6 +215,7 @@ function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityA
       const detail = await assignCityToDeliveryZone(zone.id, cityId)
       setAssigned(detail.cities)
       setSelectedCityId('')
+      setCitySearch('')
       onAssigned()
       showToast('City added to delivery zone.', 'success')
     } catch (caught: unknown) {
@@ -256,7 +261,7 @@ function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityA
               <section aria-label="Currently covered areas">
                 <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Currently covered ({assigned.length})</h3>
                 {assigned.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted">No cities assigned yet. Until a city is assigned, customers there will use the manual delivery option.</p>
+                  <p className="mt-3 text-sm text-muted">No cities assigned. Customers in unassigned cities will see a "delivery unavailable" message at checkout.</p>
                 ) : (
                   <ul className="mt-3 flex flex-wrap gap-2">
                     {assigned.map((city) => (
@@ -290,12 +295,21 @@ function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityA
                           { value: '', label: 'Select a state' },
                           ...(states ?? []).map((state) => ({ value: state.id, label: state.name })),
                         ]}
-                        onChange={(value) => { setSelectedStateId(value); setSelectedCityId('') }}
+                        onChange={(value) => { setSelectedStateId(value); setSelectedCityId(''); setCitySearch('') }}
                         value={selectedStateId}
                       />
                     </label>
                     <label className="block text-xs font-bold text-green-dark">
                       City / LGA
+                      {selectedState && allCityOptions.length > 10 && (
+                        <input
+                          className="ml-2 inline-block w-auto rounded-lg border border-line bg-white px-2.5 py-1 text-[11px] font-normal normal-case tracking-normal text-muted outline-none focus:border-green focus:ring-1 focus:ring-green/10"
+                          placeholder="Search cities…"
+                          value={citySearch}
+                          onChange={(e) => { setCitySearch(e.target.value); setSelectedCityId('') }}
+                          type="text"
+                        />
+                      )}
                       <SelectField
                         className="mt-2 w-full"
                         options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
@@ -306,7 +320,7 @@ function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityA
                     </label>
                   </div>
                   {selectedStateId && !selectedCityId && cityOptions.length === 0 && (
-                    <p className="mt-3 text-sm text-muted">No cities found in this state.</p>
+                    <p className="mt-3 text-sm text-muted">{citySearch.trim() ? 'No cities match your search.' : 'No cities found in this state.'}</p>
                   )}
                   {(localError || error) && <p className="mt-3 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{localError ?? error}</p>}
                   <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -492,7 +506,7 @@ export function DeliveryZones() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Delivery</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Delivery zones & fees</h1>
-          <p className="mt-3 max-w-xl text-sm text-muted">Configure delivery zones and their fees. Customers pick a zone at checkout and the matching fee is applied to their order.</p>
+          <p className="mt-3 max-w-xl text-sm text-muted">Configure delivery zones and their fees. Customers select a state and city at checkout and the matching zone and fee are applied automatically.</p>
         </div>
         <button className="inline-flex w-fit items-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={openCreate}>Add delivery zone</button>
       </div>
@@ -623,7 +637,7 @@ export function DeliveryZones() {
           title={`${zoneToStatus.isActive ? 'Deactivate' : 'Activate'} “${zoneToStatus.name}”?`}
           description={zoneToStatus.isActive
             ? 'Inactive zones are hidden from customers during checkout but existing orders keep their historical fee.'
-            : 'Active zones become selectable by customers during checkout.'}
+            : 'Active zones are automatically assigned to customers whose city falls within the zone.'}
           isBusy={busyId === zoneToStatus.id}
           confirmLabel={zoneToStatus.isActive ? 'Deactivate zone' : 'Activate zone'}
           busyLabel="Updating…"

@@ -194,7 +194,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
           </div>
         ) : (
           <>
-            <ul className="cart-drawer-items" aria-label="Cart items">
+            <ul className="cart-drawer-items modal-scroll" aria-label="Cart items">
               {items.map((item) => {
                 const lineKey = cartItemLineKey(item.id, item.productOptionId)
                 const isPending = pendingItemIds.includes(lineKey)

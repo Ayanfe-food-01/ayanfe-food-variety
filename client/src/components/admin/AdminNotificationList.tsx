@@ -30,7 +30,7 @@ export function AdminNotificationList({
   }
 
   return (
-    <div className={compact ? 'max-h-[min(28rem,65vh)] overflow-y-auto p-2' : 'divide-y divide-line'}>
+    <div className={compact ? 'modal-scroll max-h-[min(28rem,65vh)] overflow-y-auto p-2' : 'divide-y divide-line'}>
       {notifications.map((notification) => (
         <button
           className={`flex w-full items-start gap-3 text-left transition-colors hover:bg-sage/35 ${

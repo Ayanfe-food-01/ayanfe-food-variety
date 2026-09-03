@@ -210,7 +210,7 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
         >
           <CloseIcon size={20} />
         </button>
-        <div className="auth-modal-scroll">
+        <div className="auth-modal-scroll modal-scroll">
           <div className="px-5 pb-[max(1.5rem,calc(1.5rem+env(safe-area-inset-bottom)))] sm:px-8">
             <div className="flex justify-center">
               <BrandLogo className="h-20 w-20 object-contain" />

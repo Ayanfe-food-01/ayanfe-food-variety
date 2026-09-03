@@ -52,7 +52,7 @@ export function ImagePreview({ src, alt, label = 'View image', children, classNa
             if (event.target === event.currentTarget) setIsOpen(false)
           }}
         >
-           <div className="image-preview-panel relative flex w-full max-w-5xl flex-col items-center overflow-y-auto rounded-2xl bg-cream p-3 shadow-2xl sm:p-5">
+           <div className="image-preview-panel modal-scroll relative flex w-full max-w-5xl flex-col items-center overflow-y-auto rounded-2xl bg-cream p-3 shadow-2xl sm:p-5">
             <div className="flex w-full items-center justify-between gap-4 pb-3">
               <p className="truncate text-sm font-bold text-green-dark">{alt}</p>
               <button

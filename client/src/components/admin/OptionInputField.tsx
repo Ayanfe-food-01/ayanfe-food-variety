@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CheckIcon, ChevronDownIcon, CloseIcon } from '../../assets/icons'
 import type { ProductOptionDraft, WholesaleTierDraft } from '../../services/adminService'
 import { formatPrice } from '../../utils/formatPrice'
+import { lockBodyScroll } from '../../utils/browserCompatibility'
 
 export interface OptionTierRowErrors {
   minQuantity?: string
@@ -51,14 +52,13 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
 
   useEffect(() => {
     if (modalIndex === null) return
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const releaseBodyScroll = lockBodyScroll()
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setWholesaleOptionIndex(null)
     }
     document.addEventListener('keydown', closeOnEscape)
     return () => {
-      document.body.style.overflow = previousOverflow
+      releaseBodyScroll()
       document.removeEventListener('keydown', closeOnEscape)
     }
   }, [modalIndex])
@@ -204,7 +204,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
               <button className="grid size-9 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-cream hover:text-green-dark" type="button" aria-label="Close wholesale pricing" onClick={() => setWholesaleOptionIndex(null)}><CloseIcon size={18} /></button>
             </header>
 
-            <div className="overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="modal-scroll overflow-y-auto px-5 py-5 sm:px-6">
               <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
                 <label className="text-sm font-bold text-green-dark">Minimum wholesale order (MOQ){modalOption.wholesaleMoq ? '' : ' (optional)'}
                   <input className={`${inputClassName} mt-2`} aria-invalid={Boolean(errors[modalIndex]?.wholesaleMoq)} aria-describedby={errors[modalIndex]?.wholesaleMoq ? `wholesale-moq-error` : undefined} type="text" inputMode="numeric" value={modalOption.wholesaleMoq ?? ''} onChange={(event) => updateOption(modalIndex, 'wholesaleMoq', event.target.value)} placeholder="e.g. 10" />

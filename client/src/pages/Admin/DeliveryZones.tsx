@@ -5,6 +5,7 @@ import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
+import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { ApiError } from '../../services/api'
 import {
   createAdminDeliveryZone,
@@ -80,16 +81,19 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
   const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
   const [selectedStateId, setSelectedStateId] = useState('')
   const [selectedCityId, setSelectedCityId] = useState('')
-  const [citySearch, setCitySearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
+    const releaseBodyScroll = lockBodyScroll()
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !isBusy) onCancel()
     }
     document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
+    return () => {
+      releaseBodyScroll()
+      document.removeEventListener('keydown', closeOnEscape)
+    }
   }, [isBusy, onCancel])
 
   useEffect(() => {
@@ -115,7 +119,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
 
   const selectedState = states?.find((state) => state.id === selectedStateId)
   const coveredIds = new Set(cities.map((city) => city.id))
-  const allCityOptions = (selectedState?.cities ?? [])
+  const cityOptions = (selectedState?.cities ?? [])
     .filter((city) => !coveredIds.has(city.id))
     .map((city) => ({
       value: city.id,
@@ -124,16 +128,13 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
         : city.name,
       hasOwner: Boolean(city.assignedZoneLabel),
     }))
-  const cityOptions = citySearch.trim()
-    ? allCityOptions.filter((c) => c.label.toLowerCase().includes(citySearch.trim().toLowerCase()))
-    : allCityOptions
   const disabledCityIds = cityOptions
     .filter((c) => c.hasOwner)
     .map((c) => c.value)
 
   const addCity = () => {
     if (!selectedCityId) return
-    const city = allCityOptions.find((c) => c.value === selectedCityId)
+    const city = cityOptions.find((c) => c.value === selectedCityId)
     if (!city) return
     if (city.hasOwner) {
       setFormError(city.label)
@@ -143,7 +144,6 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
     const cityName = state?.cities.find((c) => c.id === city.value)?.name
     setCities((current) => [...current, { id: city.value, name: cityName ?? city.label }])
     setSelectedCityId('')
-    setCitySearch('')
     setFormError(null)
   }
 
@@ -184,16 +184,16 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
   }
 
   return (
-    <div className="safe-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-green-dark/45 p-4" role="presentation">
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-2xl shadow-green-dark/20" role="dialog" aria-modal="true" aria-labelledby="delivery-zone-form-title">
-        <div className="shrink-0 border-b border-line p-7 pb-5 sm:p-8 sm:pb-5">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">{mode === 'create' ? 'New delivery zone' : 'Edit delivery zone'}</p>
-          <h2 id="delivery-zone-form-title" className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
-          <p className="mt-2 text-sm text-muted">A delivery zone is identified by the cities and LGAs it covers. The fee below is charged for deliveries to any of these cities.</p>
+    <div className="safe-modal-backdrop fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-green-dark/45 p-4" role="presentation">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-2xl shadow-green-dark/20" role="dialog" aria-modal="true" aria-labelledby="delivery-zone-form-title">
+        <div className="shrink-0 border-b border-line px-7 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">{mode === 'create' ? 'New delivery zone' : 'Edit delivery zone'}</p>
+          <h2 id="delivery-zone-form-title" className="mt-1.5 text-xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
+          <p className="mt-1.5 text-xs leading-5 text-muted">Covers a set of LGAs; the fee applies to deliveries to these cities.</p>
         </div>
-
-        <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
-          <div className="min-h-0 flex-1 overflow-y-auto p-7 sm:p-8">
+        <div className="modal-scroll min-h-0 flex-1 overflow-y-auto">
+        <form onSubmit={submit}>
+          <div className="p-7 sm:p-8">
             {isLoading ? (
               <p className="text-sm text-muted">Loading…</p>
             ) : (
@@ -249,32 +249,25 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                             { value: '', label: 'Select a state' },
                             ...(states ?? []).map((state) => ({ value: state.id, label: state.name })),
                           ]}
-                          onChange={(value) => { setSelectedStateId(value); setSelectedCityId(''); setCitySearch('') }}
+                          onChange={(value) => { setSelectedStateId(value); setSelectedCityId('') }}
                           value={selectedStateId}
                         />
                       </label>
                       <label className="block text-xs font-bold text-green-dark">
                         City / LGA
-                        {selectedState && (selectedState.cities ?? []).length > 10 && (
-                          <input
-                            className="ml-2 inline-block w-auto rounded-lg border border-line bg-white px-2.5 py-1 text-[11px] font-normal normal-case tracking-normal text-muted outline-none focus:border-green focus:ring-1 focus:ring-green/10"
-                            placeholder="Search cities…"
-                            value={citySearch}
-                            onChange={(e) => { setCitySearch(e.target.value); setSelectedCityId('') }}
-                            type="text"
-                          />
-                        )}
                         <SelectField
                           className="mt-2 w-full"
                           options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
                           onChange={setSelectedCityId}
                           value={selectedCityId}
                           disabledOptions={disabledCityIds}
+                          searchable
+                          placeholder="Type to search or select a city"
                         />
                       </label>
                     </div>
                     {selectedStateId && !selectedCityId && cityOptions.length === 0 && (
-                      <p className="mt-3 text-sm text-muted">{citySearch.trim() ? 'No cities match your search.' : 'No cities found in this state.'}</p>
+                      <p className="mt-3 text-sm text-muted">No cities found in this state.</p>
                     )}
                     <div className="mt-4 flex justify-end">
                       <button
@@ -293,13 +286,16 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
             {(formError || error) && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{formError ?? error}</p>}
           </div>
 
-          <div className="shrink-0 border-t border-line p-7 pt-5 sm:p-8 sm:pt-5">
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isBusy} onClick={onCancel}>Cancel</button>
-              <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="submit" disabled={isBusy}>{isBusy ? 'Saving…' : mode === 'create' ? 'Add delivery zone' : 'Save changes'}</button>
+          {!isLoading && (
+            <div className="border-t border-line p-7 pt-5 sm:p-8 sm:pt-5">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isBusy} onClick={onCancel}>Cancel</button>
+                <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="submit" disabled={isBusy}>{isBusy ? 'Saving…' : mode === 'create' ? 'Add delivery zone' : 'Save changes'}</button>
+              </div>
             </div>
-          </div>
+          )}
         </form>
+        </div>
       </div>
     </div>
   )

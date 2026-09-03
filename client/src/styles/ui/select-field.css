@@ -78,12 +78,25 @@
   border-radius: 14px;
   background: var(--color-cream);
   box-shadow: 0 16px 32px rgb(20 33 22 / 18%);
-  padding: 5px 8px 5px 5px;
+  padding: 5px 16px 5px 5px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-green) transparent;
 }
 
 .select-field-menu.modal-scroll::-webkit-scrollbar-track {
-  margin: 14px 4px;
+  margin: 10px 8px;
+}
+
+.select-field-menu.modal-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.select-field-menu.modal-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-green);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
 }
 
 .select-field-option {

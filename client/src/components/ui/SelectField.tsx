@@ -127,18 +127,29 @@ export function SelectField({
       const gap = 6
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight
       const viewportWidth = window.visualViewport?.width ?? window.innerWidth
-      const preferredMaxHeight = Math.min(272, viewportHeight * 0.45)
+      const preferredMaxHeight = Math.min(240, viewportHeight * 0.45)
       const spaceBelow = viewportHeight - rect.bottom - viewportPadding
       const spaceAbove = rect.top - viewportPadding
+
+      const scrollBox = trigger.closest<HTMLElement>('.modal-scroll')
+      let boxSpaceBelow = spaceBelow
+      let boxSpaceAbove = spaceAbove
+      if (scrollBox) {
+        const boxRect = scrollBox.getBoundingClientRect()
+        const boxPadding = 8
+        boxSpaceBelow = boxRect.bottom - rect.bottom - boxPadding
+        boxSpaceAbove = rect.top - boxRect.top - boxPadding
+      }
+
       const openBelow = spaceBelow >= Math.min(180, preferredMaxHeight) || spaceBelow >= spaceAbove
       const menuWidth = Math.min(
         Math.max(rect.width, variant === 'compact' ? 184 : rect.width),
         viewportWidth - viewportPadding * 2,
       )
-      const maxHeight = Math.max(
-        96,
-        Math.min(preferredMaxHeight, openBelow ? spaceBelow : spaceAbove),
-      )
+      const availableHeight = openBelow
+        ? Math.min(spaceBelow, boxSpaceBelow)
+        : Math.min(spaceAbove, boxSpaceAbove)
+      const maxHeight = Math.max(96, Math.min(preferredMaxHeight, availableHeight))
       const top = openBelow
         ? rect.bottom + gap
         : Math.max(viewportPadding, rect.top - maxHeight - gap)

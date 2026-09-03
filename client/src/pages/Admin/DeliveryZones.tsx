@@ -7,7 +7,6 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
 import {
-  assignCityToDeliveryZone,
   createAdminDeliveryZone,
   deleteAdminDeliveryZone,
   getAdminDeliveryLocationStates,
@@ -16,11 +15,9 @@ import {
   reorderAdminDeliveryZones,
   type AdminDeliveryLocationState,
   type AdminDeliveryZone,
-  type AdminDeliveryZoneAssignedCity,
   type AdminDeliveryZonesPage,
   type AdminDeliveryZonesQuery,
   type DeliveryZoneInput,
-  unassignCityFromDeliveryZone,
   updateAdminDeliveryZone,
   updateAdminDeliveryZoneStatus,
 } from '../../services/adminService'
@@ -42,18 +39,16 @@ const formatCurrency = (value?: string | null) => {
 interface ZoneActionsProps {
   zone: AdminDeliveryZone
   isBusy: boolean
-  onAssignCities: () => void
   onEdit: () => void
   onToggleStatus: () => void
   onDelete: () => void
 }
 
-function ZoneActions({ zone, isBusy, onAssignCities, onEdit, onToggleStatus, onDelete }: ZoneActionsProps) {
+function ZoneActions({ zone, isBusy, onEdit, onToggleStatus, onDelete }: ZoneActionsProps) {
   return (
-    <ActionMenu ariaLabel={`Actions for ${zone.name}`} isBusy={isBusy} fixedPosition>
+    <ActionMenu ariaLabel={`Actions for ${zone.label}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
-          <ActionMenuButton onClick={() => { close(); onAssignCities() }}>Assign cities</ActionMenuButton>
           <ActionMenuButton onClick={() => { close(); onEdit() }}>Edit</ActionMenuButton>
           <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{zone.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
           <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
@@ -63,7 +58,12 @@ function ZoneActions({ zone, isBusy, onAssignCities, onEdit, onToggleStatus, onD
   )
 }
 
-interface ZoneFormModalProps {
+interface CityTag {
+  id: string
+  name: string
+}
+
+interface ZoneModalProps {
   mode: 'create' | 'edit'
   zone: AdminDeliveryZone | null
   isBusy: boolean
@@ -72,11 +72,16 @@ interface ZoneFormModalProps {
   onSave: (input: DeliveryZoneInput) => void
 }
 
-function ZoneFormModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneFormModalProps) {
-  const [name, setName] = useState(zone?.name ?? '')
+function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalProps) {
   const [fee, setFee] = useState(zone ? zone.fee : '')
   const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(zone?.freeDeliveryThreshold ?? '')
   const [isActive, setIsActive] = useState(zone?.isActive ?? true)
+  const [cities, setCities] = useState<CityTag[]>([])
+  const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
+  const [selectedStateId, setSelectedStateId] = useState('')
+  const [selectedCityId, setSelectedCityId] = useState('')
+  const [citySearch, setCitySearch] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -86,6 +91,65 @@ function ZoneFormModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneForm
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [isBusy, onCancel])
+
+  useEffect(() => {
+    let current = true
+    const load = async () => {
+      try {
+        const loadedStates = await getAdminDeliveryLocationStates()
+        if (!current) return
+        setStates(loadedStates)
+        if (mode === 'edit' && zone) {
+          const detail = await getAdminDeliveryZone(zone.id)
+          if (current) setCities(detail.cities.map((city) => ({ id: city.id, name: city.name })))
+        }
+      } catch (caught: unknown) {
+        if (current) setFormError(caught instanceof ApiError ? caught.message : 'Delivery locations could not be loaded.')
+      } finally {
+        if (current) setIsLoading(false)
+      }
+    }
+    void load()
+    return () => { current = false }
+  }, [mode, zone])
+
+  const selectedState = states?.find((state) => state.id === selectedStateId)
+  const coveredIds = new Set(cities.map((city) => city.id))
+  const allCityOptions = (selectedState?.cities ?? [])
+    .filter((city) => !coveredIds.has(city.id))
+    .map((city) => ({
+      value: city.id,
+      label: city.assignedZoneLabel
+        ? `${city.name} (assigned to ${city.assignedZoneLabel})`
+        : city.name,
+      hasOwner: Boolean(city.assignedZoneLabel),
+    }))
+  const cityOptions = citySearch.trim()
+    ? allCityOptions.filter((c) => c.label.toLowerCase().includes(citySearch.trim().toLowerCase()))
+    : allCityOptions
+  const disabledCityIds = cityOptions
+    .filter((c) => c.hasOwner)
+    .map((c) => c.value)
+
+  const addCity = () => {
+    if (!selectedCityId) return
+    const city = allCityOptions.find((c) => c.value === selectedCityId)
+    if (!city) return
+    if (city.hasOwner) {
+      setFormError(city.label)
+      return
+    }
+    const state = selectedState
+    const cityName = state?.cities.find((c) => c.id === city.value)?.name
+    setCities((current) => [...current, { id: city.value, name: cityName ?? city.label }])
+    setSelectedCityId('')
+    setCitySearch('')
+    setFormError(null)
+  }
+
+  const removeCity = (cityId: string) => {
+    setCities((current) => current.filter((city) => city.id !== cityId))
+  }
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -107,238 +171,135 @@ function ZoneFormModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneForm
       setFormError('The free delivery threshold must be greater than the delivery fee.')
       return
     }
+    if (cities.length === 0) {
+      setFormError('Add at least one city to this delivery zone.')
+      return
+    }
     onSave({
-      name: name.trim(),
       fee: feeAmount,
       freeDeliveryThreshold: thresholdAmount && thresholdAmount > 0 ? thresholdAmount : null,
       isActive,
+      cityIds: cities.map((city) => city.id),
     })
   }
 
   return (
     <div className="safe-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-green-dark/45 p-4" role="presentation">
-      <div className="w-full max-w-lg rounded-3xl border border-line bg-white p-7 shadow-2xl shadow-green-dark/20 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="delivery-zone-form-title">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">{mode === 'create' ? 'New delivery zone' : 'Edit delivery zone'}</p>
-        <h2 id="delivery-zone-form-title" className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
-        <form className="mt-6 space-y-5" onSubmit={submit}>
-          <label className="block text-xs font-bold text-green-dark">
-            Zone name
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Lagos Island" required maxLength={120} />
-          </label>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="block text-xs font-bold text-green-dark">
-              Delivery fee
-              <span className="ml-1 font-normal text-muted">(₦)</span>
-              <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={fee} onChange={(event) => setFee(event.target.value)} placeholder="0.00" required />
-            </label>
-            <label className="block text-xs font-bold text-green-dark">
-              Free delivery threshold
-              <span className="ml-1 font-normal text-muted">(₦, optional)</span>
-              <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={freeDeliveryThreshold} onChange={(event) => setFreeDeliveryThreshold(event.target.value)} placeholder="Leave empty for none" />
-              <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Orders at or above this amount get free delivery. Leave empty to always charge the delivery fee.</span>
-            </label>
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-2xl shadow-green-dark/20" role="dialog" aria-modal="true" aria-labelledby="delivery-zone-form-title">
+        <div className="shrink-0 border-b border-line p-7 pb-5 sm:p-8 sm:pb-5">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">{mode === 'create' ? 'New delivery zone' : 'Edit delivery zone'}</p>
+          <h2 id="delivery-zone-form-title" className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
+          <p className="mt-2 text-sm text-muted">A delivery zone is identified by the cities and LGAs it covers. The fee below is charged for deliveries to any of these cities.</p>
+        </div>
+
+        <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
+          <div className="min-h-0 flex-1 overflow-y-auto p-7 sm:p-8">
+            {isLoading ? (
+              <p className="text-sm text-muted">Loading…</p>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="block text-xs font-bold text-green-dark">
+                    Delivery fee
+                    <span className="ml-1 font-normal text-muted">(₦)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={fee} onChange={(event) => setFee(event.target.value)} placeholder="0.00" required />
+                  </label>
+                  <label className="block text-xs font-bold text-green-dark">
+                    Free delivery threshold
+                    <span className="ml-1 font-normal text-muted">(₦, optional)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={freeDeliveryThreshold} onChange={(event) => setFreeDeliveryThreshold(event.target.value)} placeholder="Leave empty for none" />
+                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Orders at or above this amount get free delivery. Leave empty to always charge the delivery fee.</span>
+                  </label>
+                </div>
+                <label className="flex items-center gap-3 text-xs font-bold text-green-dark">
+                  <input type="checkbox" className="size-4 rounded border-line" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
+                  Active (visible to customers during checkout)
+                </label>
+
+                <section aria-label="Delivery area">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Delivery area — cities this zone covers ({cities.length})</h3>
+                  {cities.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted">No cities added yet. Customers in unassigned cities will see a "delivery unavailable" message at checkout.</p>
+                  ) : (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {cities.map((city) => (
+                        <li className="inline-flex items-center gap-2 rounded-full border border-line bg-sage/30 py-1.5 pl-3 pr-1.5" key={city.id}>
+                          <span className="text-sm font-bold text-green-dark">{city.name}</span>
+                          <button
+                            aria-label={`Remove ${city.name}`}
+                            className="grid size-6 place-items-center rounded-full bg-white text-muted transition hover:bg-orange hover:text-white"
+                            type="button"
+                            onClick={() => removeCity(city.id)}
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <div className="mt-4 rounded-2xl border border-line bg-cream/45 p-4">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add a city</h3>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <label className="block text-xs font-bold text-green-dark">
+                        State
+                        <SelectField
+                          className="mt-2 w-full"
+                          options={[
+                            { value: '', label: 'Select a state' },
+                            ...(states ?? []).map((state) => ({ value: state.id, label: state.name })),
+                          ]}
+                          onChange={(value) => { setSelectedStateId(value); setSelectedCityId(''); setCitySearch('') }}
+                          value={selectedStateId}
+                        />
+                      </label>
+                      <label className="block text-xs font-bold text-green-dark">
+                        City / LGA
+                        {selectedState && (selectedState.cities ?? []).length > 10 && (
+                          <input
+                            className="ml-2 inline-block w-auto rounded-lg border border-line bg-white px-2.5 py-1 text-[11px] font-normal normal-case tracking-normal text-muted outline-none focus:border-green focus:ring-1 focus:ring-green/10"
+                            placeholder="Search cities…"
+                            value={citySearch}
+                            onChange={(e) => { setCitySearch(e.target.value); setSelectedCityId('') }}
+                            type="text"
+                          />
+                        )}
+                        <SelectField
+                          className="mt-2 w-full"
+                          options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
+                          onChange={setSelectedCityId}
+                          value={selectedCityId}
+                          disabledOptions={disabledCityIds}
+                        />
+                      </label>
+                    </div>
+                    {selectedStateId && !selectedCityId && cityOptions.length === 0 && (
+                      <p className="mt-3 text-sm text-muted">{citySearch.trim() ? 'No cities match your search.' : 'No cities found in this state.'}</p>
+                    )}
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-40"
+                        type="button"
+                        disabled={!selectedCityId || isBusy}
+                        onClick={addCity}
+                      >
+                        Add city
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            )}
+            {(formError || error) && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{formError ?? error}</p>}
           </div>
-          <label className="flex items-center gap-3 text-xs font-bold text-green-dark">
-            <input type="checkbox" className="size-4 rounded border-line" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
-            Active (visible to customers during checkout)
-          </label>
-          {(formError || error) && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{formError ?? error}</p>}
-          <div className="mt-7 flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
-            <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isBusy} onClick={onCancel}>Cancel</button>
-            <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="submit" disabled={isBusy}>{isBusy ? 'Saving…' : mode === 'create' ? 'Add delivery zone' : 'Save changes'}</button>
+
+          <div className="shrink-0 border-t border-line p-7 pt-5 sm:p-8 sm:pt-5">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isBusy} onClick={onCancel}>Cancel</button>
+              <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="submit" disabled={isBusy}>{isBusy ? 'Saving…' : mode === 'create' ? 'Add delivery zone' : 'Save changes'}</button>
+            </div>
           </div>
         </form>
-      </div>
-    </div>
-  )
-}
-
-interface CityAssignmentModalProps {
-  zone: AdminDeliveryZone
-  isBusy: boolean
-  error: string | null
-  onClose: () => void
-  onAssigned: () => void
-}
-
-function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityAssignmentModalProps) {
-  const { showToast } = useToast()
-  const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
-  const [assigned, setAssigned] = useState<AdminDeliveryZoneAssignedCity[]>([])
-  const [selectedStateId, setSelectedStateId] = useState('')
-  const [selectedCityId, setSelectedCityId] = useState('')
-  const [citySearch, setCitySearch] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [localError, setLocalError] = useState<string | null>(null)
-  const [busyCityId, setBusyCityId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isBusy && !busyCityId) onClose()
-    }
-    document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
-  }, [isBusy, busyCityId, onClose])
-
-  useEffect(() => {
-    let current = true
-    Promise.all([getAdminDeliveryLocationStates(), getAdminDeliveryZone(zone.id)])
-      .then(([loadedStates, detail]) => {
-        if (!current) return
-        setStates(loadedStates)
-        setAssigned(detail.cities)
-      })
-      .catch((caught: unknown) => {
-        if (current) setLocalError(caught instanceof ApiError ? caught.message : 'Cities could not be loaded.')
-      })
-      .finally(() => { if (current) setIsLoading(false) })
-    return () => { current = false }
-  }, [zone.id])
-
-  const selectedState = states?.find((state) => state.id === selectedStateId)
-  const assignedIds = new Set(assigned.map((city) => city.id))
-  const allCityOptions = (selectedState?.cities ?? []).map((city) => ({
-    value: city.id,
-    label: city.name,
-  }))
-  const cityOptions = citySearch.trim()
-    ? allCityOptions.filter((c) => c.label.toLowerCase().includes(citySearch.trim().toLowerCase()))
-    : allCityOptions
-  const disabledCityIds = Array.from(assignedIds)
-
-  const addCity = async () => {
-    if (!selectedCityId) return
-    const cityId = selectedCityId
-    setBusyCityId(cityId)
-    setLocalError(null)
-    try {
-      const detail = await assignCityToDeliveryZone(zone.id, cityId)
-      setAssigned(detail.cities)
-      setSelectedCityId('')
-      setCitySearch('')
-      onAssigned()
-      showToast('City added to delivery zone.', 'success')
-    } catch (caught: unknown) {
-      setLocalError(caught instanceof ApiError ? caught.message : 'City could not be added.')
-    } finally {
-      setBusyCityId(null)
-    }
-  }
-
-  const removeCity = async (cityId: string) => {
-    setBusyCityId(cityId)
-    setLocalError(null)
-    try {
-      const detail = await unassignCityFromDeliveryZone(zone.id, cityId)
-      setAssigned(detail.cities)
-      onAssigned()
-      showToast('City removed from delivery zone.', 'success')
-    } catch (caught: unknown) {
-      setLocalError(caught instanceof ApiError ? caught.message : 'City could not be removed.')
-    } finally {
-      setBusyCityId(null)
-    }
-  }
-
-  return (
-    <div className="safe-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-green-dark/45 p-4" role="presentation">
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-2xl shadow-green-dark/20" role="dialog" aria-modal="true" aria-labelledby="assign-cities-title">
-        <div className="shrink-0 border-b border-line p-7 pb-5 sm:p-8 sm:pb-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Assign cities</p>
-              <h2 id="assign-cities-title" className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">“{zone.name}” delivery area</h2>
-              <p className="mt-2 text-sm text-muted">Choose the cities and LGAs that this delivery zone covers. Customers matching these cities are auto-assigned this zone during checkout.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-7 sm:p-8">
-          {isLoading ? (
-            <p className="text-sm text-muted">Loading cities…</p>
-          ) : (
-            <div className="space-y-6">
-              <section aria-label="Currently covered areas">
-                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Currently covered ({assigned.length})</h3>
-                {assigned.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted">No cities assigned. Customers in unassigned cities will see a "delivery unavailable" message at checkout.</p>
-                ) : (
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {assigned.map((city) => (
-                      <li className="inline-flex items-center gap-2 rounded-full border border-line bg-sage/30 py-1.5 pl-3 pr-1.5" key={city.id}>
-                        <span className="text-sm font-bold text-green-dark">{city.name}</span>
-                        <span className="text-xs text-muted">{city.state.name}</span>
-                        <button
-                          aria-label={`Remove ${city.name}`}
-                          className="grid size-6 place-items-center rounded-full bg-white text-muted transition hover:bg-orange hover:text-white disabled:cursor-wait disabled:opacity-50"
-                          type="button"
-                          disabled={isBusy || busyCityId === city.id}
-                          onClick={() => void removeCity(city.id)}
-                        >
-                          {busyCityId === city.id ? '…' : '✕'}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              <section aria-label="Add a city">
-                <div className="rounded-2xl border border-line bg-cream/45 p-4">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add a city</h3>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <label className="block text-xs font-bold text-green-dark">
-                      State
-                      <SelectField
-                        className="mt-2 w-full"
-                        options={[
-                          { value: '', label: 'Select a state' },
-                          ...(states ?? []).map((state) => ({ value: state.id, label: state.name })),
-                        ]}
-                        onChange={(value) => { setSelectedStateId(value); setSelectedCityId(''); setCitySearch('') }}
-                        value={selectedStateId}
-                      />
-                    </label>
-                    <label className="block text-xs font-bold text-green-dark">
-                      City / LGA
-                      {selectedState && allCityOptions.length > 10 && (
-                        <input
-                          className="ml-2 inline-block w-auto rounded-lg border border-line bg-white px-2.5 py-1 text-[11px] font-normal normal-case tracking-normal text-muted outline-none focus:border-green focus:ring-1 focus:ring-green/10"
-                          placeholder="Search cities…"
-                          value={citySearch}
-                          onChange={(e) => { setCitySearch(e.target.value); setSelectedCityId('') }}
-                          type="text"
-                        />
-                      )}
-                      <SelectField
-                        className="mt-2 w-full"
-                        options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
-                        onChange={setSelectedCityId}
-                        value={selectedCityId}
-                        disabledOptions={disabledCityIds}
-                      />
-                    </label>
-                  </div>
-                  {selectedStateId && !selectedCityId && cityOptions.length === 0 && (
-                    <p className="mt-3 text-sm text-muted">{citySearch.trim() ? 'No cities match your search.' : 'No cities found in this state.'}</p>
-                  )}
-                  {(localError || error) && <p className="mt-3 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{localError ?? error}</p>}
-                  <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                    <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream" type="button" onClick={onClose} disabled={isBusy}>Close</button>
-                    <button
-                      className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-40"
-                      type="button"
-                      disabled={!selectedCityId || isBusy || busyCityId !== null || disabledCityIds.includes(selectedCityId)}
-                      onClick={() => void addCity()}
-                    >
-                      Add city
-                    </button>
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )
@@ -359,7 +320,6 @@ export function DeliveryZones() {
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; zone: AdminDeliveryZone | null } | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
   const [modalBusy, setModalBusy] = useState(false)
-  const [assignmentZone, setAssignmentZone] = useState<AdminDeliveryZone | null>(null)
   const [zoneToStatus, setZoneToStatus] = useState<AdminDeliveryZone | null>(null)
   const [zoneToDelete, setZoneToDelete] = useState<AdminDeliveryZone | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -409,8 +369,6 @@ export function DeliveryZones() {
     setModalError(null)
     setModal({ mode: 'edit', zone })
   }
-
-  const openAssignCities = (zone: AdminDeliveryZone) => setAssignmentZone(zone)
 
   const saveZone = async (input: DeliveryZoneInput) => {
     if (!modal) return
@@ -515,7 +473,7 @@ export function DeliveryZones() {
         <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submitSearch}>
           <label className="flex-1 text-xs font-bold text-green-dark">
             Search zones
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" name="search" defaultValue={query.search ?? ''} placeholder="Zone name" />
+            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" name="search" defaultValue={query.search ?? ''} placeholder="Search by city or LGA" />
           </label>
           <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
@@ -559,13 +517,12 @@ export function DeliveryZones() {
               <div className="rounded-2xl border border-line bg-cream/45 p-4" key={zone.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-bold text-green-dark">{zone.name}</p>
+                    <p className="font-bold text-green-dark">{zone.label}</p>
                     <p className="mt-1 text-xs text-muted">Fee {formatCurrency(zone.fee)}{zone.freeDeliveryThreshold ? <> · Free over {formatCurrency(zone.freeDeliveryThreshold)}</> : null}</p>
                   </div>
                   <ZoneActions
                     zone={zone}
                     isBusy={busyId === zone.id || deletingId === zone.id}
-                    onAssignCities={() => openAssignCities(zone)}
                     onEdit={() => openEdit(zone)}
                     onToggleStatus={() => requestStatusChange(zone)}
                     onDelete={() => requestDelete(zone)}
@@ -588,7 +545,7 @@ export function DeliveryZones() {
                 <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
                   <tr>
                     <th className="px-5 py-4 font-bold">Order</th>
-                    <th className="px-5 py-4 font-bold">Zone</th>
+                    <th className="px-5 py-4 font-bold">Zone (cities)</th>
                     <th className="px-5 py-4 font-bold">Delivery fee</th>
                     <th className="px-5 py-4 font-bold">Free delivery threshold</th>
                     <th className="px-5 py-4 font-bold">Status</th>
@@ -605,11 +562,11 @@ export function DeliveryZones() {
                           <span className="ml-1 text-xs font-bold text-muted">{index + 1}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-4"><span className="font-bold text-green-dark">{zone.name}</span></td>
+                      <td className="px-5 py-4"><span className="font-bold text-green-dark">{zone.label}</span></td>
                       <td className="px-5 py-4 text-muted">{formatCurrency(zone.fee)}</td>
                       <td className="px-5 py-4 text-muted">{zone.freeDeliveryThreshold ? formatCurrency(zone.freeDeliveryThreshold) : '—'}</td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${zone.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{zone.isActive ? 'Active' : 'Inactive'}</span></td>
-                      <td className="px-5 py-4"><ZoneActions zone={zone} isBusy={busyId === zone.id || deletingId === zone.id} onAssignCities={() => openAssignCities(zone)} onEdit={() => openEdit(zone)} onToggleStatus={() => requestStatusChange(zone)} onDelete={() => requestDelete(zone)} /></td>
+                      <td className="px-5 py-4"><ZoneActions zone={zone} isBusy={busyId === zone.id || deletingId === zone.id} onEdit={() => openEdit(zone)} onToggleStatus={() => requestStatusChange(zone)} onDelete={() => requestDelete(zone)} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -621,7 +578,7 @@ export function DeliveryZones() {
       )}
 
       {modal && (
-        <ZoneFormModal
+        <ZoneModal
           mode={modal.mode}
           zone={modal.zone}
           isBusy={modalBusy}
@@ -634,7 +591,7 @@ export function DeliveryZones() {
       {zoneToStatus && (
         <ConfirmDialog
           eyebrow="Change delivery zone status"
-          title={`${zoneToStatus.isActive ? 'Deactivate' : 'Activate'} “${zoneToStatus.name}”?`}
+          title={`${zoneToStatus.isActive ? 'Deactivate' : 'Activate'} “${zoneToStatus.label}”?`}
           description={zoneToStatus.isActive
             ? 'Inactive zones are hidden from customers during checkout but existing orders keep their historical fee.'
             : 'Active zones are automatically assigned to customers whose city falls within the zone.'}
@@ -649,7 +606,7 @@ export function DeliveryZones() {
       {zoneToDelete && (
         <ConfirmDialog
           eyebrow="Delete delivery zone"
-          title={`Delete “${zoneToDelete.name}”?`}
+          title={`Delete “${zoneToDelete.label}”?`}
           description="This is only allowed when no orders reference this zone. Zones in use should be deactivated instead."
           error={deleteError}
           isBusy={deletingId === zoneToDelete.id}
@@ -657,16 +614,6 @@ export function DeliveryZones() {
           busyLabel="Deleting…"
           onCancel={() => setZoneToDelete(null)}
           onConfirm={() => void confirmDelete()}
-        />
-      )}
-
-      {assignmentZone && (
-        <CityAssignmentModal
-          zone={assignmentZone}
-          isBusy={modalBusy}
-          error={null}
-          onClose={() => setAssignmentZone(null)}
-          onAssigned={() => refreshZones()}
         />
       )}
     </>

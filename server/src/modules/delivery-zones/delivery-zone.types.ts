@@ -1,6 +1,7 @@
 export interface DeliveryZone {
   id: string
-  name: string
+  // Auto-generated display label derived from the zone's covered cities.
+  label: string
   fee: string
   freeDeliveryThreshold: string | null
   isActive: boolean
@@ -16,11 +17,18 @@ export interface DeliveryZoneAssignedCity {
   state: { id: string; name: string }
 }
 
-// A state with its cities, used by the admin city-assignment picker.
+// A state with its cities, used by the admin city-assignment picker. Each city
+// carries the delivery zone it belongs to (if any) so the UI can disable cities
+// already assigned to another zone.
 export interface DeliveryLocationState {
   id: string
   name: string
-  cities: Array<{ id: string; name: string }>
+  cities: Array<{
+    id: string
+    name: string
+    assignedZoneId: string | null
+    assignedZoneLabel: string | null
+  }>
 }
 
 export interface DeliveryZoneDetail extends DeliveryZone {
@@ -28,10 +36,12 @@ export interface DeliveryZoneDetail extends DeliveryZone {
 }
 
 export interface DeliveryZoneInput {
-  name: string
   fee: number
   freeDeliveryThreshold: number | null
   isActive: boolean
+  // IDs of cities that this zone covers. On create these build the zone's
+  // covered set; on update they replace it entirely.
+  cityIds: string[]
 }
 
 export interface AdminDeliveryZonesQuery {

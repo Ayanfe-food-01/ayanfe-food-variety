@@ -360,7 +360,7 @@ export async function getDeliveryLocationStates(): Promise<DeliveryLocationState
 // these values for the final total.
 export interface ResolvedDeliveryZone {
   id: string
-  name: string
+  label: string
   fee: string
   freeDeliveryThreshold: string | null
 }

@@ -493,7 +493,7 @@ export function Checkout() {
               </div>
                 <div className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
                   <strong className="text-green-dark">{form.fulfillmentMethod === 'PICKUP' ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
-                  {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? (isZoneResolving ? 'Checking your delivery zone…' : resolvedZone ? `Your delivery fee is based on the ${resolvedZone.name} zone.` : 'Delivery is unavailable for your selected city.') : 'The final total will appear after you select a fulfillment option.'}
+                  {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? (isZoneResolving ? 'Checking your delivery zone…' : resolvedZone ? `Your delivery fee is based on the ${resolvedZone.label} zone.` : 'Delivery is unavailable for your selected city.') : 'The final total will appear after you select a fulfillment option.'}
                 </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>

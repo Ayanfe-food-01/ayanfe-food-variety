@@ -220,7 +220,6 @@ model ProductOption {
 
 model DeliveryZone {
   id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                 String   @unique @db.VarChar(120)
   fee                  Decimal  @db.Decimal(12, 2)
   freeDeliveryThreshold Decimal? @map("free_delivery_threshold") @db.Decimal(12, 2)
   isActive             Boolean  @default(true) @map("is_active")

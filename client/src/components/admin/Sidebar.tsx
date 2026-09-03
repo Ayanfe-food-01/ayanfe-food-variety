@@ -51,7 +51,7 @@ export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
           </div>
         </div>
 
-        <nav className="mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1" aria-label="Admin navigation">
+        <nav className="modal-scroll mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1" aria-label="Admin navigation">
           {links.map((link) => (
             <NavLink
               className={({ isActive }) =>

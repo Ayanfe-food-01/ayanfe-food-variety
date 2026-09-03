@@ -16,6 +16,7 @@
     "admin:create": "tsx scripts/create-initial-admin.ts",
     "db:delete-test-data": "tsx scripts/delete-test-data.ts",
     "db:seed": "prisma db seed",
+    "db:seed-delivery": "tsx prisma/seed/seed-delivery-locations.ts",
     "doctor": "tsx scripts/doctor.ts",
     "smoke:production": "node scripts/production-smoke.mjs",
     "test:inventory": "tsx scripts/inventory-safety-smoke.ts",

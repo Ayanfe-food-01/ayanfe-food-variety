@@ -3,7 +3,10 @@ import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
   AdminDeliveryZonesQuery,
+  DeliveryLocationState,
   DeliveryZone,
+  DeliveryZoneAssignedCity,
+  DeliveryZoneDetail,
   DeliveryZoneInput,
 } from './delivery-zone.types.js'
 
@@ -71,10 +74,39 @@ export async function listAdminDeliveryZones(query: AdminDeliveryZonesQuery) {
   }
 }
 
-export async function getAdminDeliveryZone(id: string): Promise<DeliveryZone> {
-  const zone = await prisma.deliveryZone.findUnique({ where: { id } })
+const toAssignedCity = (city: {
+  id: string
+  name: string
+  state: { id: string; name: string }
+}): DeliveryZoneAssignedCity => ({
+  id: city.id,
+  name: city.name,
+  state: { id: city.state.id, name: city.state.name },
+})
+
+export async function getAdminDeliveryZone(id: string): Promise<DeliveryZoneDetail> {
+  const zone = await prisma.deliveryZone.findUnique({
+    where: { id },
+    include: {
+      deliveryZoneCities: {
+        select: {
+          city: {
+            select: {
+              id: true,
+              name: true,
+              state: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: { city: { name: 'asc' } },
+      },
+    },
+  })
   if (!zone) throw new HttpError(404, 'Delivery zone not found.')
-  return toDeliveryZone(zone)
+  return {
+    ...toDeliveryZone(zone),
+    cities: zone.deliveryZoneCities.map(({ city }) => toAssignedCity(city)),
+  }
 }
 
 export async function createDeliveryZone(input: DeliveryZoneInput): Promise<DeliveryZone> {
@@ -193,4 +225,115 @@ async function nextAvailableSortOrder(): Promise<number> {
     select: { sortOrder: true },
   })
   return (highest?.sortOrder ?? 0) + 1
+}
+
+export async function listDeliveryLocationStates(): Promise<DeliveryLocationState[]> {
+  const states = await prisma.state.findMany({
+    orderBy: { name: 'asc' },
+    include: {
+      cities: {
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      },
+    },
+  })
+  return states.map((state) => ({
+    id: state.id,
+    name: state.name,
+    cities: state.cities.map((city) => ({ id: city.id, name: city.name })),
+  }))
+}
+
+// Resolves the active DeliveryZone serving a city for display purposes, using
+// the authoritative City -> DeliveryZoneCity -> DeliveryZone mapping (Phase 2).
+// Returns null when the city is unmapped OR the mapped zone is inactive, so
+// callers can indicate delivery is unavailable. The fee/threshold are returned
+// as decimal strings; the client never derives order totals from them — the
+// checkout endpoint recomputes the fee and total authoritatively.
+export async function resolveDeliveryZoneByCity(
+  cityName: string,
+): Promise<{ id: string; name: string; fee: string; freeDeliveryThreshold: string | null } | null> {
+  const match = await prisma.city.findFirst({
+    where: {
+      name: { equals: cityName, mode: 'insensitive' },
+      deliveryZoneCity: { isNot: null },
+    },
+    select: {
+      deliveryZoneCity: {
+        select: {
+          deliveryZone: {
+            select: {
+              id: true,
+              name: true,
+              fee: true,
+              freeDeliveryThreshold: true,
+              isActive: true,
+            },
+          },
+        },
+      },
+    },
+  })
+  const zone = match?.deliveryZoneCity?.deliveryZone ?? null
+  if (!zone || !zone.isActive) return null
+  return {
+    id: zone.id,
+    name: zone.name,
+    fee: zone.fee.toFixed(2),
+    freeDeliveryThreshold: zone.freeDeliveryThreshold?.toFixed(2) ?? null,
+  }
+}
+
+export async function assignCityToZone(zoneId: string, cityId: string): Promise<DeliveryZoneDetail> {
+  await getAdminDeliveryZone(zoneId)
+
+  const alreadyAssigned = await prisma.deliveryZoneCity.findUnique({
+    where: { cityId },
+    select: { id: true, deliveryZoneId: true },
+  })
+  if (alreadyAssigned) {
+    if (alreadyAssigned.deliveryZoneId === zoneId) {
+      throw new HttpError(409, 'This city is already assigned to this delivery zone.')
+    }
+    throw new HttpError(409, 'This city is already assigned to another delivery zone.')
+  }
+
+  try {
+    await prisma.deliveryZoneCity.create({
+      data: { deliveryZoneId: zoneId, cityId },
+    })
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new HttpError(409, 'This city is already assigned to a delivery zone.')
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      throw new HttpError(404, 'Delivery zone or city not found.')
+    }
+    throw error
+  }
+
+  return getAdminDeliveryZone(zoneId)
+}
+
+export async function unassignCityFromZone(zoneId: string, cityId: string): Promise<DeliveryZoneDetail> {
+  const existing = await prisma.deliveryZoneCity.findFirst({
+    where: { cityId },
+    select: { id: true, deliveryZoneId: true },
+  })
+  if (existing && existing.deliveryZoneId !== zoneId) {
+    throw new HttpError(409, 'This city belongs to a different delivery zone.')
+  }
+
+  try {
+    await prisma.deliveryZoneCity.delete({
+      where: { cityId },
+    })
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new HttpError(404, 'This city is not assigned to any delivery zone.')
+    }
+    throw error
+  }
+
+  return getAdminDeliveryZone(zoneId)
 }

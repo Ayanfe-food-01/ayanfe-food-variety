@@ -87,11 +87,14 @@ import {
   updateAdminReviewStatusController,
 } from '../modules/reviews/review.admin.controller.js'
 import {
+  assignCityToZoneController,
   createAdminDeliveryZoneController,
   deleteAdminDeliveryZoneController,
   getAdminDeliveryZoneController,
   listAdminDeliveryZonesController,
+  listDeliveryLocationStatesController,
   reorderAdminDeliveryZonesController,
+  unassignCityFromZoneController,
   updateAdminDeliveryZoneController,
   updateAdminDeliveryZoneStatusController,
 } from '../modules/delivery-zones/delivery-zone.controller.js'
@@ -167,3 +170,7 @@ adminRoutes.get('/delivery-zones/:id', getAdminDeliveryZoneController)
 adminRoutes.patch('/delivery-zones/:id/status', updateAdminDeliveryZoneStatusController)
 adminRoutes.patch('/delivery-zones/:id', updateAdminDeliveryZoneController)
 adminRoutes.delete('/delivery-zones/:id', deleteAdminDeliveryZoneController)
+adminRoutes.get('/delivery-zones/:id/cities', getAdminDeliveryZoneController)
+adminRoutes.post('/delivery-zones/:id/cities', assignCityToZoneController)
+adminRoutes.delete('/delivery-zones/:id/cities/:cityId', unassignCityFromZoneController)
+adminRoutes.get('/delivery-locations/states', listDeliveryLocationStatesController)

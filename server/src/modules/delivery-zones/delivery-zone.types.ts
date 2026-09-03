@@ -9,6 +9,24 @@ export interface DeliveryZone {
   updatedAt: string
 }
 
+// A city currently assigned to a delivery zone, with its state for display.
+export interface DeliveryZoneAssignedCity {
+  id: string
+  name: string
+  state: { id: string; name: string }
+}
+
+// A state with its cities, used by the admin city-assignment picker.
+export interface DeliveryLocationState {
+  id: string
+  name: string
+  cities: Array<{ id: string; name: string }>
+}
+
+export interface DeliveryZoneDetail extends DeliveryZone {
+  cities: DeliveryZoneAssignedCity[]
+}
+
 export interface DeliveryZoneInput {
   name: string
   fee: number

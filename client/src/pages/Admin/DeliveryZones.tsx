@@ -7,14 +7,20 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
 import {
+  assignCityToDeliveryZone,
   createAdminDeliveryZone,
   deleteAdminDeliveryZone,
+  getAdminDeliveryLocationStates,
+  getAdminDeliveryZone,
   getAdminDeliveryZones,
   reorderAdminDeliveryZones,
+  type AdminDeliveryLocationState,
   type AdminDeliveryZone,
+  type AdminDeliveryZoneAssignedCity,
   type AdminDeliveryZonesPage,
   type AdminDeliveryZonesQuery,
   type DeliveryZoneInput,
+  unassignCityFromDeliveryZone,
   updateAdminDeliveryZone,
   updateAdminDeliveryZoneStatus,
 } from '../../services/adminService'
@@ -36,16 +42,18 @@ const formatCurrency = (value?: string | null) => {
 interface ZoneActionsProps {
   zone: AdminDeliveryZone
   isBusy: boolean
+  onAssignCities: () => void
   onEdit: () => void
   onToggleStatus: () => void
   onDelete: () => void
 }
 
-function ZoneActions({ zone, isBusy, onEdit, onToggleStatus, onDelete }: ZoneActionsProps) {
+function ZoneActions({ zone, isBusy, onAssignCities, onEdit, onToggleStatus, onDelete }: ZoneActionsProps) {
   return (
     <ActionMenu ariaLabel={`Actions for ${zone.name}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
+          <ActionMenuButton onClick={() => { close(); onAssignCities() }}>Assign cities</ActionMenuButton>
           <ActionMenuButton onClick={() => { close(); onEdit() }}>Edit</ActionMenuButton>
           <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{zone.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
           <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
@@ -145,6 +153,183 @@ function ZoneFormModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneForm
   )
 }
 
+interface CityAssignmentModalProps {
+  zone: AdminDeliveryZone
+  isBusy: boolean
+  error: string | null
+  onClose: () => void
+  onAssigned: () => void
+}
+
+function CityAssignmentModal({ zone, isBusy, error, onClose, onAssigned }: CityAssignmentModalProps) {
+  const { showToast } = useToast()
+  const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
+  const [assigned, setAssigned] = useState<AdminDeliveryZoneAssignedCity[]>([])
+  const [selectedStateId, setSelectedStateId] = useState('')
+  const [selectedCityId, setSelectedCityId] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [busyCityId, setBusyCityId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isBusy && !busyCityId) onClose()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [isBusy, busyCityId, onClose])
+
+  useEffect(() => {
+    let current = true
+    Promise.all([getAdminDeliveryLocationStates(), getAdminDeliveryZone(zone.id)])
+      .then(([loadedStates, detail]) => {
+        if (!current) return
+        setStates(loadedStates)
+        setAssigned(detail.cities)
+      })
+      .catch((caught: unknown) => {
+        if (current) setLocalError(caught instanceof ApiError ? caught.message : 'Cities could not be loaded.')
+      })
+      .finally(() => { if (current) setIsLoading(false) })
+    return () => { current = false }
+  }, [zone.id])
+
+  const selectedState = states?.find((state) => state.id === selectedStateId)
+  const assignedIds = new Set(assigned.map((city) => city.id))
+  const cityOptions = (selectedState?.cities ?? []).map((city) => ({
+    value: city.id,
+    label: city.name,
+  }))
+  const disabledCityIds = Array.from(assignedIds)
+
+  const addCity = async () => {
+    if (!selectedCityId) return
+    const cityId = selectedCityId
+    setBusyCityId(cityId)
+    setLocalError(null)
+    try {
+      const detail = await assignCityToDeliveryZone(zone.id, cityId)
+      setAssigned(detail.cities)
+      setSelectedCityId('')
+      onAssigned()
+      showToast('City added to delivery zone.', 'success')
+    } catch (caught: unknown) {
+      setLocalError(caught instanceof ApiError ? caught.message : 'City could not be added.')
+    } finally {
+      setBusyCityId(null)
+    }
+  }
+
+  const removeCity = async (cityId: string) => {
+    setBusyCityId(cityId)
+    setLocalError(null)
+    try {
+      const detail = await unassignCityFromDeliveryZone(zone.id, cityId)
+      setAssigned(detail.cities)
+      onAssigned()
+      showToast('City removed from delivery zone.', 'success')
+    } catch (caught: unknown) {
+      setLocalError(caught instanceof ApiError ? caught.message : 'City could not be removed.')
+    } finally {
+      setBusyCityId(null)
+    }
+  }
+
+  return (
+    <div className="safe-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-green-dark/45 p-4" role="presentation">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-2xl shadow-green-dark/20" role="dialog" aria-modal="true" aria-labelledby="assign-cities-title">
+        <div className="shrink-0 border-b border-line p-7 pb-5 sm:p-8 sm:pb-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Assign cities</p>
+              <h2 id="assign-cities-title" className="mt-2 text-2xl font-bold tracking-[-0.04em] text-green-dark">“{zone.name}” delivery area</h2>
+              <p className="mt-2 text-sm text-muted">Choose the cities and LGAs that this delivery zone covers. Customers matching these cities are auto-assigned this zone during checkout.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-7 sm:p-8">
+          {isLoading ? (
+            <p className="text-sm text-muted">Loading cities…</p>
+          ) : (
+            <div className="space-y-6">
+              <section aria-label="Currently covered areas">
+                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Currently covered ({assigned.length})</h3>
+                {assigned.length === 0 ? (
+                  <p className="mt-3 text-sm text-muted">No cities assigned yet. Until a city is assigned, customers there will use the manual delivery option.</p>
+                ) : (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {assigned.map((city) => (
+                      <li className="inline-flex items-center gap-2 rounded-full border border-line bg-sage/30 py-1.5 pl-3 pr-1.5" key={city.id}>
+                        <span className="text-sm font-bold text-green-dark">{city.name}</span>
+                        <span className="text-xs text-muted">{city.state.name}</span>
+                        <button
+                          aria-label={`Remove ${city.name}`}
+                          className="grid size-6 place-items-center rounded-full bg-white text-muted transition hover:bg-orange hover:text-white disabled:cursor-wait disabled:opacity-50"
+                          type="button"
+                          disabled={isBusy || busyCityId === city.id}
+                          onClick={() => void removeCity(city.id)}
+                        >
+                          {busyCityId === city.id ? '…' : '✕'}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              <section aria-label="Add a city">
+                <div className="rounded-2xl border border-line bg-cream/45 p-4">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add a city</h3>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="block text-xs font-bold text-green-dark">
+                      State
+                      <SelectField
+                        className="mt-2 w-full"
+                        options={[
+                          { value: '', label: 'Select a state' },
+                          ...(states ?? []).map((state) => ({ value: state.id, label: state.name })),
+                        ]}
+                        onChange={(value) => { setSelectedStateId(value); setSelectedCityId('') }}
+                        value={selectedStateId}
+                      />
+                    </label>
+                    <label className="block text-xs font-bold text-green-dark">
+                      City / LGA
+                      <SelectField
+                        className="mt-2 w-full"
+                        options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
+                        onChange={setSelectedCityId}
+                        value={selectedCityId}
+                        disabledOptions={disabledCityIds}
+                      />
+                    </label>
+                  </div>
+                  {selectedStateId && !selectedCityId && cityOptions.length === 0 && (
+                    <p className="mt-3 text-sm text-muted">No cities found in this state.</p>
+                  )}
+                  {(localError || error) && <p className="mt-3 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{localError ?? error}</p>}
+                  <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream" type="button" onClick={onClose} disabled={isBusy}>Close</button>
+                    <button
+                      className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-40"
+                      type="button"
+                      disabled={!selectedCityId || isBusy || busyCityId !== null || disabledCityIds.includes(selectedCityId)}
+                      onClick={() => void addCity()}
+                    >
+                      Add city
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function DeliveryZones() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { showToast } = useToast()
@@ -160,6 +345,7 @@ export function DeliveryZones() {
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; zone: AdminDeliveryZone | null } | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
   const [modalBusy, setModalBusy] = useState(false)
+  const [assignmentZone, setAssignmentZone] = useState<AdminDeliveryZone | null>(null)
   const [zoneToStatus, setZoneToStatus] = useState<AdminDeliveryZone | null>(null)
   const [zoneToDelete, setZoneToDelete] = useState<AdminDeliveryZone | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -209,6 +395,8 @@ export function DeliveryZones() {
     setModalError(null)
     setModal({ mode: 'edit', zone })
   }
+
+  const openAssignCities = (zone: AdminDeliveryZone) => setAssignmentZone(zone)
 
   const saveZone = async (input: DeliveryZoneInput) => {
     if (!modal) return
@@ -363,6 +551,7 @@ export function DeliveryZones() {
                   <ZoneActions
                     zone={zone}
                     isBusy={busyId === zone.id || deletingId === zone.id}
+                    onAssignCities={() => openAssignCities(zone)}
                     onEdit={() => openEdit(zone)}
                     onToggleStatus={() => requestStatusChange(zone)}
                     onDelete={() => requestDelete(zone)}
@@ -406,7 +595,7 @@ export function DeliveryZones() {
                       <td className="px-5 py-4 text-muted">{formatCurrency(zone.fee)}</td>
                       <td className="px-5 py-4 text-muted">{zone.freeDeliveryThreshold ? formatCurrency(zone.freeDeliveryThreshold) : '—'}</td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${zone.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{zone.isActive ? 'Active' : 'Inactive'}</span></td>
-                      <td className="px-5 py-4"><ZoneActions zone={zone} isBusy={busyId === zone.id || deletingId === zone.id} onEdit={() => openEdit(zone)} onToggleStatus={() => requestStatusChange(zone)} onDelete={() => requestDelete(zone)} /></td>
+                      <td className="px-5 py-4"><ZoneActions zone={zone} isBusy={busyId === zone.id || deletingId === zone.id} onAssignCities={() => openAssignCities(zone)} onEdit={() => openEdit(zone)} onToggleStatus={() => requestStatusChange(zone)} onDelete={() => requestDelete(zone)} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -454,6 +643,16 @@ export function DeliveryZones() {
           busyLabel="Deleting…"
           onCancel={() => setZoneToDelete(null)}
           onConfirm={() => void confirmDelete()}
+        />
+      )}
+
+      {assignmentZone && (
+        <CityAssignmentModal
+          zone={assignmentZone}
+          isBusy={modalBusy}
+          error={null}
+          onClose={() => setAssignmentZone(null)}
+          onAssigned={() => refreshZones()}
         />
       )}
     </>

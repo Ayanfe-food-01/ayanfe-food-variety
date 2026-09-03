@@ -208,6 +208,39 @@ const nextOrderNumber = async (transaction: Prisma.TransactionClient): Promise<s
   return `AFV-${new Date().getUTCFullYear()}-${String(sequence).padStart(6, '0')}`
 }
 
+// Resolves the active delivery zone that serves a selected city, using the
+// State -> City -> DeliveryZoneCity -> DeliveryZone mapping (delivery redesign
+// Phase 2). The lookup is case-insensitive on the city name; a city maps to at
+// most one zone. Returns null when the city is not yet mapped so callers can
+// fall back to the previously selected deliveryZoneId (backward compatible).
+const resolveDeliveryZoneFromCity = async (
+  tx: Prisma.TransactionClient,
+  cityName: string,
+) => {
+  const match = await tx.city.findFirst({
+    where: {
+      name: { equals: cityName, mode: 'insensitive' },
+      deliveryZoneCity: { isNot: null },
+    },
+    select: {
+      deliveryZoneCity: {
+        select: {
+          deliveryZone: {
+            select: {
+              id: true,
+              name: true,
+              fee: true,
+              freeDeliveryThreshold: true,
+              isActive: true,
+            },
+          },
+        },
+      },
+    },
+  })
+  return match?.deliveryZoneCity?.deliveryZone ?? null
+}
+
 export async function checkoutCustomerCart(userId: string | null, input: CheckoutInput): Promise<OrderResponse> {
   if (!userId && !input.guestAccessToken) {
     throw new HttpError(401, 'Guest checkout access is required.')
@@ -414,26 +447,34 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     )
 
     // Delivery is zone-based and never per-product. The delivery fee is
-    // authoritative: it is derived from the selected active DeliveryZone and the
-    // server-computed subtotal (with free-delivery threshold applied). The
-    // browser only supplies the deliveryZoneId; name, fee and free-delivery
-    // threshold are never taken from the client.
+    // authoritative: the server resolves the active DeliveryZone that serves the
+    // selected city (via the City -> DeliveryZoneCity mapping) and applies the
+    // server-computed subtotal against the zone's free-delivery threshold. The
+    // fee, name and threshold are never taken from the client. A previously
+    // selected deliveryZoneId is honoured only as a fallback when the city is not
+    // (yet) mapped, keeping older clients working.
     let deliveryZoneId: string | null = null
     let deliveryZoneName: string | null = null
     let deliveryFee = new Prisma.Decimal(0)
     if (input.fulfillmentMethod === FulfillmentMethod.DELIVERY) {
-      if (!input.deliveryZoneId) {
-        throw new HttpError(400, 'Please select a delivery zone.')
+      const cityName = input.city?.trim()
+      let zone = cityName ? await resolveDeliveryZoneFromCity(transaction, cityName) : null
+
+      if (!zone && input.deliveryZoneId) {
+        zone = await transaction.deliveryZone.findUnique({
+          where: { id: input.deliveryZoneId },
+          select: { id: true, name: true, fee: true, freeDeliveryThreshold: true, isActive: true },
+        })
       }
-      const zone = await transaction.deliveryZone.findUnique({
-        where: { id: input.deliveryZoneId },
-        select: { id: true, name: true, fee: true, freeDeliveryThreshold: true, isActive: true },
-      })
+
       if (!zone) {
-        throw new HttpError(409, 'The selected delivery zone is no longer available. Please choose another zone.')
+        throw new HttpError(
+          400,
+          'We could not find a delivery option for this location. Please choose another city or select pickup.',
+        )
       }
       if (!zone.isActive) {
-        throw new HttpError(409, 'The selected delivery zone is no longer available. Please choose another zone.')
+        throw new HttpError(409, 'Delivery is not currently available for this location. Please choose another location.')
       }
       deliveryZoneId = zone.id
       deliveryZoneName = zone.name

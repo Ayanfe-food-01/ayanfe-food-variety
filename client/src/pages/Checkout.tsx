@@ -10,7 +10,7 @@ import {
   PaymentMethodSection,
 } from '../components/checkout/CheckoutFormSections'
 import { DeliveryOptionsSection } from '../components/checkout/DeliveryOptionsSection'
-import { calculateCheckoutTotals } from '../components/checkout/checkoutCalculations'
+import { calculateCheckoutTotals, deliveryFeeFromZone } from '../components/checkout/checkoutCalculations'
 import { initialCheckoutForm, validateCheckoutForm } from '../components/checkout/checkoutValidation'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../components/checkout/types'
 import { useCart } from '../hooks/useCart'
@@ -18,7 +18,7 @@ import { cartItemLineKey } from '../context/cartContext'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart, getActiveDeliveryZones, type DeliveryZone, type FulfillmentMethod } from '../services/orderService'
+import { checkoutCustomerCart, resolveDeliveryZone, type FulfillmentMethod, type ResolvedDeliveryZone } from '../services/orderService'
 import { getPublicStoreSettings, type PaymentSettings } from '../services/storeSettingsService'
 import { initializeGuestPaystackPayment, initializePaystackPayment } from '../services/paymentService'
 import { createRequestKey } from '../utils/browserCompatibility'
@@ -123,7 +123,9 @@ export function Checkout() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentSettings[]>([])
   const [isPaymentLoading, setIsPaymentLoading] = useState(true)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([])
+  const [resolvedZone, setResolvedZone] = useState<ResolvedDeliveryZone | null>(null)
+  const [isZoneResolving, setIsZoneResolving] = useState(false)
+  const [zoneError, setZoneError] = useState<string | null>(null)
   const [checkoutKey] = useState(() => readSessionValue(CHECKOUT_KEY_STORAGE_KEY) ?? createRequestKey())
   const [guestAccessToken] = useState(() => readSessionValue(GUEST_ACCESS_TOKEN_STORAGE_KEY) ?? createRequestKey())
 
@@ -178,20 +180,35 @@ export function Checkout() {
       .finally(() => setIsPaymentLoading(false))
   }, [])
 
+  // Resolve the delivery zone for the selected city. Only runs when the city
+  // changes with DELIVERY selected. Skips when city is empty.
   useEffect(() => {
-    getActiveDeliveryZones()
-      .then((zones) => {
-        setDeliveryZones(zones)
-        setForm((currentForm) => {
-          if (currentForm.deliveryZoneId) return currentForm
-          if (zones.length === 1) return { ...currentForm, deliveryZoneId: zones[0].id }
-          return currentForm
-        })
+    if (form.fulfillmentMethod !== 'DELIVERY' || !form.city.trim()) return
+
+    let cancelled = false
+    // The resolving flag must flip immediately when the city changes; this is
+    // intentional and not a cascading-render concern because the fee display
+    // reads it only after the async resolution settles.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsZoneResolving(true)
+
+    resolveDeliveryZone(form.city)
+      .then((zone) => {
+        if (cancelled) return
+        setResolvedZone(zone)
+        setZoneError(zone ? null : 'No delivery zone covers your selected city.')
       })
       .catch(() => {
-        // Delivery zones are optional for checkout; continue without them.
+        if (cancelled) return
+        setResolvedZone(null)
+        setZoneError('Could not determine your delivery zone. Please try again.')
       })
-  }, [])
+      .finally(() => {
+        if (!cancelled) setIsZoneResolving(false)
+      })
+
+    return () => { cancelled = true }
+  }, [form.fulfillmentMethod, form.city])
 
   useEffect(() => {
     if (!user) return
@@ -231,6 +248,13 @@ export function Checkout() {
       return
     }
 
+    if (form.fulfillmentMethod === 'DELIVERY' && (!resolvedZone || isZoneResolving)) {
+      setSubmitError(isZoneResolving
+        ? 'Confirming your delivery zone, please wait.'
+        : 'Delivery is not available for your selected city.')
+      return
+    }
+
     if (!user && !guestCheckout) {
       openAuth()
       return
@@ -259,7 +283,6 @@ export function Checkout() {
               deliveryAddress: form.address.trim(),
               city: form.city.trim(),
               deliveryInstructions: form.deliveryInstructions.trim() || undefined,
-              ...(form.deliveryZoneId ? { deliveryZoneId: form.deliveryZoneId } : {}),
             }
           : {}),
         paymentMethod: form.paymentMethod,
@@ -314,16 +337,11 @@ export function Checkout() {
   }
 
   const paymentSettings = paymentMethods.find((method) => method.paymentMethod === form.paymentMethod) ?? null
-  const selectedZone = form.deliveryZoneId ? deliveryZones.find((zone) => zone.id === form.deliveryZoneId) ?? null : null
-  const selectedZoneFee = selectedZone
-    ? (selectedZone.freeDeliveryThreshold !== null && subtotal >= Number(selectedZone.freeDeliveryThreshold)
-        ? 0
-        : Number(selectedZone.fee))
-    : null
+  const deliveryFee = deliveryFeeFromZone(resolvedZone, subtotal)
   const { deliveryFee: checkoutDeliveryFee, total: checkoutTotal } = calculateCheckoutTotals(
     subtotal,
     form.fulfillmentMethod,
-    selectedZoneFee,
+    deliveryFee,
   )
 
   if (isCustomerAuthLoading || (isCartLoading && !isSubmitting)) {
@@ -404,8 +422,10 @@ export function Checkout() {
                 form={form}
                 errors={errors}
                 fulfillmentMethod={form.fulfillmentMethod}
-                deliveryZones={deliveryZones}
-                subtotal={subtotal}
+                zone={resolvedZone}
+                isZoneResolving={isZoneResolving}
+                zoneError={zoneError}
+                deliveryFee={deliveryFee}
                 onChange={updateField}
               />
 
@@ -473,7 +493,7 @@ export function Checkout() {
               </div>
                 <div className="mb-5 rounded-xl bg-sage/35 p-3 text-xs leading-5 text-muted">
                   <strong className="text-green-dark">{form.fulfillmentMethod === 'PICKUP' ? 'Pickup selected.' : form.fulfillmentMethod === 'DELIVERY' ? 'Delivery selected.' : 'Choose pickup or delivery.'}</strong>{' '}
-                  {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? (selectedZone ? `Your delivery fee is based on the ${selectedZone.name} zone.` : deliveryZones.length > 0 ? 'Select a delivery zone to see your delivery fee.' : 'Delivery is unavailable until you select an active delivery zone.') : 'The final total will appear after you select a fulfillment option.'}
+                  {form.fulfillmentMethod === 'PICKUP' ? 'Your order total has no delivery fee. We will contact you using your phone number when it is ready for collection.' : form.fulfillmentMethod === 'DELIVERY' ? (isZoneResolving ? 'Checking your delivery zone…' : resolvedZone ? `Your delivery fee is based on the ${resolvedZone.name} zone.` : 'Delivery is unavailable for your selected city.') : 'The final total will appear after you select a fulfillment option.'}
                 </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-bold text-green-dark">Total</span>

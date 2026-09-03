@@ -5,6 +5,8 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { SelectField } from '../components/ui/SelectField'
+import { PhoneInputField } from '../components/ui/PhoneInput'
+import { isValidE164PhoneNumber } from '../utils/phone'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useProductSearchAutocomplete } from '../hooks/useProductSearchAutocomplete'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
@@ -25,10 +27,7 @@ const makeRequestKey = (): string => {
   return `qk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
 }
 
-const validPhone = (value: string): boolean => {
-  const digits = value.replace(/\D/g, '')
-  return digits.length >= 7 && digits.length <= 15
-}
+const validPhone = (value: string): boolean => isValidE164PhoneNumber(value)
 
 const readQuantityParam = (value: string | null): number => {
   const parsed = Number(value)
@@ -389,20 +388,17 @@ export function RequestQuote() {
                       <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-green-dark" htmlFor="quote-phone">
                         Phone number
                       </label>
-                      <input
-                        autoComplete="tel"
-                        className={`w-full rounded-xl border bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10 ${fieldErrors.phone ? 'border-orange/40' : 'border-line'}`}
+                      <PhoneInputField
                         id="quote-phone"
-                        type="tel"
-                        inputMode="tel"
+                        name="phone"
                         value={customerPhone}
-                        onChange={(event) => {
-                          setCustomerPhone(event.target.value)
+                        hasError={Boolean(fieldErrors.phone)}
+                        aria-describedby={fieldErrors.phone ? 'quote-phone-error' : undefined}
+                        onChange={(value) => {
+                          setCustomerPhone(value)
                           setFieldErrors((current) => ({ ...current, phone: '' }))
                           setSubmitError(null)
                         }}
-                        aria-invalid={Boolean(fieldErrors.phone)}
-                        aria-describedby={fieldErrors.phone ? 'quote-phone-error' : undefined}
                       />
                       {fieldErrors.phone && <p className="mt-2 text-xs font-semibold text-orange" id="quote-phone-error">{fieldErrors.phone}</p>}
                     </div>

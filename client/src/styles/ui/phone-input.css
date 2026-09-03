@@ -1,0 +1,44 @@
+.phone-input-root .PhoneInputCountry {
+  align-self: stretch;
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  border: 0;
+  border-right: 1px solid var(--color-line);
+  border-radius: 12px 0 0 12px;
+  background: var(--color-cream);
+  padding: 0 0.55rem 0 0.8rem;
+}
+
+.phone-input-root .PhoneInputCountrySelect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.phone-input-root .PhoneInputCountryIcon {
+  width: 1.35em;
+}
+
+.phone-input-root .PhoneInputCountrySelectArrow {
+  display: block;
+  width: 0.4em;
+  height: 0.4em;
+  margin-left: 0.4em;
+  border-color: var(--color-green-dark);
+  border-style: solid;
+  border-width: 0 0 1px 1px;
+  border-bottom-left-radius: 1px;
+  transform: rotate(-45deg) scale(0.75);
+}
+
+.phone-input-root:focus-within .PhoneInputCountrySelectArrow {
+  border-color: var(--color-green);
+}

@@ -5,12 +5,12 @@ export interface CheckoutFormData {
   phone: string
   email: string
   fulfillmentMethod: FulfillmentMethod | ''
+  state: string
   address: string
   city: string
   deliveryInstructions: string
   paymentMethod: PaymentMethod
-  deliveryZoneId: string
 }
 
 export type CheckoutField = keyof CheckoutFormData
-export type CheckoutFormErrors = Partial<Record<CheckoutField, string>> & { deliveryZone?: string }
+export type CheckoutFormErrors = Partial<Record<CheckoutField, string>>

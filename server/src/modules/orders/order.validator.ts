@@ -20,6 +20,16 @@ const requiredText = (value: unknown, field: string, maxLength: number): string 
   return normalizedValue
 }
 
+const E164_PATTERN = /^\+[1-9]\d{1,14}$/
+
+const validatePhone = (value: unknown): string => {
+  const phone = requiredText(value, 'phone', 40)
+  if (!E164_PATTERN.test(phone)) {
+    throw new HttpError(400, 'Enter a valid phone number in international format (e.g. +2348012345678).')
+  }
+  return phone
+}
+
 const optionalText = (value: unknown, field: string, maxLength: number): string | undefined => {
   if (value === undefined || value === null || value === '') return undefined
   if (typeof value !== 'string') {
@@ -98,7 +108,7 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
     guestAccessToken: validateGuestAccessToken(body.guestAccessToken),
     cartItems: validateCartItems(body.cartItems),
     customerName: requiredText(body.customerName, 'customerName', 180),
-    phone: requiredText(body.phone, 'phone', 40),
+    phone: validatePhone(body.phone),
     email: requiredEmail(body.email),
     fulfillmentMethod: body.fulfillmentMethod === FulfillmentMethod.PICKUP || body.fulfillmentMethod === FulfillmentMethod.DELIVERY
       ? body.fulfillmentMethod

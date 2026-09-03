@@ -3,6 +3,32 @@ import type { DeliveryZoneInput, ReorderDeliveryZonesInput } from './delivery-zo
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+export function validateCityId(value: string | string[] | undefined): string {
+  const id = Array.isArray(value) ? value[0] : value
+  if (!id || !UUID_PATTERN.test(id.trim())) throw new HttpError(400, 'City ID is invalid.')
+  return id.trim()
+}
+
+const cityIdValue = (value: unknown): string => {
+  if (typeof value !== 'string') throw new HttpError(400, 'A city is required.')
+  return validateCityId(value)
+}
+
+export function validateAssignZoneCityInput(body: unknown): { cityId: string } {
+  if (!isRecord(body)) throw new HttpError(400, 'City data is required.')
+  return { cityId: cityIdValue(body.cityId) }
+}
+
+export function validateDeliveryCityName(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new HttpError(400, 'A city is required to resolve the delivery zone.')
+  }
+  if (value.trim().length > 120) {
+    throw new HttpError(400, 'City must be 120 characters or fewer.')
+  }
+  return value.trim()
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 

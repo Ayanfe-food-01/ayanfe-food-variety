@@ -351,3 +351,40 @@ export async function getActiveDeliveryZones(): Promise<DeliveryZone[]> {
   const response = await request<{ data: DeliveryZone[] }>('/delivery-zones')
   return response.data
 }
+
+export interface DeliveryLocationState {
+  id: string
+  name: string
+  cities: Array<{ id: string; name: string }>
+}
+
+interface DeliveryLocationStatesResponse {
+  success: true
+  data: { states: DeliveryLocationState[] }
+}
+
+export async function getDeliveryLocationStates(): Promise<DeliveryLocationState[]> {
+  const response = await request<DeliveryLocationStatesResponse>('/delivery-zones/delivery-locations/states')
+  return response.data.states
+}
+
+// A delivery zone resolved for a city for display only. The server recomputes
+// the fee and order total authoritatively at checkout; the client never trusts
+// these values for the final total.
+export interface ResolvedDeliveryZone {
+  id: string
+  name: string
+  fee: string
+  freeDeliveryThreshold: string | null
+}
+
+interface ResolveDeliveryZoneResponse {
+  success: true
+  data: { zone: ResolvedDeliveryZone | null }
+}
+
+export async function resolveDeliveryZone(city: string): Promise<ResolvedDeliveryZone | null> {
+  const params = new URLSearchParams({ city })
+  const response = await request<ResolveDeliveryZoneResponse>(`/delivery-zones/resolve?${params.toString()}`)
+  return response.data.zone
+}

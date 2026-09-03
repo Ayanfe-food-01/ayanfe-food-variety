@@ -228,10 +228,59 @@ model DeliveryZone {
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   orders               Order[]
+  deliveryZoneCities   DeliveryZoneCity[]
 
   @@index([isActive, sortOrder], map: "delivery_zones_active_order_idx")
   @@index([sortOrder], map: "delivery_zones_sort_order_idx")
   @@map("delivery_zones")
+}
+
+// Nigerian states and the FCT. Seeded by the delivery-location seed and used by
+// the State -> City checkout flow (delivery redesign Phase 1).
+model State {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique @db.VarChar(120)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  cities City[]
+
+  @@index([sortOrder], map: "states_sort_order_idx")
+  @@map("states")
+}
+
+// A city/town belongs to exactly one state. Seeded with a curated subset of
+// well-known cities; admins may add more. Unique per state.
+model City {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stateId   String   @map("state_id") @db.Uuid
+  name      String   @db.VarChar(120)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  state            State              @relation(fields: [stateId], references: [id], onDelete: Restrict)
+  deliveryZoneCity DeliveryZoneCity?
+
+  @@unique([stateId, name], map: "cities_state_name_key")
+  @@index([stateId], map: "cities_state_id_idx")
+  @@map("cities")
+}
+
+// Maps a city to the delivery zone that covers it. A zone may serve many
+// cities; a city belongs to at most one zone. Cities not yet mapped simply have
+// no zone, so checkout can resolve them once an admin assigns one.
+model DeliveryZoneCity {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryZoneId String   @map("delivery_zone_id") @db.Uuid
+  cityId         String   @unique @map("city_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  deliveryZone DeliveryZone @relation(fields: [deliveryZoneId], references: [id], onDelete: Cascade)
+  city         City         @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryZoneId], map: "delivery_zone_cities_zone_id_idx")
+  @@map("delivery_zone_cities")
 }
 
 model Order {

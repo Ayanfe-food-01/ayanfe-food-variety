@@ -904,6 +904,22 @@ export interface AdminDeliveryZone {
   updatedAt: string
 }
 
+export interface AdminDeliveryZoneAssignedCity {
+  id: string
+  name: string
+  state: { id: string; name: string }
+}
+
+export interface AdminDeliveryZoneDetail extends AdminDeliveryZone {
+  cities: AdminDeliveryZoneAssignedCity[]
+}
+
+export interface AdminDeliveryLocationState {
+  id: string
+  name: string
+  cities: Array<{ id: string; name: string }>
+}
+
 export interface AdminDeliveryZonesQuery {
   page: number
   pageSize: number
@@ -938,6 +954,16 @@ interface AdminDeliveryZoneResponse {
   data: { zone: AdminDeliveryZone }
 }
 
+interface AdminDeliveryZoneDetailResponse {
+  success: true
+  data: { zone: AdminDeliveryZoneDetail }
+}
+
+interface AdminDeliveryLocationStatesResponse {
+  success: true
+  data: { states: AdminDeliveryLocationState[] }
+}
+
 interface AdminDeliveryZonesReorderResponse {
   success: true
   data: { zones: AdminDeliveryZone[] }
@@ -958,8 +984,8 @@ export async function getAdminDeliveryZones(query: AdminDeliveryZonesQuery): Pro
   return response.data
 }
 
-export async function getAdminDeliveryZone(id: string): Promise<AdminDeliveryZone> {
-  const response = await request<AdminDeliveryZoneResponse>(`/admin/delivery-zones/${encodeURIComponent(id)}`)
+export async function getAdminDeliveryZone(id: string): Promise<AdminDeliveryZoneDetail> {
+  const response = await request<AdminDeliveryZoneDetailResponse>(`/admin/delivery-zones/${encodeURIComponent(id)}`)
   return response.data.zone
 }
 
@@ -1003,4 +1029,26 @@ export async function deleteAdminDeliveryZone(id: string): Promise<void> {
   await request<{ success: true }>(`/admin/delivery-zones/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   })
+}
+
+export async function getAdminDeliveryLocationStates(): Promise<AdminDeliveryLocationState[]> {
+  const response = await request<AdminDeliveryLocationStatesResponse>('/admin/delivery-locations/states')
+  return response.data.states
+}
+
+export async function assignCityToDeliveryZone(zoneId: string, cityId: string): Promise<AdminDeliveryZoneDetail> {
+  const response = await request<AdminDeliveryZoneDetailResponse>(`/admin/delivery-zones/${encodeURIComponent(zoneId)}/cities`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cityId }),
+  })
+  return response.data.zone
+}
+
+export async function unassignCityFromDeliveryZone(zoneId: string, cityId: string): Promise<AdminDeliveryZoneDetail> {
+  const response = await request<AdminDeliveryZoneDetailResponse>(
+    `/admin/delivery-zones/${encodeURIComponent(zoneId)}/cities/${encodeURIComponent(cityId)}`,
+    { method: 'DELETE' },
+  )
+  return response.data.zone
 }

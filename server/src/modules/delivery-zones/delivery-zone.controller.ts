@@ -1,16 +1,23 @@
 import type { RequestHandler } from 'express'
 import {
+  assignCityToZone,
   createDeliveryZone,
   deleteDeliveryZone,
   getAdminDeliveryZone,
   listActiveDeliveryZones,
   listAdminDeliveryZones,
+  listDeliveryLocationStates,
   reorderDeliveryZones,
+  resolveDeliveryZoneByCity,
+  unassignCityFromZone,
   updateDeliveryZone,
   updateDeliveryZoneStatus,
 } from './delivery-zone.service.js'
 import {
   validateAdminDeliveryZonesQuery,
+  validateAssignZoneCityInput,
+  validateCityId,
+  validateDeliveryCityName,
   validateDeliveryZoneId,
   validateDeliveryZoneInput,
   validateDeliveryZoneStatusInput,
@@ -81,5 +88,45 @@ export const reorderAdminDeliveryZonesController: RequestHandler = async (reques
     data: {
       zones: await reorderDeliveryZones(validateReorderDeliveryZonesInput(request.body).zoneIds),
     },
+  })
+}
+
+export const listDeliveryLocationStatesController: RequestHandler = async (_request, response) => {
+  response.json({
+    success: true,
+    data: { states: await listDeliveryLocationStates() },
+  })
+}
+
+export const assignCityToZoneController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'City assigned to delivery zone.',
+    data: {
+      zone: await assignCityToZone(
+        validateDeliveryZoneId(request.params.id),
+        validateAssignZoneCityInput(request.body).cityId,
+      ),
+    },
+  })
+}
+
+export const unassignCityFromZoneController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'City removed from delivery zone.',
+    data: {
+      zone: await unassignCityFromZone(
+        validateDeliveryZoneId(request.params.id),
+        validateCityId(request.params.cityId),
+      ),
+    },
+  })
+}
+export const resolveDeliveryZoneController: RequestHandler = async (request, response) => {
+  const city = validateDeliveryCityName(request.query.city)
+  response.json({
+    success: true,
+    data: { zone: await resolveDeliveryZoneByCity(city) },
   })
 }

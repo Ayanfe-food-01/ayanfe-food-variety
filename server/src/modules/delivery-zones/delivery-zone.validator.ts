@@ -32,16 +32,6 @@ export function validateDeliveryCityName(value: unknown): string {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const requiredText = (value: unknown, field: string, maxLength: number): string => {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new HttpError(400, `${field} is required.`)
-  }
-  if (value.trim().length > maxLength) {
-    throw new HttpError(400, `${field} must be ${maxLength} characters or fewer.`)
-  }
-  return value.trim()
-}
-
 const booleanValue = (value: unknown, field: string, defaultValue: boolean): boolean => {
   if (value === undefined) return defaultValue
   if (typeof value === 'boolean') return value
@@ -71,7 +61,6 @@ export function validateDeliveryZoneId(value: string | string[] | undefined): st
 
 export function validateDeliveryZoneInput(body: unknown): DeliveryZoneInput {
   if (!isRecord(body)) throw new HttpError(400, 'Delivery zone data is required.')
-  const name = requiredText(body.name, 'Delivery zone name', 120)
   const feeValue = moneyValue(body.fee, 'Delivery fee', { required: true, allowZero: false })
   if (feeValue === null) throw new HttpError(400, 'Delivery fee is required.')
   const freeDeliveryThreshold = moneyValue(body.freeDeliveryThreshold, 'Free delivery threshold', {
@@ -81,12 +70,28 @@ export function validateDeliveryZoneInput(body: unknown): DeliveryZoneInput {
   if (freeDeliveryThreshold !== null && freeDeliveryThreshold !== 0 && freeDeliveryThreshold <= feeValue) {
     throw new HttpError(400, 'The free delivery threshold must be greater than the delivery fee.')
   }
+  const cityIds = validateCityIds(body.cityIds)
+  if (cityIds.length === 0) throw new HttpError(400, 'Add at least one city to this delivery zone.')
   return {
-    name,
     fee: feeValue,
     freeDeliveryThreshold: freeDeliveryThreshold === 0 ? null : freeDeliveryThreshold,
     isActive: booleanValue(body.isActive, 'Delivery zone status', true),
+    cityIds,
   }
+}
+
+function validateCityIds(value: unknown): string[] {
+  if (!Array.isArray(value)) throw new HttpError(400, 'Cities are required.')
+  const seen = new Set<string>()
+  const validated: string[] = []
+  for (const item of value) {
+    const id = validateCityId(item)
+    if (!seen.has(id)) {
+      seen.add(id)
+      validated.push(id)
+    }
+  }
+  return validated
 }
 
 export function validateDeliveryZoneStatusInput(body: unknown): boolean {

@@ -16,6 +16,7 @@ import { calculateDiscountedPrice } from '../products/product.pricing.js'
 import { assertWholesaleOrderable, wholesaleUnitPriceFromOption } from '../products/wholesale.pricing.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
 import { isOnlinePaymentEnabled } from '../payments/payment.provider.js'
+import { buildZoneLabel } from '../delivery-zones/delivery-zone-label.js'
 
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: {
@@ -228,17 +229,24 @@ const resolveDeliveryZoneFromCity = async (
           deliveryZone: {
             select: {
               id: true,
-              name: true,
               fee: true,
               freeDeliveryThreshold: true,
               isActive: true,
+              deliveryZoneCities: { select: { city: { select: { name: true } } } },
             },
           },
         },
       },
     },
   })
-  return match?.deliveryZoneCity?.deliveryZone ?? null
+  const zone = match?.deliveryZoneCity?.deliveryZone ?? null
+  // Compute the display label from the zone's covered cities so the order
+  // snapshot carries a human-readable name (there is no manual zone name).
+  if (!zone) return null
+  return {
+    ...zone,
+    label: buildZoneLabel(zone.deliveryZoneCities.map((entry) => entry.city.name)),
+  }
 }
 
 export async function checkoutCustomerCart(userId: string | null, input: CheckoutInput): Promise<OrderResponse> {
@@ -461,10 +469,22 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       let zone = cityName ? await resolveDeliveryZoneFromCity(transaction, cityName) : null
 
       if (!zone && input.deliveryZoneId) {
-        zone = await transaction.deliveryZone.findUnique({
+        const fallback = await transaction.deliveryZone.findUnique({
           where: { id: input.deliveryZoneId },
-          select: { id: true, name: true, fee: true, freeDeliveryThreshold: true, isActive: true },
+          select: {
+            id: true,
+            fee: true,
+            freeDeliveryThreshold: true,
+            isActive: true,
+            deliveryZoneCities: { select: { city: { select: { name: true } } } },
+          },
         })
+        zone = fallback
+          ? {
+              ...fallback,
+              label: buildZoneLabel(fallback.deliveryZoneCities.map((entry) => entry.city.name)),
+            }
+          : null
       }
 
       if (!zone) {
@@ -477,7 +497,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         throw new HttpError(409, 'Delivery is not currently available for this location. Please choose another location.')
       }
       deliveryZoneId = zone.id
-      deliveryZoneName = zone.name
+      deliveryZoneName = zone.label
       if (zone.freeDeliveryThreshold !== null && subtotal.gte(zone.freeDeliveryThreshold)) {
         deliveryFee = new Prisma.Decimal(0)
       } else {

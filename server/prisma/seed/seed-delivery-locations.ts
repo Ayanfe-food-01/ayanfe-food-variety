@@ -119,57 +119,49 @@ async function main() {
     })
   }
 
-  // --- 3. Map cities to delivery zones by exact city-name -> zone-name match
-  // (e.g. the Lagos LGA "Surulere" -> zone "Surulere"), scoped to the zone's
-  // home state. Name-only matching is unsafe because LGAs repeat across states
-  // (e.g. "Surulere" exists in both Lagos and Oyo); state scoping prevents a
-  // Lagos zone from being bound to an unrelated Oyo city. Existing mappings are
-  // preserved; only missing, correctly-scoped ones are added.
-  //
-  // A delivery zone has no state field yet (Phase 1), so the home state for a
-  // seeded zone is declared here. Update this map as zones are added in later
-  // phases / the admin UI takes over assignment.
-  const ZONE_HOME_STATE: Record<string, string> = {
-    Surulere: 'Lagos',
-    Kosofe: 'Lagos',
+  // --- 3. Map cities to delivery zones.
+  // Delivery zones no longer carry a manual name; a zone is identified by the
+  // cities it covers. This seed deletes nothing and only adds missing
+  // city->zone mappings for cities declared below. Cities not listed here stay
+  // unmapped and are assigned by an admin via the UI. Each zone is matched to
+  // its declared cities by its sort order, which is stable for seeded zones.
+  // A city belongs to at most one zone, so overlapping declarations across
+  // zones would be rejected and therefore must not be introduced here.
+  const ZONE_CITIES_BY_SORT_ORDER: Record<number, string[]> = {
+    1: ['Kosofe'],
+    2: ['Surulere'],
   }
 
-  const zones = await prisma.deliveryZone.findMany({ select: { id: true, name: true } })
+  const zones = await prisma.deliveryZone.findMany({
+    select: { id: true, sortOrder: true },
+    orderBy: { sortOrder: 'asc' },
+  })
 
-  // Map each zone name to the set of candidate city rows that match both the
-  // zone name AND its declared home state.
-  const zoneByName = new Map(zones.map((z) => [z.name, z.id]))
-
-  let newMappingCount = 0
   const mappingsToCreate: { cityId: string; deliveryZoneId: string }[] = []
-  const existingCityIds: string[] = []
+  const candidateCityIds: string[] = []
 
-  for (const [zoneName, zoneId] of zoneByName) {
-    const homeState = ZONE_HOME_STATE[zoneName]
-    if (!homeState) continue
-
-    const stateRow = await prisma.state.findUnique({ where: { name: homeState }, select: { id: true } })
-    if (!stateRow) continue
-
+  for (const zone of zones) {
+    const cityNames = ZONE_CITIES_BY_SORT_ORDER[zone.sortOrder]
+    if (!cityNames) continue
     const cityRows = await prisma.city.findMany({
-      where: { stateId: stateRow.id, name: zoneName },
+      where: { name: { in: cityNames } },
       select: { id: true },
     })
     for (const city of cityRows) {
-      existingCityIds.push(city.id)
-      if (!zoneId) continue
-      mappingsToCreate.push({ cityId: city.id, deliveryZoneId: zoneId })
+      candidateCityIds.push(city.id)
+      mappingsToCreate.push({ cityId: city.id, deliveryZoneId: zone.id })
     }
   }
 
   // Preserve any existing mappings for these cities (skip already-mapped).
   const existingMappings = await prisma.deliveryZoneCity.findMany({
-    where: { cityId: { in: existingCityIds } },
+    where: { cityId: { in: candidateCityIds } },
     select: { cityId: true },
   })
   const mappedCityIds = new Set(existingMappings.map((m) => m.cityId))
 
   const toCreate = mappingsToCreate.filter((m) => !mappedCityIds.has(m.cityId))
+  let newMappingCount = 0
   newMappingCount = await chunked(toCreate, async (chunk) => {
     const result = await prisma.deliveryZoneCity.createMany({ data: chunk, skipDuplicates: true })
     return result.count

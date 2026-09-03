@@ -1,4 +1,5 @@
 import { useEffect, useId } from 'react'
+import { lockBodyScroll } from '../../utils/browserCompatibility'
 
 interface ConfirmDialogProps {
   eyebrow?: string
@@ -27,12 +28,16 @@ export function ConfirmDialog({
   const descriptionId = useId()
 
   useEffect(() => {
+    const releaseBodyScroll = lockBodyScroll()
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !isBusy) onCancel()
     }
 
     document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
+    return () => {
+      releaseBodyScroll()
+      document.removeEventListener('keydown', closeOnEscape)
+    }
   }, [isBusy, onCancel])
 
   return (

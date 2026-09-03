@@ -101,7 +101,7 @@ function DeliveryZoneInfo({ zone, isResolving, error, deliveryFee, whatsappUrl }
       <dl className="mt-3 space-y-1.5 text-sm">
         <div className="flex items-baseline gap-2">
           <dt className="text-muted">Zone</dt>
-          <dd className="font-bold text-green-dark">{zone.name}</dd>
+          <dd className="font-bold text-green-dark">{zone.label}</dd>
         </div>
         <div className="flex items-baseline gap-2">
           <dt className="text-muted">Delivery fee</dt>

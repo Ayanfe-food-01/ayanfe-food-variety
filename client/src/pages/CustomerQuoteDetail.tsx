@@ -293,7 +293,7 @@ export function CustomerQuoteDetail() {
         <div className="safe-modal-backdrop fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-hidden bg-green-dark/50" role="presentation" onClick={(event) => {
           if (event.target === event.currentTarget) closeDialogs()
         }}>
-          <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="decline-quote-title">
+          <div className="modal-scroll my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="decline-quote-title">
             <h2 id="decline-quote-title" className="text-2xl font-bold text-green-dark">Decline this quotation?</h2>
             <p className="mt-3 text-sm leading-6 text-muted">You will not be committed to this quotation. Let us know if anything can be improved.</p>
             <label className="mt-6 block text-sm font-bold text-green-dark">
@@ -323,7 +323,7 @@ export function CustomerQuoteDetail() {
         <div className="safe-modal-backdrop fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-hidden bg-green-dark/50" role="presentation" onClick={(event) => {
           if (event.target === event.currentTarget) closeDialogs()
         }}>
-          <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="convert-quote-title">
+          <div className="modal-scroll my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="convert-quote-title">
             <h2 id="convert-quote-title" className="text-2xl font-bold text-green-dark">Continue to order</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
               {isDelivery

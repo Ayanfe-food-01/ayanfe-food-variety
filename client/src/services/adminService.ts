@@ -895,7 +895,7 @@ export async function deleteAdminReview(id: string): Promise<void> {
 
 export interface AdminDeliveryZone {
   id: string
-  name: string
+  label: string
   fee: string
   freeDeliveryThreshold: string | null
   isActive: boolean
@@ -917,7 +917,12 @@ export interface AdminDeliveryZoneDetail extends AdminDeliveryZone {
 export interface AdminDeliveryLocationState {
   id: string
   name: string
-  cities: Array<{ id: string; name: string }>
+  cities: Array<{
+    id: string
+    name: string
+    assignedZoneId: string | null
+    assignedZoneLabel: string | null
+  }>
 }
 
 export interface AdminDeliveryZonesQuery {
@@ -938,10 +943,10 @@ export interface AdminDeliveryZonesPage {
 }
 
 export interface DeliveryZoneInput {
-  name: string
   fee: number
   freeDeliveryThreshold: number | null
   isActive: boolean
+  cityIds: string[]
 }
 
 interface AdminDeliveryZonesResponse {

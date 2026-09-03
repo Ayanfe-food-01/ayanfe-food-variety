@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import 'react-phone-number-input/style.css'
 import './styles/globals.css'
 import App from './App.tsx'
 import { CartProvider } from './context/CartContext'

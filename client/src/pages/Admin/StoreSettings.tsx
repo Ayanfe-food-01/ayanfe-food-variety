@@ -10,6 +10,7 @@ import {
 } from '../../services/adminService'
 import { useToast } from '../../components/ui/Toast'
 import { SettingsField, SettingsFormState, SettingsPageHeader, SettingsPanel, SettingsSaveButton, SettingsTextArea } from '../../components/admin/SettingsForm'
+import { PhoneInputField } from '../../components/ui/PhoneInput'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
@@ -132,7 +133,9 @@ export function StoreSettings() {
           <form className="space-y-5" onSubmit={submit}>
             <SettingsField label="Business name" value={store.businessName} onChange={(event) => setStore({ ...store, businessName: event.target.value })} required maxLength={180} />
             <div className="grid gap-5 sm:grid-cols-2">
-              <SettingsField label="Call to order phone" type="tel" value={store.callToOrderPhone} onChange={(event) => setStore({ ...store, callToOrderPhone: event.target.value })} required maxLength={40} inputMode="tel" placeholder="0801 234 5678" />
+              <SettingsField label="Call to order phone" value={store.callToOrderPhone} onChange={(event) => setStore({ ...store, callToOrderPhone: event.target.value })} required maxLength={40} renderInput={({ value, onChange }) => (
+                <PhoneInputField className="mt-2" name="callToOrderPhone" value={value} onChange={onChange} />
+              )} />
               <SettingsTextArea label="Announcement ticker messages" value={store.announcementText} onChange={(event) => setStore({ ...store, announcementText: event.target.value })} maxLength={2000} placeholder={'Fresh stock available today\nFree delivery on qualifying orders'} />
             </div>
             <p className="-mt-2 text-xs font-normal leading-5 text-muted">The green ticker rotates each line continuously. You can also separate messages with a vertical bar (|).</p>

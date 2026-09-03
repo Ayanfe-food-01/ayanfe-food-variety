@@ -1,6 +1,7 @@
 import type { PaymentSettings } from '../../services/storeSettingsService'
 import type { PaymentMethod } from '../../services/orderService'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from './types'
+import { PhoneInputField } from '../ui/PhoneInput'
 import {
   checkoutDescriptionClassName,
   checkoutFieldGridClassName,
@@ -80,17 +81,14 @@ export function ContactDetailsSection({ form, errors, isAuthenticated, onChange 
           <label className="text-sm font-bold text-green-dark" htmlFor="phone">
             Phone number <span className="text-orange" aria-hidden="true">*</span>
           </label>
-          <input
-            className={checkoutInputClassName(Boolean(errors.phone))}
+          <PhoneInputField
+            className="mt-2"
             id="phone"
             name="phone"
-            type="tel"
-            autoComplete="tel"
             value={form.phone}
-            onChange={(event) => onChange('phone', event.target.value)}
-            aria-invalid={Boolean(errors.phone)}
+            hasError={Boolean(errors.phone)}
+            onChange={(value) => onChange('phone', value)}
             aria-describedby={errors.phone ? 'phone-error' : undefined}
-            required
           />
           <CheckoutFieldError id="phone" message={errors.phone} />
         </div>

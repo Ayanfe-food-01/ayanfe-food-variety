@@ -44,16 +44,46 @@ export function SettingsPanel({ eyebrow, title, description, children, className
   )
 }
 
-export function SettingsField({ label, value, onChange, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+interface SettingsFieldRenderProps {
+  value: string
+  onChange: (value: string) => void
+  id?: string
+  name?: string
+  'aria-describedby'?: string
+}
+
+export function SettingsField({
+  label,
+  value,
+  onChange,
+  renderInput,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & {
+  label: string
+  renderInput?: (renderProps: SettingsFieldRenderProps) => ReactNode
+}) {
+  const renderProps: SettingsFieldRenderProps = {
+    value: typeof value === 'string' ? value : value == null ? '' : String(value),
+    onChange: (next) =>
+      onChange?.({ target: { value: next } } as React.ChangeEvent<HTMLInputElement>),
+    id: props.id,
+    name: props.name,
+    'aria-describedby': props['aria-describedby'],
+  }
+
   return (
     <label className="block text-sm font-bold text-green-dark">
       {label}
-      <input
-        {...props}
-        className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-        value={value}
-        onChange={onChange}
-      />
+      {renderInput ? (
+        renderInput(renderProps)
+      ) : (
+        <input
+          {...props}
+          className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
+          value={value}
+          onChange={onChange}
+        />
+      )}
     </label>
   )
 }

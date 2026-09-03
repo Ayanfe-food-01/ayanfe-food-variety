@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { ApiError } from '../../services/api'
 import { getContactInformation, updateContactInformation, type ContactInformation } from '../../services/adminService'
 import { useToast } from '../../components/ui/Toast'
+import { PhoneInputField } from '../../components/ui/PhoneInput'
 import { SettingsField, SettingsFormState, SettingsPageHeader, SettingsPanel, SettingsSaveButton, SettingsTextArea } from '../../components/admin/SettingsForm'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
@@ -56,8 +57,12 @@ export function ContactSettings() {
           <form className="space-y-5" onSubmit={submit}>
             <SettingsField label="Business email" type="email" value={contact.businessEmail} onChange={(event) => setContact({ ...contact, businessEmail: event.target.value })} required maxLength={255} />
             <div className="grid gap-5 sm:grid-cols-2">
-              <SettingsField label="Business phone" type="tel" value={contact.businessPhone} onChange={(event) => setContact({ ...contact, businessPhone: event.target.value })} required maxLength={40} />
-              <SettingsField label="WhatsApp number" type="tel" value={contact.whatsappNumber} onChange={(event) => setContact({ ...contact, whatsappNumber: event.target.value })} required maxLength={40} />
+              <SettingsField label="Business phone" value={contact.businessPhone} onChange={(event) => setContact({ ...contact, businessPhone: event.target.value })} required maxLength={40} renderInput={({ value, onChange }) => (
+                <PhoneInputField className="mt-2" name="businessPhone" value={value} onChange={onChange} />
+              )} />
+              <SettingsField label="WhatsApp number" value={contact.whatsappNumber} onChange={(event) => setContact({ ...contact, whatsappNumber: event.target.value })} required maxLength={40} renderInput={({ value, onChange }) => (
+                <PhoneInputField className="mt-2" name="whatsappNumber" value={value} onChange={onChange} />
+              )} />
             </div>
             <SettingsTextArea label="Opening hours" value={contact.openingHours} onChange={(event) => setContact({ ...contact, openingHours: event.target.value })} maxLength={500} placeholder={'Add the hours customers can visit or contact the business.\nExample: Monday–Saturday, 9:00am–5:00pm'} />
             <div className="grid gap-5 sm:grid-cols-2">

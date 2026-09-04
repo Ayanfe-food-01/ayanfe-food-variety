@@ -23,7 +23,19 @@ function useMediaQuery(query: string) {
   return matches
 }
 
-function PromoBannersSkeleton() {
+function PromoBannersSkeleton({ isXL }: { isXL: boolean }) {
+  if (isXL) {
+    return (
+      <section className="promo-fade-wrap" aria-label="Loading promotional offers" aria-busy="true">
+        <div className="promo-fade-track" aria-hidden="true">
+          <div className="promo-fade-slide is-active">
+            <div className="promo-banner-card promo-banner-skeleton" />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="promo-banners-wrap" aria-label="Loading promotional offers" aria-busy="true">
       <div className="promo-banners-track" aria-hidden="true">
@@ -38,7 +50,7 @@ function PromoBannersSkeleton() {
 export function PromoBanners({ banners, isLoading = false }: PromoBannersProps) {
   const isXL = useMediaQuery(XL_QUERY)
 
-  if (isLoading) return <PromoBannersSkeleton />
+  if (isLoading) return <PromoBannersSkeleton isXL={isXL} />
   if (banners.length === 0) return null
 
   return isXL

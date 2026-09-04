@@ -116,7 +116,7 @@
 
 .promo-dot.is-active {
   width: 26px;
-  background: var(--color-green);
+  background: var(--color-orange);
 }
 
 .promo-dot:focus-visible {
@@ -166,7 +166,7 @@
   flex-direction: column;
   align-items: center;
   position: relative;
-  margin: 40px 0;
+  margin: 30px 0;
 }
 
 .promo-fade-track {
@@ -207,10 +207,14 @@
   left: 50%;
   transform: translateX(-50%);
   gap: 9px;
-  padding-top: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 80%);
+  backdrop-filter: blur(4px);
+  padding-top: 8px;
   z-index: 3;
 }
 
 .promo-fade-wrap .promo-dot {
-  box-shadow: 0 0 0 2px rgb(20 33 22 / 50%);
+  box-shadow: none;
 }

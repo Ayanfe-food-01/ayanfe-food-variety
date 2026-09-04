@@ -1,11 +1,12 @@
 .shopping-mode-switch { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .desktop-shopping-mode {
-  margin-left: auto;
+  margin: 2px auto 2px 0;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding-left: 14px;
   border-left: 1px solid var(--color-line);
+  flex-shrink: 0;
 }
 .desktop-shopping-mode .shopping-mode-label {
   font-size: 11px;
@@ -16,7 +17,7 @@
 .shopping-mode-toggle { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--color-line); border-radius: 999px; background: #f0f1ee; padding: 3px; }
 .shopping-mode-option { min-height: 32px; border: 0; border-radius: 999px; padding: 0 14px; background: transparent; color: var(--color-muted); font-size: 11px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background-color .2s ease, color .2s ease; }
 .desktop-shopping-mode .shopping-mode-toggle { gap: 3px; padding: 4px; }
-.desktop-shopping-mode .shopping-mode-option { min-height: 38px; padding: 0 18px; font-size: 12px; }
+.desktop-shopping-mode .shopping-mode-option { min-height: 34px; padding: 0 14px; font-size: 11px; }
 .shopping-mode-option:hover:not(.is-active) { color: var(--color-green-dark); }
 .shopping-mode-option.is-active { background: var(--color-green-dark); color: var(--color-cream); }
 .shopping-mode-option:disabled { cursor: wait; opacity: .6; }

@@ -92,6 +92,41 @@
 .icon-button { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--color-line); border-radius: 50%; background: transparent; color: var(--color-green-dark); cursor: pointer; }
 .mobile-only, .mobile-menu, .menu-backdrop { display: none; }
 
+/* Responsive primary-nav overflow into a hover "More" dropdown */
+.more-nav { position: relative; }
+.more-nav-trigger { display: inline-flex; align-items: center; gap: 5px; color: var(--color-muted); font-weight: 600; }
+.more-nav-trigger:hover { color: var(--color-orange); }
+.more-nav-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  display: none;
+  min-width: 190px;
+  padding: 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: #fffdfc;
+  box-shadow: 0 16px 32px rgb(20 33 22 / 14%);
+  z-index: 60;
+}
+.more-nav:hover .more-nav-menu,
+.more-nav:focus-within .more-nav-menu { display: block; }
+.more-nav-menu a { display: block; width: 100%; padding: 11px 14px; border-radius: 8px; color: var(--color-muted); white-space: nowrap; font-weight: 600; }
+.more-nav-menu a:hover { color: var(--color-orange); background: var(--color-sage); }
+
+/* Off-screen host used to measure the primary link widths */
+.desktop-nav-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.desktop-nav-measure-item { display: inline-block; }
+
 @media (max-width: 1024px) {
   .desktop-nav { gap: 18px; font-size: 11px; }
 }

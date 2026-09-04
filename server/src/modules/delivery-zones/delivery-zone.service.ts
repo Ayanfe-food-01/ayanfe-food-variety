@@ -18,6 +18,8 @@ const toZone = (zone: {
   id: string
   fee: Prisma.Decimal
   freeDeliveryThreshold: Prisma.Decimal | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
   isActive: boolean
   sortOrder: number
   createdAt: Date
@@ -30,6 +32,8 @@ const toZone = (zone: {
     label: buildZoneLabel(cityNames),
     fee: zone.fee.toFixed(2),
     freeDeliveryThreshold: zone.freeDeliveryThreshold?.toFixed(2) ?? null,
+    minDeliveryDays: zone.minDeliveryDays,
+    maxDeliveryDays: zone.maxDeliveryDays,
     isActive: zone.isActive,
     sortOrder: zone.sortOrder,
     createdAt: zone.createdAt.toISOString(),
@@ -151,6 +155,8 @@ export async function createDeliveryZone(input: DeliveryZoneInput): Promise<Deli
       data: {
         fee: input.fee,
         freeDeliveryThreshold: input.freeDeliveryThreshold ?? undefined,
+        minDeliveryDays: input.minDeliveryDays ?? undefined,
+        maxDeliveryDays: input.maxDeliveryDays ?? undefined,
         isActive: input.isActive,
         sortOrder: nextSortOrder,
         deliveryZoneCities: {
@@ -193,6 +199,8 @@ export async function updateDeliveryZone(id: string, input: DeliveryZoneInput): 
         data: {
           fee: input.fee,
           freeDeliveryThreshold: input.freeDeliveryThreshold ?? undefined,
+          minDeliveryDays: input.minDeliveryDays ?? undefined,
+          maxDeliveryDays: input.maxDeliveryDays ?? undefined,
           isActive: input.isActive,
         },
         include: zoneInclude,
@@ -323,7 +331,7 @@ export async function listDeliveryLocationStates(): Promise<DeliveryLocationStat
 // checkout endpoint recomputes the fee and total authoritatively.
 export async function resolveDeliveryZoneByCity(
   cityName: string,
-): Promise<{ id: string; label: string; fee: string; freeDeliveryThreshold: string | null } | null> {
+): Promise<{ id: string; label: string; fee: string; freeDeliveryThreshold: string | null; minDeliveryDays: number | null; maxDeliveryDays: number | null } | null> {
   const match = await prisma.city.findFirst({
     where: {
       name: { equals: cityName, mode: 'insensitive' },
@@ -337,6 +345,8 @@ export async function resolveDeliveryZoneByCity(
               id: true,
               fee: true,
               freeDeliveryThreshold: true,
+              minDeliveryDays: true,
+              maxDeliveryDays: true,
               isActive: true,
               deliveryZoneCities: { select: { city: { select: { name: true } } } },
             },
@@ -353,6 +363,8 @@ export async function resolveDeliveryZoneByCity(
     label: buildZoneLabel(cityNames),
     fee: zone.fee.toFixed(2),
     freeDeliveryThreshold: zone.freeDeliveryThreshold?.toFixed(2) ?? null,
+    minDeliveryDays: zone.minDeliveryDays,
+    maxDeliveryDays: zone.maxDeliveryDays,
   }
 }
 

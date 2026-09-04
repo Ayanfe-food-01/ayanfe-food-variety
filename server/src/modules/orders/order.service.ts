@@ -264,17 +264,18 @@ const resolveZoneForCityId = async (tx: Prisma.TransactionClient, cityId: string
 
 // Resolves the authoritative delivery zone and location for a checkout delivery
 // request. Preference order:
-//   1. areaId - the active area whose LGA's zone applies (area inherits the fee);
-//      the area must belong to the supplied cityId or city name, otherwise it is
-//      rejected as tampered.
+//   1. areaId - the active area whose LGA's zone applies (area inherits the fee).
 //   2. cityId - exact city lookup (preferred by the new checkout flow).
 //   3. cityName - legacy name-based lookup; a name that matches no City row keeps
 //      the name for the order snapshot and resolves no zone.
+// The supplied identifiers are cross-checked as anti-tamper validation: an area
+// must belong to the supplied city, and any supplied state/city ids or names
+// must agree with the resolved location, otherwise the request is rejected.
 // Returns the zone (possibly null when the location has no mapped active zone)
 // together with the location facts the order snapshot needs.
 export const resolveCheckoutDelivery = async (
   tx: Prisma.TransactionClient,
-  location: { areaId?: string; cityId?: string; cityName?: string },
+  location: { areaId?: string; cityId?: string; cityName?: string; stateId?: string },
 ): Promise<{
   zone: CheckoutZone | null
   area: { id: string; name: string } | null
@@ -283,13 +284,15 @@ export const resolveCheckoutDelivery = async (
 }> => {
   let cityIdToUse: string | null = null
   let cityNameToUse: string | null = null
+  let stateIdToUse: string | null = null
   let stateNameToUse: string | null = null
   let area: { id: string; name: string } | null = null
+  const CITY_STATE_SELECT = { id: true, name: true, state: { select: { id: true, name: true } } }
 
   if (location.areaId) {
     const areaRow = await tx.area.findUnique({
       where: { id: location.areaId },
-      select: { id: true, name: true, isActive: true, cityId: true, city: { select: { name: true, state: { select: { name: true } } } } },
+      select: { id: true, name: true, isActive: true, cityId: true, city: { select: CITY_STATE_SELECT } },
     })
     if (!areaRow) throw new HttpError(400, 'Please choose your delivery area again.')
     if (!areaRow.isActive) {
@@ -310,26 +313,44 @@ export const resolveCheckoutDelivery = async (
     }
     cityIdToUse = areaRow.cityId
     cityNameToUse = areaRow.city.name
+    stateIdToUse = areaRow.city.state.id
     stateNameToUse = areaRow.city.state.name
     area = { id: areaRow.id, name: areaRow.name }
   } else if (location.cityId) {
-    const city = await tx.city.findUnique({ where: { id: location.cityId }, select: { id: true, name: true, state: { select: { name: true } } } })
+    const city = await tx.city.findUnique({ where: { id: location.cityId }, select: CITY_STATE_SELECT })
     if (city) {
       cityIdToUse = city.id
       cityNameToUse = city.name
+      stateIdToUse = city.state.id
       stateNameToUse = city.state.name
     }
   } else if (location.cityName) {
     const city = await tx.city.findFirst({
       where: { name: { equals: location.cityName, mode: 'insensitive' } },
-      select: { id: true, name: true, state: { select: { name: true } } },
+      select: CITY_STATE_SELECT,
     })
     if (city) {
       cityIdToUse = city.id
       cityNameToUse = city.name
+      stateIdToUse = city.state.id
       stateNameToUse = city.state.name
     } else {
       cityNameToUse = location.cityName
+    }
+  }
+
+  // Anti-tamper: a supplied stateId must match the state of the resolved city.
+  if (location.stateId && stateIdToUse && location.stateId !== stateIdToUse) {
+    throw new HttpError(400, 'The selected state does not match the selected city.')
+  }
+  // Anti-tamper: a resolved city must agree with every supplied city reference.
+  if (location.cityId && cityIdToUse && location.cityId !== cityIdToUse) {
+    throw new HttpError(400, 'The selected city does not match the selected delivery area.')
+  }
+  if (location.cityName && cityIdToUse && cityNameToUse) {
+    const suppliedName = location.cityName.trim()
+    if (!suppliedName || cityNameToUse.toLowerCase() !== suppliedName.toLowerCase()) {
+      throw new HttpError(400, 'The selected city does not match the selected delivery area.')
     }
   }
 
@@ -563,6 +584,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         areaId: input.areaId,
         cityId: input.cityId,
         cityName: input.city?.trim(),
+        stateId: input.stateId,
       })
       let zone = resolved.zone
 

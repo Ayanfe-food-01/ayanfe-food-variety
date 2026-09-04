@@ -15,7 +15,7 @@
 }
 
 .modal-scroll::-webkit-scrollbar-thumb {
-  background: var(--color-green);
+  background: var(--color-sage);
   border-radius: 999px;
   border: 1px solid transparent;
   background-clip: padding-box;
@@ -26,7 +26,8 @@
     width: 8px;
   }
 
-  .modal-scroll:hover::-webkit-scrollbar-thumb {
+  .modal-scroll:hover::-webkit-scrollbar-thumb,
+  .modal-scroll.is-scrolling::-webkit-scrollbar-thumb {
     background: var(--color-green-dark);
   }
 }

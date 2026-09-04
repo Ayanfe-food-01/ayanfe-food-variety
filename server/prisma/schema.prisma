@@ -304,6 +304,11 @@ model Order {
   // edits to a zone's fee or name. deliveryZoneId is informational only.
   deliveryZoneId   String?     @map("delivery_zone_id") @db.Uuid
   deliveryZoneName String?     @map("delivery_zone_name") @db.VarChar(120)
+  // Estimated delivery time snapshot (business days) captured at order time,
+  // following the same pattern as deliveryZoneName/Fee. Nullable so orders
+  // placed before delivery-time was configured remain valid.
+  deliveryMinDays  Int?        @map("delivery_min_days")
+  deliveryMaxDays  Int?        @map("delivery_max_days")
   total            Decimal     @db.Decimal(12, 2)
   fulfillmentMethod FulfillmentMethod @default(DELIVERY) @map("fulfillment_method")
   shoppingMode    ShoppingMode    @default(RETAIL) @map("shopping_mode")

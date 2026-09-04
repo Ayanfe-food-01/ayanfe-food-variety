@@ -19,6 +19,8 @@ export interface CreatedOrder {
   deliveryFee: string
   deliveryZoneName: string | null
   deliveryZoneId: string | null
+  deliveryMinDays: number | null
+  deliveryMaxDays: number | null
   total: string
   paymentMethod: PaymentMethod
   orderItems: Array<{
@@ -75,6 +77,8 @@ export interface GuestOrder {
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
+  deliveryMinDays: number | null
+  deliveryMaxDays: number | null
   total: string
   paymentStatus: CustomerPaymentStatus
   paymentConfirmedAt: string | null
@@ -206,6 +210,8 @@ export interface AdminOrder {
   deliveryFee: string
   deliveryZoneName: string | null
   deliveryZoneId: string | null
+  deliveryMinDays: number | null
+  deliveryMaxDays: number | null
   total: string
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus

@@ -277,6 +277,9 @@ export function OrderConfirmation() {
                 {order.fulfillmentMethod === 'DELIVERY' && order.deliveryZoneName && (
                   <div className="flex justify-between text-muted"><span>Delivery zone</span><strong className="text-green-dark">{order.deliveryZoneName}</strong></div>
                 )}
+                {order.fulfillmentMethod === 'DELIVERY' && order.deliveryMinDays && order.deliveryMaxDays && (
+                  <div className="flex justify-between text-muted"><span>Estimated delivery</span><strong className="text-green-dark">{order.deliveryMinDays === order.deliveryMaxDays ? `${order.deliveryMinDays} business day${order.deliveryMinDays === 1 ? '' : 's'}` : `${order.deliveryMinDays}–${order.deliveryMaxDays} business days`}</strong></div>
+                )}
                 <div className="flex justify-between text-muted"><span>Delivery fee</span><strong className="text-green-dark">{order.deliveryFee === '0' || Number(order.deliveryFee) === 0 ? 'FREE' : formatPrice(order.deliveryFee)}</strong></div>
                 <div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div>
               </div>

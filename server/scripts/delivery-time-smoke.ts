@@ -28,6 +28,9 @@ import {
   getAdminDeliveryZone,
   deleteDeliveryZone,
 } from '../src/modules/delivery-zones/delivery-zone.service.js'
+import { PaymentMethod, ShoppingMode, UserRole } from '@prisma/client'
+import { addCustomerCartItem, clearCustomerCart } from '../src/modules/cart/cart.service.js'
+import { checkoutCustomerCart } from '../src/modules/orders/order.service.js'
 
 let passed = 0
 let failed = 0
@@ -295,6 +298,71 @@ async function testResolutionExposesDeliveryTime() {
 }
 
 // ---------------------------------------------------------------------------
+// 10. Order snapshot: checkout captures delivery time on the order
+// ---------------------------------------------------------------------------
+async function testOrderSnapshotCapturesDeliveryTime() {
+  console.log('\n10. Order snapshot captures delivery time at checkout')
+
+  const zone = testZoneId ? await getAdminDeliveryZone(testZoneId) : null
+  const cityEntry = zone?.cities[0]
+  if (!zone || !cityEntry) {
+    console.log('  ⚠ Skipping (no test zone or city)')
+    return
+  }
+
+  const slug = `ordersnap-${Date.now()}`
+  const category = await prisma.category.create({
+    data: { name: `Order Snapshot ${slug}`, slug, imageUrl: '' },
+  })
+  const customer = await prisma.user.create({
+    data: { name: 'Snapshot Customer', email: `${slug}@example.com`, role: UserRole.CUSTOMER },
+  })
+  const product = await prisma.product.create({
+    data: {
+      categoryId: category.id,
+      name: 'Snapshot Product',
+      slug: `${slug}-product`,
+      description: 'Temporary snapshot product',
+      price: '100.00',
+      unit: 'unit',
+      image: '',
+      stockQuantity: 100,
+    },
+  })
+
+  try {
+    await clearCustomerCart(customer.id, ShoppingMode.RETAIL)
+    await addCustomerCartItem(customer.id, ShoppingMode.RETAIL, { productId: product.id, quantity: 1 })
+
+    const order = await checkoutCustomerCart(customer.id, {
+      checkoutKey: crypto.randomUUID(),
+      customerName: 'Snapshot Customer',
+      phone: '08000000000',
+      email: `${slug}@example.com`,
+      fulfillmentMethod: 'DELIVERY',
+      deliveryAddress: 'Test address',
+      city: cityEntry.name,
+      deliveryInstructions: 'Test',
+      paymentMethod: PaymentMethod.BANK_TRANSFER,
+    })
+
+    assert(order.deliveryZoneName === zone.label, 'order snapshots the zone name')
+    assert(order.deliveryMinDays === zone.minDeliveryDays, `order snapshots minDeliveryDays (got ${order.deliveryMinDays})`)
+    assert(order.deliveryMaxDays === zone.maxDeliveryDays, `order snapshots maxDeliveryDays (got ${order.deliveryMaxDays})`)
+
+    // Verify persisted on the DB row too.
+    const dbOrder = await prisma.order.findUniqueOrThrow({ where: { id: order.id } })
+    assert(dbOrder.deliveryMinDays === zone.minDeliveryDays, 'DB order deliveryMinDays matches')
+    assert(dbOrder.deliveryMaxDays === zone.maxDeliveryDays, 'DB order deliveryMaxDays matches')
+  } finally {
+    await prisma.order.deleteMany({ where: { orderItems: { some: { productId: product.id } } } })
+    await prisma.product.delete({ where: { id: product.id } }).catch(() => {})
+    await prisma.user.delete({ where: { id: customer.id } }).catch(() => {})
+    await prisma.category.delete({ where: { id: category.id } }).catch(() => {})
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 async function main() {
@@ -312,6 +380,7 @@ async function main() {
   await testUpdateDeliveryTime()
   await testZoneWithoutDeliveryTime()
   await testResolutionExposesDeliveryTime()
+  await testOrderSnapshotCapturesDeliveryTime()
 
   // Cleanup
   await cleanup()

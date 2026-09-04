@@ -898,6 +898,8 @@ export interface AdminDeliveryZone {
   label: string
   fee: string
   freeDeliveryThreshold: string | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
   isActive: boolean
   sortOrder: number
   createdAt: string
@@ -945,6 +947,8 @@ export interface AdminDeliveryZonesPage {
 export interface DeliveryZoneInput {
   fee: number
   freeDeliveryThreshold: number | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
   isActive: boolean
   cityIds: string[]
 }

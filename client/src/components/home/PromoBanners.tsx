@@ -79,7 +79,9 @@ export function PromoBanners({ banners, isLoading = false }: PromoBannersProps) 
     if (!track || track.children.length === 0) return
     const target = track.children[index] as HTMLElement | undefined
     if (!target) return
-    track.scrollTo({ left: target.offsetLeft + target.offsetWidth / 2 - track.clientWidth / 2, behavior })
+    const trackRect = track.getBoundingClientRect()
+    const targetContentLeft = target.getBoundingClientRect().left - trackRect.left + track.scrollLeft
+    track.scrollTo({ left: targetContentLeft + target.offsetWidth / 2 - track.clientWidth / 2, behavior })
   }, [])
 
   const goTo = useCallback((index: number) => {
@@ -102,11 +104,15 @@ export function PromoBanners({ banners, isLoading = false }: PromoBannersProps) 
     if (!track || track.children.length === 0) return
 
     const viewportCenter = track.scrollLeft + track.clientWidth / 2
+    const trackLeft = track.getBoundingClientRect().left
     const nearestIndex = Array.from(track.children).reduce(
       (closestIndex, child, index) => {
         const closestChild = track.children[closestIndex] as HTMLElement
         const currentChild = child as HTMLElement
-        const distanceFor = (el: HTMLElement) => Math.abs(el.offsetLeft + el.offsetWidth / 2 - viewportCenter)
+        const distanceFor = (el: HTMLElement) => {
+          const elContentLeft = el.getBoundingClientRect().left - trackLeft + track.scrollLeft
+          return Math.abs(elContentLeft + el.offsetWidth / 2 - viewportCenter)
+        }
         return distanceFor(currentChild) < distanceFor(closestChild) ? index : closestIndex
       },
       0,

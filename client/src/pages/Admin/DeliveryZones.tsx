@@ -76,6 +76,8 @@ interface ZoneModalProps {
 function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalProps) {
   const [fee, setFee] = useState(zone ? zone.fee : '')
   const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(zone?.freeDeliveryThreshold ?? '')
+  const [minDeliveryDays, setMinDeliveryDays] = useState(zone?.minDeliveryDays?.toString() ?? '')
+  const [maxDeliveryDays, setMaxDeliveryDays] = useState(zone?.maxDeliveryDays?.toString() ?? '')
   const [isActive, setIsActive] = useState(zone?.isActive ?? true)
   const [cities, setCities] = useState<CityTag[]>([])
   const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
@@ -171,6 +173,27 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
       setFormError('The free delivery threshold must be greater than the delivery fee.')
       return
     }
+    const dayValue = (value: string): number | null => {
+      const trimmed = value.trim()
+      if (!trimmed) return null
+      const numeric = Number(trimmed)
+      if (!Number.isInteger(numeric) || numeric < 1) return null
+      return numeric
+    }
+    const minDays = dayValue(minDeliveryDays)
+    const maxDays = dayValue(maxDeliveryDays)
+    if (minDeliveryDays.trim() && minDays === null) {
+      setFormError('Minimum delivery days must be a whole number of at least 1.')
+      return
+    }
+    if (maxDeliveryDays.trim() && maxDays === null) {
+      setFormError('Maximum delivery days must be a whole number of at least 1.')
+      return
+    }
+    if (minDays !== null && maxDays !== null && minDays > maxDays) {
+      setFormError('Minimum delivery days must not be greater than maximum delivery days.')
+      return
+    }
     if (cities.length === 0) {
       setFormError('Add at least one city to this delivery zone.')
       return
@@ -178,6 +201,8 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
     onSave({
       fee: feeAmount,
       freeDeliveryThreshold: thresholdAmount && thresholdAmount > 0 ? thresholdAmount : null,
+      minDeliveryDays: minDays,
+      maxDeliveryDays: maxDays,
       isActive,
       cityIds: cities.map((city) => city.id),
     })
@@ -189,7 +214,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
         <div className="shrink-0 border-b border-line px-7 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">{mode === 'create' ? 'New delivery zone' : 'Edit delivery zone'}</p>
           <h2 id="delivery-zone-form-title" className="mt-1.5 text-xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
-          <p className="mt-1.5 text-xs leading-5 text-muted">Covers a set of LGAs; the fee applies to deliveries to these cities.</p>
+          <p className="mt-1.5 text-xs leading-5 text-muted">Covers a set of LGAs; the fee and estimated delivery time apply to deliveries to these cities.</p>
         </div>
         <div className="y-scrollbar min-h-0 flex-1 overflow-y-auto">
         <form onSubmit={submit}>
@@ -209,6 +234,18 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                     <span className="ml-1 font-normal text-muted">(₦, optional)</span>
                     <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={freeDeliveryThreshold} onChange={(event) => setFreeDeliveryThreshold(event.target.value)} placeholder="Leave empty for none" />
                     <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Orders at or above this amount get free delivery. Leave empty to always charge the delivery fee.</span>
+                  </label>
+                  <label className="block text-xs font-bold text-green-dark">
+                    Min delivery days
+                    <span className="ml-1 font-normal text-muted">(optional)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="numeric" value={minDeliveryDays} onChange={(event) => setMinDeliveryDays(event.target.value)} placeholder="e.g. 1" />
+                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Fastest estimated delivery time in business days.</span>
+                  </label>
+                  <label className="block text-xs font-bold text-green-dark">
+                    Max delivery days
+                    <span className="ml-1 font-normal text-muted">(optional)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="numeric" value={maxDeliveryDays} onChange={(event) => setMaxDeliveryDays(event.target.value)} placeholder="e.g. 3" />
+                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Slowest estimated delivery time in business days. Must be ≥ min delivery days.</span>
                   </label>
                 </div>
                 <label className="flex items-center gap-3 text-xs font-bold text-green-dark">
@@ -514,7 +551,7 @@ export function DeliveryZones() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-bold text-green-dark">{zone.label}</p>
-                    <p className="mt-1 text-xs text-muted">Fee {formatCurrency(zone.fee)}{zone.freeDeliveryThreshold ? <> · Free over {formatCurrency(zone.freeDeliveryThreshold)}</> : null}</p>
+                    <p className="mt-1 text-xs text-muted">Fee {formatCurrency(zone.fee)}{zone.freeDeliveryThreshold ? <> · Free over {formatCurrency(zone.freeDeliveryThreshold)}</> : null}{zone.minDeliveryDays && zone.maxDeliveryDays ? <> · Delivery {zone.minDeliveryDays}-{zone.maxDeliveryDays} business days</> : null}</p>
                   </div>
                   <ZoneActions
                     zone={zone}
@@ -544,6 +581,7 @@ export function DeliveryZones() {
                     <th className="px-5 py-4 font-bold">Zone (cities)</th>
                     <th className="px-5 py-4 font-bold">Delivery fee</th>
                     <th className="px-5 py-4 font-bold">Free delivery threshold</th>
+                    <th className="px-5 py-4 font-bold">Delivery time</th>
                     <th className="px-5 py-4 font-bold">Status</th>
                     <th className="px-5 py-4 font-bold">Actions</th>
                   </tr>
@@ -561,6 +599,7 @@ export function DeliveryZones() {
                       <td className="px-5 py-4"><span className="font-bold text-green-dark">{zone.label}</span></td>
                       <td className="px-5 py-4 text-muted">{formatCurrency(zone.fee)}</td>
                       <td className="px-5 py-4 text-muted">{zone.freeDeliveryThreshold ? formatCurrency(zone.freeDeliveryThreshold) : '—'}</td>
+                      <td className="px-5 py-4 text-muted">{zone.minDeliveryDays && zone.maxDeliveryDays ? `${zone.minDeliveryDays}-${zone.maxDeliveryDays} business days` : '—'}</td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${zone.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{zone.isActive ? 'Active' : 'Inactive'}</span></td>
                       <td className="px-5 py-4"><ZoneActions zone={zone} isBusy={busyId === zone.id || deletingId === zone.id} onEdit={() => openEdit(zone)} onToggleStatus={() => requestStatusChange(zone)} onDelete={() => requestDelete(zone)} /></td>
                     </tr>

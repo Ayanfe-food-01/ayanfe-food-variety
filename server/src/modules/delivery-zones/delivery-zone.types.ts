@@ -4,6 +4,8 @@ export interface DeliveryZone {
   label: string
   fee: string
   freeDeliveryThreshold: string | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
   isActive: boolean
   sortOrder: number
   createdAt: string
@@ -38,6 +40,8 @@ export interface DeliveryZoneDetail extends DeliveryZone {
 export interface DeliveryZoneInput {
   fee: number
   freeDeliveryThreshold: number | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
   isActive: boolean
   // IDs of cities that this zone covers. On create these build the zone's
   // covered set; on update they replace it entirely.

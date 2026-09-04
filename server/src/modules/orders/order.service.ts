@@ -117,6 +117,8 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
     deliveryFee: order.deliveryFee.toString(),
     deliveryZoneName: order.deliveryZoneName,
     deliveryZoneId: order.deliveryZoneId,
+    deliveryMinDays: order.deliveryMinDays,
+    deliveryMaxDays: order.deliveryMaxDays,
     total: order.total.toString(),
     paymentMethod: order.paymentMethod,
     paymentStatus,
@@ -231,6 +233,8 @@ const resolveDeliveryZoneFromCity = async (
               id: true,
               fee: true,
               freeDeliveryThreshold: true,
+              minDeliveryDays: true,
+              maxDeliveryDays: true,
               isActive: true,
               deliveryZoneCities: { select: { city: { select: { name: true } } } },
             },
@@ -463,6 +467,8 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     // (yet) mapped, keeping older clients working.
     let deliveryZoneId: string | null = null
     let deliveryZoneName: string | null = null
+    let deliveryMinDays: number | null = null
+    let deliveryMaxDays: number | null = null
     let deliveryFee = new Prisma.Decimal(0)
     if (input.fulfillmentMethod === FulfillmentMethod.DELIVERY) {
       const cityName = input.city?.trim()
@@ -475,6 +481,8 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
             id: true,
             fee: true,
             freeDeliveryThreshold: true,
+            minDeliveryDays: true,
+            maxDeliveryDays: true,
             isActive: true,
             deliveryZoneCities: { select: { city: { select: { name: true } } } },
           },
@@ -498,6 +506,8 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       }
       deliveryZoneId = zone.id
       deliveryZoneName = zone.label
+      deliveryMinDays = zone.minDeliveryDays ?? null
+      deliveryMaxDays = zone.maxDeliveryDays ?? null
       if (zone.freeDeliveryThreshold !== null && subtotal.gte(zone.freeDeliveryThreshold)) {
         deliveryFee = new Prisma.Decimal(0)
       } else {
@@ -521,6 +531,8 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         subtotal,
         deliveryZoneId,
         deliveryZoneName,
+        deliveryMinDays,
+        deliveryMaxDays,
         deliveryFee,
         total: subtotal.add(deliveryFee),
         paymentMethod: input.paymentMethod,
@@ -1040,6 +1052,8 @@ const toGuestOrderResponse = (order: OrderWithItems): GuestOrderResponse => {
     subtotal: fullResponse.subtotal,
     deliveryFee: fullResponse.deliveryFee,
     deliveryZoneName: fullResponse.deliveryZoneName,
+    deliveryMinDays: fullResponse.deliveryMinDays,
+    deliveryMaxDays: fullResponse.deliveryMaxDays,
     total: fullResponse.total,
     paymentStatus: fullResponse.paymentStatus,
     paymentConfirmedAt: fullResponse.paymentConfirmedAt

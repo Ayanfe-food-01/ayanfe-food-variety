@@ -76,6 +76,8 @@ export interface OrderResponse {
   deliveryFee: string
   deliveryZoneName: string | null
   deliveryZoneId: string | null
+  deliveryMinDays: number | null
+  deliveryMaxDays: number | null
   total: string
   paymentMethod: PaymentMethod
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
@@ -104,6 +106,8 @@ export interface GuestOrderResponse {
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
+  deliveryMinDays: number | null
+  deliveryMaxDays: number | null
   total: string
   paymentStatus: 'PENDING' | 'PAID' | 'REJECTED'
   paymentConfirmedAt: string | null

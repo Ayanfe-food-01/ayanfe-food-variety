@@ -59,6 +59,16 @@ export function validateDeliveryZoneId(value: string | string[] | undefined): st
   return id.trim()
 }
 
+const positiveIntValue = (value: unknown, field: string): number | null => {
+  if (value === undefined || value === null || value === '') return null
+  const numeric = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numeric) || !Number.isInteger(numeric)) {
+    throw new HttpError(400, `${field} must be a whole number.`)
+  }
+  if (numeric < 1) throw new HttpError(400, `${field} must be at least 1.`)
+  return numeric
+}
+
 export function validateDeliveryZoneInput(body: unknown): DeliveryZoneInput {
   if (!isRecord(body)) throw new HttpError(400, 'Delivery zone data is required.')
   const feeValue = moneyValue(body.fee, 'Delivery fee', { required: true, allowZero: false })
@@ -70,11 +80,18 @@ export function validateDeliveryZoneInput(body: unknown): DeliveryZoneInput {
   if (freeDeliveryThreshold !== null && freeDeliveryThreshold !== 0 && freeDeliveryThreshold <= feeValue) {
     throw new HttpError(400, 'The free delivery threshold must be greater than the delivery fee.')
   }
+  const minDeliveryDays = positiveIntValue(body.minDeliveryDays, 'Minimum delivery days')
+  const maxDeliveryDays = positiveIntValue(body.maxDeliveryDays, 'Maximum delivery days')
+  if (minDeliveryDays !== null && maxDeliveryDays !== null && minDeliveryDays > maxDeliveryDays) {
+    throw new HttpError(400, 'Minimum delivery days must not be greater than maximum delivery days.')
+  }
   const cityIds = validateCityIds(body.cityIds)
   if (cityIds.length === 0) throw new HttpError(400, 'Add at least one city to this delivery zone.')
   return {
     fee: feeValue,
     freeDeliveryThreshold: freeDeliveryThreshold === 0 ? null : freeDeliveryThreshold,
+    minDeliveryDays,
+    maxDeliveryDays,
     isActive: booleanValue(body.isActive, 'Delivery zone status', true),
     cityIds,
   }

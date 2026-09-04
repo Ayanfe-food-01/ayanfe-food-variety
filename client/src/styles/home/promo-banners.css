@@ -28,16 +28,16 @@
 
 .promo-banner-card {
   position: relative;
-  flex: 0 0 100%;
+  flex: 0 0 1248px;
   min-width: 0;
-  width: 100%;
-  height: 250px;
+  width: 1248px;
+  height: 357px;
   overflow: hidden;
   border-radius: 20px;
   box-shadow: 0 0 4px rgb(20 33 22 / 15%);
   scroll-snap-align: center;
   scroll-snap-stop: always;
-  background: transparent;
+  background: #102415;
 }
 
 .promo-banner-skeleton {
@@ -54,7 +54,7 @@
 .promo-banner-card > a {
   display: block;
   height: 100%;
-  background: transparent;
+  background: #102415;
 }
 
 .promo-banner-card > a:focus-visible {
@@ -66,7 +66,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: transparent;
+  object-position: left center;
+  background: #102415;
 }
 
 .promo-banner-content {
@@ -137,7 +138,8 @@
   }
 
   .promo-banner-card {
-    flex: 0 0 100%;
+    flex: 0 0 300px;
+    width: 300px;
     height: 200px;
   }
 
@@ -160,6 +162,24 @@
   }
 }
 
+/* ─── Tablet (768px - 1023px) ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .promo-banner-card {
+    flex: 0 0 700px;
+    width: 700px;
+    height: 300px;
+  }
+}
+
+/* ─── Laptop (1024px - 1599px) ─── */
+@media (min-width: 1024px) and (max-width: 1599px) {
+  .promo-banner-card {
+    flex: 0 0 1000px;
+    width: 1000px;
+    height: 320px;
+  }
+}
+
 /* ─── Extra-large (>=1600px): fade slideshow ─── */
 .promo-fade-wrap {
   display: flex;
@@ -171,8 +191,8 @@
 
 .promo-fade-track {
   position: relative;
-  width: 100%;
-  max-width: 1160px;
+  width: 1248px;
+  max-width: 100%;
   height: 357px;
   overflow: hidden;
   border-radius: 20px;

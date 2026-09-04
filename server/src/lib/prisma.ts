@@ -43,9 +43,8 @@ const configureDatabaseUrl = (input: string): string => {
   return url.toString()
 }
 
-// Prisma's schema keeps DATABASE_URL as its generation-time default. The
-// runtime override lets hosted deployments use the explicit external
-// NEON_DATABASE_URL variable without exposing or duplicating that secret.
+// Runtime DATABASE_URL override: the Prisma schema defaults to DATABASE_URL and
+// the env module ensures it is set at startup.
 export const prisma = new PrismaClient({
   datasources: {
     db: {

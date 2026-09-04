@@ -11,11 +11,9 @@ const parsePort = (value: string | undefined): number => {
 }
 
 const nodeEnv = process.env.NODE_ENV ?? 'development'
-// Prefer the explicit Neon database in this workspace. Render deployments
-// provide DATABASE_URL instead, so it remains the production fallback.
-const databaseUrl = process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL
+const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) {
-  throw new Error('A database connection is required to start the server')
+  throw new Error('DATABASE_URL is required to start the server')
 }
 
 const sessionSecret = process.env.SESSION_SECRET

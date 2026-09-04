@@ -11,14 +11,13 @@ This project is split into two services:
 
 Create a production Neon PostgreSQL database and copy its pooled or direct
 connection string into Render as `DATABASE_URL`. Keep `sslmode=require`.
-Prisma and the migration scripts use this standard variable. The existing
-`NEON_DATABASE_URL` secret is supported only as a local Replit compatibility
-fallback; do not add it to Render.
+Prisma and the migration scripts use this standard variable.
 
 The Render blueprint runs `npm run prisma:migrate` before each deploy. This
-applies the committed Prisma migrations to the production database. Products
-and categories must be managed through the admin portal; there is no production
-seed command.
+applies the committed Prisma migrations to the production database. The `start`
+command runs migrations (with retry), the delivery-location seed (idempotent
+upsert of states, cities/LGAs, and default zone mappings), and then starts
+Express. Products and categories must be managed through the admin portal.
 
 Do not use development database credentials in Render.
 
@@ -130,11 +129,11 @@ backend response from a browser CORS failure.
 Never paste production secrets into source files, commits, or chat. Use the
 Vercel and Render secret/environment-variable settings.
 
-## Local/Replit connection commands
+## Local development setup
 
-Run these commands from the repository root. Replit Secrets should contain
-`DATABASE_URL`, `SESSION_SECRET`, and the three `CLOUDINARY_*` values.
-Never put those values in a committed `.env` file.
+Run these commands from the repository root. Your `.env` file in the `server/`
+directory must contain `DATABASE_URL`, `SESSION_SECRET`, `CORS_ORIGINS`, and
+`PUBLIC_APP_URL`. Never commit real secrets to source control.
 
 ```bash
 # Install dependencies once
@@ -146,6 +145,9 @@ npm --prefix server ci
 npm --prefix server run prisma:generate
 npm --prefix server run prisma:migrate
 
+# Seed states, cities/LGAs, and default zone mappings
+npm --prefix server run db:seed-delivery
+
 # Verify database reachability and required server configuration
 npm --prefix server run doctor
 
@@ -156,7 +158,7 @@ npm --prefix server run admin:create
 npm --prefix server run dev
 
 # Start the Vite storefront (terminal 2)
-npm --prefix client run dev -- --host 0.0.0.0 --port 5000
+npm --prefix client run dev
 ```
 
 Check the running services with:

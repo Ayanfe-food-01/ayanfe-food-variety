@@ -213,44 +213,120 @@ const nextOrderNumber = async (transaction: Prisma.TransactionClient): Promise<s
 
 // Resolves the active delivery zone that serves a selected city, using the
 // State -> City -> DeliveryZoneCity -> DeliveryZone mapping (delivery redesign
-// Phase 2). The lookup is case-insensitive on the city name; a city maps to at
-// most one zone. Returns null when the city is not yet mapped so callers can
-// fall back to the previously selected deliveryZoneId (backward compatible).
-const resolveDeliveryZoneFromCity = async (
-  tx: Prisma.TransactionClient,
-  cityName: string,
-) => {
-  const match = await tx.city.findFirst({
-    where: {
-      name: { equals: cityName, mode: 'insensitive' },
-      deliveryZoneCity: { isNot: null },
-    },
-    select: {
-      deliveryZoneCity: {
-        select: {
-          deliveryZone: {
-            select: {
-              id: true,
-              fee: true,
-              freeDeliveryThreshold: true,
-              minDeliveryDays: true,
-              maxDeliveryDays: true,
-              isActive: true,
-              deliveryZoneCities: { select: { city: { select: { name: true } } } },
-            },
-          },
-        },
-      },
-    },
-  })
-  const zone = match?.deliveryZoneCity?.deliveryZone ?? null
-  // Compute the display label from the zone's covered cities so the order
-  // snapshot carries a human-readable name (there is no manual zone name).
+// Phase 2). Returns null when the city is not yet mapped so callers can fall
+// back to the previously selected deliveryZoneId (backward compatible).
+const ZONE_SELECT = {
+  id: true,
+  fee: true,
+  freeDeliveryThreshold: true,
+  minDeliveryDays: true,
+  maxDeliveryDays: true,
+  isActive: true,
+  deliveryZoneCities: { select: { city: { select: { name: true } } } },
+} satisfies Prisma.DeliveryZoneSelect
+
+type CheckoutZone = {
+  id: string
+  fee: Prisma.Decimal
+  freeDeliveryThreshold: Prisma.Decimal | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
+  isActive: boolean
+  label: string
+}
+
+const toCheckoutZone = (zone: {
+  id: string
+  fee: Prisma.Decimal
+  freeDeliveryThreshold: Prisma.Decimal | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
+  isActive: boolean
+  deliveryZoneCities: Array<{ city: { name: string } }>
+} | null): CheckoutZone | null => {
   if (!zone) return null
   return {
     ...zone,
     label: buildZoneLabel(zone.deliveryZoneCities.map((entry) => entry.city.name)),
   }
+}
+
+const resolveZoneForCityId = async (tx: Prisma.TransactionClient, cityId: string): Promise<CheckoutZone | null> => {
+  const match = await tx.city.findUnique({
+    where: { id: cityId },
+    select: { deliveryZoneCity: { select: { deliveryZone: { select: ZONE_SELECT } } } },
+  })
+  return toCheckoutZone(match?.deliveryZoneCity?.deliveryZone ?? null)
+}
+
+// Resolves the authoritative delivery zone and location for a checkout delivery
+// request. Preference order:
+//   1. areaId - the active area whose LGA's zone applies (area inherits the fee);
+//      the area must belong to the supplied cityId or city name, otherwise it is
+//      rejected as tampered.
+//   2. cityId - exact city lookup (preferred by the new checkout flow).
+//   3. cityName - legacy name-based lookup; a name that matches no City row keeps
+//      the name for the order snapshot and resolves no zone.
+// Returns the zone (possibly null when the location has no mapped active zone)
+// together with the location facts the order snapshot needs.
+export const resolveCheckoutDelivery = async (
+  tx: Prisma.TransactionClient,
+  location: { areaId?: string; cityId?: string; cityName?: string },
+): Promise<{
+  zone: CheckoutZone | null
+  area: { id: string; name: string } | null
+  cityName: string | null
+}> => {
+  let cityIdToUse: string | null = null
+  let cityNameToUse: string | null = null
+  let area: { id: string; name: string } | null = null
+
+  if (location.areaId) {
+    const areaRow = await tx.area.findUnique({
+      where: { id: location.areaId },
+      select: { id: true, name: true, isActive: true, cityId: true, city: { select: { name: true } } },
+    })
+    if (!areaRow) throw new HttpError(400, 'Please choose your delivery area again.')
+    if (!areaRow.isActive) {
+      throw new HttpError(409, 'Delivery is not currently available for your selected area.')
+    }
+    let matchesCity = true
+    if (location.cityId) {
+      matchesCity = areaRow.cityId === location.cityId
+    } else if (location.cityName) {
+      const cityByName = await tx.city.findFirst({
+        where: { name: { equals: location.cityName, mode: 'insensitive' } },
+        select: { id: true },
+      })
+      matchesCity = cityByName?.id === areaRow.cityId
+    }
+    if (!matchesCity) {
+      throw new HttpError(400, 'The selected delivery area does not match the selected city.')
+    }
+    cityIdToUse = areaRow.cityId
+    cityNameToUse = areaRow.city.name
+    area = { id: areaRow.id, name: areaRow.name }
+  } else if (location.cityId) {
+    const city = await tx.city.findUnique({ where: { id: location.cityId }, select: { id: true, name: true } })
+    if (city) {
+      cityIdToUse = city.id
+      cityNameToUse = city.name
+    }
+  } else if (location.cityName) {
+    const city = await tx.city.findFirst({
+      where: { name: { equals: location.cityName, mode: 'insensitive' } },
+      select: { id: true, name: true },
+    })
+    if (city) {
+      cityIdToUse = city.id
+      cityNameToUse = city.name
+    } else {
+      cityNameToUse = location.cityName
+    }
+  }
+
+  const zone = cityIdToUse ? await resolveZoneForCityId(tx, cityIdToUse) : null
+  return { zone, area, cityName: cityNameToUse }
 }
 
 export async function checkoutCustomerCart(userId: string | null, input: CheckoutInput): Promise<OrderResponse> {
@@ -470,11 +546,20 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     let deliveryMinDays: number | null = null
     let deliveryMaxDays: number | null = null
     let deliveryFee = new Prisma.Decimal(0)
+    let deliveryCityName = input.city?.trim() ?? ''
     if (input.fulfillmentMethod === FulfillmentMethod.DELIVERY) {
-      const cityName = input.city?.trim()
-      let zone = cityName ? await resolveDeliveryZoneFromCity(transaction, cityName) : null
+      const resolved = await resolveCheckoutDelivery(transaction, {
+        areaId: input.areaId,
+        cityId: input.cityId,
+        cityName: input.city?.trim(),
+      })
+      let zone = resolved.zone
 
-      if (!zone && input.deliveryZoneId) {
+      // The deliveryZoneId fallback is honoured only for legacy clients that do
+      // not send an areaId/cityId yet. New-style requests must resolve through
+      // the server-authoritative mapping so a client cannot pick an arbitrary
+      // cheaper zone by replaying a stored zone id.
+      if (!zone && !input.areaId && !input.cityId && input.deliveryZoneId) {
         const fallback = await transaction.deliveryZone.findUnique({
           where: { id: input.deliveryZoneId },
           select: {
@@ -513,6 +598,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
       } else {
         deliveryFee = zone.fee
       }
+      deliveryCityName = resolved.cityName ?? deliveryCityName
     }
     const order = await transaction.order.create({
       data: {
@@ -526,7 +612,7 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
          fulfillmentMethod: input.fulfillmentMethod,
          shoppingMode: isWholesale ? ShoppingMode.WHOLESALE : ShoppingMode.RETAIL,
          deliveryAddress: input.deliveryAddress ?? '',
-         city: input.city ?? '',
+         city: deliveryCityName,
          note: input.deliveryInstructions ?? null,
         subtotal,
         deliveryZoneId,

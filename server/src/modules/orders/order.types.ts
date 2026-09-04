@@ -17,6 +17,12 @@ export interface CheckoutInput {
   deliveryInstructions?: string
   paymentMethod: PaymentMethod
   deliveryZoneId?: string
+  // Location ids sent by the checkout flow. The server prefers the area's city
+  // (area inherits its LGA's delivery zone), then the cityId, then falls back
+  // to the name-based city. city remains the legacy fallback for old clients.
+  stateId?: string
+  cityId?: string
+  areaId?: string
 }
 
 export interface GuestOrderTrackingInput {

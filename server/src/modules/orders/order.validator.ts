@@ -119,6 +119,9 @@ export function validateCheckoutInput(body: unknown): CheckoutInput {
           city: requiredText(body.city, 'city', 120),
           deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
           deliveryZoneId: validateOptionalDeliveryZoneId(body.deliveryZoneId),
+          stateId: validateOptionalLocationId(body.stateId, 'State'),
+          cityId: validateOptionalLocationId(body.cityId, 'City'),
+          areaId: validateOptionalLocationId(body.areaId, 'Delivery area'),
         }
       : {}),
     paymentMethod: body.paymentMethod === PaymentMethod.BANK_TRANSFER || body.paymentMethod === PaymentMethod.PAYSTACK
@@ -131,6 +134,14 @@ const validateOptionalDeliveryZoneId = (value: unknown): string | undefined => {
   if (value === undefined || value === null || value === '') return undefined
   if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
     throw new HttpError(400, 'A valid delivery zone is required.')
+  }
+  return value.trim()
+}
+
+const validateOptionalLocationId = (value: unknown, field: string): string | undefined => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+    throw new HttpError(400, `A valid ${field} is required.`)
   }
   return value.trim()
 }

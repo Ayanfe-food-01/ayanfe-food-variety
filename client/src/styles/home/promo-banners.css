@@ -158,9 +158,10 @@
   }
 }
 
-/* Very large desktops: render as a single full-width billboard capped to the
-   page max-width, with the slide dots overlaid on the bottom of the image.
-   Laptops, normal desktops and tablets keep the original x-scroll carousel. */
+/* Extra-large desktops (>=1600px): render as a single full-width billboard
+   capped to the page max-width, with the slide dots overlaid on the bottom
+   of the image. Laptops, normal desktops and tablets keep the original
+   x-scroll peek carousel. */
 @media (min-width: 1600px) {
   .promo-banners-wrap {
     position: relative;
@@ -175,12 +176,14 @@
     max-width: 1160px;
     padding-inline: 0;
     scroll-padding-inline: 0;
+    scroll-snap-type: x mandatory;
   }
 
   .promo-banner-card {
     flex: 0 0 100%;
     width: 100%;
-    scroll-snap-stop: always;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
   }
 
   .promo-dots {

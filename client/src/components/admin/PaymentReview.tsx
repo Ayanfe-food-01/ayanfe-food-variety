@@ -76,7 +76,7 @@ export function PaymentReview({ payment, isSaving, onClose, onVerify, onReject }
         if (event.target === event.currentTarget && !isSaving) onClose()
       }}
     >
-       <div className="payment-review-panel modal-scroll w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-cream p-6 shadow-2xl sm:rounded-3xl sm:p-8">
+       <div className="payment-review-panel y-scrollbar w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-cream p-6 shadow-2xl sm:rounded-3xl sm:p-8">
         <div className="flex items-start justify-between gap-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Payment review</p>

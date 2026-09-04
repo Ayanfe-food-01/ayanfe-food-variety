@@ -71,7 +71,7 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
 
   return createPortal(
     <div
-      className="safe-modal-backdrop modal-scroll fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-green-dark/45 px-4 py-8"
+      className="safe-modal-backdrop y-scrollbar fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-green-dark/45 px-4 py-8"
       role="presentation"
       onClick={onClose}
     >

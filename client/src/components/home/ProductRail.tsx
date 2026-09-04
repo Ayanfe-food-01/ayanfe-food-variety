@@ -51,7 +51,7 @@ export function ProductRail({
           </div>
         ) : products.length ? (
           <div className="horizontal-rail-frame">
-            <div className="product-rail rail-scroll" ref={railRef}>
+            <div className="product-rail x-scrollbar" ref={railRef}>
               {products.map((product) => <ProductCard key={product.id} product={product} />)}
             </div>
             <HorizontalRailControls railRef={railRef} label={title} />
@@ -64,7 +64,7 @@ export function ProductRail({
 
 function ProductSkeleton() {
   return (
-    <div className="product-rail rail-scroll" aria-label="Loading products" aria-busy="true">
+    <div className="product-rail x-scrollbar" aria-label="Loading products" aria-busy="true">
       {Array.from({ length: 4 }, (_, index) => (
         <div className="product-skeleton" key={index} role="status" aria-label="Loading product">
           <div className="product-skeleton-media" />

@@ -1,20 +1,20 @@
 @import "./theme.css";
 
-.modal-scroll {
+.y-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--color-green) transparent;
 }
 
-.modal-scroll::-webkit-scrollbar {
+.y-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
 
-.modal-scroll::-webkit-scrollbar-track {
+.y-scrollbar::-webkit-scrollbar-track {
   background: transparent;
   margin: 14px 6px;
 }
 
-.modal-scroll::-webkit-scrollbar-thumb {
+.y-scrollbar::-webkit-scrollbar-thumb {
   background: var(--color-sage);
   border-radius: 999px;
   border: 1px solid transparent;
@@ -22,12 +22,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .modal-scroll:hover::-webkit-scrollbar {
+  .y-scrollbar:hover::-webkit-scrollbar {
     width: 8px;
   }
 
-  .modal-scroll:hover::-webkit-scrollbar-thumb,
-  .modal-scroll.is-scrolling::-webkit-scrollbar-thumb {
+  .y-scrollbar:hover::-webkit-scrollbar-thumb,
+  .y-scrollbar.is-scrolling::-webkit-scrollbar-thumb {
     background: var(--color-green-dark);
   }
 }

@@ -84,11 +84,11 @@
   scrollbar-color: var(--color-green) transparent;
 }
 
-.select-field-menu.modal-scroll::-webkit-scrollbar-track {
+.select-field-menu.y-scrollbar::-webkit-scrollbar-track {
   margin: 10px 8px;
 }
 
-.select-field-menu.modal-scroll::-webkit-scrollbar {
+.select-field-menu.y-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
 

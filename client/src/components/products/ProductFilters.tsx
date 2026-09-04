@@ -35,7 +35,7 @@ export function ProductFilters({
       </div>
 
       <div
-        className={`shop-category-rail rail-scroll ${isScrolling ? 'is-scrolling' : ''}`}
+        className={`shop-category-rail x-scrollbar ${isScrolling ? 'is-scrolling' : ''}`}
         role="list"
         aria-label="Product categories"
         aria-busy={isCategoriesLoading}

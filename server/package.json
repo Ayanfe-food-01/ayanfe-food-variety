@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run prisma:generate && tsx watch src/server.ts",
     "build": "npm run prisma:generate && tsc -p tsconfig.json",
-    "start": "npm run prisma:migrate:retry && node dist/server.js",
+    "start": "npm run prisma:migrate:retry && node scripts/seed-delivery-with-retry.mjs && node dist/server.js",
     "typecheck": "npm run prisma:generate && tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:validate": "node scripts/load-env.mjs validate",
@@ -16,7 +16,7 @@
     "admin:create": "tsx scripts/create-initial-admin.ts",
     "db:delete-test-data": "tsx scripts/delete-test-data.ts",
     "db:seed": "prisma db seed",
-    "db:seed-delivery": "tsx prisma/seed/seed-delivery-locations.ts",
+    "db:seed-delivery": "tsx scripts/run-seed-delivery.ts",
     "doctor": "tsx scripts/doctor.ts",
     "smoke:production": "node scripts/production-smoke.mjs",
     "test:inventory": "tsx scripts/inventory-safety-smoke.ts",

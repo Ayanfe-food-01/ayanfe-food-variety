@@ -23,6 +23,7 @@ import {
   updateAdminDeliveryZoneStatus,
 } from '../../services/adminService'
 import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
+import { DeliveryAreaManager } from '../../components/admin/DeliveryAreaManager'
 
 const pageSize = 10
 
@@ -358,6 +359,7 @@ export function DeliveryZones() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [areaManagerOpen, setAreaManagerOpen] = useState(false)
 
   useInitialRouteLoad(!isLoading)
 
@@ -499,7 +501,10 @@ export function DeliveryZones() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Delivery zones & fees</h1>
           <p className="mt-3 max-w-xl text-sm text-muted">Configure delivery zones and their fees. Customers select a state and city at checkout and the matching zone and fee are applied automatically.</p>
         </div>
-        <button className="inline-flex w-fit items-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={openCreate}>Add delivery zone</button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="inline-flex w-fit items-center gap-2 rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream" type="button" onClick={() => setAreaManagerOpen(true)}>Manage areas</button>
+          <button className="inline-flex w-fit items-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={openCreate}>Add delivery zone</button>
+        </div>
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Delivery zone filters">
@@ -651,6 +656,8 @@ export function DeliveryZones() {
           onConfirm={() => void confirmDelete()}
         />
       )}
+
+      {areaManagerOpen && <DeliveryAreaManager onClose={() => setAreaManagerOpen(false)} />}
     </>
   )
 }

@@ -68,3 +68,31 @@ export interface AdminDeliveryZonesPage {
 export interface ReorderDeliveryZonesInput {
   zoneIds: string[]
 }
+
+// An area of an LGA/City, used to refine a delivery location at checkout. An
+// area always inherits its city's delivery zone; it never carries its own fee.
+export interface DeliveryArea {
+  id: string
+  cityId: string
+  name: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// Area with its owning city/state expanded, for admin management views.
+export interface DeliveryAreaWithCity extends DeliveryArea {
+  city: { id: string; name: string; state: { id: string; name: string } }
+}
+
+export interface DeliveryAreaInput {
+  cityId: string
+  name: string
+  isActive: boolean
+}
+
+// The areas belonging to one city/LGA, with the city context for display.
+export interface CityDeliveryAreas {
+  city: { id: string; name: string; state: { id: string; name: string } }
+  areas: DeliveryArea[]
+}

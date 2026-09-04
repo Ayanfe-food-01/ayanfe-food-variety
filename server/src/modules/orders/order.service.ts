@@ -111,12 +111,15 @@ const toOrderResponse = (order: OrderWithItems): OrderResponse => {
     email: order.email,
     deliveryAddress: order.deliveryAddress,
     city: order.city,
+    state: order.state,
     note: order.note,
     orderType: order.shoppingMode,
     subtotal: order.subtotal.toString(),
     deliveryFee: order.deliveryFee.toString(),
     deliveryZoneName: order.deliveryZoneName,
     deliveryZoneId: order.deliveryZoneId,
+    deliveryAreaName: order.deliveryAreaName,
+    deliveryAreaId: order.deliveryAreaId,
     deliveryMinDays: order.deliveryMinDays,
     deliveryMaxDays: order.deliveryMaxDays,
     total: order.total.toString(),
@@ -276,15 +279,17 @@ export const resolveCheckoutDelivery = async (
   zone: CheckoutZone | null
   area: { id: string; name: string } | null
   cityName: string | null
+  stateName: string | null
 }> => {
   let cityIdToUse: string | null = null
   let cityNameToUse: string | null = null
+  let stateNameToUse: string | null = null
   let area: { id: string; name: string } | null = null
 
   if (location.areaId) {
     const areaRow = await tx.area.findUnique({
       where: { id: location.areaId },
-      select: { id: true, name: true, isActive: true, cityId: true, city: { select: { name: true } } },
+      select: { id: true, name: true, isActive: true, cityId: true, city: { select: { name: true, state: { select: { name: true } } } } },
     })
     if (!areaRow) throw new HttpError(400, 'Please choose your delivery area again.')
     if (!areaRow.isActive) {
@@ -305,28 +310,31 @@ export const resolveCheckoutDelivery = async (
     }
     cityIdToUse = areaRow.cityId
     cityNameToUse = areaRow.city.name
+    stateNameToUse = areaRow.city.state.name
     area = { id: areaRow.id, name: areaRow.name }
   } else if (location.cityId) {
-    const city = await tx.city.findUnique({ where: { id: location.cityId }, select: { id: true, name: true } })
+    const city = await tx.city.findUnique({ where: { id: location.cityId }, select: { id: true, name: true, state: { select: { name: true } } } })
     if (city) {
       cityIdToUse = city.id
       cityNameToUse = city.name
+      stateNameToUse = city.state.name
     }
   } else if (location.cityName) {
     const city = await tx.city.findFirst({
       where: { name: { equals: location.cityName, mode: 'insensitive' } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, state: { select: { name: true } } },
     })
     if (city) {
       cityIdToUse = city.id
       cityNameToUse = city.name
+      stateNameToUse = city.state.name
     } else {
       cityNameToUse = location.cityName
     }
   }
 
   const zone = cityIdToUse ? await resolveZoneForCityId(tx, cityIdToUse) : null
-  return { zone, area, cityName: cityNameToUse }
+  return { zone, area, cityName: cityNameToUse, stateName: stateNameToUse }
 }
 
 export async function checkoutCustomerCart(userId: string | null, input: CheckoutInput): Promise<OrderResponse> {
@@ -547,6 +555,9 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
     let deliveryMaxDays: number | null = null
     let deliveryFee = new Prisma.Decimal(0)
     let deliveryCityName = input.city?.trim() ?? ''
+    let deliveryStateName: string | null = null
+    let deliveryAreaId: string | null = null
+    let deliveryAreaName: string | null = null
     if (input.fulfillmentMethod === FulfillmentMethod.DELIVERY) {
       const resolved = await resolveCheckoutDelivery(transaction, {
         areaId: input.areaId,
@@ -599,6 +610,9 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
         deliveryFee = zone.fee
       }
       deliveryCityName = resolved.cityName ?? deliveryCityName
+      deliveryStateName = resolved.stateName ?? deliveryStateName
+      deliveryAreaId = resolved.area?.id ?? null
+      deliveryAreaName = resolved.area?.name ?? null
     }
     const order = await transaction.order.create({
       data: {
@@ -613,6 +627,9 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
          shoppingMode: isWholesale ? ShoppingMode.WHOLESALE : ShoppingMode.RETAIL,
          deliveryAddress: input.deliveryAddress ?? '',
          city: deliveryCityName,
+         state: deliveryStateName,
+         deliveryAreaId,
+         deliveryAreaName,
          note: input.deliveryInstructions ?? null,
         subtotal,
         deliveryZoneId,
@@ -1135,6 +1152,7 @@ const toGuestOrderResponse = (order: OrderWithItems): GuestOrderResponse => {
     orderType: fullResponse.orderType,
     deliveryAddress: fullResponse.deliveryAddress,
     city: fullResponse.city,
+    state: fullResponse.state,
     subtotal: fullResponse.subtotal,
     deliveryFee: fullResponse.deliveryFee,
     deliveryZoneName: fullResponse.deliveryZoneName,

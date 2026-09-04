@@ -14,11 +14,14 @@ export interface CreatedOrder {
   email: string | null
   deliveryAddress: string
   city: string
+  state: string | null
   note: string | null
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
   deliveryZoneId: string | null
+  deliveryAreaName: string | null
+  deliveryAreaId: string | null
   deliveryMinDays: number | null
   deliveryMaxDays: number | null
   total: string
@@ -74,6 +77,7 @@ export interface GuestOrder {
   orderType: OrderType
   deliveryAddress: string
   city: string
+  state: string | null
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
@@ -210,11 +214,14 @@ export interface AdminOrder {
   email: string | null
   deliveryAddress: string
   city: string
+  state: string | null
   note: string | null
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
   deliveryZoneId: string | null
+  deliveryAreaName: string | null
+  deliveryAreaId: string | null
   deliveryMinDays: number | null
   deliveryMaxDays: number | null
   total: string

@@ -282,6 +282,9 @@ export function Checkout() {
           ? {
               deliveryAddress: form.address.trim(),
               city: form.city.trim(),
+              stateId: form.state || undefined,
+              cityId: form.cityId || undefined,
+              areaId: form.areaId || undefined,
               deliveryInstructions: form.deliveryInstructions.trim() || undefined,
             }
           : {}),

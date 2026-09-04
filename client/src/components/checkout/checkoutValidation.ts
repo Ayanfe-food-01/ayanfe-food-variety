@@ -7,8 +7,11 @@ export const initialCheckoutForm: CheckoutFormData = {
   email: '',
   fulfillmentMethod: '',
   state: '',
-  address: '',
+  cityId: '',
   city: '',
+  areaId: '',
+  area: '',
+  address: '',
   deliveryInstructions: '',
   paymentMethod: 'BANK_TRANSFER',
 }
@@ -33,6 +36,9 @@ export function validateCheckoutForm(form: CheckoutFormData): CheckoutFormErrors
     if (!form.state.trim()) errors.state = 'Please select your state.'
     if (!form.city.trim()) errors.city = 'Please select your city or location.'
   }
+  // The area is optional, but it must always belong to the selected city. This
+  // is enforced by construction in the picker (cleared on state/city change).
+  if (form.areaId && !form.cityId) errors.areaId = 'Please select your city before choosing an area.'
 
   return errors
 }

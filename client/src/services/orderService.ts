@@ -137,7 +137,12 @@ export async function checkoutCustomerCart(input: {
   email: string
   fulfillmentMethod: FulfillmentMethod
   deliveryAddress?: string
+  // Legacy name-based fallback used when ids are not available; the server
+  // prefers the ids when present.
   city?: string
+  stateId?: string
+  cityId?: string
+  areaId?: string
   deliveryInstructions?: string
   paymentMethod: PaymentMethod
 }): Promise<CreatedOrder> {

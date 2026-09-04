@@ -43,9 +43,9 @@ const formatNaira = (value: string | number) => {
 
 // Informational, read-only summary of the delivery zone auto-resolved for the
 // selected city. Not a selectable control — the customer only chooses a state
-// and city; the zone, fee and available delivery extras are derived. New
-// display-only rows (e.g. `estimatedDeliveryTime`) can be added to this block
-// without touching the location selection flow.
+// and city; the zone, fee, and estimated delivery time are derived. The client
+// never trusts these values for the final total — the server recomputes them
+// authoritatively at checkout.
 interface DeliveryZoneInfoProps {
   zone: ResolvedDeliveryZone | null
   isResolving: boolean
@@ -107,12 +107,16 @@ function DeliveryZoneInfo({ zone, isResolving, error, deliveryFee, whatsappUrl }
           <dt className="text-muted">Delivery fee</dt>
           <dd className="font-bold text-green-dark">{deliveryFee === 0 ? 'Free delivery' : formatNaira(deliveryFee ?? zone.fee)}</dd>
         </div>
-        {/* Future extra rows, e.g. estimated delivery time, slot below.
-            <div className="flex items-baseline gap-2">
-              <dt className="text-muted">Estimated delivery</dt>
-              <dd className="font-bold text-green-dark">1–2 business days</dd>
-            </div>
-        */}
+        {zone.minDeliveryDays && zone.maxDeliveryDays ? (
+          <div className="flex items-baseline gap-2">
+            <dt className="text-muted">Estimated delivery</dt>
+            <dd className="font-bold text-green-dark">
+              {zone.minDeliveryDays === zone.maxDeliveryDays
+                ? `${zone.minDeliveryDays} business day${zone.minDeliveryDays === 1 ? '' : 's'}`
+                : `${zone.minDeliveryDays}–${zone.maxDeliveryDays} business days`}
+            </dd>
+          </div>
+        ) : null}
       </dl>
     </div>
   )

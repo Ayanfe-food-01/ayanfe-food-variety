@@ -363,6 +363,8 @@ export interface ResolvedDeliveryZone {
   label: string
   fee: string
   freeDeliveryThreshold: string | null
+  minDeliveryDays: number | null
+  maxDeliveryDays: number | null
 }
 
 interface ResolveDeliveryZoneResponse {

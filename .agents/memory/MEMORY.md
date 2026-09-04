@@ -3,7 +3,6 @@
 - [API workflow port detection](workflow-port-detection.md) — a healthy Express API can remain reachable while the managed console workflow is marked failed during port detection.
 - [Product image replacement](product-image-replacement.md) — upload new assets before persistence, delete old assets afterward, and clean up replacements on failed updates.
 - [Neon migration advisory locks](neon-migrations.md) — close pooled diagnostic sessions before retrying Prisma deploy when Neon reports a migration advisory-lock timeout.
-- [Portable deployment lockfiles](deployment-lockfiles.md) — external Vercel/Render installs cannot use Replit-only npm registry URLs committed in lockfiles.
 - [Render Free migration startup](render-free-migrations.md) — run Prisma deploy migrations in the production start script when Render locks pre-deploy commands.
 - [Split frontend/API configuration](split-api-configuration.md) — Vercel build variables must be clean API bases and Render must allow the exact frontend origin.
 - [Static crawl-control files](seo-robots-static-assets.md) — keep robots.txt on the static frontend path so crawl access does not depend on a runtime function.

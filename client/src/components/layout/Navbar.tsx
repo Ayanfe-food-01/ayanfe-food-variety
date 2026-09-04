@@ -146,7 +146,7 @@ export function Navbar() {
         <ShoppingModeSwitch className="desktop-shopping-mode" />
       </div>
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
-      <aside className={`mobile-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
+      <aside className={`mobile-menu y-scrollbar ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
         <div className="mobile-menu-head">
            <img className="mobile-menu-logo" src={logoUrl} alt="Ayanfe Food Variety" />
           <button ref={closeMenuButtonRef} className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>

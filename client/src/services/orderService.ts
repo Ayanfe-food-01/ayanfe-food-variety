@@ -360,9 +360,13 @@ export async function deleteAdminOrder(orderNumber: string): Promise<void> {
 export interface DeliveryLocationState {
   id: string
   name: string
+  // True when at least one city in the state is servable.
+  servable: boolean
   cities: Array<{
     id: string
     name: string
+    // True only when the city is mapped to an active delivery zone.
+    servable: boolean
     // Optional active areas offered at checkout. Absent when the city has none.
     areas?: Array<{ id: string; name: string }>
   }>

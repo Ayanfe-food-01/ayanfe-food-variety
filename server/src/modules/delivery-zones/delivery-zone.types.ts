@@ -19,17 +19,24 @@ export interface DeliveryZoneAssignedCity {
   state: { id: string; name: string }
 }
 
-// A state with its cities, used by the admin city-assignment picker. Each city
-// carries the delivery zone it belongs to (if any) so the UI can disable cities
-// already assigned to another zone.
+// A state with its cities, used by the admin city-assignment picker and the
+// public checkout location picker. Each city carries the delivery zone it
+// belongs to (if any) so the admin UI can disable cities already assigned to
+// another zone, and a servable flag (mapped to an active zone) so the checkout
+// can hide locations delivery cannot reach.
 export interface DeliveryLocationState {
   id: string
   name: string
+  // True when at least one city in the state is servable.
+  servable: boolean
   cities: Array<{
     id: string
     name: string
-    assignedZoneId: string | null
-    assignedZoneLabel: string | null
+    // Present in the admin payload; omitted from the public checkout payload.
+    assignedZoneId?: string | null
+    assignedZoneLabel?: string | null
+    // True only when the city is mapped to an active delivery zone.
+    servable: boolean
     // Optional active areas offered at checkout. Omitted entirely when the city
     // has no active areas to keep the public payload small (774 cities).
     areas?: DeliveryLocationArea[]

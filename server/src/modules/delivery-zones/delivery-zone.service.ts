@@ -298,6 +298,7 @@ export async function listAdminDeliveryLocationStates(): Promise<DeliveryLocatio
               deliveryZone: {
                 select: {
                   id: true,
+                  isActive: true,
                   deliveryZoneCities: {
                     select: { city: { select: { id: true, name: true } } },
                   },
@@ -310,10 +311,8 @@ export async function listAdminDeliveryLocationStates(): Promise<DeliveryLocatio
       },
     },
   })
-  return states.map((state) => ({
-    id: state.id,
-    name: state.name,
-    cities: state.cities.map((city) => {
+  return states.map((state) => {
+    const cities = state.cities.map((city) => {
       const zone = city.deliveryZoneCity?.deliveryZone ?? null
       const cityNames = (zone?.deliveryZoneCities ?? [])
         .map((entry) => entry.city.name)
@@ -323,9 +322,16 @@ export async function listAdminDeliveryLocationStates(): Promise<DeliveryLocatio
         name: city.name,
         assignedZoneId: zone ? zone.id : null,
         assignedZoneLabel: zone ? buildZoneLabel(cityNames) : null,
+        servable: Boolean(zone && zone.isActive),
       }
-    }),
-  }))
+    })
+    return {
+      id: state.id,
+      name: state.name,
+      servable: cities.some((city) => city.servable),
+      cities,
+    }
+  })
 }
 
 // Public delivery-location picker used at checkout. Returns every state and
@@ -345,6 +351,7 @@ export async function listPublicDeliveryLocationStates(): Promise<DeliveryLocati
               deliveryZone: {
                 select: {
                   id: true,
+                  isActive: true,
                   deliveryZoneCities: {
                     select: { city: { select: { id: true, name: true } } },
                   },
@@ -368,10 +375,8 @@ export async function listPublicDeliveryLocationStates(): Promise<DeliveryLocati
     if (list) list.push({ id: area.id, name: area.name })
     else areasByCity.set(area.cityId, [{ id: area.id, name: area.name }])
   }
-  return states.map((state) => ({
-    id: state.id,
-    name: state.name,
-    cities: state.cities.map((city) => {
+  return states.map((state) => {
+    const cities = state.cities.map((city) => {
       const zone = city.deliveryZoneCity?.deliveryZone ?? null
       const cityNames = (zone?.deliveryZoneCities ?? [])
         .map((entry) => entry.city.name)
@@ -380,12 +385,19 @@ export async function listPublicDeliveryLocationStates(): Promise<DeliveryLocati
       return {
         id: city.id,
         name: city.name,
-        assignedZoneId: zone ? zone.id : null,
-        assignedZoneLabel: zone ? buildZoneLabel(cityNames) : null,
+        // A city is servable only when it is mapped to an active delivery zone.
+        servable: Boolean(zone && zone.isActive),
         ...(areas ? { areas } : {}),
       }
-    }),
-  }))
+    })
+    return {
+      id: state.id,
+      name: state.name,
+      // A state is servable when at least one of its cities can be delivered to.
+      servable: cities.some((city) => city.servable),
+      cities,
+    }
+  })
 }
 
 // Resolves the active DeliveryZone serving a city for display purposes, using

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, CloseIcon, EyeIcon, EyeOffIcon } from '../../assets/icons'
 import { Button } from '../ui/Button'
@@ -58,6 +58,9 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
   ))
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const sheetDragRef = useRef({ startY: 0, pulled: 0, active: false })
 
   const getDestination = useCallback((user: AuthenticatedUser) => {
     const from = readInternalReturnPath(location.state)
@@ -74,6 +77,55 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
     }
     closeAuth()
   }, [closeAuth, location.state, navigate, standalone])
+
+  const handleSheetPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    const scroll = scrollRef.current
+    if (!scroll) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    sheetDragRef.current = { startY: event.clientY, pulled: 0, active: true }
+    if (panelRef.current) panelRef.current.style.animation = 'none'
+  }
+
+  const handleSheetPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const scroll = scrollRef.current
+    const panel = panelRef.current
+    if (!scroll || !panel || !sheetDragRef.current.active) return
+    const dy = Math.max(0, event.clientY - sheetDragRef.current.startY)
+    if (scroll.scrollTop > 0) {
+      const startScrollTop = scroll.scrollTop
+      if (dy < startScrollTop) {
+        scroll.scrollTop = startScrollTop - dy
+        return
+      }
+      scroll.scrollTop = 0
+      sheetDragRef.current.pulled = dy - startScrollTop
+    } else {
+      sheetDragRef.current.pulled = dy
+    }
+    panel.style.transition = 'none'
+    panel.style.transform = `translateY(${sheetDragRef.current.pulled}px)`
+  }
+
+  const handleSheetPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const panel = panelRef.current
+    const { active, pulled } = sheetDragRef.current
+    if (!active || !panel) return
+    sheetDragRef.current.active = false
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    const threshold = Math.max(120, panel.getBoundingClientRect().height * 0.25)
+    if (pulled > threshold) {
+      handleClose()
+      return
+    }
+    panel.style.transition = 'transform .28s cubic-bezier(0.22, 1, 0.36, 1)'
+    panel.style.transform = ''
+    window.setTimeout(() => {
+      panel.style.transition = ''
+    }, 300)
+  }
 
   useEffect(() => {
     if (!standalone) return
@@ -200,7 +252,7 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
   return (
     <div className="auth-modal">
       <div className="auth-modal-backdrop" onClick={handleClose} aria-hidden="true" />
-      <div className="auth-modal-panel" role="dialog" aria-modal="true" aria-label="Sign in">
+      <div className="auth-modal-panel" ref={panelRef} role="dialog" aria-modal="true" aria-label="Sign in">
         <button
           ref={closeButtonRef}
           className="auth-modal-close"
@@ -210,7 +262,17 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
         >
           <CloseIcon size={20} />
         </button>
-        <div className="auth-modal-scroll y-scrollbar">
+        <div
+          className="auth-modal-handle"
+          role="presentation"
+          onPointerDown={handleSheetPointerDown}
+          onPointerMove={handleSheetPointerMove}
+          onPointerUp={handleSheetPointerUp}
+          onPointerCancel={handleSheetPointerUp}
+        >
+          <span className="auth-modal-handle-bar" aria-hidden="true" />
+        </div>
+        <div className="auth-modal-scroll y-scrollbar" ref={scrollRef}>
           <div className="px-5 pb-[max(1.5rem,calc(1.5rem+env(safe-area-inset-bottom)))] sm:px-8">
             <div className="flex justify-center">
               <BrandLogo className="h-20 w-20 object-contain" />

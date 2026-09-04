@@ -61,6 +61,18 @@
   padding-top: 50px;
 }
 
+/* Drag handle for the bottom-sheet behaviour — hidden on desktop */
+.auth-modal-handle {
+  display: none;
+}
+
+.auth-modal-handle-bar {
+  width: 48px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-sage);
+}
+
 @keyframes auth-modal-fade {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -84,8 +96,22 @@
 
   .auth-modal-panel {
     width: 100%;
-    max-height: calc(100dvh - env(safe-area-inset-top));
+    max-height: calc(100dvh - env(safe-area-inset-top) - 56px);
     border-radius: 24px 24px 0 0;
     animation: auth-modal-sheet .32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .auth-modal-handle {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-shrink: 0;
+    height: 24px;
+    padding-top: 10px;
+    touch-action: none;
+  }
+
+  .auth-modal-scroll {
+    padding-top: 0;
   }
 }

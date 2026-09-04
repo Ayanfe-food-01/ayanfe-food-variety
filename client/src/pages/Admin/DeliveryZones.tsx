@@ -191,7 +191,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
           <h2 id="delivery-zone-form-title" className="mt-1.5 text-xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
           <p className="mt-1.5 text-xs leading-5 text-muted">Covers a set of LGAs; the fee applies to deliveries to these cities.</p>
         </div>
-        <div className="modal-scroll min-h-0 flex-1 overflow-y-auto">
+        <div className="y-scrollbar min-h-0 flex-1 overflow-y-auto">
         <form onSubmit={submit}>
           <div className="p-7 sm:p-8">
             {isLoading ? (

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { CartIcon, CloseIcon, HeartIcon, MenuIcon } from '../../assets/icons'
+import { CartIcon, ChevronDownIcon, CloseIcon, HeartIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
@@ -33,6 +33,9 @@ export function Navbar() {
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const closeMenuButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const desktopNavRef = useRef<HTMLDivElement>(null)
+  const desktopNavMeasureRef = useRef<HTMLDivElement>(null)
+  const [desktopNavCount, setDesktopNavCount] = useState(links.length)
   const navigate = useNavigate()
   const { totalQuantity } = useCart()
   const { user, logout, openAuth } = useCustomerAuth()
@@ -81,6 +84,52 @@ export function Navbar() {
     window.addEventListener('scroll', updateScrollState, { passive: true })
     return () => window.removeEventListener('scroll', updateScrollState)
   }, [])
+
+  useEffect(() => {
+    const host = desktopNavRef.current
+    if (!host) return
+
+    const recompute = () => {
+      // Only compute on desktop; the nav is hidden (width 0) on small screens.
+      if (host.clientWidth === 0) return
+      const measureHost = desktopNavMeasureRef.current
+      if (!measureHost || measureHost.children.length === 0 || host.clientWidth === 0) return
+
+      const gap = parseFloat(getComputedStyle(host).gap) || 27
+      const linkWidths = Array.from(measureHost.children).map(
+        (element) => element.getBoundingClientRect().width,
+      )
+      const wishlistWidth = host.querySelector<HTMLElement>('.wishlist-nav-link')?.getBoundingClientRect().width ?? 0
+      const shoppingWidth = host.querySelector<HTMLElement>('.desktop-shopping-mode')?.getBoundingClientRect().width ?? 0
+      const moreTriggerWidth = host.querySelector<HTMLElement>('.more-nav-trigger')?.getBoundingClientRect().width ?? 64
+      const available = host.clientWidth
+
+      const countThatFit = (withMore: boolean) => {
+        const trailingItems = withMore ? 3 : 2
+        const chrome = (withMore ? moreTriggerWidth : 0) + wishlistWidth + shoppingWidth
+        let used = chrome + gap * trailingItems
+        let count = 0
+        for (const width of linkWidths) {
+          if (count > 0) used += gap
+          if (used + width > available) break
+          used += width
+          count++
+        }
+        return count
+      }
+
+      const withoutMore = countThatFit(false)
+      if (withoutMore === linkWidths.length) {
+        setDesktopNavCount(linkWidths.length)
+      } else {
+        setDesktopNavCount(Math.max(1, countThatFit(true)))
+      }
+    }
+
+    recompute()
+    window.addEventListener('resize', recompute)
+    return () => window.removeEventListener('resize', recompute)
+  }, [wishlistCount])
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault()
@@ -140,13 +189,29 @@ export function Navbar() {
           </button>
         </div>
       </nav>
-      <div className="desktop-nav container">
-        {links.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
-        <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
-        <ShoppingModeSwitch className="desktop-shopping-mode" />
-      </div>
+<div className="desktop-nav container" ref={desktopNavRef}>
+          {links.slice(0, desktopNavCount).map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
+          {desktopNavCount < links.length && (
+            <div className="more-nav">
+              <button className="more-nav-trigger" type="button" aria-haspopup="true" aria-expanded="false">
+                More <ChevronDownIcon size={14} />
+              </button>
+              <div className="more-nav-menu" role="menu">
+                {links.slice(desktopNavCount).map((link) => (
+                  <Link to={link.href} role="menuitem" key={link.href}>{link.label}</Link>
+                ))}
+              </div>
+            </div>
+          )}
+          <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+          <ShoppingModeSwitch className="desktop-shopping-mode" />
+        </div>
+        {/* Off-screen measurement host used to size the primary nav links against available space. */}
+        <div className="desktop-nav-measure" ref={desktopNavMeasureRef} aria-hidden="true">
+          {links.map((link) => <span key={link.href} className="desktop-nav-measure-item">{link.label}</span>)}
+        </div>
       <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
-      <aside className={`mobile-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
+      <aside className={`mobile-menu y-scrollbar ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
         <div className="mobile-menu-head">
            <img className="mobile-menu-logo" src={logoUrl} alt="Ayanfe Food Variety" />
           <button ref={closeMenuButtonRef} className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>

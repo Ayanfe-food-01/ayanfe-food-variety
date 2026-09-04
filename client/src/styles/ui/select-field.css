@@ -84,19 +84,24 @@
   scrollbar-color: var(--color-green) transparent;
 }
 
-.select-field-menu.modal-scroll::-webkit-scrollbar-track {
+.select-field-menu.y-scrollbar::-webkit-scrollbar-track {
   margin: 10px 8px;
 }
 
-.select-field-menu.modal-scroll::-webkit-scrollbar {
+.select-field-menu.y-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
 
-.select-field-menu.modal-scroll::-webkit-scrollbar-thumb {
-  background: var(--color-green);
+.select-field-menu::-webkit-scrollbar-thumb {
+  background: var(--color-sage);
   border: 1px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
+}
+
+.select-field-menu:hover::-webkit-scrollbar-thumb,
+.select-field-menu.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--color-green);
 }
 
 .select-field-option {

@@ -131,7 +131,7 @@ export function SelectField({
       const spaceBelow = viewportHeight - rect.bottom - viewportPadding
       const spaceAbove = rect.top - viewportPadding
 
-      const scrollBox = trigger.closest<HTMLElement>('.modal-scroll')
+      const scrollBox = trigger.closest<HTMLElement>('.y-scrollbar')
       let boxSpaceBelow = spaceBelow
       let boxSpaceAbove = spaceAbove
       if (scrollBox) {
@@ -324,7 +324,7 @@ export function SelectField({
       )}
       {menuOpen && createPortal(
         <div
-          className={`select-field-menu modal-scroll ${variant === 'compact' ? 'select-field-menu-compact' : ''}`}
+          className={`select-field-menu y-scrollbar ${variant === 'compact' ? 'select-field-menu-compact' : ''}`}
           id={listboxId}
           ref={menuRef}
           role="listbox"

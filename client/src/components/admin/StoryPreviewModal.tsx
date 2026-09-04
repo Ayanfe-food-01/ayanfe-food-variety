@@ -27,7 +27,7 @@ export function StoryPreviewModal({ story, onClose, details }: StoryPreviewModal
   }, [onClose])
 
   return (
-    <div className="safe-modal-backdrop modal-scroll fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-green-dark/45 px-4 py-8" role="presentation" onClick={onClose}>
+    <div className="safe-modal-backdrop y-scrollbar fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-green-dark/45 px-4 py-8" role="presentation" onClick={onClose}>
       <div className="w-full max-w-md" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">

@@ -157,3 +157,46 @@
     padding-top: 14px;
   }
 }
+
+/* Extra-large desktops (>=1600px): render as a single full-width billboard
+   capped to the page max-width, with the slide dots overlaid on the bottom
+   of the image. Laptops, normal desktops and tablets keep the original
+   x-scroll peek carousel. */
+@media (min-width: 1600px) {
+  .promo-banners-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .promo-banners-track {
+    gap: 0;
+    width: 100%;
+    max-width: 1160px;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+    scroll-snap-type: x mandatory;
+  }
+
+  .promo-banner-card {
+    flex: 0 0 100%;
+    width: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+
+  .promo-dots {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 9px;
+    padding-top: 0;
+    z-index: 3;
+  }
+
+  .promo-dot {
+    box-shadow: 0 0 0 2px rgb(20 33 22 / 50%);
+  }
+}

@@ -9,7 +9,8 @@ import {
   listActiveDeliveryZones,
   listAdminDeliveryZones,
   listCityDeliveryAreas,
-  listDeliveryLocationStates,
+  listAdminDeliveryLocationStates,
+  listPublicDeliveryLocationStates,
   reorderDeliveryZones,
   resolveDeliveryZoneByCity,
   unassignCityFromZone,
@@ -100,10 +101,17 @@ export const reorderAdminDeliveryZonesController: RequestHandler = async (reques
   })
 }
 
-export const listDeliveryLocationStatesController: RequestHandler = async (_request, response) => {
+export const listAdminDeliveryLocationStatesController: RequestHandler = async (_request, response) => {
   response.json({
     success: true,
-    data: { states: await listDeliveryLocationStates() },
+    data: { states: await listAdminDeliveryLocationStates() },
+  })
+}
+
+export const listPublicDeliveryLocationStatesController: RequestHandler = async (_request, response) => {
+  response.json({
+    success: true,
+    data: { states: await listPublicDeliveryLocationStates() },
   })
 }
 

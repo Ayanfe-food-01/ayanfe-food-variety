@@ -30,7 +30,15 @@ export interface DeliveryLocationState {
     name: string
     assignedZoneId: string | null
     assignedZoneLabel: string | null
+    // Optional active areas offered at checkout. Omitted entirely when the city
+    // has no active areas to keep the public payload small (774 cities).
+    areas?: DeliveryLocationArea[]
   }>
+}
+
+export interface DeliveryLocationArea {
+  id: string
+  name: string
 }
 
 export interface DeliveryZoneDetail extends DeliveryZone {

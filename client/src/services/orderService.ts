@@ -348,7 +348,12 @@ export async function deleteAdminOrder(orderNumber: string): Promise<void> {
 export interface DeliveryLocationState {
   id: string
   name: string
-  cities: Array<{ id: string; name: string }>
+  cities: Array<{
+    id: string
+    name: string
+    // Optional active areas offered at checkout. Absent when the city has none.
+    areas?: Array<{ id: string; name: string }>
+  }>
 }
 
 interface DeliveryLocationStatesResponse {

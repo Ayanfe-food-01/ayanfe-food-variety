@@ -7,6 +7,7 @@ import type {
   DeliveryArea,
   DeliveryAreaInput,
   DeliveryAreaWithCity,
+  DeliveryLocationArea,
   DeliveryLocationState,
   DeliveryZone,
   DeliveryZoneAssignedCity,
@@ -284,7 +285,7 @@ async function nextAvailableSortOrder(): Promise<number> {
   return (highest?.sortOrder ?? 0) + 1
 }
 
-export async function listDeliveryLocationStates(): Promise<DeliveryLocationState[]> {
+export async function listAdminDeliveryLocationStates(): Promise<DeliveryLocationState[]> {
   const states = await prisma.state.findMany({
     orderBy: { name: 'asc' },
     include: {
@@ -322,6 +323,66 @@ export async function listDeliveryLocationStates(): Promise<DeliveryLocationStat
         name: city.name,
         assignedZoneId: zone ? zone.id : null,
         assignedZoneLabel: zone ? buildZoneLabel(cityNames) : null,
+      }
+    }),
+  }))
+}
+
+// Public delivery-location picker used at checkout. Returns every state and
+// city (so unmapped cities are still pickable and then fail with a zone error),
+// plus the active areas for each city that defines them. Areas are included
+// only when at least one active area exists, keeping the 774-city payload lean.
+export async function listPublicDeliveryLocationStates(): Promise<DeliveryLocationState[]> {
+  const states = await prisma.state.findMany({
+    orderBy: { name: 'asc' },
+    include: {
+      cities: {
+        select: {
+          id: true,
+          name: true,
+          deliveryZoneCity: {
+            select: {
+              deliveryZone: {
+                select: {
+                  id: true,
+                  deliveryZoneCities: {
+                    select: { city: { select: { id: true, name: true } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+      },
+    },
+  })
+  const activeAreas = await prisma.area.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, cityId: true },
+    orderBy: { name: 'asc' },
+  })
+  const areasByCity = new Map<string, DeliveryLocationArea[]>()
+  for (const area of activeAreas) {
+    const list = areasByCity.get(area.cityId)
+    if (list) list.push({ id: area.id, name: area.name })
+    else areasByCity.set(area.cityId, [{ id: area.id, name: area.name }])
+  }
+  return states.map((state) => ({
+    id: state.id,
+    name: state.name,
+    cities: state.cities.map((city) => {
+      const zone = city.deliveryZoneCity?.deliveryZone ?? null
+      const cityNames = (zone?.deliveryZoneCities ?? [])
+        .map((entry) => entry.city.name)
+        .sort((a, b) => a.localeCompare(b))
+      const areas = areasByCity.get(city.id)
+      return {
+        id: city.id,
+        name: city.name,
+        assignedZoneId: zone ? zone.id : null,
+        assignedZoneLabel: zone ? buildZoneLabel(cityNames) : null,
+        ...(areas ? { areas } : {}),
       }
     }),
   }))

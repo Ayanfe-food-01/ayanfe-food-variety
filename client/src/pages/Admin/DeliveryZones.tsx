@@ -23,6 +23,7 @@ import {
   updateAdminDeliveryZoneStatus,
 } from '../../services/adminService'
 import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
+import { DeliveryAreaManager } from '../../components/admin/DeliveryAreaManager'
 
 const pageSize = 10
 
@@ -223,36 +224,6 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
               <p className="text-sm text-muted">Loading…</p>
             ) : (
               <div className="space-y-6">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <label className="block text-xs font-bold text-green-dark">
-                    Delivery fee
-                    <span className="ml-1 font-normal text-muted">(₦)</span>
-                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={fee} onChange={(event) => setFee(event.target.value)} placeholder="0.00" required />
-                  </label>
-                  <label className="block text-xs font-bold text-green-dark">
-                    Free delivery threshold
-                    <span className="ml-1 font-normal text-muted">(₦, optional)</span>
-                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={freeDeliveryThreshold} onChange={(event) => setFreeDeliveryThreshold(event.target.value)} placeholder="Leave empty for none" />
-                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Orders at or above this amount get free delivery. Leave empty to always charge the delivery fee.</span>
-                  </label>
-                  <label className="block text-xs font-bold text-green-dark">
-                    Min delivery days
-                    <span className="ml-1 font-normal text-muted">(optional)</span>
-                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="numeric" value={minDeliveryDays} onChange={(event) => setMinDeliveryDays(event.target.value)} placeholder="e.g. 1" />
-                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Fastest estimated delivery time in business days.</span>
-                  </label>
-                  <label className="block text-xs font-bold text-green-dark">
-                    Max delivery days
-                    <span className="ml-1 font-normal text-muted">(optional)</span>
-                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="numeric" value={maxDeliveryDays} onChange={(event) => setMaxDeliveryDays(event.target.value)} placeholder="e.g. 3" />
-                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Slowest estimated delivery time in business days. Must be ≥ min delivery days.</span>
-                  </label>
-                </div>
-                <label className="flex items-center gap-3 text-xs font-bold text-green-dark">
-                  <input type="checkbox" className="size-4 rounded border-line" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
-                  Active (visible to customers during checkout)
-                </label>
-
                 <section aria-label="Delivery area">
                   <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Delivery area — cities this zone covers ({cities.length})</h3>
                   {cities.length === 0 ? (
@@ -318,6 +289,36 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                     </div>
                   </div>
                 </section>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="block text-xs font-bold text-green-dark">
+                    Delivery fee
+                    <span className="ml-1 font-normal text-muted">(₦)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={fee} onChange={(event) => setFee(event.target.value)} placeholder="0.00" required />
+                  </label>
+                  <label className="block text-xs font-bold text-green-dark">
+                    Free delivery threshold
+                    <span className="ml-1 font-normal text-muted">(₦, optional)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="decimal" value={freeDeliveryThreshold} onChange={(event) => setFreeDeliveryThreshold(event.target.value)} placeholder="Leave empty for none" />
+                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Orders at or above this amount get free delivery. Leave empty to always charge the delivery fee.</span>
+                  </label>
+                  <label className="block text-xs font-bold text-green-dark">
+                    Min delivery days
+                    <span className="ml-1 font-normal text-muted">(optional)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="numeric" value={minDeliveryDays} onChange={(event) => setMinDeliveryDays(event.target.value)} placeholder="e.g. 1" />
+                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Fastest estimated delivery time in business days.</span>
+                  </label>
+                  <label className="block text-xs font-bold text-green-dark">
+                    Max delivery days
+                    <span className="ml-1 font-normal text-muted">(optional)</span>
+                    <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" inputMode="numeric" value={maxDeliveryDays} onChange={(event) => setMaxDeliveryDays(event.target.value)} placeholder="e.g. 3" />
+                    <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">Slowest estimated delivery time in business days. Must be ≥ min delivery days.</span>
+                  </label>
+                </div>
+                <label className="flex items-center gap-3 text-xs font-bold text-green-dark">
+                  <input type="checkbox" className="size-4 rounded border-line" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
+                  Active (visible to customers during checkout)
+                </label>
               </div>
             )}
             {(formError || error) && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{formError ?? error}</p>}
@@ -358,6 +359,7 @@ export function DeliveryZones() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [areaManagerOpen, setAreaManagerOpen] = useState(false)
 
   useInitialRouteLoad(!isLoading)
 
@@ -499,7 +501,10 @@ export function DeliveryZones() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Delivery zones & fees</h1>
           <p className="mt-3 max-w-xl text-sm text-muted">Configure delivery zones and their fees. Customers select a state and city at checkout and the matching zone and fee are applied automatically.</p>
         </div>
-        <button className="inline-flex w-fit items-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={openCreate}>Add delivery zone</button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="inline-flex w-fit items-center gap-2 rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream" type="button" onClick={() => setAreaManagerOpen(true)}>Manage areas</button>
+          <button className="inline-flex w-fit items-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={openCreate}>Add delivery zone</button>
+        </div>
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Delivery zone filters">
@@ -651,6 +656,8 @@ export function DeliveryZones() {
           onConfirm={() => void confirmDelete()}
         />
       )}
+
+      {areaManagerOpen && <DeliveryAreaManager onClose={() => setAreaManagerOpen(false)} />}
     </>
   )
 }

@@ -1,15 +1,20 @@
 import type { RequestHandler } from 'express'
 import {
   assignCityToZone,
+  createDeliveryArea,
   createDeliveryZone,
+  deleteDeliveryArea,
   deleteDeliveryZone,
   getAdminDeliveryZone,
   listActiveDeliveryZones,
   listAdminDeliveryZones,
+  listCityDeliveryAreas,
   listDeliveryLocationStates,
   reorderDeliveryZones,
   resolveDeliveryZoneByCity,
   unassignCityFromZone,
+  updateDeliveryArea,
+  updateDeliveryAreaStatus,
   updateDeliveryZone,
   updateDeliveryZoneStatus,
 } from './delivery-zone.service.js'
@@ -17,6 +22,10 @@ import {
   validateAdminDeliveryZonesQuery,
   validateAssignZoneCityInput,
   validateCityId,
+  validateDeliveryAreaId,
+  validateDeliveryAreaInput,
+  validateDeliveryAreaStatusInput,
+  validateDeliveryAreaUpdateInput,
   validateDeliveryCityName,
   validateDeliveryZoneId,
   validateDeliveryZoneInput,
@@ -129,4 +138,50 @@ export const resolveDeliveryZoneController: RequestHandler = async (request, res
     success: true,
     data: { zone: await resolveDeliveryZoneByCity(city) },
   })
+}
+
+export const listCityDeliveryAreasController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    data: await listCityDeliveryAreas(validateCityId(request.params.cityId)),
+  })
+}
+
+export const createAdminDeliveryAreaController: RequestHandler = async (request, response) => {
+  response.status(201).json({
+    success: true,
+    message: 'Delivery area created.',
+    data: { area: await createDeliveryArea(validateDeliveryAreaInput(request.body)) },
+  })
+}
+
+export const updateAdminDeliveryAreaController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'Delivery area updated.',
+    data: {
+      area: await updateDeliveryArea(
+        validateDeliveryAreaId(request.params.id),
+        validateDeliveryAreaUpdateInput(request.body),
+      ),
+    },
+  })
+}
+
+export const updateAdminDeliveryAreaStatusController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'Delivery area status updated.',
+    data: {
+      area: await updateDeliveryAreaStatus(
+        validateDeliveryAreaId(request.params.id),
+        validateDeliveryAreaStatusInput(request.body),
+      ),
+    },
+  })
+}
+
+export const deleteAdminDeliveryAreaController: RequestHandler = async (request, response) => {
+  await deleteDeliveryArea(validateDeliveryAreaId(request.params.id))
+  response.json({ success: true, message: 'Delivery area deleted.' })
 }

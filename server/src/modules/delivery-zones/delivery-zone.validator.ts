@@ -1,5 +1,5 @@
 import { HttpError } from '../../utils/http.js'
-import type { DeliveryZoneInput, ReorderDeliveryZonesInput } from './delivery-zone.types.js'
+import type { DeliveryAreaInput, DeliveryZoneInput, ReorderDeliveryZonesInput } from './delivery-zone.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -57,6 +57,47 @@ export function validateDeliveryZoneId(value: string | string[] | undefined): st
   const id = Array.isArray(value) ? value[0] : value
   if (!id || !UUID_PATTERN.test(id.trim())) throw new HttpError(400, 'Delivery zone ID is invalid.')
   return id.trim()
+}
+
+export function validateDeliveryAreaId(value: string | string[] | undefined): string {
+  const id = Array.isArray(value) ? value[0] : value
+  if (!id || !UUID_PATTERN.test(id.trim())) throw new HttpError(400, 'Delivery area ID is invalid.')
+  return id.trim()
+}
+
+export function validateDeliveryAreaInput(body: unknown): DeliveryAreaInput {
+  if (!isRecord(body)) throw new HttpError(400, 'Area data is required.')
+  const name = typeof body.name === 'string' ? body.name.trim() : ''
+  if (!name) throw new HttpError(400, 'Area name is required.')
+  if (name.length > 120) throw new HttpError(400, 'Area name must be 120 characters or fewer.')
+  const cityId = body.cityId
+  if (typeof cityId !== 'string' || !UUID_PATTERN.test(cityId.trim())) {
+    throw new HttpError(400, 'A valid city or LGA is required.')
+  }
+  return {
+    cityId: cityId.trim(),
+    name,
+    isActive: booleanValue(body.isActive, 'Area status', true),
+  }
+}
+
+export function validateDeliveryAreaUpdateInput(body: unknown): Omit<DeliveryAreaInput, 'cityId'> {
+  if (!isRecord(body)) throw new HttpError(400, 'Area data is required.')
+  const name = typeof body.name === 'string' ? body.name.trim() : ''
+  if (!name) throw new HttpError(400, 'Area name is required.')
+  if (name.length > 120) throw new HttpError(400, 'Area name must be 120 characters or fewer.')
+  return {
+    name,
+    isActive: booleanValue(body.isActive, 'Area status', true),
+  }
+}
+
+export function validateDeliveryAreaStatusInput(body: unknown): boolean {
+  if (!isRecord(body)) throw new HttpError(400, 'Area status is required.')
+  if (typeof body.isActive !== 'boolean' && body.isActive !== 'true' && body.isActive !== 'false') {
+    throw new HttpError(400, 'Area status must be true or false.')
+  }
+  return booleanValue(body.isActive, 'Area status', false)
 }
 
 const positiveIntValue = (value: unknown, field: string): number | null => {

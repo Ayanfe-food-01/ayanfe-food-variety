@@ -3,6 +3,10 @@ import { prisma } from '../../lib/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
   AdminDeliveryZonesQuery,
+  CityDeliveryAreas,
+  DeliveryArea,
+  DeliveryAreaInput,
+  DeliveryAreaWithCity,
   DeliveryLocationState,
   DeliveryZone,
   DeliveryZoneAssignedCity,
@@ -420,4 +424,128 @@ export async function unassignCityFromZone(zoneId: string, cityId: string): Prom
   }
 
   return getAdminDeliveryZone(zoneId)
+}
+
+const areaInclude = {
+  city: {
+    select: { id: true, name: true, state: { select: { id: true, name: true } } },
+  },
+} satisfies Prisma.AreaInclude
+
+const toArea = (area: {
+  id: string
+  cityId: string
+  name: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}): DeliveryArea => ({
+  id: area.id,
+  cityId: area.cityId,
+  name: area.name,
+  isActive: area.isActive,
+  createdAt: area.createdAt.toISOString(),
+  updatedAt: area.updatedAt.toISOString(),
+})
+
+const toAreaWithCity = (area: {
+  id: string
+  cityId: string
+  name: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+  city?: { id: string; name: string; state: { id: string; name: string } }
+}): DeliveryAreaWithCity => ({
+  ...toArea(area),
+  city: area.city ?? { id: area.cityId, name: '', state: { id: '', name: '' } },
+})
+
+// Lists the areas belonging to one city/LGA (all statuses) for admin management.
+export async function listCityDeliveryAreas(cityId: string): Promise<CityDeliveryAreas> {
+  const city = await prisma.city.findUnique({
+    where: { id: cityId },
+    select: { id: true, name: true, state: { select: { id: true, name: true } } },
+  })
+  if (!city) throw new HttpError(404, 'City or LGA not found.')
+
+  const areas = await prisma.area.findMany({
+    where: { cityId },
+    include: areaInclude,
+    orderBy: { name: 'asc' },
+  })
+
+  return {
+    city: { id: city.id, name: city.name, state: { id: city.state.id, name: city.state.name } },
+    areas: areas.map(toArea),
+  }
+}
+
+export async function createDeliveryArea(input: DeliveryAreaInput): Promise<DeliveryAreaWithCity> {
+  const city = await prisma.city.findUnique({
+    where: { id: input.cityId },
+    select: { id: true },
+  })
+  if (!city) throw new HttpError(400, 'A valid city or LGA is required.')
+
+  try {
+    const created = await prisma.area.create({
+      data: { cityId: input.cityId, name: input.name, isActive: input.isActive },
+      include: areaInclude,
+    })
+    return toAreaWithCity(created)
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new HttpError(409, 'An area with this name already exists in this city or LGA.')
+    }
+    throw error
+  }
+}
+
+export async function updateDeliveryArea(id: string, input: Omit<DeliveryAreaInput, 'cityId'>): Promise<DeliveryAreaWithCity> {
+  try {
+    const updated = await prisma.area.update({
+      where: { id },
+      data: { name: input.name, isActive: input.isActive },
+      include: areaInclude,
+    })
+    return toAreaWithCity(updated)
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new HttpError(409, 'An area with this name already exists in this city or LGA.')
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new HttpError(404, 'Delivery area not found.')
+    }
+    throw error
+  }
+}
+
+export async function updateDeliveryAreaStatus(id: string, isActive: boolean): Promise<DeliveryArea> {
+  try {
+    const area = await prisma.area.update({
+      where: { id },
+      data: { isActive },
+    })
+    return toArea(area)
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new HttpError(404, 'Delivery area not found.')
+    }
+    throw error
+  }
+}
+
+// Deleting an area is safe by construction: historical orders keep their
+// deliveryAreaName snapshot and the informational deliveryAreaId FK is SET NULL,
+// so nothing referencing past orders is lost.
+export async function deleteDeliveryArea(id: string): Promise<void> {
+  try {
+    await prisma.area.delete({ where: { id } })
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new HttpError(404, 'Delivery area not found.')
+    }
+    throw error
+  }
 }

@@ -1061,3 +1061,77 @@ export async function unassignCityFromDeliveryZone(zoneId: string, cityId: strin
   )
   return response.data.zone
 }
+
+export interface AdminDeliveryArea {
+  id: string
+  cityId: string
+  name: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminCityDeliveryAreas {
+  city: { id: string; name: string; state: { id: string; name: string } }
+  areas: AdminDeliveryArea[]
+}
+
+interface AdminCityDeliveryAreasResponse {
+  success: true
+  data: AdminCityDeliveryAreas
+}
+
+interface AdminDeliveryAreaResponse {
+  success: true
+  data: { area: AdminDeliveryArea }
+}
+
+export async function getAdminCityDeliveryAreas(cityId: string): Promise<AdminCityDeliveryAreas> {
+  const response = await request<AdminCityDeliveryAreasResponse>(
+    `/admin/delivery-areas/cities/${encodeURIComponent(cityId)}`,
+  )
+  return response.data
+}
+
+export async function createAdminDeliveryArea(input: {
+  cityId: string
+  name: string
+  isActive: boolean
+}): Promise<AdminDeliveryArea> {
+  const response = await request<AdminDeliveryAreaResponse>('/admin/delivery-areas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.area
+}
+
+export async function updateAdminDeliveryArea(
+  id: string,
+  input: { name: string; isActive: boolean },
+): Promise<AdminDeliveryArea> {
+  const response = await request<AdminDeliveryAreaResponse>(`/admin/delivery-areas/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.area
+}
+
+export async function updateAdminDeliveryAreaStatus(id: string, isActive: boolean): Promise<AdminDeliveryArea> {
+  const response = await request<AdminDeliveryAreaResponse>(
+    `/admin/delivery-areas/${encodeURIComponent(id)}/status`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive }),
+    },
+  )
+  return response.data.area
+}
+
+export async function deleteAdminDeliveryArea(id: string): Promise<void> {
+  await request<{ success: true }>(`/admin/delivery-areas/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}

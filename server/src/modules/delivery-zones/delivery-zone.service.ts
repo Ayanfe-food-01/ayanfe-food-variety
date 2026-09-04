@@ -402,36 +402,63 @@ export async function listPublicDeliveryLocationStates(): Promise<DeliveryLocati
 
 // Resolves the active DeliveryZone serving a city for display purposes, using
 // the authoritative City -> DeliveryZoneCity -> DeliveryZone mapping (Phase 2).
+// A cityId (preferred, unambiguous) is used when provided; otherwise the zone is
+// resolved from the city name, which is case-insensitive and may match LGAs that
+// share a name across states (e.g. Surulere in Lagos and Oyo) — in that case the
+// first mapped match wins, so callers with an LGA id should always pass it.
 // Returns null when the city is unmapped OR the mapped zone is inactive, so
 // callers can indicate delivery is unavailable. The fee/threshold are returned
 // as decimal strings; the client never derives order totals from them — the
 // checkout endpoint recomputes the fee and total authoritatively.
 export async function resolveDeliveryZoneByCity(
   cityName: string,
+  cityId?: string,
 ): Promise<{ id: string; label: string; fee: string; freeDeliveryThreshold: string | null; minDeliveryDays: number | null; maxDeliveryDays: number | null } | null> {
-  const match = await prisma.city.findFirst({
-    where: {
-      name: { equals: cityName, mode: 'insensitive' },
-      deliveryZoneCity: { isNot: null },
-    },
-    select: {
-      deliveryZoneCity: {
+  const match = cityId
+    ? await prisma.city.findUnique({
+        where: { id: cityId },
         select: {
-          deliveryZone: {
+          deliveryZoneCity: {
             select: {
-              id: true,
-              fee: true,
-              freeDeliveryThreshold: true,
-              minDeliveryDays: true,
-              maxDeliveryDays: true,
-              isActive: true,
-              deliveryZoneCities: { select: { city: { select: { name: true } } } },
+              deliveryZone: {
+                select: {
+                  id: true,
+                  fee: true,
+                  freeDeliveryThreshold: true,
+                  minDeliveryDays: true,
+                  maxDeliveryDays: true,
+                  isActive: true,
+                  deliveryZoneCities: { select: { city: { select: { name: true } } } },
+                },
+              },
             },
           },
         },
-      },
-    },
-  })
+      })
+    : await prisma.city.findFirst({
+        where: {
+          name: { equals: cityName, mode: 'insensitive' },
+          deliveryZoneCity: { isNot: null },
+        },
+        select: {
+          deliveryZoneCity: {
+            select: {
+              deliveryZone: {
+                select: {
+                  id: true,
+                  fee: true,
+                  freeDeliveryThreshold: true,
+                  minDeliveryDays: true,
+                  maxDeliveryDays: true,
+                  isActive: true,
+                  deliveryZoneCities: { select: { city: { select: { name: true } } } },
+                },
+              },
+            },
+          },
+        },
+      })
+
   const zone = match?.deliveryZoneCity?.deliveryZone ?? null
   if (!zone || !zone.isActive) return null
   const cityNames = zone.deliveryZoneCities.map((entry) => entry.city.name)

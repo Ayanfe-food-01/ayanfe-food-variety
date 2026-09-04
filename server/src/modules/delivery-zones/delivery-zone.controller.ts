@@ -142,9 +142,12 @@ export const unassignCityFromZoneController: RequestHandler = async (request, re
 }
 export const resolveDeliveryZoneController: RequestHandler = async (request, response) => {
   const city = validateDeliveryCityName(request.query.city)
+  const cityId = typeof request.query.cityId === 'string' && request.query.cityId.trim()
+    ? validateCityId(request.query.cityId)
+    : undefined
   response.json({
     success: true,
-    data: { zone: await resolveDeliveryZoneByCity(city) },
+    data: { zone: await resolveDeliveryZoneByCity(city, cityId) },
   })
 }
 

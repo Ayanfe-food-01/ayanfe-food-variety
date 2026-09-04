@@ -399,8 +399,9 @@ interface ResolveDeliveryZoneResponse {
   data: { zone: ResolvedDeliveryZone | null }
 }
 
-export async function resolveDeliveryZone(city: string): Promise<ResolvedDeliveryZone | null> {
+export async function resolveDeliveryZone(city: string, cityId?: string): Promise<ResolvedDeliveryZone | null> {
   const params = new URLSearchParams({ city })
+  if (cityId) params.set('cityId', cityId)
   const response = await request<ResolveDeliveryZoneResponse>(`/delivery-zones/resolve?${params.toString()}`)
   return response.data.zone
 }

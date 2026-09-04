@@ -192,7 +192,7 @@ export function Checkout() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsZoneResolving(true)
 
-    resolveDeliveryZone(form.city)
+    resolveDeliveryZone(form.city, form.cityId || undefined)
       .then((zone) => {
         if (cancelled) return
         setResolvedZone(zone)
@@ -208,7 +208,7 @@ export function Checkout() {
       })
 
     return () => { cancelled = true }
-  }, [form.fulfillmentMethod, form.city])
+  }, [form.fulfillmentMethod, form.city, form.cityId])
 
   useEffect(() => {
     if (!user) return

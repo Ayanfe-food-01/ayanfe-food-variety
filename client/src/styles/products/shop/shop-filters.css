@@ -36,33 +36,9 @@
   gap: 7px;
   overflow-x: auto;
   padding: 3px 1px 15px;
-  scrollbar-color: transparent transparent;
-  scrollbar-width: thin;
   scrollbar-gutter: stable;
   overscroll-behavior-inline: contain;
   -webkit-overflow-scrolling: touch;
-}
-
-.shop-category-rail.is-scrolling {
-  scrollbar-color: var(--color-sage) transparent;
-}
-
-.shop-category-rail::-webkit-scrollbar {
-  height: 6px;
-}
-
-.shop-category-rail::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.shop-category-rail::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: transparent;
-  transition: background-color .25s ease;
-}
-
-.shop-category-rail.is-scrolling::-webkit-scrollbar-thumb {
-  background: var(--color-sage);
 }
 
 .shop-category-chip,

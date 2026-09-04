@@ -42,7 +42,6 @@
   gap: 10px;
   overflow-x: auto;
   padding: 3px 2px 8px;
-  scrollbar-width: thin;
   scroll-snap-type: x proximity;
 }
 

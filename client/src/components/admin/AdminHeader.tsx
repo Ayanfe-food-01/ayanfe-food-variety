@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDownIcon, MenuIcon, MoonIcon, SearchIcon } from '../../assets/icons'
-import { Link } from 'react-router-dom'
+import { ChevronDownIcon, MenuIcon, MoonIcon } from '../../assets/icons'
+import { Link, useNavigate } from 'react-router-dom'
 import type { AuthenticatedUser } from '../../services/authService'
 import { AdminNotifications } from './AdminNotifications'
+import { SearchBar } from '../ui/SearchBar'
 
 interface AdminHeaderProps {
   isLoggingOut: boolean
@@ -15,6 +16,14 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
   const [isDarkTheme, setIsDarkTheme] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
+  const [searchValue, setSearchValue] = useState('')
+  const navigate = useNavigate()
+
+  const runAdminSearch = (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) return
+    navigate(`/admin/products?search=${encodeURIComponent(trimmed)}`)
+  }
 
   useEffect(() => {
     document.documentElement.classList.toggle('admin-dark', isDarkTheme)
@@ -56,16 +65,15 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
           <MenuIcon size={21} />
         </button>
 
-        <label className="relative hidden min-w-0 flex-1 sm:block sm:max-w-md">
-          <span className="sr-only">Search</span>
-          <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={17} />
-          <input
-            className="h-11 w-full rounded-full border border-transparent bg-sage/45 pl-11 pr-4 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-green/20 focus:bg-white focus:ring-2 focus:ring-green/10"
-            type="search"
-            placeholder="Search..."
-            aria-label="Search"
+        <div className="relative hidden min-w-0 flex-1 sm:block sm:max-w-md">
+          <SearchBar
+            value={searchValue}
+            onChange={setSearchValue}
+            onSearch={runAdminSearch}
+            placeholder="Search products, orders…"
+            ariaLabel="Search"
           />
-        </label>
+        </div>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <button

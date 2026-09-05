@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { ContentTypeBadge } from '../../components/admin/ContentTypeBadge'
 import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
+import { SearchBar } from '../../components/ui/SearchBar'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -113,9 +114,8 @@ export function Testimonials() {
     }
   }, [query, setSearchParams])
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setQuery((current) => ({ ...current, search: searchInput.trim() || undefined, page: 1 }))
+  const updateSearch = (value: string) => {
+    setQuery((current) => ({ ...current, search: value.trim() || undefined, page: 1 }))
   }
 
   const requestStatusChange = (testimonial: AdminTestimonialsPage['testimonials'][number]) => {
@@ -191,12 +191,11 @@ export function Testimonials() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Testimonial filters">
-        <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submitSearch}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 text-xs font-bold text-green-dark">
             Search testimonials
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Author or testimonial" />
+            <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Author or testimonial" />
           </label>
-          <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
             Status
             <SelectField
@@ -223,7 +222,7 @@ export function Testimonials() {
               value={query.featured ?? ''}
             />
           </label>
-        </form>
+        </div>
       </section>
 
       {result?.featured && (

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { ApiError } from '../../services/api'
 import {
   getAdminPayment,
@@ -13,6 +13,7 @@ import {
 import { PaymentReview } from '../../components/admin/PaymentReview'
 import { PaymentTable } from '../../components/admin/PaymentTable'
 import { SelectField } from '../../components/ui/SelectField'
+import { SearchBar } from '../../components/ui/SearchBar'
 import { useToast } from '../../components/ui/Toast'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
@@ -68,9 +69,8 @@ export function Payments() {
 
   useInitialRouteLoad(!isLoading)
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setQuery((current) => ({ ...current, search: searchInput.trim() || undefined, page: 1 }))
+  const updateSearch = (value: string) => {
+    setQuery((current) => ({ ...current, search: value.trim() || undefined, page: 1 }))
   }
 
   const updateFilter = (key: 'status' | 'paymentMethod' | 'sort', value: string) => {
@@ -131,13 +131,12 @@ export function Payments() {
       </section>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Payment filters">
-        <form className="space-y-4" onSubmit={submitSearch}>
+        <div className="space-y-4">
           <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="min-w-0 text-xs font-bold text-green-dark">
               Search payments
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Order, customer, email, or reference" />
+              <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Order, customer, email, or reference" />
             </label>
-            <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark sm:self-end" type="submit">Search</button>
           </div>
           <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <label className="min-w-0 text-xs font-bold text-green-dark">Status
@@ -156,7 +155,7 @@ export function Payments() {
               <SelectField className="mt-2 w-full min-w-0" options={[{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }]} onChange={(value) => updateFilter('sort', value)} value={query.sort ?? 'newest'} />
             </label>
           </div>
-        </form>
+        </div>
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton } from '../../components/admin/ActionMenu'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
+import { SearchBar } from '../../components/ui/SearchBar'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
@@ -516,6 +517,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
 export function DeliveryZones() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { showToast } = useToast()
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
   const [result, setResult] = useState<AdminDeliveryZonesPage | null>(null)
   const [query, setQuery] = useState<AdminDeliveryZonesQuery>({
     page: Number(searchParams.get('page') ?? 1),
@@ -562,11 +564,8 @@ export function DeliveryZones() {
     }
   }, [query, setSearchParams])
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const form = event.currentTarget
-    const input = form.elements.namedItem('search') as HTMLInputElement | null
-    setQuery((current) => ({ ...current, search: input?.value.trim() || undefined, page: 1 }))
+  const updateSearch = (value: string) => {
+    setQuery((current) => ({ ...current, search: value.trim() || undefined, page: 1 }))
   }
 
   const openCreate = () => {
@@ -682,12 +681,11 @@ export function DeliveryZones() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Delivery zone filters">
-        <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submitSearch}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 text-xs font-bold text-green-dark">
             Search zones
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" name="search" defaultValue={query.search ?? ''} placeholder="Search by city, LGA or area" />
+            <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Search by city, LGA or area" />
           </label>
-          <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
             Status
             <SelectField
@@ -701,7 +699,7 @@ export function DeliveryZones() {
               value={query.status ?? ''}
             />
           </label>
-        </form>
+        </div>
       </section>
 
       <p className="mt-5 flex items-center gap-2 text-xs text-muted">

@@ -1,0 +1,32 @@
+.testimonial-rail {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  margin-top: 40px;
+  padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
+  scrollbar-width: none;
+}
+
+.testimonial-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.testimonial-slide {
+  display: flex;
+  flex: 0 0 min(420px, calc(100vw - 48px));
+  min-width: 0;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+@media (max-width: 767px) {
+  .testimonial-rail {
+    gap: 14px;
+  }
+
+  .testimonial-slide {
+    flex-basis: min(320px, calc(100vw - 36px));
+  }
+}

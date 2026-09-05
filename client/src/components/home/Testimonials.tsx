@@ -1,9 +1,14 @@
 import { RevealOnScroll } from '../ui/RevealOnScroll'
 import { useCustomerStories } from '../../hooks/useCustomerStories'
+import { useScrollSnapRail } from '../../hooks/useScrollSnapRail'
 import { CustomerStoryCard } from './CustomerStoryCard'
+import { PromoDots } from './PromoDots'
 
 export function Testimonials() {
   const stories = useCustomerStories()
+  const { trackRef, activeIndex, goTo, interruptAutoAdvance, onScroll } = useScrollSnapRail({
+    itemCount: stories.length,
+  })
 
   if (stories.length === 0) return null
 
@@ -24,11 +29,28 @@ export function Testimonials() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div
+            className="testimonial-rail"
+            ref={trackRef}
+            onKeyDown={interruptAutoAdvance}
+            onPointerDown={interruptAutoAdvance}
+            onScroll={onScroll}
+            onTouchStart={interruptAutoAdvance}
+            onWheel={interruptAutoAdvance}
+          >
             {stories.map((story) => (
-              <CustomerStoryCard key={story.id} story={story} />
+              <div className="testimonial-slide" key={story.id}>
+                <CustomerStoryCard story={story} />
+              </div>
             ))}
           </div>
+
+          <PromoDots
+            count={stories.length}
+            activeIndex={activeIndex}
+            onSelect={(i) => { goTo(i); interruptAutoAdvance() }}
+            ariaLabel="Choose testimonial slide"
+          />
         </div>
       </section>
     </RevealOnScroll>

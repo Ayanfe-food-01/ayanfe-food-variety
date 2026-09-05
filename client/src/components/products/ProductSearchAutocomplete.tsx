@@ -1,34 +1,35 @@
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react'
 import { useProductSearchAutocomplete } from '../../hooks/useProductSearchAutocomplete'
-import { SearchIcon } from '../../assets/icons'
+import { SearchBar } from '../ui/SearchBar'
 import type { Product } from '../../types/product'
 
 interface ProductSearchAutocompleteProps {
   value: string
   onChange: (value: string) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onSearch: (query: string) => void
   onSelectProduct: (product: Product) => void
   placeholder: string
   ariaLabel: string
+  liveSearch?: boolean
+  inputRef?: Ref<HTMLInputElement>
   inputId?: string
   className?: string
-  showSubmitButton?: boolean
 }
 
 export function ProductSearchAutocomplete({
   value,
   onChange,
-  onSubmit,
+  onSearch,
   onSelectProduct,
   placeholder,
   ariaLabel,
+  liveSearch = true,
+  inputRef,
   inputId,
   className = '',
-  showSubmitButton = false,
 }: ProductSearchAutocompleteProps) {
   const listboxId = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const [isFocused, setIsFocused] = useState(false)
@@ -52,6 +53,7 @@ export function ProductSearchAutocomplete({
     onChange(product.name)
     setIsOpen(false)
     setActiveIndex(-1)
+    setIsFocused(false)
     onSelectProduct(product)
   }
 
@@ -87,45 +89,36 @@ export function ProductSearchAutocomplete({
     }
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    setIsOpen(false)
-    setActiveIndex(-1)
-    setIsFocused(false)
-    inputRef.current?.blur()
-    onSubmit(event)
-  }
-
   return (
     <div className={`product-search-autocomplete ${className}`} ref={wrapperRef}>
-      <form className="search-form" onSubmit={handleSubmit} role="search">
-        <SearchIcon size={19} />
-        <input
-          id={inputId}
-          ref={inputRef}
-          value={value}
-          onChange={(event) => handleChange(event.target.value)}
-          onFocus={() => {
+      <SearchBar
+        value={value}
+        onChange={handleChange}
+        onSearch={onSearch}
+        liveSearch={liveSearch}
+        placeholder={placeholder}
+        ariaLabel={ariaLabel}
+        inputId={inputId}
+        inputRef={inputRef}
+        clearable
+        inputProps={{
+          role: 'combobox',
+          'aria-autocomplete': 'list',
+          'aria-controls': isOpen ? listboxId : undefined,
+          'aria-expanded': isOpen,
+          'aria-activedescendant': activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined,
+          onFocus: () => {
             setIsFocused(true)
-            if (canShowSuggestions) {
-              setIsOpen(true)
-            }
-          }}
-          onBlur={() => {
+            if (canShowSuggestions) setIsOpen(true)
+          },
+          onBlur: () => {
             setIsFocused(false)
             setIsOpen(false)
             setActiveIndex(-1)
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          aria-label={ariaLabel}
-          aria-autocomplete="list"
-          aria-controls={isOpen ? listboxId : undefined}
-          aria-expanded={isOpen}
-          aria-activedescendant={activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
-          role="combobox"
-        />
-        {showSubmitButton && <button type="submit">Search</button>}
-      </form>
+          },
+          onKeyDown: handleKeyDown,
+        }}
+      />
       {isOpen && canShowSuggestions && (
         <div className="product-search-dropdown" id={listboxId} role="listbox" aria-label="Product suggestions">
           {isLoading ? (

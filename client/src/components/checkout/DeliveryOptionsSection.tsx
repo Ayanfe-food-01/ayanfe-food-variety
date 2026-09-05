@@ -163,7 +163,11 @@ export function DeliveryOptionsSection({
   }, [isDelivery, locations, locationsError, locationsLoading])
 
   const selectedState = locations?.find((state) => state.id === form.state)
-  const selectedCityId = selectedState?.cities.find((city) => city.name === form.city)?.id ?? ''
+  const selectedCityId = form.cityId || selectedState?.cities.find((city) => city.name === form.city)?.id || ''
+  const selectedCity = selectedState?.cities.find((city) => city.id === selectedCityId) ?? null
+  const cityAreas = selectedCity?.areas ?? []
+  const inservableStateIds = (locations ?? []).filter((state) => !state.servable).map((state) => state.id)
+  const inservableCityIds = (selectedState?.cities ?? []).filter((city) => !city.servable).map((city) => city.id)
 
   return (
     <section className={checkoutSectionClassName}>
@@ -240,16 +244,18 @@ export function DeliveryOptionsSection({
                   </button>
                 </div>
               ) : (
+                <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm font-bold text-green-dark">
                     State <span className="text-orange" aria-hidden="true">*</span>
                     <SelectField
                       className="mt-2 w-full"
-                      options={[
+options={[
                         { value: '', label: 'Select your state' },
                         ...(locations ?? []).map((state) => ({ value: state.id, label: state.name })),
                       ]}
-                      onChange={(value) => { onChange('state', value); if (value) onChange('city', '') }}
+                      disabledOptions={inservableStateIds}
+                      onChange={(value) => { onChange('state', value); if (value) { onChange('city', ''); onChange('cityId', ''); onChange('area', ''); onChange('areaId', '') } }}
                       value={form.state}
                       aria-invalid={Boolean(errors.state)}
                       aria-describedby={errors.state ? 'state-error' : undefined}
@@ -263,9 +269,13 @@ export function DeliveryOptionsSection({
                         { value: '', label: 'Select your city' },
                         ...(selectedState?.cities ?? []).map((city) => ({ value: city.id, label: city.name })),
                       ]}
+                      disabledOptions={inservableCityIds}
                       onChange={(value) => {
                         const city = selectedState?.cities.find((item) => item.id === value)
                         onChange('city', city?.name ?? '')
+                        onChange('cityId', value)
+                        onChange('area', '')
+                        onChange('areaId', '')
                       }}
                       value={selectedCityId}
                       disabled={!form.state}
@@ -274,6 +284,35 @@ export function DeliveryOptionsSection({
                     />
                   </label>
                 </div>
+                {cityAreas.length > 0 && (
+                  <div className="mt-3 sm:mt-0">
+                    <label className="block text-sm font-bold text-green-dark">
+                      Area <span className="font-normal text-muted">(optional)</span>
+                      <SelectField
+                        className="mt-2 w-full"
+                        options={[
+                          { value: '', label: 'Select your area (optional)' },
+                          ...cityAreas.map((area) => ({
+                            value: area.id,
+                            label: area.servable ? area.name : `${area.name} (delivery unavailable)`,
+                          })),
+                        ]}
+                        disabledOptions={cityAreas.filter((area) => !area.servable).map((area) => area.id)}
+                        onChange={(value) => {
+                          const area = cityAreas.find((item) => item.id === value)
+                          onChange('area', area?.name ?? '')
+                          onChange('areaId', area ? value : '')
+                        }}
+                        value={form.areaId}
+                        aria-invalid={Boolean(errors.areaId)}
+                        aria-describedby={errors.areaId ? 'areaId-error' : undefined}
+                      />
+                    </label>
+                    <p className="mt-1 text-xs text-muted">Optional — narrows the delivery zone if your street is managed as an area.</p>
+                    <CheckoutFieldError id="areaId" message={errors.areaId} />
+                  </div>
+                )}
+              </>
               )}
               {locationsError ? null : (
                 <div className="mt-0">

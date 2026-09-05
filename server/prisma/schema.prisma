@@ -230,6 +230,7 @@ model DeliveryZone {
   updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   orders               Order[]
   deliveryZoneCities   DeliveryZoneCity[]
+  deliveryZoneAreas    DeliveryZoneArea[]
 
   @@index([isActive, sortOrder], map: "delivery_zones_active_order_idx")
   @@index([sortOrder], map: "delivery_zones_sort_order_idx")
@@ -285,11 +286,30 @@ model DeliveryZoneCity {
   @@map("delivery_zone_cities")
 }
 
+// Maps an area to the delivery zone that covers exactly that area, letting a
+// zone cover a specific neighbourhood within an LGA while the rest of the LGA
+// stays with its LGA-wide zone (so fees can differ within one LGA). An area
+// belongs to at most one zone; an area without a mapping inherits its city's
+// zone, which keeps LGAs without defined areas behaving exactly as before.
+model DeliveryZoneArea {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryZoneId String   @map("delivery_zone_id") @db.Uuid
+  areaId         String   @unique @map("area_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  deliveryZone DeliveryZone @relation(fields: [deliveryZoneId], references: [id], onDelete: Cascade)
+  area         Area         @relation(fields: [areaId], references: [id], onDelete: Restrict)
+
+  @@index([deliveryZoneId], map: "delivery_zone_areas_zone_id_idx")
+  @@map("delivery_zone_areas")
+}
+
 // An optional neighbourhood/town within an LGA/City, used to refine a customer's
 // delivery location at checkout. An area belongs to exactly one city and inherits
-// that city's delivery zone; it never carries its own fee or zone link. Areas are
-// admin-managed reference data; inactivated areas stop being selectable at
-// checkout but historical orders keep their recorded name snapshot.
+// that city's delivery zone unless it is explicitly assigned its own zone via
+// DeliveryZoneArea. Areas are admin-managed reference data; inactivated areas
+// stop being selectable at checkout but historical orders keep their recorded
+// name snapshot.
 model Area {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   cityId    String   @map("city_id") @db.Uuid
@@ -300,6 +320,7 @@ model Area {
 
   city   City    @relation(fields: [cityId], references: [id], onDelete: Restrict)
   orders Order[]
+  deliveryZoneArea DeliveryZoneArea?
 
   @@unique([cityId, name], map: "areas_city_name_key")
   @@index([cityId, isActive], map: "areas_city_active_idx")

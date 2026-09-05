@@ -65,6 +65,12 @@ interface CityTag {
   name: string
 }
 
+interface AreaTag {
+  id: string
+  name: string
+  cityName: string
+}
+
 interface ZoneModalProps {
   mode: 'create' | 'edit'
   zone: AdminDeliveryZone | null
@@ -81,9 +87,12 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
   const [maxDeliveryDays, setMaxDeliveryDays] = useState(zone?.maxDeliveryDays?.toString() ?? '')
   const [isActive, setIsActive] = useState(zone?.isActive ?? true)
   const [cities, setCities] = useState<CityTag[]>([])
+  const [areas, setAreas] = useState<AreaTag[]>([])
   const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
   const [selectedStateId, setSelectedStateId] = useState('')
   const [selectedCityId, setSelectedCityId] = useState('')
+  const [coverageMode, setCoverageMode] = useState<'whole' | 'areas'>('whole')
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -108,7 +117,10 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
         setStates(loadedStates)
         if (mode === 'edit' && zone) {
           const detail = await getAdminDeliveryZone(zone.id)
-          if (current) setCities(detail.cities.map((city) => ({ id: city.id, name: city.name })))
+          if (current) {
+            setCities(detail.cities.map((city) => ({ id: city.id, name: city.name })))
+            setAreas(detail.areas.map((area) => ({ id: area.id, name: area.name, cityName: area.cityName })))
+          }
         }
       } catch (caught: unknown) {
         if (current) setFormError(caught instanceof ApiError ? caught.message : 'Delivery locations could not be loaded.')
@@ -121,9 +133,11 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
   }, [mode, zone])
 
   const selectedState = states?.find((state) => state.id === selectedStateId)
-  const coveredIds = new Set(cities.map((city) => city.id))
+  const selectedCity = (selectedState?.cities ?? []).find((city) => city.id === selectedCityId)
+  const coveredCityIds = new Set(cities.map((city) => city.id))
+  const coveredAreaIds = new Set(areas.map((area) => area.id))
   const cityOptions = (selectedState?.cities ?? [])
-    .filter((city) => !coveredIds.has(city.id))
+    .filter((city) => !coveredCityIds.has(city.id))
     .map((city) => ({
       value: city.id,
       label: city.assignedZoneLabel
@@ -131,9 +145,25 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
         : city.name,
       hasOwner: Boolean(city.assignedZoneLabel),
     }))
-  const disabledCityIds = cityOptions
-    .filter((c) => c.hasOwner)
-    .map((c) => c.value)
+
+  const cityAreas = selectedCity?.adminAreas ?? []
+  const areaOptions = cityAreas
+    .filter((area) => !coveredAreaIds.has(area.id))
+    .map((area) => {
+      const reasons: string[] = []
+      if (!area.isActive) reasons.push('inactive')
+      if (area.assignedZoneId) reasons.push(`assigned to ${area.assignedZoneLabel}`)
+      return {
+        value: area.id,
+        name: area.name,
+        label: reasons.length > 0 ? `${area.name} (${reasons.join(', ')})` : area.name,
+        disabled: Boolean(area.assignedZoneId) || !area.isActive,
+      }
+    })
+
+  const toggleArea = (areaId: string) => {
+    setSelectedAreaIds((current) => (current.includes(areaId) ? current.filter((id) => id !== areaId) : [...current, areaId]))
+  }
 
   const addCity = () => {
     if (!selectedCityId) return
@@ -146,12 +176,46 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
     const state = selectedState
     const cityName = state?.cities.find((c) => c.id === city.value)?.name
     setCities((current) => [...current, { id: city.value, name: cityName ?? city.label }])
-    setSelectedCityId('')
+  }
+
+  const addAreas = () => {
+    if (!selectedCity) return
+    if (selectedAreaIds.length === 0) {
+      setFormError(`Select at least one area in ${selectedCity.name}, or add the whole LGA instead.`)
+      return
+    }
+    const invalid = selectedAreaIds.find((areaId) => {
+      const area = areaOptions.find((option) => option.value === areaId)
+      return !area || area.disabled
+    })
+    if (invalid) {
+      setFormError('One or more selected areas are no longer available. Re-check the list and try again.')
+      return
+    }
+    setAreas((current) => [
+      ...current,
+      ...selectedAreaIds.map((areaId) => {
+        const name = areaOptions.find((option) => option.value === areaId)?.name ?? ''
+        return { id: areaId, name, cityName: selectedCity.name }
+      }),
+    ])
+  }
+
+  const addPlace = () => {
     setFormError(null)
+    if (coverageMode === 'areas') addAreas()
+    else addCity()
+    setSelectedAreaIds([])
+    setSelectedCityId('')
+    setCoverageMode('whole')
   }
 
   const removeCity = (cityId: string) => {
     setCities((current) => current.filter((city) => city.id !== cityId))
+  }
+
+  const removeArea = (areaId: string) => {
+    setAreas((current) => current.filter((area) => area.id !== areaId))
   }
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -195,8 +259,8 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
       setFormError('Minimum delivery days must not be greater than maximum delivery days.')
       return
     }
-    if (cities.length === 0) {
-      setFormError('Add at least one city to this delivery zone.')
+    if (cities.length === 0 && areas.length === 0) {
+      setFormError('Add at least one city or area to this delivery zone.')
       return
     }
     onSave({
@@ -206,6 +270,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
       maxDeliveryDays: maxDays,
       isActive,
       cityIds: cities.map((city) => city.id),
+      areaIds: areas.map((area) => area.id),
     })
   }
 
@@ -215,7 +280,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
         <div className="shrink-0 border-b border-line px-7 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">{mode === 'create' ? 'New delivery zone' : 'Edit delivery zone'}</p>
           <h2 id="delivery-zone-form-title" className="mt-1.5 text-xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
-          <p className="mt-1.5 text-xs leading-5 text-muted">Covers a set of LGAs; the fee and estimated delivery time apply to deliveries to these cities.</p>
+          <p className="mt-1.5 text-xs leading-5 text-muted">Cover whole LGAs and/or specific areas within them (per LGA it's either the whole LGA or its areas, never both); the fee and estimated delivery time apply to deliveries to every place in this zone.</p>
         </div>
         <div className="y-scrollbar min-h-0 flex-1 overflow-y-auto">
         <form onSubmit={submit}>
@@ -225,9 +290,9 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
             ) : (
               <div className="space-y-6">
                 <section aria-label="Delivery area">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Delivery area — cities this zone covers ({cities.length})</h3>
-                  {cities.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted">No cities added yet. Customers in unassigned cities will see a "delivery unavailable" message at checkout.</p>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Delivery area — places this zone covers ({cities.length + areas.length})</h3>
+                  {cities.length === 0 && areas.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted">No places added yet. Customers in unassigned cities or areas will see a "delivery unavailable" message at checkout.</p>
                   ) : (
                     <ul className="mt-3 flex flex-wrap gap-2">
                       {cities.map((city) => (
@@ -243,11 +308,24 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                           </button>
                         </li>
                       ))}
+                      {areas.map((area) => (
+                        <li className="inline-flex items-center gap-2 rounded-full border border-orange/25 bg-orange/5 py-1.5 pl-3 pr-1.5" key={area.id}>
+                          <span className="text-sm font-bold text-green-dark">{area.name}, <span className="font-medium text-muted">{area.cityName}</span></span>
+                          <button
+                            aria-label={`Remove ${area.name} in ${area.cityName}`}
+                            className="grid size-6 place-items-center rounded-full bg-white text-muted transition hover:bg-orange hover:text-white"
+                            type="button"
+                            onClick={() => removeArea(area.id)}
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
                     </ul>
                   )}
 
                   <div className="mt-4 rounded-2xl border border-line bg-cream/45 p-4">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add a city</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add places</h3>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <label className="block text-xs font-bold text-green-dark">
                         State
@@ -257,7 +335,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                             { value: '', label: 'Select a state' },
                             ...(states ?? []).map((state) => ({ value: state.id, label: state.name })),
                           ]}
-                          onChange={(value) => { setSelectedStateId(value); setSelectedCityId('') }}
+                          onChange={(value) => { setSelectedStateId(value); setSelectedCityId(''); setSelectedAreaIds([]); setCoverageMode('whole') }}
                           value={selectedStateId}
                         />
                       </label>
@@ -266,9 +344,8 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                         <SelectField
                           className="mt-2 w-full"
                           options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
-                          onChange={setSelectedCityId}
+                          onChange={(value) => { setSelectedCityId(value); setSelectedAreaIds([]); setCoverageMode('whole') }}
                           value={selectedCityId}
-                          disabledOptions={disabledCityIds}
                           searchable
                           placeholder="Type to search or select a city"
                         />
@@ -277,14 +354,72 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                     {selectedStateId && !selectedCityId && cityOptions.length === 0 && (
                       <p className="mt-3 text-sm text-muted">No cities found in this state.</p>
                     )}
+                    {selectedCity && (
+                      <fieldset className="mt-4">
+                        <legend className="text-xs font-bold text-green-dark">
+                          Coverage in {selectedCity.name}
+                        </legend>
+                        <div className="mt-2 space-y-2">
+                          <label className="flex items-center gap-2.5 text-sm font-semibold text-green-dark">
+                            <input
+                              type="radio"
+                              name="coverage-mode"
+                              className="size-4 rounded border-line"
+                              checked={coverageMode === 'whole'}
+                              onChange={() => setCoverageMode('whole')}
+                            />
+                            Entire {selectedCity.name} LGA
+                          </label>
+                          <label className="flex items-center gap-2.5 text-sm font-semibold text-green-dark">
+                            <input
+                              type="radio"
+                              name="coverage-mode"
+                              className="size-4 rounded border-line"
+                              checked={coverageMode === 'areas'}
+                              onChange={() => { setCoverageMode('areas'); setSelectedAreaIds([]) }}
+                            />
+                            Specific areas
+                          </label>
+                        </div>
+                        {coverageMode === 'areas' && (
+                          cityAreas.length > 0 ? (
+                            <>
+                              <ul className="mt-3 flex flex-wrap gap-2">
+                                {areaOptions.map((area) => (
+                                  <li key={area.value}>
+                                    <label className={`inline-flex items-start gap-2 rounded-xl border px-3 py-2 text-sm font-semibold ${area.disabled ? 'cursor-not-allowed border-line text-muted' : 'cursor-pointer border-line bg-white text-green-dark hover:border-green'}`}>
+                                      <input
+                                        type="checkbox"
+                                        className="mt-0.5 size-4 rounded border-line"
+                                        checked={selectedAreaIds.includes(area.value)}
+                                        disabled={area.disabled}
+                                        onChange={() => toggleArea(area.value)}
+                                      />
+                                      {area.label}
+                                    </label>
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="mt-2 text-xs leading-5 text-muted">
+                                Checking one or more areas adds them as this zone's coverage — the rest of {selectedCity.name} is served by the LGA's own zone. Unavailable areas are greyed out.
+                              </p>
+                            </>
+                          ) : (
+                            <p className="mt-2 text-xs leading-5 text-muted">No areas are defined for {selectedCity.name}, so this place can only be added in full.</p>
+                          )
+                        )}
+                      </fieldset>
+                    )}
                     <div className="mt-4 flex justify-end">
                       <button
                         className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-40"
                         type="button"
                         disabled={!selectedCityId || isBusy}
-                        onClick={addCity}
+                        onClick={addPlace}
                       >
-                        Add city
+                        {coverageMode === 'areas'
+                          ? (selectedAreaIds.length === 1 ? 'Add 1 area' : `Add ${selectedAreaIds.length} areas`)
+                          : selectedCity ? `Add ${selectedCity.name}` : 'Add city'}
                       </button>
                     </div>
                   </div>
@@ -511,7 +646,7 @@ export function DeliveryZones() {
         <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submitSearch}>
           <label className="flex-1 text-xs font-bold text-green-dark">
             Search zones
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" name="search" defaultValue={query.search ?? ''} placeholder="Search by city or LGA" />
+            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" name="search" defaultValue={query.search ?? ''} placeholder="Search by city, LGA or area" />
           </label>
           <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
@@ -583,7 +718,7 @@ export function DeliveryZones() {
                 <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
                   <tr>
                     <th className="px-5 py-4 font-bold">Order</th>
-                    <th className="px-5 py-4 font-bold">Zone (cities)</th>
+                    <th className="px-5 py-4 font-bold">Zone (places)</th>
                     <th className="px-5 py-4 font-bold">Delivery fee</th>
                     <th className="px-5 py-4 font-bold">Free delivery threshold</th>
                     <th className="px-5 py-4 font-bold">Delivery time</th>

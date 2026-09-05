@@ -14,11 +14,14 @@ export interface CreatedOrder {
   email: string | null
   deliveryAddress: string
   city: string
+  state: string | null
   note: string | null
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
   deliveryZoneId: string | null
+  deliveryAreaName: string | null
+  deliveryAreaId: string | null
   deliveryMinDays: number | null
   deliveryMaxDays: number | null
   total: string
@@ -74,6 +77,7 @@ export interface GuestOrder {
   orderType: OrderType
   deliveryAddress: string
   city: string
+  state: string | null
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
@@ -137,7 +141,12 @@ export async function checkoutCustomerCart(input: {
   email: string
   fulfillmentMethod: FulfillmentMethod
   deliveryAddress?: string
+  // Legacy name-based fallback used when ids are not available; the server
+  // prefers the ids when present.
   city?: string
+  stateId?: string
+  cityId?: string
+  areaId?: string
   deliveryInstructions?: string
   paymentMethod: PaymentMethod
 }): Promise<CreatedOrder> {
@@ -205,11 +214,14 @@ export interface AdminOrder {
   email: string | null
   deliveryAddress: string
   city: string
+  state: string | null
   note: string | null
   subtotal: string
   deliveryFee: string
   deliveryZoneName: string | null
   deliveryZoneId: string | null
+  deliveryAreaName: string | null
+  deliveryAreaId: string | null
   deliveryMinDays: number | null
   deliveryMaxDays: number | null
   total: string
@@ -348,7 +360,17 @@ export async function deleteAdminOrder(orderNumber: string): Promise<void> {
 export interface DeliveryLocationState {
   id: string
   name: string
-  cities: Array<{ id: string; name: string }>
+  // True when at least one city in the state is servable.
+  servable: boolean
+  cities: Array<{
+    id: string
+    name: string
+    // True when the city is mapped to an active delivery zone OR any of its
+    // active areas is itself deliverable.
+    servable: boolean
+    // Optional active areas offered at checkout. Absent when the city has none.
+    areas?: Array<{ id: string; name: string; servable: boolean }>
+  }>
 }
 
 interface DeliveryLocationStatesResponse {
@@ -378,8 +400,10 @@ interface ResolveDeliveryZoneResponse {
   data: { zone: ResolvedDeliveryZone | null }
 }
 
-export async function resolveDeliveryZone(city: string): Promise<ResolvedDeliveryZone | null> {
+export async function resolveDeliveryZone(city: string, cityId?: string, areaId?: string): Promise<ResolvedDeliveryZone | null> {
   const params = new URLSearchParams({ city })
+  if (cityId) params.set('cityId', cityId)
+  if (areaId) params.set('areaId', areaId)
   const response = await request<ResolveDeliveryZoneResponse>(`/delivery-zones/resolve?${params.toString()}`)
   return response.data.zone
 }

@@ -6,8 +6,13 @@ export interface CheckoutFormData {
   email: string
   fulfillmentMethod: FulfillmentMethod | ''
   state: string
-  address: string
+  // cityId/areaId are captured for the authoritative server resolution; city
+  // and area are the display names (and legacy fallback for older clients).
+  cityId: string
   city: string
+  areaId: string
+  area: string
+  address: string
   deliveryInstructions: string
   paymentMethod: PaymentMethod
 }

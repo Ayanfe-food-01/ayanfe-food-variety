@@ -259,7 +259,7 @@ export function CustomerOrderDetails() {
               ) : (
                 <>
                   <h2 className="mt-2 text-2xl font-bold text-green-dark">Delivery</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted">{order.deliveryAddress}, {order.city}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted">{order.deliveryAddress}, {order.deliveryAreaName ? `${order.deliveryAreaName}, ` : ''}{order.city}{order.state ? `, ${order.state}` : ''}</p>
                 </>
               )}
             </div>
@@ -303,6 +303,9 @@ export function CustomerOrderDetails() {
                 <div className="flex justify-between text-muted"><span>Subtotal</span><strong className="text-green-dark">{formatPrice(order.subtotal)}</strong></div>
                 {order.fulfillmentMethod === 'DELIVERY' && order.deliveryZoneName && (
                   <div className="flex justify-between text-muted"><span>Delivery zone</span><strong className="text-green-dark">{order.deliveryZoneName}</strong></div>
+                )}
+                {order.fulfillmentMethod === 'DELIVERY' && order.deliveryAreaName && (
+                  <div className="flex justify-between text-muted"><span>Delivery area</span><strong className="text-green-dark">{order.deliveryAreaName}</strong></div>
                 )}
                 {order.fulfillmentMethod === 'DELIVERY' && order.deliveryMinDays && order.deliveryMaxDays && (
                   <div className="flex justify-between text-muted"><span>Estimated delivery</span><strong className="text-green-dark">{order.deliveryMinDays === order.deliveryMaxDays ? `${order.deliveryMinDays} business day${order.deliveryMinDays === 1 ? '' : 's'}` : `${order.deliveryMinDays}–${order.deliveryMaxDays} business days`}</strong></div>

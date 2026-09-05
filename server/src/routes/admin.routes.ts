@@ -93,10 +93,12 @@ import {
   deleteAdminDeliveryAreaController,
   deleteAdminDeliveryZoneController,
   getAdminDeliveryZoneController,
+  listAdminDeliveryLocationStatesController,
   listAdminDeliveryZonesController,
   listCityDeliveryAreasController,
-  listDeliveryLocationStatesController,
   reorderAdminDeliveryZonesController,
+  assignAreaToZoneController,
+  unassignAreaFromZoneController,
   unassignCityFromZoneController,
   updateAdminDeliveryAreaController,
   updateAdminDeliveryAreaStatusController,
@@ -178,9 +180,11 @@ adminRoutes.delete('/delivery-zones/:id', deleteAdminDeliveryZoneController)
 adminRoutes.get('/delivery-zones/:id/cities', getAdminDeliveryZoneController)
 adminRoutes.post('/delivery-zones/:id/cities', assignCityToZoneController)
 adminRoutes.delete('/delivery-zones/:id/cities/:cityId', unassignCityFromZoneController)
+adminRoutes.post('/delivery-zones/:id/areas', assignAreaToZoneController)
+adminRoutes.delete('/delivery-zones/:id/areas/:areaId', unassignAreaFromZoneController)
 adminRoutes.get('/delivery-areas/cities/:cityId', listCityDeliveryAreasController)
 adminRoutes.post('/delivery-areas', createAdminDeliveryAreaController)
 adminRoutes.patch('/delivery-areas/:id/status', updateAdminDeliveryAreaStatusController)
 adminRoutes.patch('/delivery-areas/:id', updateAdminDeliveryAreaController)
 adminRoutes.delete('/delivery-areas/:id', deleteAdminDeliveryAreaController)
-adminRoutes.get('/delivery-locations/states', listDeliveryLocationStatesController)
+adminRoutes.get('/delivery-locations/states', listAdminDeliveryLocationStatesController)

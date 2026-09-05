@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express'
 import {
+  assignAreaToZone,
   assignCityToZone,
   createDeliveryArea,
   createDeliveryZone,
@@ -9,9 +10,11 @@ import {
   listActiveDeliveryZones,
   listAdminDeliveryZones,
   listCityDeliveryAreas,
-  listDeliveryLocationStates,
+  listAdminDeliveryLocationStates,
+  listPublicDeliveryLocationStates,
   reorderDeliveryZones,
   resolveDeliveryZoneByCity,
+  unassignAreaFromZone,
   unassignCityFromZone,
   updateDeliveryArea,
   updateDeliveryAreaStatus,
@@ -100,10 +103,17 @@ export const reorderAdminDeliveryZonesController: RequestHandler = async (reques
   })
 }
 
-export const listDeliveryLocationStatesController: RequestHandler = async (_request, response) => {
+export const listAdminDeliveryLocationStatesController: RequestHandler = async (_request, response) => {
   response.json({
     success: true,
-    data: { states: await listDeliveryLocationStates() },
+    data: { states: await listAdminDeliveryLocationStates() },
+  })
+}
+
+export const listPublicDeliveryLocationStatesController: RequestHandler = async (_request, response) => {
+  response.json({
+    success: true,
+    data: { states: await listPublicDeliveryLocationStates() },
   })
 }
 
@@ -132,11 +142,44 @@ export const unassignCityFromZoneController: RequestHandler = async (request, re
     },
   })
 }
-export const resolveDeliveryZoneController: RequestHandler = async (request, response) => {
-  const city = validateDeliveryCityName(request.query.city)
+
+export const assignAreaToZoneController: RequestHandler = async (request, response) => {
   response.json({
     success: true,
-    data: { zone: await resolveDeliveryZoneByCity(city) },
+    message: 'Area assigned to delivery zone.',
+    data: {
+      zone: await assignAreaToZone(
+        validateDeliveryZoneId(request.params.id),
+        validateDeliveryAreaId(request.body.areaId),
+      ),
+    },
+  })
+}
+
+export const unassignAreaFromZoneController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'Area removed from delivery zone.',
+    data: {
+      zone: await unassignAreaFromZone(
+        validateDeliveryZoneId(request.params.id),
+        validateDeliveryAreaId(request.params.areaId),
+      ),
+    },
+  })
+}
+
+export const resolveDeliveryZoneController: RequestHandler = async (request, response) => {
+  const city = validateDeliveryCityName(request.query.city)
+  const cityId = typeof request.query.cityId === 'string' && request.query.cityId.trim()
+    ? validateCityId(request.query.cityId)
+    : undefined
+  const areaId = typeof request.query.areaId === 'string' && request.query.areaId.trim()
+    ? validateDeliveryAreaId(request.query.areaId)
+    : undefined
+  response.json({
+    success: true,
+    data: { zone: await resolveDeliveryZoneByCity(city, cityId, areaId) },
   })
 }
 

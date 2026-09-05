@@ -1,4 +1,4 @@
-import type { CheckoutFormData, CheckoutFormErrors, CheckoutStep } from './types'
+import type { CheckoutFormData, CheckoutFormErrors } from './types'
 import { isValidE164PhoneNumber } from '../../utils/phone'
 
 export const initialCheckoutForm: CheckoutFormData = {
@@ -16,8 +16,9 @@ export const initialCheckoutForm: CheckoutFormData = {
   paymentMethod: 'BANK_TRANSFER',
 }
 
-function validateContactStep(form: CheckoutFormData): CheckoutFormErrors {
+export function validateCheckoutForm(form: CheckoutFormData): CheckoutFormErrors {
   const errors: CheckoutFormErrors = {}
+
   if (!form.fullName.trim()) errors.fullName = 'Please enter your full name.'
   if (!form.phone.trim()) {
     errors.phone = 'Please enter your phone number.'
@@ -29,11 +30,6 @@ function validateContactStep(form: CheckoutFormData): CheckoutFormErrors {
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
     errors.email = 'Please enter a valid email address.'
   }
-  return errors
-}
-
-function validateDeliveryStep(form: CheckoutFormData): CheckoutFormErrors {
-  const errors: CheckoutFormErrors = {}
   if (!form.fulfillmentMethod) errors.fulfillmentMethod = 'Please choose pickup or delivery.'
   if (form.fulfillmentMethod === 'DELIVERY') {
     if (!form.address.trim()) errors.address = 'Please enter your delivery address.'
@@ -43,26 +39,6 @@ function validateDeliveryStep(form: CheckoutFormData): CheckoutFormErrors {
   // The area is optional, but it must always belong to the selected city. This
   // is enforced by construction in the picker (cleared on state/city change).
   if (form.areaId && !form.cityId) errors.areaId = 'Please select your city before choosing an area.'
+
   return errors
-}
-
-function validatePaymentStep(form: CheckoutFormData): CheckoutFormErrors {
-  const errors: CheckoutFormErrors = {}
-  if (!form.paymentMethod) errors.paymentMethod = 'Please choose a payment method.'
-  return errors
-}
-
-export function validateStep(step: CheckoutStep, form: CheckoutFormData): CheckoutFormErrors {
-  if (step === 'contact') return validateContactStep(form)
-  if (step === 'delivery') return validateDeliveryStep(form)
-  if (step === 'payment') return validatePaymentStep(form)
-  return {}
-}
-
-export function validateCheckoutForm(form: CheckoutFormData): CheckoutFormErrors {
-  return {
-    ...validateContactStep(form),
-    ...validateDeliveryStep(form),
-    ...validatePaymentStep(form),
-  }
 }

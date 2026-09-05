@@ -1,13 +1,29 @@
 import type { PaymentSettings } from '../../services/storeSettingsService'
 import type { PaymentMethod } from '../../services/orderService'
+import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from './types'
+import { PhoneInputField } from '../ui/PhoneInput'
 import {
   checkoutDescriptionClassName,
+  checkoutFieldGridClassName,
   checkoutFieldsetClassName,
+  checkoutInputClassName,
   checkoutLegendClassName,
   checkoutSectionClassName,
 } from './checkoutStyles'
 
-interface PaymentStepProps {
+interface FieldErrorProps {
+  id: CheckoutField
+  message?: string
+}
+
+interface FieldSectionProps {
+  form: CheckoutFormData
+  errors: CheckoutFormErrors
+  isAuthenticated: boolean
+  onChange: (field: CheckoutField, value: string) => void
+}
+
+interface PaymentMethodSectionProps {
   methods: PaymentSettings[]
   selectedMethod: PaymentMethod
   selectedSettings: PaymentSettings | null
@@ -16,21 +32,109 @@ interface PaymentStepProps {
   onChange: (method: PaymentMethod) => void
 }
 
-export function PaymentStep({
+function CheckoutSectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <>
+      <legend className={checkoutLegendClassName}>{title}</legend>
+      <p className={checkoutDescriptionClassName}>{description}</p>
+    </>
+  )
+}
+
+export function CheckoutFieldError({ id, message }: FieldErrorProps) {
+  return message ? (
+    <p className="mt-1.5 text-xs font-medium text-orange" id={`${id}-error`} role="alert">
+      {message}
+    </p>
+  ) : null
+}
+
+export function ContactDetailsSection({ form, errors, isAuthenticated, onChange }: FieldSectionProps) {
+  return (
+    <fieldset className={checkoutFieldsetClassName}>
+      <CheckoutSectionHeader
+        title="Contact details"
+        description="We’ll use these details to confirm your order and contact you when it is ready."
+      />
+
+      <div className={checkoutFieldGridClassName}>
+        <div className="sm:col-span-2">
+          <label className="text-sm font-bold text-green-dark" htmlFor="fullName">
+            Full name <span className="text-orange" aria-hidden="true">*</span>
+          </label>
+          <input
+            className={checkoutInputClassName(Boolean(errors.fullName))}
+            id="fullName"
+            name="fullName"
+            type="text"
+            autoComplete="name"
+            value={form.fullName}
+            onChange={(event) => onChange('fullName', event.target.value)}
+            aria-invalid={Boolean(errors.fullName)}
+            aria-describedby={errors.fullName ? 'fullName-error' : undefined}
+            required
+          />
+          <CheckoutFieldError id="fullName" message={errors.fullName} />
+        </div>
+
+        <div>
+          <label className="text-sm font-bold text-green-dark" htmlFor="phone">
+            Phone number <span className="text-orange" aria-hidden="true">*</span>
+          </label>
+          <PhoneInputField
+            className="mt-2"
+            id="phone"
+            name="phone"
+            value={form.phone}
+            hasError={Boolean(errors.phone)}
+            onChange={(value) => onChange('phone', value)}
+            aria-describedby={errors.phone ? 'phone-error' : undefined}
+          />
+          <CheckoutFieldError id="phone" message={errors.phone} />
+        </div>
+
+        <div>
+          <label className="text-sm font-bold text-green-dark" htmlFor="email">
+            Email address <span className="text-orange" aria-hidden="true">*</span>
+          </label>
+          <input
+            className={checkoutInputClassName(Boolean(errors.email))}
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            readOnly={isAuthenticated}
+            value={form.email}
+            onChange={(event) => onChange('email', event.target.value)}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? 'email-error' : 'email-help'}
+            required
+          />
+          <CheckoutFieldError id="email" message={errors.email} />
+          <p className="mt-2 text-xs text-muted" id="email-help">
+            {isAuthenticated ? 'This is the email on your customer account.' : 'We’ll use this email to confirm your guest order.'}
+          </p>
+        </div>
+      </div>
+    </fieldset>
+  )
+}
+
+export function PaymentMethodSection({
   methods,
   selectedMethod,
   selectedSettings,
   isLoading,
   error,
   onChange,
-}: PaymentStepProps) {
+}: PaymentMethodSectionProps) {
   return (
     <section className={checkoutSectionClassName}>
       <fieldset className={checkoutFieldsetClassName}>
-        <legend className={checkoutLegendClassName}>Payment method</legend>
-        <p className={checkoutDescriptionClassName}>
-          Choose how you will pay. Your payment will remain pending until the store confirms it.
-        </p>
+        <CheckoutSectionHeader
+          title="Payment method"
+          description="Choose how you will pay. Your payment will remain pending until the store confirms it."
+        />
 
         {isLoading ? (
           <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-5 text-sm text-muted">

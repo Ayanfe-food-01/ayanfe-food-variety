@@ -18,7 +18,8 @@ export function buildZoneLabel(entries: string[]): string {
 
 // A zone's covered cities and areas as raw Prisma shapes. An area entry is
 // shown as "Area, City" (e.g. "Guess, Agege") so it is clear at a glance which
-// zones cover a whole LGA and which cover only part of one.
+// zones cover a whole LGA and which cover only part of one. Areas belonging to
+// the same city are grouped so the LGA appears once ("Ketu, Mile 12, Kosofe").
 export interface ZoneCoverage {
   deliveryZoneCities?: Array<{ city: { name: string } }>
   deliveryZoneAreas?: Array<{ area: { name: string; city: { name: string } } }>
@@ -27,9 +28,15 @@ export interface ZoneCoverage {
 // Derives the deterministic label for a zone from its full coverage (whole
 // cities plus any area-specific entries).
 export function zoneCoverageLabel(zone: ZoneCoverage): string {
-  const entries = [
-    ...(zone.deliveryZoneCities ?? []).map((entry) => entry.city.name),
-    ...(zone.deliveryZoneAreas ?? []).map((entry) => `${entry.area.name}, ${entry.area.city.name}`),
-  ]
-  return buildZoneLabel(entries)
+  const cityEntries = (zone.deliveryZoneCities ?? []).map((entry) => entry.city.name)
+  const areasByCity = new Map<string, string[]>()
+  for (const entry of zone.deliveryZoneAreas ?? []) {
+    const names = areasByCity.get(entry.area.city.name) ?? []
+    names.push(entry.area.name)
+    areasByCity.set(entry.area.city.name, names)
+  }
+  const areaEntries = [...areasByCity.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([city, names]) => `${names.sort((a, b) => a.localeCompare(b)).join(', ')}, ${city}`)
+  return buildZoneLabel([...cityEntries, ...areaEntries])
 }

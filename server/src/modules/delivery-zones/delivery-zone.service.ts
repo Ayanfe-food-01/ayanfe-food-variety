@@ -197,12 +197,35 @@ async function assertAreasUnassigned(areaIds: string[], excludeZoneId?: string):
   }
 }
 
+// Enforces the "one bin per LGA" rule within a single zone: a zone may cover an
+// LGA in full (cityIds) OR specific areas of that LGA (areaIds), never both at
+// once. The object is to keep the models clean and unambiguous — a whole LGA
+// and a specific area of it belong to different zones, never the same one. The
+// database also enforces this via a trigger (SQLSTATE 23505 -> P2002) as an
+// integrity backstop for any client path; this check runs first to return a
+// friendly message.
+async function assertNoCoverageOverlap(cityIds: string[], areaIds: string[]): Promise<void> {
+  if (cityIds.length === 0 || areaIds.length === 0) return
+  const conflicting = await prisma.area.findMany({
+    where: { id: { in: areaIds }, cityId: { in: cityIds } },
+    select: { city: { select: { name: true } } },
+  })
+  if (conflicting.length > 0) {
+    const lga = conflicting[0]?.city.name ?? 'This LGA'
+    throw new HttpError(
+      409,
+      `"${lga}" cannot be covered both in full and by specific areas in the same delivery zone. Add either the whole LGA or its specific areas.`,
+    )
+  }
+}
+
 export async function createDeliveryZone(input: DeliveryZoneInput): Promise<DeliveryZone> {
   const cityIds = [...new Set(input.cityIds)]
   const areaIds = [...new Set(input.areaIds)]
   if (cityIds.length === 0 && areaIds.length === 0) {
     throw new HttpError(400, 'Add at least one city or area to this delivery zone.')
   }
+  await assertNoCoverageOverlap(cityIds, areaIds)
   await assertCitiesUnassigned(cityIds)
   await assertAreasUnassigned(areaIds)
 
@@ -248,6 +271,7 @@ export async function updateDeliveryZone(id: string, input: DeliveryZoneInput): 
   if (cityIds.length === 0 && areaIds.length === 0) {
     throw new HttpError(400, 'Add at least one city or area to this delivery zone.')
   }
+  await assertNoCoverageOverlap(cityIds, areaIds)
   await assertCitiesUnassigned(cityIds, id)
   await assertAreasUnassigned(areaIds, id)
 
@@ -614,6 +638,19 @@ export async function assignCityToZone(zoneId: string, cityId: string): Promise<
     throw new HttpError(409, 'This city is already assigned to another delivery zone.')
   }
 
+  // One-bin-per-LGA: a city already covered at area level in this zone cannot
+  // also be added whole.
+  const areaOfCity = await prisma.deliveryZoneArea.findFirst({
+    where: { deliveryZoneId: zoneId, area: { cityId } },
+    select: { area: { select: { name: true, city: { select: { name: true } } } } },
+  })
+  if (areaOfCity) {
+    throw new HttpError(
+      409,
+      `"${areaOfCity.area.city.name}" is already covered through the area "${areaOfCity.area.name}" in this zone. A delivery zone covers either a whole LGA or its specific areas, not both.`,
+    )
+  }
+
   try {
     await prisma.deliveryZoneCity.create({
       data: { deliveryZoneId: zoneId, cityId },
@@ -655,7 +692,7 @@ export async function unassignCityFromZone(zoneId: string, cityId: string): Prom
 }
 
 export async function assignAreaToZone(zoneId: string, areaId: string): Promise<DeliveryZoneDetail> {
-  await getAdminDeliveryZone(zoneId)
+  const detail = await getAdminDeliveryZone(zoneId)
 
   const alreadyAssigned = await prisma.deliveryZoneArea.findUnique({
     where: { areaId },
@@ -666,6 +703,21 @@ export async function assignAreaToZone(zoneId: string, areaId: string): Promise<
       throw new HttpError(409, 'This area is already assigned to this delivery zone.')
     }
     throw new HttpError(409, 'This area is already assigned to another delivery zone.')
+  }
+
+  // One-bin-per-LGA: an area cannot be added to a zone that already covers its
+  // LGA in full.
+  const area = await prisma.area.findUnique({
+    where: { id: areaId },
+    select: { cityId: true, city: { select: { name: true } } },
+  })
+  if (!area) throw new HttpError(404, 'Delivery area not found.')
+  const coveredWhole = detail.cities.some((city) => city.id === area.cityId)
+  if (coveredWhole) {
+    throw new HttpError(
+      409,
+      `"${area.city.name}" is already covered in full by this zone. A delivery zone covers either a whole LGA or its specific areas, not both.`,
+    )
   }
 
   try {

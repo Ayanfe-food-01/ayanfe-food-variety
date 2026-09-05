@@ -91,7 +91,8 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
   const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
   const [selectedStateId, setSelectedStateId] = useState('')
   const [selectedCityId, setSelectedCityId] = useState('')
-  const [selectedAreaId, setSelectedAreaId] = useState('')
+  const [coverageMode, setCoverageMode] = useState<'whole' | 'areas'>('whole')
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -144,9 +145,6 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
         : city.name,
       hasOwner: Boolean(city.assignedZoneLabel),
     }))
-  const disabledCityIds = cityOptions
-    .filter((c) => c.hasOwner)
-    .map((c) => c.value)
 
   const cityAreas = selectedCity?.adminAreas ?? []
   const areaOptions = cityAreas
@@ -157,13 +155,15 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
       if (area.assignedZoneId) reasons.push(`assigned to ${area.assignedZoneLabel}`)
       return {
         value: area.id,
+        name: area.name,
         label: reasons.length > 0 ? `${area.name} (${reasons.join(', ')})` : area.name,
-        hasOwner: Boolean(area.assignedZoneId) || !area.isActive,
+        disabled: Boolean(area.assignedZoneId) || !area.isActive,
       }
     })
-  const disabledAreaIds = areaOptions
-    .filter((a) => a.hasOwner)
-    .map((a) => a.value)
+
+  const toggleArea = (areaId: string) => {
+    setSelectedAreaIds((current) => (current.includes(areaId) ? current.filter((id) => id !== areaId) : [...current, areaId]))
+  }
 
   const addCity = () => {
     if (!selectedCityId) return
@@ -176,29 +176,38 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
     const state = selectedState
     const cityName = state?.cities.find((c) => c.id === city.value)?.name
     setCities((current) => [...current, { id: city.value, name: cityName ?? city.label }])
-    setSelectedCityId('')
-    setSelectedAreaId('')
-    setFormError(null)
   }
 
-  const addArea = () => {
-    if (!selectedAreaId || !selectedCity) return
-    const area = areaOptions.find((a) => a.value === selectedAreaId)
-    if (!area) return
-    if (area.hasOwner) {
-      setFormError(area.label)
+  const addAreas = () => {
+    if (!selectedCity) return
+    if (selectedAreaIds.length === 0) {
+      setFormError(`Select at least one area in ${selectedCity.name}, or add the whole LGA instead.`)
       return
     }
-    const areaName = selectedCity.adminAreas.find((a) => a.id === area.value)?.name ?? ''
-    setAreas((current) => [...current, { id: area.value, name: areaName, cityName: selectedCity.name }])
-    setSelectedAreaId('')
-    setSelectedCityId('')
-    setFormError(null)
+    const invalid = selectedAreaIds.find((areaId) => {
+      const area = areaOptions.find((option) => option.value === areaId)
+      return !area || area.disabled
+    })
+    if (invalid) {
+      setFormError('One or more selected areas are no longer available. Re-check the list and try again.')
+      return
+    }
+    setAreas((current) => [
+      ...current,
+      ...selectedAreaIds.map((areaId) => {
+        const name = areaOptions.find((option) => option.value === areaId)?.name ?? ''
+        return { id: areaId, name, cityName: selectedCity.name }
+      }),
+    ])
   }
 
   const addPlace = () => {
-    if (selectedAreaId) addArea()
+    setFormError(null)
+    if (coverageMode === 'areas') addAreas()
     else addCity()
+    setSelectedAreaIds([])
+    setSelectedCityId('')
+    setCoverageMode('whole')
   }
 
   const removeCity = (cityId: string) => {
@@ -271,7 +280,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
         <div className="shrink-0 border-b border-line px-7 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">{mode === 'create' ? 'New delivery zone' : 'Edit delivery zone'}</p>
           <h2 id="delivery-zone-form-title" className="mt-1.5 text-xl font-bold tracking-[-0.04em] text-green-dark">{mode === 'create' ? 'Add a delivery zone' : 'Update delivery zone'}</h2>
-          <p className="mt-1.5 text-xs leading-5 text-muted">Covers whole LGAs and, optionally, specific areas within them; the fee and estimated delivery time apply to deliveries to the places in this zone.</p>
+          <p className="mt-1.5 text-xs leading-5 text-muted">Cover whole LGAs and/or specific areas within them (per LGA it's either the whole LGA or its areas, never both); the fee and estimated delivery time apply to deliveries to every place in this zone.</p>
         </div>
         <div className="y-scrollbar min-h-0 flex-1 overflow-y-auto">
         <form onSubmit={submit}>
@@ -316,7 +325,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                   )}
 
                   <div className="mt-4 rounded-2xl border border-line bg-cream/45 p-4">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add a city</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add places</h3>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <label className="block text-xs font-bold text-green-dark">
                         State
@@ -326,7 +335,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                             { value: '', label: 'Select a state' },
                             ...(states ?? []).map((state) => ({ value: state.id, label: state.name })),
                           ]}
-                          onChange={(value) => { setSelectedStateId(value); setSelectedCityId(''); setSelectedAreaId('') }}
+                          onChange={(value) => { setSelectedStateId(value); setSelectedCityId(''); setSelectedAreaIds([]); setCoverageMode('whole') }}
                           value={selectedStateId}
                         />
                       </label>
@@ -335,9 +344,8 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                         <SelectField
                           className="mt-2 w-full"
                           options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
-                          onChange={(value) => { setSelectedCityId(value); setSelectedAreaId('') }}
+                          onChange={(value) => { setSelectedCityId(value); setSelectedAreaIds([]); setCoverageMode('whole') }}
                           value={selectedCityId}
-                          disabledOptions={disabledCityIds}
                           searchable
                           placeholder="Type to search or select a city"
                         />
@@ -346,23 +354,61 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                     {selectedStateId && !selectedCityId && cityOptions.length === 0 && (
                       <p className="mt-3 text-sm text-muted">No cities found in this state.</p>
                     )}
-                    {selectedCity && cityAreas.length > 0 && (
-                      <label className="mt-4 block text-xs font-bold text-green-dark">
-                        Area <span className="font-normal text-muted">(optional)</span>
-                        <SelectField
-                          className="mt-2 w-full"
-                          options={[
-                            { value: '', label: `Any area in ${selectedCity.name}` },
-                            ...areaOptions,
-                          ]}
-                          onChange={setSelectedAreaId}
-                          value={selectedAreaId}
-                          disabledOptions={disabledAreaIds}
-                        />
-                        <span className="mt-1.5 block text-xs font-normal leading-5 text-muted">
-                          Choose a specific area to price just that area differently, or leave "Any area in {selectedCity.name}" to cover the whole LGA as before.
-                        </span>
-                      </label>
+                    {selectedCity && (
+                      <fieldset className="mt-4">
+                        <legend className="text-xs font-bold text-green-dark">
+                          Coverage in {selectedCity.name}
+                        </legend>
+                        <div className="mt-2 space-y-2">
+                          <label className="flex items-center gap-2.5 text-sm font-semibold text-green-dark">
+                            <input
+                              type="radio"
+                              name="coverage-mode"
+                              className="size-4 rounded border-line"
+                              checked={coverageMode === 'whole'}
+                              onChange={() => setCoverageMode('whole')}
+                            />
+                            Entire {selectedCity.name} LGA
+                          </label>
+                          <label className="flex items-center gap-2.5 text-sm font-semibold text-green-dark">
+                            <input
+                              type="radio"
+                              name="coverage-mode"
+                              className="size-4 rounded border-line"
+                              checked={coverageMode === 'areas'}
+                              onChange={() => { setCoverageMode('areas'); setSelectedAreaIds([]) }}
+                            />
+                            Specific areas
+                          </label>
+                        </div>
+                        {coverageMode === 'areas' && (
+                          cityAreas.length > 0 ? (
+                            <>
+                              <ul className="mt-3 flex flex-wrap gap-2">
+                                {areaOptions.map((area) => (
+                                  <li key={area.value}>
+                                    <label className={`inline-flex items-start gap-2 rounded-xl border px-3 py-2 text-sm font-semibold ${area.disabled ? 'cursor-not-allowed border-line text-muted' : 'cursor-pointer border-line bg-white text-green-dark hover:border-green'}`}>
+                                      <input
+                                        type="checkbox"
+                                        className="mt-0.5 size-4 rounded border-line"
+                                        checked={selectedAreaIds.includes(area.value)}
+                                        disabled={area.disabled}
+                                        onChange={() => toggleArea(area.value)}
+                                      />
+                                      {area.label}
+                                    </label>
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="mt-2 text-xs leading-5 text-muted">
+                                Checking one or more areas adds them as this zone's coverage — the rest of {selectedCity.name} is served by the LGA's own zone. Unavailable areas are greyed out.
+                              </p>
+                            </>
+                          ) : (
+                            <p className="mt-2 text-xs leading-5 text-muted">No areas are defined for {selectedCity.name}, so this place can only be added in full.</p>
+                          )
+                        )}
+                      </fieldset>
                     )}
                     <div className="mt-4 flex justify-end">
                       <button
@@ -371,7 +417,9 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                         disabled={!selectedCityId || isBusy}
                         onClick={addPlace}
                       >
-                        {selectedAreaId ? 'Add area' : 'Add city'}
+                        {coverageMode === 'areas'
+                          ? (selectedAreaIds.length === 1 ? 'Add 1 area' : `Add ${selectedAreaIds.length} areas`)
+                          : selectedCity ? `Add ${selectedCity.name}` : 'Add city'}
                       </button>
                     </div>
                   </div>

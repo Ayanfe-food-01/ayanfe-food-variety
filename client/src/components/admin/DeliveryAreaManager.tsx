@@ -3,6 +3,7 @@ import { useToast } from '../ui/Toast'
 import { SelectField } from '../ui/SelectField'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
+import { ActionMenu, ActionMenuButton } from './ActionMenu'
 import { ApiError } from '../../services/api'
 import {
   createAdminDeliveryArea,
@@ -282,7 +283,6 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                           {filteredAreas.map((area) => {
                             const isEditing = editingId === area.id
                             const isSaving = savingId === area.id
-                            const isToggling = statusId === area.id
                             return (
                               <li className="flex flex-col gap-3 rounded-2xl border border-line bg-cream/45 p-3.5 sm:flex-row sm:items-center sm:justify-between" key={area.id}>
                                 <div className="min-w-0">
@@ -318,11 +318,15 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                                       <button className="rounded-lg border border-line bg-white px-3.5 py-2 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setEditingId(null)} disabled={isSaving}>Cancel</button>
                                     </>
                                   ) : (
-                                    <>
-                                      <button className="rounded-lg border border-line bg-white px-3.5 py-2 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50" type="button" onClick={() => void toggleStatus(area)} disabled={isBusy}>{isToggling ? 'Updating…' : area.isActive ? 'Deactivate' : 'Activate'}</button>
-                                      <button className="rounded-lg border border-line bg-white px-3.5 py-2 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => startEdit(area)} disabled={isBusy}>Rename</button>
-                                      <button className="rounded-lg border border-orange/25 bg-white px-3.5 py-2 text-sm font-bold text-orange hover:bg-orange/5 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => requestDelete(area)} disabled={isBusy}>Delete</button>
-                                    </>
+                                    <ActionMenu ariaLabel={`Actions for ${area.name}`} isBusy={isBusy} fixedPosition>
+                                      {(close) => (
+                                        <>
+                                          <ActionMenuButton tone="accent" onClick={() => { close(); void toggleStatus(area) }}>{area.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
+                                          <ActionMenuButton onClick={() => { close(); startEdit(area) }}>Rename</ActionMenuButton>
+                                          <ActionMenuButton tone="danger" onClick={() => { close(); requestDelete(area) }}>Delete</ActionMenuButton>
+                                        </>
+                                      )}
+                                    </ActionMenu>
                                   )}
                                 </div>
                               </li>

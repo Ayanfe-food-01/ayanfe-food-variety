@@ -166,8 +166,6 @@ export function DeliveryOptionsSection({
   const selectedCityId = form.cityId || selectedState?.cities.find((city) => city.name === form.city)?.id || ''
   const selectedCity = selectedState?.cities.find((city) => city.id === selectedCityId) ?? null
   const cityAreas = selectedCity?.areas ?? []
-  const inservableStateIds = (locations ?? []).filter((state) => !state.servable).map((state) => state.id)
-  const inservableCityIds = (selectedState?.cities ?? []).filter((city) => !city.servable).map((city) => city.id)
 
   return (
     <section className={checkoutSectionClassName}>
@@ -254,7 +252,6 @@ options={[
                         { value: '', label: 'Select your state' },
                         ...(locations ?? []).map((state) => ({ value: state.id, label: state.name })),
                       ]}
-                      disabledOptions={inservableStateIds}
                       onChange={(value) => { onChange('state', value); if (value) { onChange('city', ''); onChange('cityId', ''); onChange('area', ''); onChange('areaId', '') } }}
                       value={form.state}
                       aria-invalid={Boolean(errors.state)}
@@ -267,9 +264,11 @@ options={[
                       className="mt-2 w-full"
                       options={[
                         { value: '', label: 'Select your city' },
-                        ...(selectedState?.cities ?? []).map((city) => ({ value: city.id, label: city.name })),
+                        ...(selectedState?.cities ?? []).map((city) => ({
+                          value: city.id,
+                          label: city.servable ? city.name : `${city.name} — delivery unavailable`,
+                        })),
                       ]}
-                      disabledOptions={inservableCityIds}
                       onChange={(value) => {
                         const city = selectedState?.cities.find((item) => item.id === value)
                         onChange('city', city?.name ?? '')

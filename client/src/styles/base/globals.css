@@ -13,6 +13,7 @@
 
 @layer base {
   :root {
+    --container-max-width: 1160px;
     font-family: var(--font-sans);
     color: var(--color-ink);
     background: var(--color-cream);
@@ -125,7 +126,7 @@
 @layer utilities {
   .container {
     width: calc(100% - 48px);
-    max-width: 1160px;
+    max-width: var(--container-max-width);
     @apply mx-auto;
   }
 }

@@ -15,9 +15,9 @@
   display: flex;
   gap: 20px;
   overflow-x: auto;
-  padding-inline: max(24px, calc((100vw - 1160px) / 2));
+  padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: max(24px, calc((100vw - 1160px) / 2));
+  scroll-padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
   scrollbar-width: none;
   background: transparent;
 }
@@ -28,10 +28,11 @@
 
 .promo-banner-card {
   position: relative;
-  flex: 0 0 660px;
+  flex: 0 0 min(var(--container-max-width), calc(100vw - 48px));
   min-width: 0;
-  width: 660px;
-  height: 330px;
+  width: min(var(--container-max-width), calc(100vw - 48px));
+  aspect-ratio: 2 / 1;
+  height: auto;
   overflow: hidden;
   border-radius: 20px;
   box-shadow: 0 0 4px rgb(20 33 22 / 15%);
@@ -176,16 +177,7 @@
   }
 }
 
-/* ─── Laptop (1024px - 1599px) ─── */
-@media (min-width: 1024px) and (max-width: 1599px) {
-  .promo-banner-card {
-    flex: 0 0 660px;
-    width: 660px;
-    height: 330px;
-  }
-}
-
-/* ─── Extra-large (>=2560px): fade slideshow ─── */
+/* ─── Desktop & laptop (>=1024px): fade slideshow ─── */
 .promo-fade-wrap {
   display: flex;
   flex-direction: column;
@@ -196,7 +188,7 @@
 
 .promo-fade-track {
   position: relative;
-  width: min(1160px, calc(100vw - 48px));
+  width: min(var(--container-max-width), calc(100vw - 48px));
   max-width: 100%;
   aspect-ratio: 2 / 1;
   height: auto;
@@ -237,7 +229,6 @@
   border-radius: 999px;
   background: rgb(255 255 255 / 80%);
   backdrop-filter: blur(4px);
-  padding-top: 8px;
   z-index: 3;
 }
 

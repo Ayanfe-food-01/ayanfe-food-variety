@@ -192,11 +192,11 @@ export function Checkout() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsZoneResolving(true)
 
-    resolveDeliveryZone(form.city, form.cityId || undefined)
+    resolveDeliveryZone(form.city, form.cityId || undefined, form.areaId || undefined)
       .then((zone) => {
         if (cancelled) return
         setResolvedZone(zone)
-        setZoneError(zone ? null : 'No delivery zone covers your selected city.')
+        setZoneError(zone ? null : 'No delivery zone covers your selected location.')
       })
       .catch(() => {
         if (cancelled) return
@@ -208,7 +208,7 @@ export function Checkout() {
       })
 
     return () => { cancelled = true }
-  }, [form.fulfillmentMethod, form.city, form.cityId])
+  }, [form.fulfillmentMethod, form.city, form.cityId, form.areaId])
 
   useEffect(() => {
     if (!user) return

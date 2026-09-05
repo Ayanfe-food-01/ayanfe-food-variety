@@ -127,7 +127,10 @@ export function validateDeliveryZoneInput(body: unknown): DeliveryZoneInput {
     throw new HttpError(400, 'Minimum delivery days must not be greater than maximum delivery days.')
   }
   const cityIds = validateCityIds(body.cityIds)
-  if (cityIds.length === 0) throw new HttpError(400, 'Add at least one city to this delivery zone.')
+  const areaIds = validateAreaIds(body.areaIds)
+  if (cityIds.length === 0 && areaIds.length === 0) {
+    throw new HttpError(400, 'Add at least one city or area to this delivery zone.')
+  }
   return {
     fee: feeValue,
     freeDeliveryThreshold: freeDeliveryThreshold === 0 ? null : freeDeliveryThreshold,
@@ -135,6 +138,7 @@ export function validateDeliveryZoneInput(body: unknown): DeliveryZoneInput {
     maxDeliveryDays,
     isActive: booleanValue(body.isActive, 'Delivery zone status', true),
     cityIds,
+    areaIds,
   }
 }
 
@@ -144,6 +148,24 @@ function validateCityIds(value: unknown): string[] {
   const validated: string[] = []
   for (const item of value) {
     const id = validateCityId(item)
+    if (!seen.has(id)) {
+      seen.add(id)
+      validated.push(id)
+    }
+  }
+  return validated
+}
+
+// Area IDs are optional on the zone input (a zone may cover whole LGAs only);
+// a missing field is treated as an empty list for backward compatibility. When
+// present the value must be an array of valid area UUIDs.
+function validateAreaIds(value: unknown): string[] {
+  if (value === undefined || value === null) return []
+  if (!Array.isArray(value)) throw new HttpError(400, 'Areas must be a list.')
+  const seen = new Set<string>()
+  const validated: string[] = []
+  for (const item of value) {
+    const id = validateDeliveryAreaId(item)
     if (!seen.has(id)) {
       seen.add(id)
       validated.push(id)

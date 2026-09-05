@@ -912,8 +912,26 @@ export interface AdminDeliveryZoneAssignedCity {
   state: { id: string; name: string }
 }
 
+export interface AdminDeliveryZoneAssignedArea {
+  id: string
+  name: string
+  cityId: string
+  cityName: string
+  state: { id: string; name: string }
+}
+
 export interface AdminDeliveryZoneDetail extends AdminDeliveryZone {
   cities: AdminDeliveryZoneAssignedCity[]
+  areas: AdminDeliveryZoneAssignedArea[]
+}
+
+export interface AdminDeliveryLocationArea {
+  id: string
+  name: string
+  isActive: boolean
+  servable: boolean
+  assignedZoneId: string | null
+  assignedZoneLabel: string | null
 }
 
 export interface AdminDeliveryLocationState {
@@ -924,6 +942,9 @@ export interface AdminDeliveryLocationState {
     name: string
     assignedZoneId: string | null
     assignedZoneLabel: string | null
+    // All areas defined for the city (active and inactive) with their zone
+    // assignment, used by the delivery-zone picker modal.
+    adminAreas: AdminDeliveryLocationArea[]
   }>
 }
 
@@ -951,6 +972,7 @@ export interface DeliveryZoneInput {
   maxDeliveryDays: number | null
   isActive: boolean
   cityIds: string[]
+  areaIds: string[]
 }
 
 interface AdminDeliveryZonesResponse {

@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express'
 import {
+  assignAreaToZone,
   assignCityToZone,
   createDeliveryArea,
   createDeliveryZone,
@@ -13,6 +14,7 @@ import {
   listPublicDeliveryLocationStates,
   reorderDeliveryZones,
   resolveDeliveryZoneByCity,
+  unassignAreaFromZone,
   unassignCityFromZone,
   updateDeliveryArea,
   updateDeliveryAreaStatus,
@@ -140,14 +142,44 @@ export const unassignCityFromZoneController: RequestHandler = async (request, re
     },
   })
 }
+
+export const assignAreaToZoneController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'Area assigned to delivery zone.',
+    data: {
+      zone: await assignAreaToZone(
+        validateDeliveryZoneId(request.params.id),
+        validateDeliveryAreaId(request.body.areaId),
+      ),
+    },
+  })
+}
+
+export const unassignAreaFromZoneController: RequestHandler = async (request, response) => {
+  response.json({
+    success: true,
+    message: 'Area removed from delivery zone.',
+    data: {
+      zone: await unassignAreaFromZone(
+        validateDeliveryZoneId(request.params.id),
+        validateDeliveryAreaId(request.params.areaId),
+      ),
+    },
+  })
+}
+
 export const resolveDeliveryZoneController: RequestHandler = async (request, response) => {
   const city = validateDeliveryCityName(request.query.city)
   const cityId = typeof request.query.cityId === 'string' && request.query.cityId.trim()
     ? validateCityId(request.query.cityId)
     : undefined
+  const areaId = typeof request.query.areaId === 'string' && request.query.areaId.trim()
+    ? validateDeliveryAreaId(request.query.areaId)
+    : undefined
   response.json({
     success: true,
-    data: { zone: await resolveDeliveryZoneByCity(city, cityId) },
+    data: { zone: await resolveDeliveryZoneByCity(city, cityId, areaId) },
   })
 }
 

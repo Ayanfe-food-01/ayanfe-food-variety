@@ -292,8 +292,12 @@ options={[
                         className="mt-2 w-full"
                         options={[
                           { value: '', label: 'Select your area (optional)' },
-                          ...cityAreas.map((area) => ({ value: area.id, label: area.name })),
+                          ...cityAreas.map((area) => ({
+                            value: area.id,
+                            label: area.servable ? area.name : `${area.name} (delivery unavailable)`,
+                          })),
                         ]}
+                        disabledOptions={cityAreas.filter((area) => !area.servable).map((area) => area.id)}
                         onChange={(value) => {
                           const area = cityAreas.find((item) => item.id === value)
                           onChange('area', area?.name ?? '')

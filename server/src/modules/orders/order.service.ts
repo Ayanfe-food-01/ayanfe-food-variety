@@ -16,7 +16,7 @@ import { calculateDiscountedPrice } from '../products/product.pricing.js'
 import { assertWholesaleOrderable, wholesaleUnitPriceFromOption } from '../products/wholesale.pricing.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
 import { isOnlinePaymentEnabled } from '../payments/payment.provider.js'
-import { buildZoneLabel } from '../delivery-zones/delivery-zone-label.js'
+import { zoneCoverageLabel } from '../delivery-zones/delivery-zone-label.js'
 
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: {
@@ -226,6 +226,7 @@ const ZONE_SELECT = {
   maxDeliveryDays: true,
   isActive: true,
   deliveryZoneCities: { select: { city: { select: { name: true } } } },
+  deliveryZoneAreas: { select: { area: { select: { name: true, city: { select: { name: true } } } } } },
 } satisfies Prisma.DeliveryZoneSelect
 
 type CheckoutZone = {
@@ -246,11 +247,12 @@ const toCheckoutZone = (zone: {
   maxDeliveryDays: number | null
   isActive: boolean
   deliveryZoneCities: Array<{ city: { name: string } }>
+  deliveryZoneAreas: Array<{ area: { name: string; city: { name: string } } }>
 } | null): CheckoutZone | null => {
   if (!zone) return null
   return {
     ...zone,
-    label: buildZoneLabel(zone.deliveryZoneCities.map((entry) => entry.city.name)),
+    label: zoneCoverageLabel(zone),
   }
 }
 
@@ -262,9 +264,30 @@ const resolveZoneForCityId = async (tx: Prisma.TransactionClient, cityId: string
   return toCheckoutZone(match?.deliveryZoneCity?.deliveryZone ?? null)
 }
 
+// Resolves the zone for an area when the customer picked a specific area. An
+// area that is explicitly assigned to a zone uses that zone (so areas inside
+// one LGA can be priced differently); an unassigned area inherits its city's
+// zone, keeping the pre-area behaviour for LGAs without defined areas.
+const resolveZoneForAreaId = async (tx: Prisma.TransactionClient, cityId: string, areaId: string): Promise<CheckoutZone | null> => {
+  // The area was already validated (active, matching its city) by the caller,
+  // so this lookup only needs its zone mapping and the city-level fallback.
+  const match = await tx.area.findUnique({
+    where: { id: areaId },
+    select: {
+      deliveryZoneArea: { select: { deliveryZone: { select: ZONE_SELECT } } },
+      city: { select: { deliveryZoneCity: { select: { deliveryZone: { select: ZONE_SELECT } } } } },
+    },
+  })
+  if (!match || !match.deliveryZoneArea) {
+    return resolveZoneForCityId(tx, cityId)
+  }
+  return toCheckoutZone(match.deliveryZoneArea.deliveryZone)
+}
+
 // Resolves the authoritative delivery zone and location for a checkout delivery
 // request. Preference order:
-//   1. areaId - the active area whose LGA's zone applies (area inherits the fee).
+//   1. areaId - the active area whose zone applies: its own zone when the area
+//      is explicitly assigned one, otherwise its LGA's zone.
 //   2. cityId - exact city lookup (preferred by the new checkout flow).
 //   3. cityName - legacy name-based lookup; a name that matches no City row keeps
 //      the name for the order snapshot and resolves no zone.
@@ -354,7 +377,9 @@ export const resolveCheckoutDelivery = async (
     }
   }
 
-  const zone = cityIdToUse ? await resolveZoneForCityId(tx, cityIdToUse) : null
+  const zone = cityIdToUse
+    ? (area ? await resolveZoneForAreaId(tx, cityIdToUse, area.id) : await resolveZoneForCityId(tx, cityIdToUse))
+    : null
   return { zone, area, cityName: cityNameToUse, stateName: stateNameToUse }
 }
 
@@ -603,12 +628,13 @@ export async function checkoutCustomerCart(userId: string | null, input: Checkou
             maxDeliveryDays: true,
             isActive: true,
             deliveryZoneCities: { select: { city: { select: { name: true } } } },
+            deliveryZoneAreas: { select: { area: { select: { name: true, city: { select: { name: true } } } } } },
           },
         })
         zone = fallback
           ? {
               ...fallback,
-              label: buildZoneLabel(fallback.deliveryZoneCities.map((entry) => entry.city.name)),
+              label: zoneCoverageLabel(fallback),
             }
           : null
       }

@@ -365,10 +365,11 @@ export interface DeliveryLocationState {
   cities: Array<{
     id: string
     name: string
-    // True only when the city is mapped to an active delivery zone.
+    // True when the city is mapped to an active delivery zone OR any of its
+    // active areas is itself deliverable.
     servable: boolean
     // Optional active areas offered at checkout. Absent when the city has none.
-    areas?: Array<{ id: string; name: string }>
+    areas?: Array<{ id: string; name: string; servable: boolean }>
   }>
 }
 
@@ -399,9 +400,10 @@ interface ResolveDeliveryZoneResponse {
   data: { zone: ResolvedDeliveryZone | null }
 }
 
-export async function resolveDeliveryZone(city: string, cityId?: string): Promise<ResolvedDeliveryZone | null> {
+export async function resolveDeliveryZone(city: string, cityId?: string, areaId?: string): Promise<ResolvedDeliveryZone | null> {
   const params = new URLSearchParams({ city })
   if (cityId) params.set('cityId', cityId)
+  if (areaId) params.set('areaId', areaId)
   const response = await request<ResolveDeliveryZoneResponse>(`/delivery-zones/resolve?${params.toString()}`)
   return response.data.zone
 }

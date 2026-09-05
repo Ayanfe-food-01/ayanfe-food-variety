@@ -34,10 +34,10 @@
   height: 330px;
   overflow: hidden;
   border-radius: 20px;
-  box-shadow: 0 0 4px rgb(20 33 22 / 15%);
+box-shadow: 0 0 4px rgb(20 33 22 / 15%);
   scroll-snap-align: center;
   scroll-snap-stop: always;
-  background: #102415;
+  background: var(--color-sage);
 }
 
 .promo-banner-skeleton {
@@ -54,7 +54,7 @@
 .promo-banner-card > a {
   display: block;
   height: 100%;
-  background: #102415;
+  background: var(--color-sage);
 }
 
 .promo-banner-card > a:focus-visible {
@@ -67,7 +67,7 @@
   height: 100%;
   object-fit: cover;
   object-position: left center;
-  background: #102415;
+  background: var(--color-sage);
 }
 
 .promo-banner-content {
@@ -78,8 +78,8 @@
   justify-content: space-between;
   gap: 12px;
   padding: 18px 22px;
-  background: linear-gradient(transparent, rgb(16 36 21 / 78%));
-  color: white;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--color-sage) 92%, transparent));
+  color: var(--color-green);
 }
 
 .promo-banner-content p {
@@ -110,14 +110,14 @@
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: var(--color-line);
+  background: var(--color-sage);
   cursor: pointer;
   transition: width .2s ease, background-color .2s ease;
 }
 
 .promo-dot.is-active {
   width: 26px;
-  background: var(--color-orange);
+  background: var(--color-green);
 }
 
 .promo-dot:focus-visible {
@@ -170,9 +170,9 @@
   }
 
   .promo-banner-card {
-    flex: 0 0 720px;
-    width: 720px;
-    height: 360px;
+    flex: 0 0 800px;
+    width: 800px;
+    height: 400px;
   }
 }
 

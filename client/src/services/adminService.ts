@@ -1165,20 +1165,3 @@ export async function deleteAdminDeliveryArea(id: string): Promise<void> {
     method: 'DELETE',
   })
 }
-
-interface AdminDeliveryZoneLabelPreviewResponse {
-  success: true
-  data: { label: string }
-}
-
-export async function previewAdminDeliveryZoneLabel(input: {
-  cityIds: string[]
-  areaIds: string[]
-}): Promise<string> {
-  const response = await request<AdminDeliveryZoneLabelPreviewResponse>('/admin/delivery-zones/label-preview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  return response.data.label
-}

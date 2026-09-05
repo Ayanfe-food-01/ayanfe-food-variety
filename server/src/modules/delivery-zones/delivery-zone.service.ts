@@ -17,7 +17,6 @@ import type {
   DeliveryZoneAssignedCity,
   DeliveryZoneDetail,
   DeliveryZoneInput,
-  DeliveryZoneLabelPreviewInput,
 } from './delivery-zone.types.js'
 import { zoneCoverageLabel } from './delivery-zone-label.js'
 
@@ -183,28 +182,6 @@ export async function getAdminDeliveryZone(id: string): Promise<DeliveryZoneDeta
     areas: zone.deliveryZoneAreas.map(({ area }) => toAssignedArea(area)),
   }
   return detail
-}
-
-// Computes the deterministic zone label for an arbitrary set of cities and
-// areas without persisting anything, so the admin zone form can show a live
-// preview of the label the saved zone would get. Same logic as a real zone:
-// whole LGAs plus areas grouped per LGA ("Ketu, Mile 12, Kosofe").
-export async function previewDeliveryZoneLabel(input: DeliveryZoneLabelPreviewInput): Promise<{ label: string }> {
-  const cityIds = [...new Set(input.cityIds)]
-  const areaIds = [...new Set(input.areaIds)]
-  const [cities, areas] = await Promise.all([
-    prisma.city.findMany({ where: { id: { in: cityIds } }, select: { id: true, name: true } }),
-    prisma.area.findMany({
-      where: { id: { in: areaIds } },
-      select: { id: true, name: true, city: { select: { name: true } } },
-    }),
-  ])
-  return {
-    label: zoneCoverageLabel({
-      deliveryZoneCities: cities.map((city) => ({ city: { name: city.name } })),
-      deliveryZoneAreas: areas.map((area) => ({ area: { name: area.name, city: { name: area.city.name } } })),
-    }),
-  }
 }
 
 // Throws the first city that is already assigned to another zone, if any.

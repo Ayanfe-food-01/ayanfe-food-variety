@@ -28,10 +28,10 @@
 
 .promo-banner-card {
   position: relative;
-  flex: 0 0 1248px;
+  flex: 0 0 660px;
   min-width: 0;
-  width: 1248px;
-  height: 357px;
+  width: 660px;
+  height: 330px;
   overflow: hidden;
   border-radius: 20px;
   box-shadow: 0 0 4px rgb(20 33 22 / 15%);
@@ -138,9 +138,9 @@
   }
 
   .promo-banner-card {
-    flex: 0 0 300px;
-    width: 300px;
-    height: 200px;
+    flex: 0 0 380px;
+    width: 380px;
+    height: 190px;
   }
 
   .promo-banner-content {
@@ -164,19 +164,24 @@
 
 /* ─── Tablet (768px - 1023px) ─── */
 @media (min-width: 768px) and (max-width: 1023px) {
+  .promo-banners-track {
+    padding-inline: 24px;
+    scroll-padding-inline: 24px;
+  }
+
   .promo-banner-card {
-    flex: 0 0 700px;
-    width: 700px;
-    height: 300px;
+    flex: 0 0 720px;
+    width: 720px;
+    height: 360px;
   }
 }
 
 /* ─── Laptop (1024px - 1599px) ─── */
 @media (min-width: 1024px) and (max-width: 1599px) {
   .promo-banner-card {
-    flex: 0 0 1000px;
-    width: 1000px;
-    height: 320px;
+    flex: 0 0 660px;
+    width: 660px;
+    height: 330px;
   }
 }
 
@@ -191,9 +196,9 @@
 
 .promo-fade-track {
   position: relative;
-  width: 1248px;
+  width: 660px;
   max-width: 100%;
-  height: 357px;
+  height: 330px;
   overflow: hidden;
   border-radius: 20px;
   box-shadow: 0 0 4px rgb(20 33 22 / 15%);

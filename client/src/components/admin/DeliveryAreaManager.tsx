@@ -284,7 +284,7 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                             const isEditing = editingId === area.id
                             const isSaving = savingId === area.id
                             return (
-                              <li className="flex flex-col gap-3 rounded-2xl border border-line bg-cream/45 p-3.5 sm:flex-row sm:items-center sm:justify-between" key={area.id}>
+                              <li className="flex flex-col gap-3 rounded-2xl border border-line bg-cream/45 p-3.5 sm:flex-row sm:items-start sm:justify-between" key={area.id}>
                                 <div className="min-w-0">
                                   {isEditing ? (
                                     <input

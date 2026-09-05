@@ -6,8 +6,10 @@ import type {
   AdminDeliveryZonesQuery,
   CityDeliveryAreas,
   DeliveryArea,
+  DeliveryAreaCoverage,
   DeliveryAreaInput,
   DeliveryAreaWithCity,
+  DeliveryAreaWithCoverage,
   DeliveryLocationArea,
   DeliveryLocationState,
   DeliveryZone,
@@ -15,6 +17,7 @@ import type {
   DeliveryZoneAssignedCity,
   DeliveryZoneDetail,
   DeliveryZoneInput,
+  DeliveryZoneLabelPreviewInput,
 } from './delivery-zone.types.js'
 import { zoneCoverageLabel } from './delivery-zone-label.js'
 
@@ -60,6 +63,15 @@ const zoneInclude = {
     orderBy: { area: { name: 'asc' as const } },
   },
 } satisfies Prisma.DeliveryZoneInclude
+
+// Coverage plus the identifiers the preview/coverage helpers need to build the
+// auto label and surface the covering zone in the admin area manager.
+const coverageZoneSelect = {
+  id: true,
+  fee: true,
+  deliveryZoneCities: { select: { city: { select: { name: true } } } },
+  deliveryZoneAreas: { select: { area: { select: { name: true, city: { select: { name: true } } } } } },
+} satisfies Prisma.DeliveryZoneSelect
 
 const orderByDisplay = {
   orderBy: [{ sortOrder: 'asc' as const }],
@@ -171,6 +183,28 @@ export async function getAdminDeliveryZone(id: string): Promise<DeliveryZoneDeta
     areas: zone.deliveryZoneAreas.map(({ area }) => toAssignedArea(area)),
   }
   return detail
+}
+
+// Computes the deterministic zone label for an arbitrary set of cities and
+// areas without persisting anything, so the admin zone form can show a live
+// preview of the label the saved zone would get. Same logic as a real zone:
+// whole LGAs plus areas grouped per LGA ("Ketu, Mile 12, Kosofe").
+export async function previewDeliveryZoneLabel(input: DeliveryZoneLabelPreviewInput): Promise<{ label: string }> {
+  const cityIds = [...new Set(input.cityIds)]
+  const areaIds = [...new Set(input.areaIds)]
+  const [cities, areas] = await Promise.all([
+    prisma.city.findMany({ where: { id: { in: cityIds } }, select: { id: true, name: true } }),
+    prisma.area.findMany({
+      where: { id: { in: areaIds } },
+      select: { id: true, name: true, city: { select: { name: true } } },
+    }),
+  ])
+  return {
+    label: zoneCoverageLabel({
+      deliveryZoneCities: cities.map((city) => ({ city: { name: city.name } })),
+      deliveryZoneAreas: areas.map((area) => ({ area: { name: area.name, city: { name: area.city.name } } })),
+    }),
+  }
 }
 
 // Throws the first city that is already assigned to another zone, if any.
@@ -795,6 +829,44 @@ const toAreaWithCity = (area: {
   city: area.city ?? { id: area.cityId, name: '', state: { id: '', name: '' } },
 })
 
+// The zone (if any) currently serving each of the given areas: the area's own
+// explicit zone when it has one, otherwise its LGA's whole-zone. Areas without
+// either coverage are absent from the map.
+async function buildAreaCoverageMap(cityId: string, areaIds: string[]): Promise<Map<string, DeliveryAreaCoverage>> {
+  const coverages = new Map<string, DeliveryAreaCoverage>()
+  if (areaIds.length === 0) return coverages
+
+  const assigned = await prisma.deliveryZoneArea.findMany({
+    where: { areaId: { in: areaIds } },
+    select: { areaId: true, deliveryZone: { select: coverageZoneSelect } },
+  })
+  for (const entry of assigned) {
+    coverages.set(entry.areaId, {
+      zoneId: entry.deliveryZone.id,
+      zoneLabel: zoneCoverageLabel(entry.deliveryZone),
+      zoneFee: entry.deliveryZone.fee.toFixed(2),
+      via: 'area',
+    })
+  }
+
+  const cityZone = await prisma.deliveryZoneCity.findUnique({
+    where: { cityId },
+    select: { deliveryZone: { select: coverageZoneSelect } },
+  })
+  if (cityZone) {
+    const coverage: DeliveryAreaCoverage = {
+      zoneId: cityZone.deliveryZone.id,
+      zoneLabel: zoneCoverageLabel(cityZone.deliveryZone),
+      zoneFee: cityZone.deliveryZone.fee.toFixed(2),
+      via: 'lga',
+    }
+    for (const areaId of areaIds) {
+      if (!coverages.has(areaId)) coverages.set(areaId, coverage)
+    }
+  }
+  return coverages
+}
+
 // Lists the areas belonging to one city/LGA (all statuses) for admin management.
 export async function listCityDeliveryAreas(cityId: string): Promise<CityDeliveryAreas> {
   const city = await prisma.city.findUnique({
@@ -808,10 +880,17 @@ export async function listCityDeliveryAreas(cityId: string): Promise<CityDeliver
     include: areaInclude,
     orderBy: { name: 'asc' },
   })
+  const coverageByArea = await buildAreaCoverageMap(
+    cityId,
+    areas.map((area) => area.id),
+  )
 
   return {
     city: { id: city.id, name: city.name, state: { id: city.state.id, name: city.state.name } },
-    areas: areas.map(toArea),
+    areas: areas.map((area): DeliveryAreaWithCoverage => ({
+      ...toArea(area),
+      coveredBy: coverageByArea.get(area.id) ?? null,
+    })),
   }
 }
 

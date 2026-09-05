@@ -13,6 +13,7 @@ import {
   getAdminDeliveryLocationStates,
   getAdminDeliveryZone,
   getAdminDeliveryZones,
+  previewAdminDeliveryZoneLabel,
   reorderAdminDeliveryZones,
   type AdminDeliveryLocationState,
   type AdminDeliveryZone,
@@ -95,6 +96,32 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
   const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
+  const [previewLabel, setPreviewLabel] = useState<string | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+
+  useEffect(() => {
+    const cityIds = cities.map((city) => city.id)
+    const areaIds = areas.map((area) => area.id)
+    let current = true
+    const updatePreview = async () => {
+      if (cityIds.length === 0 && areaIds.length === 0) {
+        setPreviewLabel(null)
+        setPreviewLoading(false)
+        return
+      }
+      setPreviewLoading(true)
+      try {
+        const label = await previewAdminDeliveryZoneLabel({ cityIds, areaIds })
+        if (current) setPreviewLabel(label)
+      } catch {
+        if (current) setPreviewLabel(null)
+      } finally {
+        if (current) setPreviewLoading(false)
+      }
+    }
+    void updatePreview()
+    return () => { current = false }
+  }, [cities, areas])
 
   useEffect(() => {
     const releaseBodyScroll = lockBodyScroll()
@@ -323,6 +350,18 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                       ))}
                     </ul>
                   )}
+
+                  <div className="mt-4 rounded-2xl border border-dashed border-green/30 bg-sage/20 px-4 py-3">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Zone label preview</span>
+                    <p className="mt-1 text-sm font-bold text-green-dark">
+                      {previewLoading
+                        ? 'Updating…'
+                        : cities.length + areas.length === 0
+                          ? 'No places added yet'
+                          : previewLabel || '—'}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-5 text-muted">This is exactly how the zone is shown to customers at checkout and in order records when it is saved.</p>
+                  </div>
 
                   <div className="mt-4 rounded-2xl border border-line bg-cream/45 p-4">
                     <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add places</h3>

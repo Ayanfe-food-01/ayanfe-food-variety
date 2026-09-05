@@ -131,6 +131,27 @@ export interface DeliveryAreaWithCity extends DeliveryArea {
   city: { id: string; name: string; state: { id: string; name: string } }
 }
 
+// The delivery zone that currently covers an area in the admin area manager.
+// `via` tells the UI whether the area is explicitly mapped to the zone
+// (`area`) or inherits its LGA's whole-zone (`lga`).
+export interface DeliveryAreaCoverage {
+  zoneId: string
+  zoneLabel: string
+  zoneFee: string
+  via: 'area' | 'lga'
+}
+
+// An area listed in the admin area manager with its effective current zone
+// coverage (its own zone when assigned, otherwise its LGA's whole-zone).
+export interface DeliveryAreaWithCoverage extends DeliveryArea {
+  coveredBy: DeliveryAreaCoverage | null
+}
+
+export interface DeliveryZoneLabelPreviewInput {
+  cityIds: string[]
+  areaIds: string[]
+}
+
 export interface DeliveryAreaInput {
   cityId: string
   name: string
@@ -140,5 +161,5 @@ export interface DeliveryAreaInput {
 // The areas belonging to one city/LGA, with the city context for display.
 export interface CityDeliveryAreas {
   city: { id: string; name: string; state: { id: string; name: string } }
-  areas: DeliveryArea[]
+  areas: DeliveryAreaWithCoverage[]
 }

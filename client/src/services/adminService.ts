@@ -1084,6 +1084,13 @@ export async function unassignCityFromDeliveryZone(zoneId: string, cityId: strin
   return response.data.zone
 }
 
+export interface AdminDeliveryAreaCoverage {
+  zoneId: string
+  zoneLabel: string
+  zoneFee: string
+  via: 'area' | 'lga'
+}
+
 export interface AdminDeliveryArea {
   id: string
   cityId: string
@@ -1091,6 +1098,7 @@ export interface AdminDeliveryArea {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  coveredBy?: AdminDeliveryAreaCoverage | null
 }
 
 export interface AdminCityDeliveryAreas {
@@ -1156,4 +1164,21 @@ export async function deleteAdminDeliveryArea(id: string): Promise<void> {
   await request<{ success: true }>(`/admin/delivery-areas/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   })
+}
+
+interface AdminDeliveryZoneLabelPreviewResponse {
+  success: true
+  data: { label: string }
+}
+
+export async function previewAdminDeliveryZoneLabel(input: {
+  cityIds: string[]
+  areaIds: string[]
+}): Promise<string> {
+  const response = await request<AdminDeliveryZoneLabelPreviewResponse>('/admin/delivery-zones/label-preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return response.data.label
 }

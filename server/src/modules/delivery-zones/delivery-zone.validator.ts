@@ -1,5 +1,10 @@
 import { HttpError } from '../../utils/http.js'
-import type { DeliveryAreaInput, DeliveryZoneInput, ReorderDeliveryZonesInput } from './delivery-zone.types.js'
+import type {
+  DeliveryAreaInput,
+  DeliveryZoneInput,
+  DeliveryZoneLabelPreviewInput,
+  ReorderDeliveryZonesInput,
+} from './delivery-zone.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -180,6 +185,14 @@ export function validateDeliveryZoneStatusInput(body: unknown): boolean {
     throw new HttpError(400, 'Delivery zone status must be true or false.')
   }
   return booleanValue(body.isActive, 'Delivery zone status', false)
+}
+
+export function validateDeliveryZoneLabelPreviewInput(body: unknown): DeliveryZoneLabelPreviewInput {
+  if (!isRecord(body)) throw new HttpError(400, 'Coverage data is required.')
+  return {
+    cityIds: validateCityIds(body.cityIds ?? []),
+    areaIds: validateAreaIds(body.areaIds),
+  }
 }
 
 export function validateAdminDeliveryZonesQuery(query: Record<string, unknown>) {

@@ -284,17 +284,23 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                             const isEditing = editingId === area.id
                             const isSaving = savingId === area.id
                             return (
-                              <li className="flex flex-col gap-3 rounded-2xl border border-line bg-cream/45 p-3.5 sm:flex-row sm:items-start sm:justify-between" key={area.id}>
+                              <li className="relative rounded-2xl border border-line bg-cream/45 p-3.5 pr-12" key={area.id}>
                                 <div className="min-w-0">
                                   {isEditing ? (
-                                    <input
-                                      className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm font-bold text-green-dark outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-                                      value={editName}
-                                      disabled={isSaving}
-                                      autoFocus
-                                      onChange={(event) => setEditName(event.target.value)}
-                                      onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void saveEdit() } if (event.key === 'Escape') setEditingId(null) }}
-                                    />
+                                    <>
+                                      <input
+                                        className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm font-bold text-green-dark outline-none focus:border-green focus:ring-2 focus:ring-green/10"
+                                        value={editName}
+                                        disabled={isSaving}
+                                        autoFocus
+                                        onChange={(event) => setEditName(event.target.value)}
+                                        onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void saveEdit() } if (event.key === 'Escape') setEditingId(null) }}
+                                      />
+                                      <div className="mt-2 flex items-center gap-2">
+                                        <button className="rounded-lg bg-green px-3.5 py-2 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="button" onClick={() => void saveEdit()} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
+                                        <button className="rounded-lg border border-line bg-white px-3.5 py-2 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setEditingId(null)} disabled={isSaving}>Cancel</button>
+                                      </div>
+                                    </>
                                   ) : (
                                     <div>
                                       <div className="flex items-center gap-2">
@@ -311,13 +317,8 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex shrink-0 items-center gap-2">
-                                  {isEditing ? (
-                                    <>
-                                      <button className="rounded-lg bg-green px-3.5 py-2 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="button" onClick={() => void saveEdit()} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
-                                      <button className="rounded-lg border border-line bg-white px-3.5 py-2 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setEditingId(null)} disabled={isSaving}>Cancel</button>
-                                    </>
-                                  ) : (
+                                {!isEditing && (
+                                  <div className="absolute right-1.5 top-1.5">
                                     <ActionMenu ariaLabel={`Actions for ${area.name}`} isBusy={isBusy} fixedPosition>
                                       {(close) => (
                                         <>
@@ -327,8 +328,8 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                                         </>
                                       )}
                                     </ActionMenu>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </li>
                             )
                           })}

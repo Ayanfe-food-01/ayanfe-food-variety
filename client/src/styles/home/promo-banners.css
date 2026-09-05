@@ -34,7 +34,7 @@
   height: 330px;
   overflow: hidden;
   border-radius: 20px;
-box-shadow: 0 0 4px rgb(20 33 22 / 15%);
+  box-shadow: 0 0 4px rgb(20 33 22 / 15%);
   scroll-snap-align: center;
   scroll-snap-stop: always;
   background: var(--color-sage);
@@ -185,7 +185,7 @@ box-shadow: 0 0 4px rgb(20 33 22 / 15%);
   }
 }
 
-/* ─── Extra-large (>=1600px): fade slideshow ─── */
+/* ─── Extra-large (>=2560px): fade slideshow ─── */
 .promo-fade-wrap {
   display: flex;
   flex-direction: column;

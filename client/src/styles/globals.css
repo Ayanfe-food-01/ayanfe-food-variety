@@ -13,17 +13,3 @@
 @import "./help/index.css";
 @import "./admin/index.css";
 @import "./auth/index.css";
-@keyframes checkout-step-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.checkout-step-in {
-  animation: checkout-step-in 0.28s ease-out;
-}

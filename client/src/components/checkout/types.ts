@@ -1,7 +1,5 @@
 import type { FulfillmentMethod, PaymentMethod } from '../../services/orderService'
 
-export type CheckoutStep = 'contact' | 'delivery' | 'payment' | 'review'
-
 export interface CheckoutFormData {
   fullName: string
   phone: string

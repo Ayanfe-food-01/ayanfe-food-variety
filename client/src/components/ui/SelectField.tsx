@@ -23,6 +23,7 @@ interface SelectFieldProps {
   disabledOptions?: readonly string[]
   searchable?: boolean
   placeholder?: string
+  buttonLabel?: string
 }
 
 export function SelectField({
@@ -41,6 +42,7 @@ export function SelectField({
   disabledOptions = [],
   searchable = false,
   placeholder = 'Select an option',
+  buttonLabel,
 }: SelectFieldProps) {
   const listboxId = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -313,11 +315,11 @@ export function SelectField({
           id={id}
           onClick={() => (isOpen ? closeMenu() : openMenu())}
           onKeyDown={handleButtonKeyDown}
-          title={selectedOption?.label}
+          title={buttonLabel ?? selectedOption?.label}
           type="button"
         >
-          <span className={`block min-w-0 truncate ${!selectedOption ? 'select-field-placeholder' : ''}`.trim()}>
-            {selectedOption?.label ?? placeholder}
+          <span className={`block min-w-0 truncate ${!selectedOption && !buttonLabel ? 'select-field-placeholder' : ''}`.trim()}>
+            {buttonLabel ?? selectedOption?.label ?? placeholder}
           </span>
           <ChevronDownIcon className="select-field-chevron" size={17} aria-hidden="true" />
         </button>

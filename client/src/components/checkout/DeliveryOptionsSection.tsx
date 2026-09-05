@@ -1,4 +1,10 @@
-import type { DeliveryLocationState, FulfillmentMethod, ResolvedDeliveryZone } from '../../services/orderService'
+import { useEffect, useState } from 'react'
+import type {
+  DeliveryLocationState,
+  FulfillmentMethod,
+  ResolvedDeliveryZone,
+} from '../../services/orderService'
+import { getDeliveryLocationStates } from '../../services/orderService'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from './types'
 import {
   checkoutDescriptionClassName,
@@ -7,13 +13,13 @@ import {
   checkoutLegendClassName,
   checkoutSectionClassName,
 } from './checkoutStyles'
-import { CheckoutFieldError } from './CheckoutFieldError'
+import { CheckoutFieldError } from './CheckoutFormSections'
 import { SelectField } from '../ui/SelectField'
+import { ApiError } from '../../services/api'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { whatsAppChatUrl } from '../../utils/whatsApp'
-import { DeliveryZoneInfo } from './DeliveryZoneInfo'
 
-interface DeliveryStepProps {
+interface DeliveryOptionsSectionProps {
   form: CheckoutFormData
   errors: CheckoutFormErrors
   fulfillmentMethod: FulfillmentMethod | ''
@@ -21,10 +27,6 @@ interface DeliveryStepProps {
   isZoneResolving: boolean
   zoneError: string | null
   deliveryFee: number | null
-  locations: DeliveryLocationState[] | null
-  locationsLoading: boolean
-  locationsError: string | null
-  onReloadLocations: () => void
   onChange: (field: CheckoutField, value: string) => void
 }
 
@@ -33,7 +35,94 @@ const deliveryOptions = [
   ['DELIVERY', 'Delivery', 'Have your order brought to your delivery address.'],
 ] as const
 
-export function DeliveryStep({
+const formatNaira = (value: string | number) => {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return String(value)
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(numeric)
+}
+
+// Informational, read-only summary of the delivery zone auto-resolved for the
+// selected city. Not a selectable control — the customer only chooses a state
+// and city; the zone, fee, and estimated delivery time are derived. The client
+// never trusts these values for the final total — the server recomputes them
+// authoritatively at checkout.
+interface DeliveryZoneInfoProps {
+  zone: ResolvedDeliveryZone | null
+  isResolving: boolean
+  error: string | null
+  deliveryFee: number | null
+  whatsappUrl: string | null
+}
+
+function DeliveryZoneInfo({ zone, isResolving, error, deliveryFee, whatsappUrl }: DeliveryZoneInfoProps) {
+  if (isResolving) {
+    return (
+      <div className="rounded-2xl border border-line bg-cream/40 p-5" aria-live="polite">
+        <p className="flex items-center gap-2.5 text-sm text-muted" role="status">
+          <span className="size-4 animate-spin rounded-full border-2 border-green border-t-transparent" aria-hidden="true" />
+          Checking delivery for this location…
+        </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-orange/25 bg-orange/5 p-5" role="alert">
+        <p className="text-sm text-orange">{error}</p>
+      </div>
+    )
+  }
+
+  if (!zone) {
+    return (
+      <div className="rounded-2xl border border-line bg-cream/40 p-5">
+        <p className="text-sm font-semibold text-green-dark">We currently don&#39;t deliver to this area.</p>
+        <p className="mt-1 text-sm leading-6 text-muted">
+          Please contact us on WhatsApp to check availability.
+          {whatsappUrl ? (
+            <a
+              className="ml-1.5 font-bold text-green underline underline-offset-2 transition-colors hover:text-orange"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Chat with us
+            </a>
+          ) : null}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl border border-green/25 bg-sage/30 p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Delivery zone</p>
+      <dl className="mt-3 space-y-1.5 text-sm">
+        <div className="flex items-baseline gap-2">
+          <dt className="text-muted">Zone</dt>
+          <dd className="font-bold text-green-dark">{zone.label}</dd>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <dt className="text-muted">Delivery fee</dt>
+          <dd className="font-bold text-green-dark">{deliveryFee === 0 ? 'Free delivery' : formatNaira(deliveryFee ?? zone.fee)}</dd>
+        </div>
+        {zone.minDeliveryDays && zone.maxDeliveryDays ? (
+          <div className="flex items-baseline gap-2">
+            <dt className="text-muted">Estimated delivery</dt>
+            <dd className="font-bold text-green-dark">
+              {zone.minDeliveryDays === zone.maxDeliveryDays
+                ? `${zone.minDeliveryDays} business day${zone.minDeliveryDays === 1 ? '' : 's'}`
+                : `${zone.minDeliveryDays}–${zone.maxDeliveryDays} business days`}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+    </div>
+  )
+}
+
+export function DeliveryOptionsSection({
   form,
   errors,
   fulfillmentMethod,
@@ -41,16 +130,37 @@ export function DeliveryStep({
   isZoneResolving,
   zoneError,
   deliveryFee,
-  locations,
-  locationsLoading,
-  locationsError,
-  onReloadLocations,
   onChange,
-}: DeliveryStepProps) {
+}: DeliveryOptionsSectionProps) {
   const isDelivery = fulfillmentMethod === 'DELIVERY'
   const { settings } = useStoreSettings()
   const whatsappNumber = settings?.whatsappNumber?.trim()
   const whatsappUrl = whatsappNumber ? whatsAppChatUrl(whatsappNumber) : null
+
+  const [locations, setLocations] = useState<DeliveryLocationState[] | null>(null)
+  const [locationsError, setLocationsError] = useState<string | null>(null)
+  const [locationsLoading, setLocationsLoading] = useState(false)
+
+  const loadLocations = () => {
+    setLocationsLoading(true)
+    setLocationsError(null)
+    getDeliveryLocationStates()
+      .then((loaded) => setLocations(loaded))
+      .catch((caught: unknown) => {
+        setLocationsError(caught instanceof ApiError ? caught.message : 'Locations could not be loaded.')
+      })
+      .finally(() => setLocationsLoading(false))
+  }
+
+  useEffect(() => {
+    if (isDelivery && locations === null && !locationsError && !locationsLoading) {
+      // Boot the location picker once per delivery session; setState is
+      // intentional here because the picker must lazy-load from the API.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadLocations()
+    }
+    // Only boot once per delivery session.
+  }, [isDelivery, locations, locationsError, locationsLoading])
 
   const selectedState = locations?.find((state) => state.id === form.state)
   const selectedCityId = form.cityId || selectedState?.cities.find((city) => city.name === form.city)?.id || ''
@@ -125,31 +235,24 @@ export function DeliveryStep({
                   <button
                     className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange/30 bg-white px-3 py-2 text-xs font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50"
                     type="button"
-                    onClick={onReloadLocations}
+                    onClick={loadLocations}
                     disabled={locationsLoading}
                   >
                     {locationsLoading ? 'Loading…' : 'Retry loading locations'}
                   </button>
                 </div>
               ) : (
+                <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm font-bold text-green-dark">
                     State <span className="text-orange" aria-hidden="true">*</span>
                     <SelectField
                       className="mt-2 w-full"
-                      options={[
+options={[
                         { value: '', label: 'Select your state' },
                         ...(locations ?? []).map((state) => ({ value: state.id, label: state.name })),
                       ]}
-                      onChange={(value) => {
-                        onChange('state', value)
-                        if (value) {
-                          onChange('city', '')
-                          onChange('cityId', '')
-                          onChange('area', '')
-                          onChange('areaId', '')
-                        }
-                      }}
+                      onChange={(value) => { onChange('state', value); if (value) { onChange('city', ''); onChange('cityId', ''); onChange('area', ''); onChange('areaId', '') } }}
                       value={form.state}
                       aria-invalid={Boolean(errors.state)}
                       aria-describedby={errors.state ? 'state-error' : undefined}
@@ -177,39 +280,38 @@ export function DeliveryStep({
                     />
                   </label>
                 </div>
+                {cityAreas.length > 0 && (
+                  <div className="mt-3 sm:mt-0">
+                    <label className="block text-sm font-bold text-green-dark">
+                      Area <span className="font-normal text-muted">(optional)</span>
+                      <SelectField
+                        className="mt-2 w-full"
+                        options={[
+                          { value: '', label: 'Select your area (optional)' },
+                          ...cityAreas.map((area) => ({
+                            value: area.id,
+                            label: area.servable ? area.name : `${area.name} (delivery unavailable)`,
+                          })),
+                        ]}
+                        disabledOptions={cityAreas.filter((area) => !area.servable).map((area) => area.id)}
+                        onChange={(value) => {
+                          const area = cityAreas.find((item) => item.id === value)
+                          onChange('area', area?.name ?? '')
+                          onChange('areaId', area ? value : '')
+                        }}
+                        value={form.areaId}
+                        aria-invalid={Boolean(errors.areaId)}
+                        aria-describedby={errors.areaId ? 'areaId-error' : undefined}
+                      />
+                    </label>
+                    <p className="mt-1 text-xs text-muted">Optional — narrows the delivery zone if your street is managed as an area.</p>
+                    <CheckoutFieldError id="areaId" message={errors.areaId} />
+                  </div>
+                )}
+              </>
               )}
-              {!locationsError && (
-                <div className="mt-3">
-                  {cityAreas.length > 0 && (
-                    <>
-                      <label className="block text-sm font-bold text-green-dark">
-                        Area <span className="font-normal text-muted">(optional)</span>
-                        <SelectField
-                          className="mt-2 w-full"
-                          options={[
-                            { value: '', label: 'Select your area (optional)' },
-                            ...cityAreas.map((area) => ({
-                              value: area.id,
-                              label: area.servable ? area.name : `${area.name} (delivery unavailable)`,
-                            })),
-                          ]}
-                          disabledOptions={cityAreas.filter((area) => !area.servable).map((area) => area.id)}
-                          onChange={(value) => {
-                            const area = cityAreas.find((item) => item.id === value)
-                            onChange('area', area?.name ?? '')
-                            onChange('areaId', area ? value : '')
-                          }}
-                          value={form.areaId}
-                          aria-invalid={Boolean(errors.areaId)}
-                          aria-describedby={errors.areaId ? 'areaId-error' : undefined}
-                        />
-                      </label>
-                      <p className="mt-1 text-xs text-muted">
-                        Optional — narrows the delivery zone if your street is managed as an area.
-                      </p>
-                      <CheckoutFieldError id="areaId" message={errors.areaId} />
-                    </>
-                  )}
+              {locationsError ? null : (
+                <div className="mt-0">
                   <CheckoutFieldError id="state" message={errors.state} />
                   <CheckoutFieldError id="city" message={errors.city} />
                 </div>

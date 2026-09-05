@@ -8,7 +8,7 @@ interface PromoBannersProps {
   isLoading?: boolean
 }
 
-const XL_QUERY = '(min-width: 1600px)'
+const XL_QUERY = '(min-width: 2560px)'
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches)

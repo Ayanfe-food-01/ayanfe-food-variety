@@ -15,9 +15,9 @@
   display: flex;
   gap: 20px;
   overflow-x: auto;
-  padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
+  padding-inline: max(24px, calc((100% - var(--container-max-width)) / 2));
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
+  scroll-padding-inline: max(24px, calc((100% - var(--container-max-width)) / 2));
   scrollbar-width: none;
   background: transparent;
 }
@@ -28,9 +28,9 @@
 
 .promo-banner-card {
   position: relative;
-  flex: 0 0 min(var(--container-max-width), calc(100vw - 48px));
+  flex: 0 0 min(var(--container-max-width), 100%);
   min-width: 0;
-  width: min(var(--container-max-width), calc(100vw - 48px));
+  width: min(var(--container-max-width), 100%);
   aspect-ratio: 2 / 1;
   height: auto;
   overflow: hidden;
@@ -188,7 +188,7 @@
 
 .promo-fade-track {
   position: relative;
-  width: min(var(--container-max-width), calc(100vw - 48px));
+  width: min(var(--container-max-width), calc(100% - 48px));
   max-width: 100%;
   aspect-ratio: 2 / 1;
   height: auto;

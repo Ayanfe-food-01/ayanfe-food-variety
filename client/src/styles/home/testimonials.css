@@ -3,9 +3,9 @@
   gap: 20px;
   overflow-x: auto;
   margin-top: 40px;
-  padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
+  padding-inline: max(24px, calc((100% - var(--container-max-width)) / 2));
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: max(24px, calc((100vw - var(--container-max-width)) / 2));
+  scroll-padding-inline: max(24px, calc((100% - var(--container-max-width)) / 2));
   scrollbar-width: none;
 }
 
@@ -15,7 +15,7 @@
 
 .testimonial-slide {
   display: flex;
-  flex: 0 0 min(420px, calc(100vw - 48px));
+  flex: 0 0 min(420px, 100%);
   min-width: 0;
   scroll-snap-align: center;
   scroll-snap-stop: always;
@@ -27,6 +27,6 @@
   }
 
   .testimonial-slide {
-    flex-basis: min(320px, calc(100vw - 36px));
+    flex-basis: min(320px, 100%);
   }
 }

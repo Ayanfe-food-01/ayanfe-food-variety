@@ -96,6 +96,7 @@ import {
   listAdminDeliveryLocationStatesController,
   listAdminDeliveryZonesController,
   listCityDeliveryAreasController,
+  previewDeliveryZoneLabelController,
   reorderAdminDeliveryZonesController,
   assignAreaToZoneController,
   unassignAreaFromZoneController,
@@ -173,6 +174,7 @@ adminRoutes.post('/settings/password', changeAdminPasswordController)
 adminRoutes.get('/delivery-zones', listAdminDeliveryZonesController)
 adminRoutes.post('/delivery-zones', createAdminDeliveryZoneController)
 adminRoutes.put('/delivery-zones/reorder', reorderAdminDeliveryZonesController)
+adminRoutes.post('/delivery-zones/label-preview', previewDeliveryZoneLabelController)
 adminRoutes.get('/delivery-zones/:id', getAdminDeliveryZoneController)
 adminRoutes.patch('/delivery-zones/:id/status', updateAdminDeliveryZoneStatusController)
 adminRoutes.patch('/delivery-zones/:id', updateAdminDeliveryZoneController)

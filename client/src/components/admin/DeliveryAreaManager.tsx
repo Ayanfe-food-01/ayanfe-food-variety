@@ -19,6 +19,17 @@ interface DeliveryAreaManagerProps {
   onClose: () => void
 }
 
+const formatCurrency = (value?: string | null) => {
+  if (!value) return '—'
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return value
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 2,
+  }).format(numeric)
+}
+
 export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
   const { showToast } = useToast()
   const [states, setStates] = useState<AdminDeliveryLocationState[] | null>(null)
@@ -40,6 +51,7 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     const releaseBodyScroll = lockBodyScroll()
@@ -174,13 +186,22 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
 
   const isBusy = Boolean(savingId || creating || deleting || statusId)
 
+  const filteredAreas = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return areas ?? []
+    return (areas ?? []).filter((area) =>
+      area.name.toLowerCase().includes(query)
+      || (area.coveredBy?.zoneLabel.toLowerCase().includes(query) ?? false),
+    )
+  }, [areas, searchQuery])
+
   return (
     <div className="safe-modal-backdrop fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-green-dark/45 p-4" role="presentation">
       <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-2xl shadow-green-dark/20" role="dialog" aria-modal="true" aria-labelledby="delivery-area-manager-title">
         <div className="shrink-0 border-b border-line px-7 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Delivery areas</p>
           <h2 id="delivery-area-manager-title" className="mt-1.5 text-xl font-bold tracking-[-0.04em] text-green-dark">Manage areas within LGAs</h2>
-          <p className="mt-1.5 text-xs leading-5 text-muted">Areas refine a delivery location at checkout and always inherit their LGA's delivery zone fee. This screen is optional — most stores can start without any areas.</p>
+          <p className="mt-1.5 text-xs leading-5 text-muted">Areas refine a delivery location at checkout. An area with its own delivery zone uses that zone and its fee; otherwise it inherits its LGA's whole-zone. This screen is optional — most stores can start without any areas.</p>
         </div>
         <div className="y-scrollbar min-h-0 flex-1 overflow-y-auto">
           <div className="p-7 sm:p-8">
@@ -237,6 +258,16 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                       </form>
                     </div>
 
+                    <label className="mt-4 block text-xs font-bold text-green-dark">
+                      Search areas
+                      <input
+                        className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-2.5 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
+                        placeholder="Search by area or covering zone label"
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                      />
+                    </label>
+
                     {(actionError || loadError) && <p className="mt-3 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{actionError ?? loadError}</p>}
 
                     <div className="mt-4">
@@ -244,9 +275,11 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                         <p className="rounded-2xl border border-line bg-cream/45 px-5 py-10 text-center text-sm text-muted">Loading areas…</p>
                       ) : !areas || areas.length === 0 ? (
                         <p className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-5 py-10 text-center text-sm text-muted">No areas yet for this LGA. Add one using the field above.</p>
+                      ) : filteredAreas.length === 0 ? (
+                        <p className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-5 py-10 text-center text-sm text-muted">No areas match “{searchQuery.trim()}”.</p>
                       ) : (
                         <ul className="space-y-2">
-                          {areas.map((area) => {
+                          {filteredAreas.map((area) => {
                             const isEditing = editingId === area.id
                             const isSaving = savingId === area.id
                             const isToggling = statusId === area.id
@@ -263,9 +296,18 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
                                       onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void saveEdit() } if (event.key === 'Escape') setEditingId(null) }}
                                     />
                                   ) : (
-                                    <div className="flex items-center gap-2">
-                                      <p className="truncate font-bold text-green-dark">{area.name}</p>
-                                      <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${area.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{area.isActive ? 'Active' : 'Inactive'}</span>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <p className="truncate font-bold text-green-dark">{area.name}</p>
+                                        <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${area.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{area.isActive ? 'Active' : 'Inactive'}</span>
+                                      </div>
+                                      {area.coveredBy ? (
+                                        <p className="mt-1.5 text-xs leading-5 text-muted">
+                                          Covered by <span className="font-bold text-green-dark">“{area.coveredBy.zoneLabel}”</span> · {formatCurrency(area.coveredBy.zoneFee)} · <span className="text-muted">{area.coveredBy.via === 'area' ? 'area zone' : 'whole LGA zone'}</span>
+                                        </p>
+                                      ) : (
+                                        <p className="mt-1.5 text-xs leading-5 text-muted">Not covered by any zone yet — customers here see “delivery unavailable”.</p>
+                                      )}
                                     </div>
                                   )}
                                 </div>

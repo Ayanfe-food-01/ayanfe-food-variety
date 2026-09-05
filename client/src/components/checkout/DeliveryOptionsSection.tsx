@@ -264,10 +264,7 @@ options={[
                       className="mt-2 w-full"
                       options={[
                         { value: '', label: 'Select your city' },
-                        ...(selectedState?.cities ?? []).map((city) => ({
-                          value: city.id,
-                          label: city.servable ? city.name : `${city.name} — delivery unavailable`,
-                        })),
+                        ...(selectedState?.cities ?? []).map((city) => ({ value: city.id, label: city.name })),
                       ]}
                       onChange={(value) => {
                         const city = selectedState?.cities.find((item) => item.id === value)

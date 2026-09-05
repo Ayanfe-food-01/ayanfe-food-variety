@@ -292,9 +292,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
               <div className="space-y-6">
                 <section aria-label="Delivery area">
                   <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Delivery area — places this zone covers ({cities.length + areas.length})</h3>
-                  {cities.length === 0 && areas.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted">No places added yet. Customers in unassigned cities or areas will see a "delivery unavailable" message at checkout.</p>
-                  ) : (
+                  {(cities.length > 0 || areas.length > 0) && (
                     <ul className="mt-3 flex flex-wrap gap-2">
                       {cities.map((city) => (
                         <li className="inline-flex items-center gap-2 rounded-full border border-line bg-sage/30 py-1.5 pl-3 pr-1.5" key={city.id}>
@@ -350,7 +348,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                         City / LGA
                         <SelectField
                           className="mt-2 w-full"
-                          options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
+                          options={cityOptions}
                           onChange={(value) => { setSelectedCityId(value); setSelectedAreaIds([]); setCoverageMode('whole') }}
                           value={selectedCityId}
                           searchable

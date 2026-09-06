@@ -1,15 +1,20 @@
-import { promisify } from 'node:util'
-import {
-  createHmac,
-  randomBytes,
-  scrypt as nodeScrypt,
-  timingSafeEqual,
-} from 'node:crypto'
-import { ShoppingMode, UserRole } from '@prisma/client'
-import { env } from '../../config/env.js'
+import { randomBytes } from 'node:crypto'
+import { UserRole } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { sendPasswordResetEmail } from './auth.email.js'
+import {
+  authCookie,
+  customerAuthCookie,
+  getEmailDomain,
+  getSessionToken,
+  getCustomerSessionToken,
+  hashPassword,
+  hashSessionToken,
+  readAuthCookie,
+  toUser,
+  verifyPassword,
+} from './auth.primitives.js'
 import type {
   AdminPasswordChangeInput,
   AuthenticatedUser,
@@ -18,95 +23,9 @@ import type {
   PasswordResetRequestInput,
 } from './auth.types.js'
 
-const scrypt = promisify(nodeScrypt)
-
-const SESSION_COOKIE_NAME = 'ayanfe_admin_session'
-const CUSTOMER_SESSION_COOKIE_NAME = 'ayanfe_customer_session'
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000
+export { authCookie, customerAuthCookie, getEmailDomain, getCustomerSessionToken, getSessionToken, hashPassword, hashSessionToken, readAuthCookie, toUser, verifyPassword } from './auth.primitives.js'
 
 const PASSWORD_RESET_TTL_MS = 20 * 60 * 1000
-
-export const toUser = (user: {
-  id: string
-  name: string
-  email: string
-  role: UserRole
-  phone?: string | null
-  shoppingMode?: ShoppingMode | null
-}): AuthenticatedUser => ({
-  id: user.id,
-  name: user.name,
-  email: user.email,
-  phone: user.phone ?? null,
-  role: user.role,
-  shoppingMode: user.shoppingMode ?? ShoppingMode.RETAIL,
-})
-
-export const authCookie = {
-  name: SESSION_COOKIE_NAME,
-  maxAge: SESSION_TTL_MS,
-  options: {
-    httpOnly: true,
-    secure: env.nodeEnv === 'production',
-    sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-    path: '/',
-  },
-}
-
-export const customerAuthCookie = {
-  name: CUSTOMER_SESSION_COOKIE_NAME,
-  maxAge: SESSION_TTL_MS,
-  options: {
-    httpOnly: true,
-    secure: env.nodeEnv === 'production',
-    sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-    path: '/',
-  },
-}
-
-export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString('hex')
-  const derivedKey = (await scrypt(password, salt, 64)) as Buffer
-  return `scrypt$1$${salt}$${derivedKey.toString('hex')}`
-}
-
-export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
-  const [algorithm, version, salt, keyHex] = storedHash.split('$')
-  if (algorithm !== 'scrypt' || version !== '1' || !salt || !keyHex || !/^[0-9a-f]+$/i.test(keyHex)) {
-    return false
-  }
-  const expectedKey = Buffer.from(keyHex, 'hex')
-  const actualKey = (await scrypt(password, salt, expectedKey.length)) as Buffer
-  return expectedKey.length === actualKey.length && timingSafeEqual(expectedKey, actualKey)
-}
-
-export const hashSessionToken = (token: string) =>
-  createHmac('sha256', env.sessionSecret).update(token).digest('hex')
-
-const hashPasswordResetToken = (token: string) =>
-  createHmac('sha256', env.sessionSecret).update(`password-reset:${token}`).digest('hex')
-
-export const getEmailDomain = (email: string): string =>
-  email.split('@')[1]?.toLowerCase() || 'unknown'
-
-export const readAuthCookie = (cookieHeader: string | undefined, name: string): string | null => {
-  if (!cookieHeader) return null
-  for (const part of cookieHeader.split(';')) {
-    const [key, ...valueParts] = part.trim().split('=')
-    if (key !== name) continue
-    const value = valueParts.join('=')
-    try {
-      return decodeURIComponent(value)
-    } catch {
-      // A malformed cookie must behave like a missing session, not crash the request.
-      return null
-    }
-  }
-  return null
-}
-
-export const getSessionToken = (cookieHeader: string | undefined) =>
-  readAuthCookie(cookieHeader, SESSION_COOKIE_NAME)
 
 export async function login(input: LoginInput): Promise<{
   user: AuthenticatedUser
@@ -142,7 +61,7 @@ export async function createSession(user: {
   const sessionData = {
     userId: user.id,
     tokenHash: hashSessionToken(token),
-    expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+    expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
   }
 
   await prisma.$transaction(async (transaction) => {
@@ -313,9 +232,6 @@ export async function revokeSession(token: string | null): Promise<void> {
   })
 }
 
-export const getCustomerSessionToken = (cookieHeader: string | undefined) =>
-  readAuthCookie(cookieHeader, CUSTOMER_SESSION_COOKIE_NAME)
-
 export async function createInitialAdmin(input: {
   name: string
   email: string
@@ -349,3 +265,6 @@ export async function createInitialAdmin(input: {
   })
   return 'updated'
 }
+
+const hashPasswordResetToken = (token: string) =>
+  hashSessionToken(`password-reset:${token}`)

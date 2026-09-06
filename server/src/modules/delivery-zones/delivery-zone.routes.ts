@@ -3,7 +3,7 @@ import {
   listActiveDeliveryZonesController,
   listPublicDeliveryLocationStatesController,
   resolveDeliveryZoneController,
-} from '../modules/delivery-zones/delivery-zone.controller.js'
+} from './delivery-zone.controller.js'
 
 export const deliveryZoneRoutes = Router()
 

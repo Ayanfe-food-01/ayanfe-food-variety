@@ -1,18 +1,18 @@
 import { Router } from 'express'
-import { createRateLimit } from '../middleware/rateLimit.js'
+import { createRateLimit } from '../../middleware/rateLimit.js'
 import {
   optionalCustomerAuthentication,
   requireCustomerAuthentication,
   requireCustomerRole,
-} from '../middleware/auth.middleware.js'
-import { createQuoteRequestController } from '../modules/quotes/quote.controller.js'
+} from '../../middleware/auth.middleware.js'
+import { createQuoteRequestController } from './quote.controller.js'
 import {
   acceptCustomerQuoteRequestController,
   convertCustomerQuoteRequestController,
   getCustomerQuoteRequestController,
   listCustomerQuoteRequestsController,
   rejectCustomerQuoteRequestController,
-} from '../modules/quotes/customer-quote.controller.js'
+} from './customer-quote.controller.js'
 
 export const quoteRoutes = Router()
 

@@ -1,17 +1,17 @@
 import { Router } from 'express'
-import { checkoutController, guestOrderController, guestOrderTrackingController } from '../modules/orders/order.controller.js'
+import { checkoutController, guestOrderController, guestOrderTrackingController } from './order.controller.js'
 import {
   cancelCustomerOrderController,
   getCustomerOrderController,
   listCustomerOrdersController,
-} from '../modules/orders/customer-order.controller.js'
-import { createRateLimit } from '../middleware/rateLimit.js'
-import { optionalCustomerAuthentication, requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
-import { HttpError } from '../utils/http.js'
+} from './customer-order.controller.js'
+import { createRateLimit } from '../../middleware/rateLimit.js'
+import { optionalCustomerAuthentication, requireCustomerAuthentication, requireCustomerRole } from '../../middleware/auth.middleware.js'
+import { HttpError } from '../../utils/http.js'
 import {
   getCustomerOrderReviewEligibilityController,
   submitCustomerReviewController,
-} from '../modules/reviews/review.controller.js'
+} from '../reviews/review.controller.js'
 
 const requireCheckoutRequestHeader: import('express').RequestHandler = (request, _response, next) => {
   if (request.get('X-Checkout-Request') !== '1') {

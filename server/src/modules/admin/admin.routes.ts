@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { requireAdminAccess } from '../middleware/admin.middleware.js'
+import { requireAdminAccess } from '../../middleware/admin.middleware.js'
 import {
   getAdminOrderController,
   getAdminPaymentController,
@@ -13,7 +13,7 @@ import {
   restoreAdminOrderController,
   updateAdminOrderStatusController,
   verifyAdminPaymentController,
-} from '../modules/admin/admin.controller.js'
+} from './admin.controller.js'
 import {
   getAdminContactInformationController,
   getAdminPaymentSettingsController,
@@ -21,7 +21,7 @@ import {
   updateAdminContactInformationController,
   updateAdminPaymentSettingsController,
   updateAdminStoreInformationController,
-} from '../modules/settings/settings.controller.js'
+} from '../settings/settings.controller.js'
 import {
   createAdminProductController,
   deleteAdminProductController,
@@ -31,7 +31,7 @@ import {
   updateAdminProductController,
   updateAdminProductFeaturedController,
   updateAdminProductStatusController,
-} from '../modules/products/admin-product.controller.js'
+} from '../products/admin-product.controller.js'
 import {
   createAdminCategoryController,
   deleteAdminCategoryController,
@@ -40,7 +40,7 @@ import {
   updateAdminCategoryController,
   updateAdminCategoryStatusController,
   categoryImageUpload,
-} from '../modules/categories/category.controller.js'
+} from '../categories/category.controller.js'
 import {
   bannerImageUpload,
   createAdminBannerController,
@@ -49,25 +49,25 @@ import {
   listAdminBannersController,
   updateAdminBannerController,
   updateAdminBannerStatusController,
-} from '../modules/banners/banner.controller.js'
-import { changeAdminPasswordController } from '../modules/auth/auth.controller.js'
+} from '../banners/banner.controller.js'
+import { changeAdminPasswordController } from '../auth/auth.controller.js'
 import {
   brandingImageUpload,
   getAdminBrandingController,
   updateAdminBrandingController,
-} from '../modules/settings/branding.controller.js'
+} from '../settings/branding.controller.js'
 import {
   listAdminNotificationsController,
   markAdminNotificationReadController,
   markAllAdminNotificationsReadController,
-} from '../modules/notifications/notification.controller.js'
+} from '../notifications/notification.controller.js'
 import {
   getAdminQuoteRequestController,
   listAdminQuoteRequestsController,
   prepareAdminQuotePricingController,
   updateAdminQuoteRequestNoteController,
   updateAdminQuoteRequestStatusController,
-} from '../modules/quotes/quote.admin.controller.js'
+} from '../quotes/quote.admin.controller.js'
 import {
   createAdminTestimonialController,
   deleteAdminTestimonialController,
@@ -77,7 +77,7 @@ import {
   updateAdminTestimonialController,
   updateAdminTestimonialFeaturedController,
   updateAdminTestimonialStatusController,
-} from '../modules/testimonials/testimonial.controller.js'
+} from '../testimonials/testimonial.controller.js'
 import {
   deleteAdminReviewController,
   getAdminReviewController,
@@ -85,7 +85,7 @@ import {
   updateAdminReviewFeaturedController,
   updateAdminReviewOrderController,
   updateAdminReviewStatusController,
-} from '../modules/reviews/review.admin.controller.js'
+} from '../reviews/review.admin.controller.js'
 import {
   assignCityToZoneController,
   createAdminDeliveryAreaController,
@@ -104,7 +104,7 @@ import {
   updateAdminDeliveryAreaStatusController,
   updateAdminDeliveryZoneController,
   updateAdminDeliveryZoneStatusController,
-} from '../modules/delivery-zones/delivery-zone.controller.js'
+} from '../delivery-zones/delivery-zone.controller.js'
 
 export const adminRoutes = Router()
 

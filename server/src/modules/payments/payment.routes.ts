@@ -1,13 +1,13 @@
 import { Router } from 'express'
-import { createRateLimit } from '../middleware/rateLimit.js'
+import { createRateLimit } from '../../middleware/rateLimit.js'
 import {
   getBankDetailsController,
   initializePaymentController,
   verifyPaymentController,
   paymentProofUpload,
   submitPaymentController,
-} from '../modules/payments/payment.controller.js'
-import { requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
+} from './payment.controller.js'
+import { requireCustomerAuthentication, requireCustomerRole } from '../../middleware/auth.middleware.js'
 
 export const paymentRoutes = Router()
 

@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { createRateLimit } from '../middleware/rateLimit.js'
-import { requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
+import { createRateLimit } from '../../middleware/rateLimit.js'
+import { requireCustomerAuthentication, requireCustomerRole } from '../../middleware/auth.middleware.js'
 import {
   loginController,
   logoutController,
@@ -17,7 +17,7 @@ import {
   customerShoppingModeController,
   passwordResetRequestController,
   passwordResetController,
-} from '../modules/auth/auth.controller.js'
+} from './auth.controller.js'
 
 export const authRoutes = Router()
 

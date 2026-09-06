@@ -1,12 +1,12 @@
 import { Router } from 'express'
-import { requireCustomerAuthentication, requireCustomerRole } from '../middleware/auth.middleware.js'
+import { requireCustomerAuthentication, requireCustomerRole } from '../../middleware/auth.middleware.js'
 import {
   addCustomerCartItemController,
   clearCustomerCartController,
   getCustomerCartController,
   removeCustomerCartItemController,
   updateCustomerCartItemController,
-} from '../modules/cart/cart.controller.js'
+} from './cart.controller.js'
 
 export const cartRoutes = Router()
 cartRoutes.use(requireCustomerAuthentication, requireCustomerRole)

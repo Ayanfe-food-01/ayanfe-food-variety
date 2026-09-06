@@ -8,13 +8,13 @@ import {
   getProductWholesalePricingController,
   getProductsController,
   getWholesalePriceController,
-} from '../modules/products/product.controller.js'
-import { getPublicProductReviewsController } from '../modules/reviews/review.controller.js'
+} from './product.controller.js'
+import { getPublicProductReviewsController } from '../reviews/review.controller.js'
 import {
   optionalCustomerAuthentication,
   requireCustomerAuthentication,
   requireWholesaleMode,
-} from '../middleware/auth.middleware.js'
+} from '../../middleware/auth.middleware.js'
 
 export const productRoutes = Router()
 

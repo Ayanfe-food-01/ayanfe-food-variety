@@ -16,6 +16,7 @@ import { deductStock } from '../inventory/inventory.service.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
 import { nextOrderNumber, orderInclude, toOrderResponse } from './order.mapper.js'
 import type { OrderWithItems } from './order.mapper.js'
+import { assertItemsAvailable } from './quote-to-order.availability.js'
 
 const QUOTE_CONVERTIBLE_STATUSES: QuoteRequestStatus[] = [QuoteRequestStatus.ACCEPTED, QuoteRequestStatus.QUOTED]
 
@@ -165,26 +166,7 @@ export async function convertQuoteRequestToOrder(
       const productsById = new Map(products.map((product) => [product.id, product]))
       const productOptionsById = new Map(productOptions.map((option) => [option.id, option]))
 
-      const unavailableMessages = current.items.flatMap((item) => {
-        const product = productsById.get(item.productId)
-        if (!product) return [`Product ${item.productId} no longer exists.`]
-        if (!product.isActive || !product.category.isActive) return [`${item.productName} is no longer available.`]
-        if (item.productOptionId) {
-          const option = productOptionsById.get(item.productOptionId)
-          if (!option) return [`${item.productName}: the requested option no longer exists.`]
-          if (option.productId !== item.productId) return [`${item.productName}: the requested option is invalid.`]
-          if (!option.isActive) return [`${item.productName} (${option.label}) is no longer available.`]
-          if (option.stockQuantity < item.quantity) {
-            return [`${item.productName} (${option.label}): only ${option.stockQuantity} unit(s) currently available.`]
-          }
-        } else if (product.stockQuantity < item.quantity) {
-          return [`${item.productName}: only ${product.stockQuantity} unit(s) currently available.`]
-        }
-        return []
-      })
-      if (unavailableMessages.length > 0) {
-        throw new HttpError(409, unavailableMessages.join(' '))
-      }
+      assertItemsAvailable(current.items, productsById, productOptionsById)
 
       const paymentSettings = await transaction.paymentSettings.findUnique({
         where: {
@@ -331,4 +313,3 @@ export async function convertQuoteRequestToOrder(
 
   return { order: toOrderResponse(result.order), created: result.created }
 }
-

@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express'
 import { HttpError } from '../../utils/http.js'
-import { checkoutCustomerCart, getGuestOrderByNumber, getGuestOrderForTracking, getOrderById } from './order.service.js'
+import { checkoutCustomerCart } from './checkout.service.js'
+import { getGuestOrderByNumber, getGuestOrderForTracking, getOrderById } from './customer-order.service.js'
 import { validateCheckoutInput, validateGuestOrderTrackingInput, validateOrderId } from './order.validator.js'
 import { validateOrderNumber } from './order.validator.js'
 

@@ -70,8 +70,9 @@
     background: var(--color-green);
   }
 
-  html { min-height: 100%; scroll-behavior: smooth; scrollbar-gutter: stable; }
+  html { min-height: 100%; scroll-behavior: smooth; scrollbar-gutter: stable; overflow-x: clip; }
   body, #root { min-height: 100%; }
+  body { overflow-x: clip; }
   body { @apply m-0 min-w-[320px] bg-cream text-ink; }
   a { @apply text-inherit no-underline; }
   button { font: inherit; }

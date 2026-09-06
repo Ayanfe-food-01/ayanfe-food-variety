@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { CartIcon, ChevronDownIcon, CloseIcon, HeartIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
@@ -25,18 +25,22 @@ const links = [
   { label: 'Track order', href: '/track-order' },
 ]
 
+let pendingSearchFocus = false
+
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const { isCartDrawerOpen, openCartDrawer, closeCartDrawer } = useMarketUi()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const closeMenuButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const desktopNavRef = useRef<HTMLDivElement>(null)
   const desktopNavMeasureRef = useRef<HTMLDivElement>(null)
+  const headerSearchInputRef = useRef<HTMLInputElement>(null)
   const [desktopNavCount, setDesktopNavCount] = useState(links.length)
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { totalQuantity } = useCart()
   const { user, logout, openAuth } = useCustomerAuth()
   const { count: wishlistCount } = useWishlist()
@@ -131,12 +135,31 @@ export function Navbar() {
     return () => window.removeEventListener('resize', recompute)
   }, [wishlistCount])
 
-  const submitSearch = (event: FormEvent) => {
-    event.preventDefault()
-    const value = search.trim()
-    navigate(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop')
+  const submitSearch = (query: string) => {
+    const trimmed = query.trim()
+    if (pathname === '/shop' || pathname === '/new-arrivals') {
+      const nextParams = new URLSearchParams(searchParams)
+      if (trimmed) nextParams.set('search', trimmed)
+      else nextParams.delete('search')
+      setSearchParams(nextParams, { replace: true })
+    } else {
+      navigate(trimmed ? `/shop?search=${encodeURIComponent(trimmed)}` : '/shop')
+      pendingSearchFocus = true
+    }
     setIsMenuOpen(false)
   }
+
+  useEffect(() => {
+    if (!pendingSearchFocus) return
+    pendingSearchFocus = false
+    const input = headerSearchInputRef.current
+    if (!input) return
+    window.requestAnimationFrame(() => {
+      input.focus()
+      const length = input.value.length
+      input.setSelectionRange(length, length)
+    })
+  }, [])
 
   return (
     <>
@@ -169,11 +192,11 @@ export function Navbar() {
         <ProductSearchAutocomplete
           value={search}
           onChange={setSearch}
-          onSubmit={submitSearch}
+          onSearch={submitSearch}
           onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
           placeholder="Search products, brands and categories"
           ariaLabel="Search products"
-          showSubmitButton
+          inputRef={headerSearchInputRef}
         />
         <div className="store-actions">
           <AccountMenu />
@@ -220,13 +243,14 @@ export function Navbar() {
           className="mobile-search"
           value={search}
           onChange={setSearch}
-          onSubmit={submitSearch}
+          onSearch={submitSearch}
           onSelectProduct={(product) => {
             setIsMenuOpen(false)
             navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)
           }}
           placeholder="Search the store"
           ariaLabel="Search the store"
+          liveSearch={false}
         />
         <ShoppingModeSwitch className="mobile-shopping-mode" />
         <div className="mobile-links">

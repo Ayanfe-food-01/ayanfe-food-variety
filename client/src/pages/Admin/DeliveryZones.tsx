@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton } from '../../components/admin/ActionMenu'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
+import { SearchBar } from '../../components/ui/SearchBar'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
@@ -13,7 +14,6 @@ import {
   getAdminDeliveryLocationStates,
   getAdminDeliveryZone,
   getAdminDeliveryZones,
-  previewAdminDeliveryZoneLabel,
   reorderAdminDeliveryZones,
   type AdminDeliveryLocationState,
   type AdminDeliveryZone,
@@ -96,32 +96,6 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
   const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
-  const [previewLabel, setPreviewLabel] = useState<string | null>(null)
-  const [previewLoading, setPreviewLoading] = useState(false)
-
-  useEffect(() => {
-    const cityIds = cities.map((city) => city.id)
-    const areaIds = areas.map((area) => area.id)
-    let current = true
-    const updatePreview = async () => {
-      if (cityIds.length === 0 && areaIds.length === 0) {
-        setPreviewLabel(null)
-        setPreviewLoading(false)
-        return
-      }
-      setPreviewLoading(true)
-      try {
-        const label = await previewAdminDeliveryZoneLabel({ cityIds, areaIds })
-        if (current) setPreviewLabel(label)
-      } catch {
-        if (current) setPreviewLabel(null)
-      } finally {
-        if (current) setPreviewLoading(false)
-      }
-    }
-    void updatePreview()
-    return () => { current = false }
-  }, [cities, areas])
 
   useEffect(() => {
     const releaseBodyScroll = lockBodyScroll()
@@ -318,9 +292,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
               <div className="space-y-6">
                 <section aria-label="Delivery area">
                   <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Delivery area — places this zone covers ({cities.length + areas.length})</h3>
-                  {cities.length === 0 && areas.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted">No places added yet. Customers in unassigned cities or areas will see a "delivery unavailable" message at checkout.</p>
-                  ) : (
+                  {(cities.length > 0 || areas.length > 0) && (
                     <ul className="mt-3 flex flex-wrap gap-2">
                       {cities.map((city) => (
                         <li className="inline-flex items-center gap-2 rounded-full border border-line bg-sage/30 py-1.5 pl-3 pr-1.5" key={city.id}>
@@ -351,17 +323,11 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                     </ul>
                   )}
 
-                  <div className="mt-4 rounded-2xl border border-dashed border-green/30 bg-sage/20 px-4 py-3">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Zone label preview</span>
-                    <p className="mt-1 text-sm font-bold text-green-dark">
-                      {previewLoading
-                        ? 'Updating…'
-                        : cities.length + areas.length === 0
-                          ? 'No places added yet'
-                          : previewLabel || '—'}
+                  {cities.length + areas.length === 0 && (
+                    <p className="mt-3 rounded-xl border border-dashed border-orange/30 bg-orange/5 px-4 py-3 text-xs leading-5 text-muted">
+                      No places added yet. Add a whole LGA or specific areas above to define this zone's coverage.
                     </p>
-                    <p className="mt-0.5 text-xs leading-5 text-muted">This is exactly how the zone is shown to customers at checkout and in order records when it is saved.</p>
-                  </div>
+                  )}
 
                   <div className="mt-4 rounded-2xl border border-line bg-cream/45 p-4">
                     <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Add places</h3>
@@ -382,7 +348,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
                         City / LGA
                         <SelectField
                           className="mt-2 w-full"
-                          options={[{ value: '', label: 'Select a city' }, ...cityOptions]}
+                          options={cityOptions}
                           onChange={(value) => { setSelectedCityId(value); setSelectedAreaIds([]); setCoverageMode('whole') }}
                           value={selectedCityId}
                           searchable
@@ -516,6 +482,7 @@ function ZoneModal({ mode, zone, isBusy, error, onCancel, onSave }: ZoneModalPro
 export function DeliveryZones() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { showToast } = useToast()
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
   const [result, setResult] = useState<AdminDeliveryZonesPage | null>(null)
   const [query, setQuery] = useState<AdminDeliveryZonesQuery>({
     page: Number(searchParams.get('page') ?? 1),
@@ -562,11 +529,8 @@ export function DeliveryZones() {
     }
   }, [query, setSearchParams])
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const form = event.currentTarget
-    const input = form.elements.namedItem('search') as HTMLInputElement | null
-    setQuery((current) => ({ ...current, search: input?.value.trim() || undefined, page: 1 }))
+  const updateSearch = (value: string) => {
+    setQuery((current) => ({ ...current, search: value.trim() || undefined, page: 1 }))
   }
 
   const openCreate = () => {
@@ -682,12 +646,11 @@ export function DeliveryZones() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Delivery zone filters">
-        <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submitSearch}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 text-xs font-bold text-green-dark">
             Search zones
-            <input className="mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" name="search" defaultValue={query.search ?? ''} placeholder="Search by city, LGA or area" />
+            <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Search by city, LGA or area" />
           </label>
-          <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="submit">Search</button>
           <label className="text-xs font-bold text-green-dark">
             Status
             <SelectField
@@ -701,7 +664,7 @@ export function DeliveryZones() {
               value={query.status ?? ''}
             />
           </label>
-        </form>
+        </div>
       </section>
 
       <p className="mt-5 flex items-center gap-2 text-xs text-muted">

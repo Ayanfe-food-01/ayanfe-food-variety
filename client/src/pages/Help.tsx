@@ -1,16 +1,14 @@
-import { useMemo, useState, type ComponentType, type FormEvent, type MouseEvent } from 'react'
+import { useMemo, useState, type ComponentType, type MouseEvent } from 'react'
 import {
   ArrowUpRight,
   CartIcon,
   ClipboardListIcon,
-  CloseIcon,
   CreditCardIcon,
   HelpIcon,
   LayersIcon,
   MailIcon,
   PhoneIcon,
   RefreshCwIcon,
-  SearchIcon,
   TruckIcon,
   UserIcon,
 } from '../assets/icons'
@@ -20,6 +18,7 @@ import { searchHelpFaqs } from '../components/help/helpSearch'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
+import { SearchBar } from '../components/ui/SearchBar'
 import { useStoreSettings } from '../hooks/useStoreSettings'
 import { Seo } from '../seo/Seo'
 import { getBreadcrumbSchema, HELP_DESCRIPTION, HELP_TITLE } from '../seo/config'
@@ -438,10 +437,6 @@ export function Help() {
 
   const clearSearch = () => setQuery('')
 
-  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-  }
-
   const handleCategoryJump = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
@@ -507,29 +502,13 @@ export function Help() {
 
         <section className="container py-14 sm:py-18 lg:py-24" aria-labelledby="help-topics-heading">
           <div className="mx-auto max-w-2xl">
-            <form className="help-search" role="search" onSubmit={handleSearchSubmit}>
-              <label className="sr-only" htmlFor="help-search-input">
-                Search help questions and answers
-              </label>
-              <div className="help-search-box">
-                <SearchIcon className="help-search-icon" size={20} strokeWidth={2} />
-                <input
-                  className="help-search-input"
-                  id="help-search-input"
-                  type="search"
-                  placeholder="Search for help…"
-                  autoComplete="off"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  aria-controls="help-search-results"
-                />
-                {query.length > 0 && (
-                  <button className="help-search-clear" type="button" onClick={clearSearch} aria-label="Clear search">
-                    <CloseIcon size={14} strokeWidth={2.5} /> Clear
-                  </button>
-                )}
-              </div>
-            </form>
+            <SearchBar
+              value={query}
+              onChange={setQuery}
+              placeholder="Search for help…"
+              ariaLabel="Search help questions and answers"
+              inputProps={{ 'aria-controls': 'help-search-results' }}
+            />
             {isSearching && (
               <p className="help-search-meta" role="status" aria-live="polite">
                 {total === 0

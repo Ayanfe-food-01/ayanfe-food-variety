@@ -17,7 +17,6 @@ import type {
   DeliveryZoneAssignedCity,
   DeliveryZoneDetail,
   DeliveryZoneInput,
-  DeliveryZoneLabelPreviewInput,
 } from './delivery-zone.types.js'
 import { zoneCoverageLabel } from './delivery-zone-label.js'
 
@@ -183,28 +182,6 @@ export async function getAdminDeliveryZone(id: string): Promise<DeliveryZoneDeta
     areas: zone.deliveryZoneAreas.map(({ area }) => toAssignedArea(area)),
   }
   return detail
-}
-
-// Computes the deterministic zone label for an arbitrary set of cities and
-// areas without persisting anything, so the admin zone form can show a live
-// preview of the label the saved zone would get. Same logic as a real zone:
-// whole LGAs plus areas grouped per LGA ("Ketu, Mile 12, Kosofe").
-export async function previewDeliveryZoneLabel(input: DeliveryZoneLabelPreviewInput): Promise<{ label: string }> {
-  const cityIds = [...new Set(input.cityIds)]
-  const areaIds = [...new Set(input.areaIds)]
-  const [cities, areas] = await Promise.all([
-    prisma.city.findMany({ where: { id: { in: cityIds } }, select: { id: true, name: true } }),
-    prisma.area.findMany({
-      where: { id: { in: areaIds } },
-      select: { id: true, name: true, city: { select: { name: true } } },
-    }),
-  ])
-  return {
-    label: zoneCoverageLabel({
-      deliveryZoneCities: cities.map((city) => ({ city: { name: city.name } })),
-      deliveryZoneAreas: areas.map((area) => ({ area: { name: area.name, city: { name: area.city.name } } })),
-    }),
-  }
 }
 
 // Throws the first city that is already assigned to another zone, if any.
@@ -599,8 +576,6 @@ export async function resolveDeliveryZoneByCity(
     minDeliveryDays: true,
     maxDeliveryDays: true,
     isActive: true,
-    deliveryZoneCities: { select: { city: { select: { name: true } } } },
-    deliveryZoneAreas: { select: { area: { select: { name: true, city: { select: { name: true } } } } } },
   } satisfies Prisma.DeliveryZoneSelect
 
   let zone: {
@@ -610,47 +585,61 @@ export async function resolveDeliveryZoneByCity(
     minDeliveryDays: number | null
     maxDeliveryDays: number | null
     isActive: boolean
-    deliveryZoneCities: Array<{ city: { name: string } }>
-    deliveryZoneAreas: Array<{ area: { name: string; city: { name: string } } }>
   } | null = null
+  let label = ''
 
   if (areaId) {
     const area = await prisma.area.findUnique({
       where: { id: areaId },
       select: {
+        name: true,
         isActive: true,
         deliveryZoneArea: { select: { deliveryZone: { select: zoneSelect } } },
         city: {
           select: {
+            name: true,
             deliveryZoneCity: { select: { deliveryZone: { select: zoneSelect } } },
           },
         },
       },
     })
     if (area && area.isActive) {
-      zone = area.deliveryZoneArea?.deliveryZone ?? area.city.deliveryZoneCity?.deliveryZone ?? null
+      const areaZone = area.deliveryZoneArea?.deliveryZone ?? null
+      const cityZone = area.city.deliveryZoneCity?.deliveryZone ?? null
+      zone = areaZone ?? cityZone
+      // The customer picked an area, so surface exactly that place: its own
+      // area when one is mapped, otherwise the whole LGA that serves it.
+      label = areaZone ? `${area.name}, ${area.city.name}` : area.city.name
     }
   } else if (cityId) {
     const match = await prisma.city.findUnique({
       where: { id: cityId },
-      select: { deliveryZoneCity: { select: { deliveryZone: { select: zoneSelect } } } },
+      select: {
+        name: true,
+        deliveryZoneCity: { select: { deliveryZone: { select: zoneSelect } } },
+      },
     })
     zone = match?.deliveryZoneCity?.deliveryZone ?? null
+    if (match && zone) label = match.name
   } else {
     const match = await prisma.city.findFirst({
       where: {
         name: { equals: cityName, mode: 'insensitive' },
         deliveryZoneCity: { isNot: null },
       },
-      select: { deliveryZoneCity: { select: { deliveryZone: { select: zoneSelect } } } },
+      select: {
+        name: true,
+        deliveryZoneCity: { select: { deliveryZone: { select: zoneSelect } } },
+      },
     })
     zone = match?.deliveryZoneCity?.deliveryZone ?? null
+    if (match && zone) label = match.name
   }
 
   if (!zone || !zone.isActive) return null
   return {
     id: zone.id,
-    label: zoneCoverageLabel(zone),
+    label,
     fee: zone.fee.toFixed(2),
     freeDeliveryThreshold: zone.freeDeliveryThreshold?.toFixed(2) ?? null,
     minDeliveryDays: zone.minDeliveryDays,

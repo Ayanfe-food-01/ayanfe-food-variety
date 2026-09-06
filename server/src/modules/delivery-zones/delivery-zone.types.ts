@@ -147,11 +147,6 @@ export interface DeliveryAreaWithCoverage extends DeliveryArea {
   coveredBy: DeliveryAreaCoverage | null
 }
 
-export interface DeliveryZoneLabelPreviewInput {
-  cityIds: string[]
-  areaIds: string[]
-}
-
 export interface DeliveryAreaInput {
   cityId: string
   name: string

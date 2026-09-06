@@ -2,7 +2,6 @@ import { HttpError } from '../../utils/http.js'
 import type {
   DeliveryAreaInput,
   DeliveryZoneInput,
-  DeliveryZoneLabelPreviewInput,
   ReorderDeliveryZonesInput,
 } from './delivery-zone.types.js'
 
@@ -185,14 +184,6 @@ export function validateDeliveryZoneStatusInput(body: unknown): boolean {
     throw new HttpError(400, 'Delivery zone status must be true or false.')
   }
   return booleanValue(body.isActive, 'Delivery zone status', false)
-}
-
-export function validateDeliveryZoneLabelPreviewInput(body: unknown): DeliveryZoneLabelPreviewInput {
-  if (!isRecord(body)) throw new HttpError(400, 'Coverage data is required.')
-  return {
-    cityIds: validateCityIds(body.cityIds ?? []),
-    areaIds: validateAreaIds(body.areaIds),
-  }
 }
 
 export function validateAdminDeliveryZonesQuery(query: Record<string, unknown>) {

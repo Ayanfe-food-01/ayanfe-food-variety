@@ -63,11 +63,11 @@ import { WhatsAppFloatButton } from './components/layout/WhatsAppFloatButton'
 import { scrollToTopInstant } from './utils/browserCompatibility'
 
 function ScrollToTop() {
-  const { pathname, search } = useLocation()
+  const { pathname, hash } = useLocation()
 
   useLayoutEffect(() => {
     scrollToTopInstant()
-  }, [pathname, search])
+  }, [pathname, hash])
 
   return null
 }
@@ -81,7 +81,7 @@ function RouteTransition() {
   const location = useLocation()
   const { settings } = useStoreSettings()
   const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
-  const locationKey = `${location.pathname}${location.search}${location.hash}`
+  const locationKey = `${location.pathname}${location.hash}`
   const previousLocationKey = useRef(locationKey)
   const { isLoading, beginNavigation } = useRouteLoad()
 

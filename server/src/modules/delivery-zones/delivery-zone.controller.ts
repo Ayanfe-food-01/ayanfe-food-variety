@@ -12,7 +12,6 @@ import {
   listCityDeliveryAreas,
   listAdminDeliveryLocationStates,
   listPublicDeliveryLocationStates,
-  previewDeliveryZoneLabel,
   reorderDeliveryZones,
   resolveDeliveryZoneByCity,
   unassignAreaFromZone,
@@ -33,7 +32,6 @@ import {
   validateDeliveryCityName,
   validateDeliveryZoneId,
   validateDeliveryZoneInput,
-  validateDeliveryZoneLabelPreviewInput,
   validateDeliveryZoneStatusInput,
   validateReorderDeliveryZonesInput,
 } from './delivery-zone.validator.js'
@@ -46,13 +44,6 @@ export const listAdminDeliveryZonesController: RequestHandler = async (request, 
   response.json({
     success: true,
     data: await listAdminDeliveryZones(validateAdminDeliveryZonesQuery(request.query as Record<string, unknown>)),
-  })
-}
-
-export const previewDeliveryZoneLabelController: RequestHandler = async (request, response) => {
-  response.json({
-    success: true,
-    data: await previewDeliveryZoneLabel(validateDeliveryZoneLabelPreviewInput(request.body)),
   })
 }
 

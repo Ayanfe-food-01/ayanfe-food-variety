@@ -6,7 +6,7 @@ import {
   getAuthenticatedUser,
   getCustomerSessionToken,
   getSessionToken,
-} from '../modules/auth/auth.service.js'
+} from '../services/auth.service.js'
 import { requireAdminRole } from './auth.middleware.js'
 
 export { requireAdminRole }

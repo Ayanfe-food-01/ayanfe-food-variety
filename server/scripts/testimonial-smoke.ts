@@ -8,14 +8,14 @@ import {
   updateTestimonial,
   updateTestimonialFeatured,
   updateTestimonialStatus,
-} from '../src/modules/testimonials/testimonial.service.js'
+} from '../src/services/testimonial.service.js'
 import {
   validateAdminTestimonialsQuery,
   validateTestimonialFeaturedInput,
   validateTestimonialId,
   validateTestimonialInput,
   validateTestimonialStatusInput,
-} from '../src/modules/testimonials/testimonial.validator.js'
+} from '../src/validators/testimonial.validator.js'
 
 const slug = `testimonial-smoke-${Date.now().toString(36)}`
 

@@ -6,7 +6,7 @@ import {
   getCustomerSessionToken,
   getSessionToken,
   customerAuthCookie,
-} from '../modules/auth/auth.service.js'
+} from '../services/auth.service.js'
 import { UserRole, ShoppingMode } from '@prisma/client'
 
 export const requireAuthentication: RequestHandler = async (request, _response, next) => {

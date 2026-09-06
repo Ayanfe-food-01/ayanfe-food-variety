@@ -6,9 +6,9 @@ import {
   getCustomerQuoteRequest,
   prepareQuotePricing,
   updateAdminQuoteRequestStatus,
-} from '../src/modules/quotes/quote.service.js'
-import { convertQuoteRequestToOrder } from '../src/modules/orders/order.service.js'
-import { hashPassword, loginCustomer } from '../src/modules/auth/auth.service.js'
+} from '../src/services/quote.service.js'
+import { convertQuoteRequestToOrder } from '../src/services/order.service.js'
+import { hashPassword, loginCustomer } from '../src/services/auth.service.js'
 import { HttpError } from '../src/utils/http.js'
 
 const slug = `quote-convert-smoke-${Date.now().toString(36)}`

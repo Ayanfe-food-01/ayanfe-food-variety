@@ -5,9 +5,9 @@ import {
   createQuoteRequest,
   prepareQuotePricing,
   rejectQuoteRequest,
-} from '../src/modules/quotes/quote.service.js'
-import { hashPassword } from '../src/modules/auth/auth.service.js'
-import type { AuthenticatedUser } from '../src/modules/auth/auth.types.js'
+} from '../src/services/quote.service.js'
+import { hashPassword } from '../src/services/auth.service.js'
+import type { AuthenticatedUser } from '../src/types/auth.types.js'
 
 const slug = `quote-notify-smoke-${Date.now().toString(36)}`
 

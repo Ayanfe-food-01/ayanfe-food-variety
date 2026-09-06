@@ -5,9 +5,9 @@ import {
   getAdminQuoteRequest,
   prepareQuotePricing,
   updateAdminQuoteRequestStatus,
-} from '../src/modules/quotes/quote.service.js'
-import { login } from '../src/modules/auth/auth.service.js'
-import { validatePrepareQuotePricingInput } from '../src/modules/quotes/quote.validator.js'
+} from '../src/services/quote.service.js'
+import { login } from '../src/services/auth.service.js'
+import { validatePrepareQuotePricingInput } from '../src/validators/quote.validator.js'
 import { HttpError } from '../src/utils/http.js'
 
 const slug = `quote-price-smoke-${Date.now().toString(36)}`

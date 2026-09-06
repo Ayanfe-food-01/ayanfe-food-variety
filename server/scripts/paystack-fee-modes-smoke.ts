@@ -94,10 +94,10 @@ const assert = (cond: boolean, msg: string): void => { if (!cond) throw new Erro
 
 const main = async () => {
   const { app } = await import('../src/app.js')
-  const { checkoutCustomerCart } = await import('../src/modules/orders/order.service.js')
-  const { initializeOrderPayment, verifyOrderPayment } = await import('../src/modules/payments/payment.gateway.js')
-  const { reconcilePaymentFromWebhook } = await import('../src/modules/payments/payment.gateway.js')
-  const { computePaystackWebhookSignature } = await import('../src/modules/payments/payment.webhook.js')
+  const { checkoutCustomerCart } = await import('../src/services/order.service.js')
+  const { initializeOrderPayment, verifyOrderPayment } = await import('../src/lib/payment.gateway.js')
+  const { reconcilePaymentFromWebhook } = await import('../src/lib/payment.gateway.js')
+  const { computePaystackWebhookSignature } = await import('../src/routes/payment.webhook.js')
 
   const server = await new Promise<import('http').Server>((resolve) => {
     const s = app.listen(0, '127.0.0.1', () => resolve(s))

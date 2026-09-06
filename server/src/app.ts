@@ -6,7 +6,7 @@ import { errorMiddleware } from './middleware/error.middleware.js'
 import { notFoundMiddleware } from './middleware/notFound.middleware.js'
 import { requestLogger } from './middleware/requestLogger.js'
 import { apiRoutes } from './routes/index.js'
-import { paymentWebhookRouter } from './modules/payments/payment.webhook.js'
+import { paymentWebhookRouter } from './routes/payment.webhook.js'
 import { HttpError } from './utils/http.js'
 import { normalizeOrigin } from './config/env.js'
 

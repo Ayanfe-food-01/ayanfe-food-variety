@@ -1,13 +1,13 @@
 import { AdminNotificationType, FulfillmentMethod, UserRole } from '@prisma/client'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   acceptQuoteRequest,
   createQuoteRequest,
   prepareQuotePricing,
   rejectQuoteRequest,
-} from '../src/services/quote.service.js'
-import { hashPassword } from '../src/services/auth.service.js'
-import type { AuthenticatedUser } from '../src/types/auth.types.js'
+} from '../src/modules/quotes/quote.service.js'
+import { hashPassword } from '../src/modules/auth/auth.service.js'
+import type { AuthenticatedUser } from '../src/modules/auth/auth.types.js'
 
 const slug = `quote-notify-smoke-${Date.now().toString(36)}`
 

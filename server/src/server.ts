@@ -1,6 +1,6 @@
 import { app } from './app.js'
 import { env } from './config/env.js'
-import { closeDatabase, verifyDatabaseConnection } from './lib/prisma.js'
+import { closeDatabase, verifyDatabaseConnection } from './config/prisma.js'
 
 const start = async () => {
   await verifyDatabaseConnection()

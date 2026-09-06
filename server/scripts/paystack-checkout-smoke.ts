@@ -4,10 +4,10 @@
 // Transient rows are cleaned up at the end.
 import { PaymentMethod, type Payment } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
-import { prisma } from '../src/lib/prisma.js'
-import { initializeOrderPayment } from '../src/lib/payment.gateway.js'
-import { checkoutCustomerCart } from '../src/services/order.service.js'
-import { getPublicStoreSettings } from '../src/services/settings.service.js'
+import { prisma } from '../src/config/prisma.js'
+import { initializeOrderPayment } from '../src/modules/payments/payment.gateway.js'
+import { checkoutCustomerCart } from '../src/modules/orders/order.service.js'
+import { getPublicStoreSettings } from '../src/modules/settings/settings.service.js'
 import { HttpError } from '../src/utils/http.js'
 
 const prefix = 'test-paystack'

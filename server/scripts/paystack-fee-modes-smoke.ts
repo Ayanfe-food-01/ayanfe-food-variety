@@ -19,7 +19,7 @@
 import { PaymentMethod, Prisma, type Order } from '@prisma/client'
 import { createHmac, randomUUID } from 'node:crypto'
 import { env } from '../src/config/env.js'
-import { prisma } from '../src/lib/prisma.js'
+import { prisma } from '../src/config/prisma.js'
 
 const WEBHOOK_SECRET = 'smoke-fee-modes-secret-00000000000000000000000000000000'
 env.payments.paystack.webhookSecret = WEBHOOK_SECRET
@@ -94,10 +94,10 @@ const assert = (cond: boolean, msg: string): void => { if (!cond) throw new Erro
 
 const main = async () => {
   const { app } = await import('../src/app.js')
-  const { checkoutCustomerCart } = await import('../src/services/order.service.js')
-  const { initializeOrderPayment, verifyOrderPayment } = await import('../src/lib/payment.gateway.js')
-  const { reconcilePaymentFromWebhook } = await import('../src/lib/payment.gateway.js')
-  const { computePaystackWebhookSignature } = await import('../src/routes/payment.webhook.js')
+  const { checkoutCustomerCart } = await import('../src/modules/orders/order.service.js')
+  const { initializeOrderPayment, verifyOrderPayment } = await import('../src/modules/payments/payment.gateway.js')
+  const { reconcilePaymentFromWebhook } = await import('../src/modules/payments/payment.gateway.js')
+  const { computePaystackWebhookSignature } = await import('../src/modules/payments/payment.webhook.js')
 
   const server = await new Promise<import('http').Server>((resolve) => {
     const s = app.listen(0, '127.0.0.1', () => resolve(s))

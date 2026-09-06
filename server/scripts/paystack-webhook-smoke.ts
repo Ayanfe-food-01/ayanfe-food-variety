@@ -9,7 +9,7 @@
 import { PaymentMethod, Prisma, type Order } from '@prisma/client'
 import { createHmac, randomUUID } from 'node:crypto'
 import { env } from '../src/config/env.js'
-import { prisma } from '../src/lib/prisma.js'
+import { prisma } from '../src/config/prisma.js'
 
 // Override the webhook secret so signature verification is testable.
 const WEBHOOK_SECRET = 'smoke-test-webhook-secret-00000000000000000000000000000000'
@@ -68,9 +68,9 @@ const run = async (label: string, step: () => Promise<void>): Promise<void> => {
 const main = async () => {
   // Dynamic imports so env override is in effect when modules evaluate.
   const { app } = await import('../src/app.js')
-  const { checkoutCustomerCart } = await import('../src/services/order.service.js')
-  const { initializeOrderPayment } = await import('../src/lib/payment.gateway.js')
-  const { computePaystackWebhookSignature } = await import('../src/routes/payment.webhook.js')
+  const { checkoutCustomerCart } = await import('../src/modules/orders/order.service.js')
+  const { initializeOrderPayment } = await import('../src/modules/payments/payment.gateway.js')
+  const { computePaystackWebhookSignature } = await import('../src/modules/payments/payment.webhook.js')
 
   const server = await new Promise<import('http').Server>((resolve) => {
     const s = app.listen(0, '127.0.0.1', () => resolve(s))
@@ -248,7 +248,7 @@ const main = async () => {
 
   await run('provider failed marks attempt FAILED', async () => {
     setVerifySuccess({ reference: failInit.providerReference, status: 'failed', amount: nairaToKobo(failOrder.total.toString()) })
-    const { verifyOrderPayment } = await import('../src/lib/payment.gateway.js')
+    const { verifyOrderPayment } = await import('../src/modules/payments/payment.gateway.js')
     const result = await verifyOrderPayment({ orderId: failOrder.id, guestAccessToken: failToken })
     if (result.status !== 'FAILED') throw new Error('should be FAILED')
     const payment = await prisma.payment.findFirst({ where: { orderId: failOrder.id } })

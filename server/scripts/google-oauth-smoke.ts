@@ -1,7 +1,7 @@
 import { AuthProvider, UserRole } from '@prisma/client'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
-import { loginWithGoogleIdentity } from '../src/services/auth.service.js'
-import type { GoogleIdentity } from '../src/lib/auth.google.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
+import { loginWithGoogleIdentity } from '../src/modules/auth/auth.service.js'
+import type { GoogleIdentity } from '../src/modules/auth/auth.google.js'
 import { HttpError } from '../src/utils/http.js'
 
 const slug = `google-smoke-${Date.now().toString(36)}`

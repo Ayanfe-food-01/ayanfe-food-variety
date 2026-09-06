@@ -1,5 +1,5 @@
 import { QuoteRequestStatus, UserRole } from '@prisma/client'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   acceptQuoteRequest,
   getAdminQuoteRequest,
@@ -8,9 +8,9 @@ import {
   rejectQuoteRequest,
   createQuoteRequest,
   prepareQuotePricing,
-} from '../src/services/quote.service.js'
-import { hashPassword, loginCustomer } from '../src/services/auth.service.js'
-import type { AuthenticatedUser } from '../src/types/auth.types.js'
+} from '../src/modules/quotes/quote.service.js'
+import { hashPassword, loginCustomer } from '../src/modules/auth/auth.service.js'
+import type { AuthenticatedUser } from '../src/modules/auth/auth.types.js'
 import { HttpError } from '../src/utils/http.js'
 
 const slug = `quote-customer-smoke-${Date.now().toString(36)}`

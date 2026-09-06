@@ -1,4 +1,4 @@
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { HttpError } from '../src/utils/http.js'
 import {
   createTestimonial,
@@ -8,14 +8,14 @@ import {
   updateTestimonial,
   updateTestimonialFeatured,
   updateTestimonialStatus,
-} from '../src/services/testimonial.service.js'
+} from '../src/modules/testimonials/testimonial.service.js'
 import {
   validateAdminTestimonialsQuery,
   validateTestimonialFeaturedInput,
   validateTestimonialId,
   validateTestimonialInput,
   validateTestimonialStatusInput,
-} from '../src/validators/testimonial.validator.js'
+} from '../src/modules/testimonials/testimonial.validator.js'
 
 const slug = `testimonial-smoke-${Date.now().toString(36)}`
 

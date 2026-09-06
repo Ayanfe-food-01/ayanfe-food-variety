@@ -16,21 +16,21 @@
  */
 
 import { Prisma } from '@prisma/client'
-import { prisma } from '../src/lib/prisma.js'
+import { prisma } from '../src/config/prisma.js'
 import { HttpError } from '../src/utils/http.js'
 import {
   validateDeliveryZoneInput,
-} from '../src/validators/delivery-zone.validator.js'
+} from '../src/modules/delivery-zones/delivery-zone.validator.js'
 import {
   createDeliveryZone,
   updateDeliveryZone,
   resolveDeliveryZoneByCity,
   getAdminDeliveryZone,
   deleteDeliveryZone,
-} from '../src/services/delivery-zone.service.js'
+} from '../src/modules/delivery-zones/delivery-zone.service.js'
 import { PaymentMethod, ShoppingMode, UserRole } from '@prisma/client'
-import { addCustomerCartItem, clearCustomerCart } from '../src/services/cart.service.js'
-import { checkoutCustomerCart } from '../src/services/order.service.js'
+import { addCustomerCartItem, clearCustomerCart } from '../src/modules/cart/cart.service.js'
+import { checkoutCustomerCart } from '../src/modules/orders/order.service.js'
 
 let passed = 0
 let failed = 0

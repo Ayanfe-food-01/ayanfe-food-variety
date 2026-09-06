@@ -1,4 +1,4 @@
-import { createInitialAdmin } from '../../src/services/auth.service.js'
+import { createInitialAdmin } from '../../src/modules/auth/auth.service.js'
 
 const name = (process.env.ADMIN_INITIAL_NAME ?? 'Ayanfe Food Variety Admin').trim()
 const email = (process.env.ADMIN_EMAIL ?? process.env.ADMIN_INITIAL_EMAIL)?.trim().toLowerCase()

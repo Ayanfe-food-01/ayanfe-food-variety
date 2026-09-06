@@ -11,11 +11,11 @@ import {
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { ConvertQuoteToOrderInput, OrderResponse } from './order.types.js'
-import { notifyOrderCreated } from './order.email.js'
 import { deductStock } from '../inventory/inventory.service.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
 import { nextOrderNumber, orderInclude, toOrderResponse } from './order.mapper.js'
 import type { OrderWithItems } from './order.mapper.js'
+import { sendQuoteConversionConfirmation } from './quote-to-order.notify.js'
 import { assertItemsAvailable } from './quote-to-order.availability.js'
 
 const QUOTE_CONVERTIBLE_STATUSES: QuoteRequestStatus[] = [QuoteRequestStatus.ACCEPTED, QuoteRequestStatus.QUOTED]
@@ -285,30 +285,9 @@ export async function convertQuoteRequestToOrder(
   }
 
   if (result.created) {
-    void notifyOrderCreated({
-      orderNumber: result.order.orderNumber,
-      customerName: result.order.customerName,
-      customerEmail: result.order.email,
-      phone: result.order.phone,
-      fulfillmentMethod: result.order.fulfillmentMethod,
-      deliveryAddress: result.order.deliveryAddress,
-      city: result.order.city,
-      note: result.order.note,
-      subtotal: result.order.subtotal.toString(),
-      deliveryFee: result.order.deliveryFee.toString(),
-      total: result.order.total.toString(),
-      paymentMethod: result.order.paymentMethod,
-      paymentStatus: result.order.paymentStatus,
-      orderStatus: result.order.orderStatus,
-      createdAt: result.order.createdAt.toISOString(),
-      items: result.order.orderItems.map((item) => ({
-        name: item.productName,
-        optionLabel: item.productOptionLabel,
-        unitPrice: item.unitPrice.toString(),
-        quantity: item.quantity,
-        subtotal: item.subtotal.toString(),
-      })),
-    }).catch((error: unknown) => console.error('Order confirmation email failed', error))
+    void sendQuoteConversionConfirmation(result.order).catch(
+      (error: unknown) => console.error('Order confirmation email failed', error),
+    )
   }
 
   return { order: toOrderResponse(result.order), created: result.created }

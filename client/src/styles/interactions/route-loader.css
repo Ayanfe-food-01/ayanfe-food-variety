@@ -1,4 +1,5 @@
 @keyframes route-loader-spin {
+  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 @keyframes route-loader-logo-breathe {
@@ -61,7 +62,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-loader, .route-loader-mark, .route-loader-ring { animation: none; }
+  .route-loader, .route-loader-mark { animation: none; }
   .route-loader-mark img { animation: none; }
   .route-content { animation: none; }
+  /* The ring is an essential progress indicator (not decorative), so it must
+     keep rotating even when reduced motion is requested. It only runs slower
+     to stay comfortable for users who prefer less motion. */
+  .route-loader-ring { animation: route-loader-spin 1400ms linear infinite; }
 }

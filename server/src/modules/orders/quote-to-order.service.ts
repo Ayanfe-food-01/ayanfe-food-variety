@@ -1,40 +1,30 @@
 import {
-  AdminNotificationType,
   FulfillmentMethod,
-  OrderStatus,
   PaymentMethod,
   PaymentStatus,
   Prisma,
   QuoteRequestStatus,
-  ShoppingMode,
 } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { ConvertQuoteToOrderInput, OrderResponse } from './order.types.js'
-import { deductStock } from '../inventory/inventory.service.js'
-import { createAdminNotification } from '../notifications/notification.service.js'
-import { nextOrderNumber, orderInclude, toOrderResponse } from './order.mapper.js'
+import { orderInclude, toOrderResponse } from './order.mapper.js'
 import type { OrderWithItems } from './order.mapper.js'
-import { sendQuoteConversionConfirmation } from './quote-to-order.notify.js'
 import { assertItemsAvailable } from './quote-to-order.availability.js'
+import { sendQuoteConversionConfirmation } from './quote-to-order.notify.js'
+import { deriveOrderFinances } from './quote-to-order.pricing.js'
+import type { QuoteSnapshot } from './quote-to-order.pricing.js'
+import { createConvertedOrder } from './quote-to-order.create.js'
 
 const QUOTE_CONVERTIBLE_STATUSES: QuoteRequestStatus[] = [QuoteRequestStatus.ACCEPTED, QuoteRequestStatus.QUOTED]
 
-/**
- * Converts an accepted (or standing) quotation into a normal customer order,
- * atomically and idempotently.
- *
- * The quotation snapshot is the single source of truth: order content, unit
- * prices, subtotal and delivery fee all come from the stored quotation, never
- * from the request body or today's catalog prices. The quote row is locked for
- * the duration so racing submissions serialize; a repeated or concurrent
- * conversion simply returns the already-created order. Once converted the
- * quotation is marked COMPLETED and linked to the order in both directions,
- * and stock is deducted through the same inventory path used by checkout.
- *
- * Nothing is produced unless the whole transaction succeeds: an unavailable or
- * out-of-stock item aborts the conversion and leaves the quotation unchanged.
- */
+// The quotation snapshot is the single source of truth: order content, unit
+// prices, subtotal and delivery fee all come from the stored quotation, never
+// from the request body or today's catalog prices. The quote row is locked for
+// the duration so racing submissions serialize; a repeated or concurrent
+// conversion simply returns the already-created order. Nothing is produced
+// unless the whole transaction succeeds: an unavailable or out-of-stock item
+// aborts the conversion and leaves the quotation unchanged.
 export async function convertQuoteRequestToOrder(
   userId: string,
   reference: string,
@@ -95,45 +85,12 @@ export async function convertQuoteRequestToOrder(
         throw new HttpError(409, message)
       }
 
-      if (current.quotedAt === null || current.quotedSubtotal === null || current.quotedTotal === null || current.items.length === 0) {
-        throw new HttpError(409, 'The quotation is not complete.')
-      }
-      if (current.items.some((item) => item.quotedUnitPrice === null)) {
-        throw new HttpError(409, 'The quotation is missing a quoted price for one or more items.')
-      }
-
       const fulfillmentMethod = current.fulfillmentMethod ?? FulfillmentMethod.PICKUP
       if (fulfillmentMethod === FulfillmentMethod.DELIVERY && (!input.deliveryAddress || !input.city)) {
         throw new HttpError(400, 'A delivery address and city are required for delivery orders.')
       }
 
-      // Order finances are re-derived from the stored quotation prices only.
-      const orderItems = current.items.map((item) => {
-        const unitPrice = item.quotedUnitPrice!
-        return {
-          productId: item.productId,
-          productName: item.productName,
-          productOptionId: item.productOptionId,
-          productOptionLabel: item.productOptionLabel,
-          unitPrice,
-          quantity: item.quantity,
-          subtotal: unitPrice.mul(item.quantity),
-          deliveryFee: new Prisma.Decimal(0),
-        }
-      })
-      const subtotal = orderItems.reduce(
-        (running, item) => running.add(item.subtotal),
-        new Prisma.Decimal(0),
-      )
-      const deliveryFee = fulfillmentMethod === FulfillmentMethod.PICKUP
-        ? new Prisma.Decimal(0)
-        : (current.deliveryFee ?? new Prisma.Decimal(0))
-      const total = subtotal.add(deliveryFee)
-
-      // The stored snapshot is authoritative; any mismatch is data corruption.
-      if (!subtotal.equals(current.quotedSubtotal) || !total.equals(current.quotedTotal)) {
-        throw new HttpError(409, 'The quotation totals could not be verified. Please contact the store to correct this.')
-      }
+      const finances = deriveOrderFinances(current as QuoteSnapshot, fulfillmentMethod)
 
       // Availability mirrors the checkout validation for friendly messages;
       // deductStock below performs the authoritative, locked deduction.
@@ -180,85 +137,14 @@ export async function convertQuoteRequestToOrder(
         throw new HttpError(400, 'The payment method is unavailable.')
       }
 
-      const order = await transaction.order.create({
-        data: {
-          orderNumber: await nextOrderNumber(transaction),
-          userId,
-          quoteRequestId: current.id,
-          customerName: current.customerName,
-          phone: current.customerPhone,
-          email: user.email,
-          whatsapp: input.whatsapp ?? null,
-          fulfillmentMethod,
-          shoppingMode: current.shoppingMode ?? ShoppingMode.RETAIL,
-          deliveryAddress: fulfillmentMethod === FulfillmentMethod.DELIVERY ? input.deliveryAddress!.trim() : '',
-          city: fulfillmentMethod === FulfillmentMethod.DELIVERY ? input.city!.trim() : '',
-          note: input.deliveryInstructions ?? null,
-          subtotal,
-          deliveryFee,
-          total,
-          paymentMethod: PaymentMethod.BANK_TRANSFER,
-          paymentStatus: PaymentStatus.PENDING,
-          orderStatus: OrderStatus.ORDER_PLACED,
-          orderItems: { create: orderItems },
-          statusHistory: {
-            create: {
-              previousStatus: null,
-              newStatus: OrderStatus.ORDER_PLACED,
-              changedBy: userId,
-            },
-          },
-          paymentSnapshot: {
-            create: {
-              paymentMethod: paymentSettings.paymentMethod,
-              bankName: paymentSettings.bankName,
-              accountName: paymentSettings.accountName,
-              accountNumber: paymentSettings.accountNumber,
-              instructions: paymentSettings.instructions,
-            },
-          },
-        },
-        include: orderInclude,
-      })
-
-      for (const item of [...current.items].sort((left, right) => left.productId.localeCompare(right.productId))) {
-        try {
-          await deductStock(transaction, {
-            productId: item.productId,
-            productOptionId: item.productOptionId ?? null,
-            quantity: item.quantity,
-            orderId: order.id,
-            orderNumber: order.orderNumber,
-          })
-        } catch (error: unknown) {
-          if (error instanceof HttpError && (error.statusCode === 404 || error.statusCode === 409)) {
-            throw new HttpError(error.statusCode, `${item.productName}: ${error.message}`)
-          }
-          throw error
-        }
-      }
-      await transaction.order.update({
-        where: { id: order.id },
-        data: { stockDeductedAt: new Date() },
-      })
-
-      // Completes the quotation and links it to the order. Converting a quote
-      // that was never explicitly accepted records the acceptance implicitly.
-      await transaction.quoteRequest.update({
-        where: { id: current.id },
-        data: {
-          status: QuoteRequestStatus.COMPLETED,
-          convertedOrderId: order.id,
-          ...(current.status === QuoteRequestStatus.QUOTED ? { acceptedAt: new Date() } : {}),
-        },
-      })
-
-      await createAdminNotification(transaction, {
-        type: AdminNotificationType.NEW_ORDER,
-        eventKey: `new-order:${order.id}`,
-        title: 'New order placed from a quotation',
-        message: `${order.customerName} converted quotation ${current.quoteNumber} into order ${order.orderNumber}.`,
-        href: `/admin/orders/${order.orderNumber}`,
+      const order = await createConvertedOrder(transaction, {
+        userId,
+        user: { email: user.email },
+        current: current as QuoteSnapshot,
+        input,
+        fulfillmentMethod,
+        finances,
+        paymentSettings,
       })
 
       return { order, created: true }

@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express'
-import { createQuoteRequest } from './quote.service.js'
+import { createQuoteRequest } from './quote-create.service.js'
 import { validateCreateQuoteRequestInput } from './quote.validator.js'
 
 export const createQuoteRequestController: RequestHandler = async (request, response) => {

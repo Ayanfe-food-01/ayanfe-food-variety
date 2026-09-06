@@ -10,7 +10,7 @@ import {
   updateProductFeatured,
   updateProductStatus,
   validateProductCategory,
-} from './product.service.js'
+} from './admin-product.service.js'
 import {
   validateAdminProductId,
   validateAdminProductsQuery,

@@ -1,12 +1,12 @@
 import type { RequestHandler } from 'express'
 import { HttpError } from '../../utils/http.js'
 import {
-  getAuthenticatedCustomer,
   getAuthenticatedUser,
   getCustomerSessionToken,
   getSessionToken,
   customerAuthCookie,
 } from './auth.service.js'
+import { getAuthenticatedCustomer } from './customer-auth.service.js'
 import { UserRole, ShoppingMode } from '@prisma/client'
 
 export const requireAuthentication: RequestHandler = async (request, _response, next) => {

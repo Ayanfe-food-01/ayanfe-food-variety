@@ -4,7 +4,7 @@ import {
   getCustomerQuoteRequest,
   listCustomerQuoteRequests,
   rejectQuoteRequest,
-} from './quote.service.js'
+} from './customer-quote.service.js'
 import {
   validateQuoteNumber,
   validateRejectQuoteRequestInput,

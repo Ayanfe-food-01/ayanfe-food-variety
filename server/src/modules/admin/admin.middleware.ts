@@ -2,11 +2,11 @@ import type { RequestHandler } from 'express'
 import { UserRole } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
 import {
-  getAuthenticatedCustomer,
   getAuthenticatedUser,
   getCustomerSessionToken,
   getSessionToken,
 } from '../auth/auth.service.js'
+import { getAuthenticatedCustomer } from '../auth/customer-auth.service.js'
 import { requireAdminRole } from '../auth/auth.middleware.js'
 
 export { requireAdminRole }

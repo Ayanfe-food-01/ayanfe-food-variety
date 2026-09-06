@@ -1,38 +1,12 @@
-import { FulfillmentMethod, OrderStatus, PaymentStatus, Prisma, ShoppingMode } from '@prisma/client'
+import { PaymentStatus, OrderStatus, Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
-import type { AdminOrderListItem, AdminOrdersPage, AdminOrdersQuery, UpdateOrderStatusInput } from './admin.types.js'
-import { notifyOrderStatusChanged } from '../orders/order.email.js'
-import { restoreStock } from '../inventory/inventory.service.js'
+import type { AdminOrdersPage, AdminOrdersQuery } from './admin.types.js'
 import { getAdminOrder } from './admin-order.detail.service.js'
+import { toOrderListItem } from './admin-order.mapper.js'
 
 export { getAdminOrder } from './admin-order.detail.service.js'
-
-const toOrderListItem = (order: {
-  orderNumber: string
-  customerName: string
-  email: string | null
-  phone: string
-  fulfillmentMethod: FulfillmentMethod
-  shoppingMode: ShoppingMode
-  total: Prisma.Decimal
-  paymentStatus: PaymentStatus
-  orderStatus: OrderStatus
-  archivedAt: Date | null
-  createdAt: Date
-}): AdminOrderListItem => ({
-  orderNumber: order.orderNumber,
-  customerName: order.customerName,
-  email: order.email,
-  phone: order.phone,
-  fulfillmentMethod: order.fulfillmentMethod,
-  shoppingMode: order.shoppingMode,
-  total: order.total.toString(),
-  paymentStatus: order.paymentStatus,
-  orderStatus: order.orderStatus,
-  archivedAt: order.archivedAt?.toISOString() ?? null,
-  createdAt: order.createdAt.toISOString(),
-})
+export { updateAdminOrderStatus } from './admin-order.status.service.js'
 
 export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrdersPage> {
   const search = query.search
@@ -59,19 +33,19 @@ export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrd
       orderBy: { createdAt: query.sort === 'oldest' ? 'asc' : 'desc' },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
-    select: {
-      orderNumber: true,
-      customerName: true,
-      email: true,
-      phone: true,
-      fulfillmentMethod: true,
-      shoppingMode: true,
-      total: true,
-      paymentStatus: true,
-      orderStatus: true,
-       archivedAt: true,
-      createdAt: true,
-    },
+      select: {
+        orderNumber: true,
+        customerName: true,
+        email: true,
+        phone: true,
+        fulfillmentMethod: true,
+        shoppingMode: true,
+        total: true,
+        paymentStatus: true,
+        orderStatus: true,
+        archivedAt: true,
+        createdAt: true,
+      },
     }),
   ])
   return {
@@ -83,119 +57,6 @@ export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrd
       totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
     },
   }
-}
-
-const allowedTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
-  [OrderStatus.ORDER_PLACED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-  [OrderStatus.PROCESSING]: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
-  [OrderStatus.OUT_FOR_DELIVERY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
-  [OrderStatus.DELIVERED]: [],
-  [OrderStatus.CANCELLED]: [],
-}
-
-const fulfillmentStatusesRequiringPayment = new Set<OrderStatus>([
-  OrderStatus.PROCESSING,
-  OrderStatus.OUT_FOR_DELIVERY,
-  OrderStatus.DELIVERED,
-])
-
-export async function updateAdminOrderStatus(orderNumber: string, input: UpdateOrderStatusInput, adminId: string) {
-  const updated = await prisma.$transaction(async (transaction) => {
-    const existing = await transaction.order.findUnique({
-      where: { orderNumber },
-      include: {
-        orderItems: { select: { productId: true, productOptionId: true, quantity: true } },
-      },
-    })
-    if (!existing) throw new HttpError(404, 'Order not found.')
-    if (existing.orderStatus === input.orderStatus) {
-      if (
-        input.orderStatus === OrderStatus.CANCELLED &&
-        existing.stockDeductedAt &&
-        !existing.stockRestoredAt
-      ) {
-        const restoreClaim = await transaction.order.updateMany({
-          where: { id: existing.id, orderStatus: OrderStatus.CANCELLED, stockRestoredAt: null },
-          data: { stockRestoredAt: new Date() },
-        })
-        if (restoreClaim.count !== 1) return existing
-        for (const item of existing.orderItems) {
-          await restoreStock(transaction, {
-            productId: item.productId,
-            productOptionId: item.productOptionId ?? null,
-            quantity: item.quantity,
-            orderId: existing.id,
-            orderNumber: existing.orderNumber,
-          })
-        }
-        return transaction.order.findUniqueOrThrow({ where: { id: existing.id } })
-      }
-      return existing
-    }
-    if (!allowedTransitions[existing.orderStatus].includes(input.orderStatus)) {
-      throw new HttpError(409, `Order status cannot change from ${existing.orderStatus} to ${input.orderStatus}.`)
-    }
-    if (fulfillmentStatusesRequiringPayment.has(input.orderStatus) && existing.paymentStatus !== PaymentStatus.PAID) {
-      throw new HttpError(409, 'Payment must be confirmed before the order can move through fulfilment.')
-    }
-
-    const orderUpdate = await transaction.order.updateMany({
-      where: { id: existing.id, orderStatus: existing.orderStatus },
-      data: {
-        orderStatus: input.orderStatus,
-        ...(input.orderStatus === OrderStatus.CANCELLED
-          ? {
-              cancellationReason: input.note ?? existing.cancellationReason,
-              cancelledAt: existing.cancelledAt ?? new Date(),
-            }
-          : {}),
-        ...(input.orderStatus === OrderStatus.CANCELLED && existing.stockDeductedAt && !existing.stockRestoredAt
-          ? { stockRestoredAt: new Date() }
-          : {}),
-      },
-    })
-    if (orderUpdate.count !== 1) {
-      throw new HttpError(409, 'The order changed while it was being updated. Please try again.')
-    }
-
-    const order = await transaction.order.findUniqueOrThrow({ where: { id: existing.id } })
-    await transaction.orderStatusHistory.create({
-      data: {
-        orderId: order.id,
-        previousStatus: existing.orderStatus,
-        newStatus: input.orderStatus,
-        changedBy: adminId,
-        note: input.note ?? null,
-      },
-    })
-
-    if (input.orderStatus === OrderStatus.CANCELLED && existing.stockDeductedAt && !existing.stockRestoredAt) {
-      for (const item of existing.orderItems) {
-        await restoreStock(transaction, {
-          productId: item.productId,
-          productOptionId: item.productOptionId ?? null,
-          quantity: item.quantity,
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-        })
-      }
-    }
-
-    return {
-      ...order,
-      customerName: existing.customerName,
-      email: existing.email,
-    }
-  }, { timeout: 30000 })
-
-  void notifyOrderStatusChanged({
-    orderNumber: updated.orderNumber,
-    customerName: updated.customerName,
-    customerEmail: updated.email,
-    orderStatus: updated.orderStatus,
-  }).catch((error: unknown) => console.error('Order status email failed', error))
-
-  return getAdminOrder(orderNumber)
 }
 
 export async function archiveAdminOrder(orderNumber: string, adminId: string) {

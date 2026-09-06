@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { CartIcon, ChevronDownIcon, CloseIcon, HeartIcon, MenuIcon } from '../../assets/icons'
+import { CartIcon, ChevronDownIcon, CloseIcon, MenuIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
@@ -108,9 +108,12 @@ export function Navbar() {
       const moreTriggerWidth = host.querySelector<HTMLElement>('.more-nav-trigger')?.getBoundingClientRect().width ?? 64
       const available = host.clientWidth
 
+      // Both states leave two fixed trailing items: collapsed -> More trigger +
+      // shopping mode (the wishlist folds into the More dropdown); expanded ->
+      // wishlist + shopping mode.
       const countThatFit = (withMore: boolean) => {
-        const trailingItems = withMore ? 3 : 2
-        const chrome = (withMore ? moreTriggerWidth : 0) + wishlistWidth + shoppingWidth
+        const trailingItems = 2
+        const chrome = (withMore ? moreTriggerWidth : wishlistWidth) + shoppingWidth
         let used = chrome + gap * trailingItems
         let count = 0
         for (const width of linkWidths) {
@@ -133,7 +136,7 @@ export function Navbar() {
     recompute()
     window.addEventListener('resize', recompute)
     return () => window.removeEventListener('resize', recompute)
-  }, [wishlistCount])
+  }, [wishlistCount, desktopNavCount])
 
   const submitSearch = (query: string) => {
     const trimmed = query.trim()
@@ -223,10 +226,13 @@ export function Navbar() {
                 {links.slice(desktopNavCount).map((link) => (
                   <Link to={link.href} role="menuitem" key={link.href}>{link.label}</Link>
                 ))}
+                <Link className="wishlist-nav-link" to="/wishlist" role="menuitem" aria-label={`Wishlist with ${wishlistCount} saved items`}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
               </div>
             </div>
           )}
-          <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}><HeartIcon size={15} /> Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+          {desktopNavCount >= links.length && (
+            <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+          )}
           <ShoppingModeSwitch className="desktop-shopping-mode" />
         </div>
         {/* Off-screen measurement host used to size the primary nav links against available space. */}

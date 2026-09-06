@@ -10,7 +10,8 @@ import {
   validatePaymentVerifyInput,
   validateSubmitPaymentInput,
 } from './payment.validator.js'
-import { initializeOrderPayment, verifyOrderPayment } from './payment.gateway.js'
+import { initializeOrderPayment } from './payment.gateway.js'
+import { verifyOrderPayment } from './payment.verify.js'
 import type { PaymentInitInput } from './payment.validator.js'
 
 const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])

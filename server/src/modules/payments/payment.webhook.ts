@@ -5,7 +5,7 @@ import type { RequestHandler } from 'express'
 import { env } from '../../config/env.js'
 import { JSON_BODY_LIMIT } from '../../constants/index.js'
 import { HttpError } from '../../utils/http.js'
-import { reconcilePaymentFromWebhook } from './payment.gateway.js'
+import { reconcilePaymentFromWebhook } from './payment.reconcile.js'
 
 // ---------------------------------------------------------------------------
 // Paystack webhook: signature verification, event parsing, and reconciliation.

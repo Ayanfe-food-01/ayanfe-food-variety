@@ -240,7 +240,7 @@ export function Products() {
       </div>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      <section className="admin-products-workspace mt-8 overflow-hidden rounded-2xl border border-line bg-white shadow-sm" aria-label="Products">
+      <section className="admin-products-workspace mt-8 rounded-2xl border border-line bg-white shadow-sm" aria-label="Products">
         <div className="admin-products-filter-card border-b border-line p-4 sm:p-5">
           <ProductsFilterPanel
             categories={categories}

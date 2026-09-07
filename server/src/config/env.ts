@@ -61,6 +61,7 @@ const developmentOrigins = nodeEnv !== 'production'
       'http://127.0.0.1:5000',
       'http://localhost:5000',
       'https://replit.com',
+      'https://d934709e-7278-437e-8da5-8d3c5b604fbd-00-1qrnq888n3wlc.worf.replit.dev',
       ...(process.env.REPLIT_DEV_DOMAIN?.trim()
         ? [`https://${process.env.REPLIT_DEV_DOMAIN.trim()}`]
         : []),

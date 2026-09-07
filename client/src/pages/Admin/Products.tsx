@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
-import { FeaturedStatus } from '../../components/admin/FeaturedStatus'
 import { useToast } from '../../components/ui/Toast'
-import { FilterBar } from '../../components/filters/FilterBar'
-import type { FilterValues } from '../../components/filters/filterTypes'
+import { ProductsFilterPanel } from '../../components/admin/ProductsFilterPanel'
+import { ProductsTable } from '../../components/admin/ProductsTable'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -18,41 +16,14 @@ import {
   type AdminProductsQuery,
 } from '../../services/adminService'
 import type { Category } from '../../types/category'
-import { ProductPrice } from '../../components/products/ProductPrice'
-import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
-import { formatPrice } from '../../utils/formatPrice'
-import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 
 const pageSize = 10
 
-const formatDate = (value: string) =>
-  formatCompatibleDate(value)
-
-const getFeaturedActionLabel = (isFeatured: boolean): string =>
-  isFeatured ? 'Remove from featured' : 'Mark as featured'
-
-interface ProductActionsProps {
-  product: AdminProductsPage['products'][number]
-  isBusy: boolean
-  onToggleStatus: () => void
-  onToggleFeatured: () => void
-  onDelete: () => void
-}
-
-function ProductActions({ product, isBusy, onToggleStatus, onToggleFeatured, onDelete }: ProductActionsProps) {
-  return (
-    <ActionMenu ariaLabel={`Actions for ${product.name}`} isBusy={isBusy} fixedPosition>
-      {(close) => (
-        <>
-          <ActionMenuLink to={`/admin/products/${product.id}`} onClick={close}>View</ActionMenuLink>
-          <ActionMenuLink to={`/admin/products/${product.id}/edit`} onClick={close}>Edit</ActionMenuLink>
-          <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{product.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
-           <ActionMenuButton onClick={() => { close(); onToggleFeatured() }}>{getFeaturedActionLabel(product.isFeatured)}</ActionMenuButton>
-          <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
-        </>
-      )}
-    </ActionMenu>
-  )
+const readCategoryIds = (params: URLSearchParams): string[] | undefined => {
+  const categoryIds = params.get('categoryIds')?.split(',').filter(Boolean)
+  if (categoryIds?.length) return categoryIds
+  const legacyCategoryId = params.get('categoryId')
+  return legacyCategoryId ? [legacyCategoryId] : undefined
 }
 
 export function Products() {
@@ -65,8 +36,17 @@ export function Products() {
     page: Number(searchParams.get('page') ?? 1),
     pageSize,
     search: searchParams.get('search') ?? undefined,
+    categoryIds: readCategoryIds(searchParams),
     categoryId: searchParams.get('categoryId') ?? undefined,
     availability: (searchParams.get('availability') as AdminProductsQuery['availability']) || undefined,
+    stockStatus: (searchParams.get('stockStatus') as AdminProductsQuery['stockStatus']) || undefined,
+    featured: (searchParams.get('featured') as AdminProductsQuery['featured']) || undefined,
+    discount: (searchParams.get('discount') as AdminProductsQuery['discount']) || undefined,
+    productType: (searchParams.get('productType') as AdminProductsQuery['productType']) || undefined,
+    wholesale: (searchParams.get('wholesale') as AdminProductsQuery['wholesale']) || undefined,
+    minPrice: searchParams.get('minPrice') ?? undefined,
+    maxPrice: searchParams.get('maxPrice') ?? undefined,
+    sort: (searchParams.get('sort') as AdminProductsQuery['sort']) || 'newest',
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -101,8 +81,17 @@ export function Products() {
     const nextParams = new URLSearchParams()
     if (query.page > 1) nextParams.set('page', String(query.page))
     if (query.search) nextParams.set('search', query.search)
-    if (query.categoryId) nextParams.set('categoryId', query.categoryId)
+    if (query.categoryIds?.length) nextParams.set('categoryIds', query.categoryIds.join(','))
+    else if (query.categoryId) nextParams.set('categoryId', query.categoryId)
     if (query.availability) nextParams.set('availability', query.availability)
+    if (query.stockStatus) nextParams.set('stockStatus', query.stockStatus)
+    if (query.featured) nextParams.set('featured', query.featured)
+    if (query.discount) nextParams.set('discount', query.discount)
+    if (query.productType) nextParams.set('productType', query.productType)
+    if (query.wholesale) nextParams.set('wholesale', query.wholesale)
+    if (query.minPrice) nextParams.set('minPrice', query.minPrice)
+    if (query.maxPrice) nextParams.set('maxPrice', query.maxPrice)
+    if (query.sort && query.sort !== 'newest') nextParams.set('sort', query.sort)
     setSearchParams(nextParams, { replace: true })
     return () => {
       current = false
@@ -114,11 +103,27 @@ export function Products() {
     setQuery((current) => ({ ...current, search: value.trim() || undefined, page: 1 }))
   }
 
-  const applyFilters = (next: FilterValues) => {
+  const applyFilters = (next: Partial<AdminProductsQuery>) => {
     setQuery((current) => ({
       ...current,
-      categoryId: next.categoryId || undefined,
-      availability: (next.availability || undefined) as AdminProductsQuery['availability'],
+      ...next,
+      page: 1,
+    }))
+  }
+
+  const resetFilters = () => {
+    setQuery((current) => ({
+      ...current,
+      categoryId: undefined,
+      categoryIds: undefined,
+      availability: undefined,
+      stockStatus: undefined,
+      featured: undefined,
+      discount: undefined,
+      productType: undefined,
+      wholesale: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
       page: 1,
     }))
   }
@@ -211,43 +216,15 @@ export function Products() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
-        <FilterBar
-          fields={[
-            {
-              key: 'categoryId',
-              label: 'Category',
-              type: 'select',
-              inline: true,
-              options: [
-                { value: '', label: 'All categories' },
-                ...categories.map((category) => ({ value: category.id, label: category.name })),
-              ],
-            },
-            {
-              key: 'availability',
-              label: 'Availability',
-              type: 'select',
-              inline: true,
-              options: [
-                { value: '', label: 'All products' },
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
-                { value: 'out-of-stock', label: 'Out of stock' },
-              ],
-            },
-          ]}
-          committed={{
-            categoryId: query.categoryId ?? '',
-            availability: query.availability ?? '',
-          }}
+        <ProductsFilterPanel
+          categories={categories}
+          query={query}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onSearch={updateSearch}
           onApply={applyFilters}
-          search={{
-            label: 'Search products',
-            value: searchInput,
-            onChange: setSearchInput,
-            onSearch: updateSearch,
-            placeholder: 'Name or description',
-          }}
+          onReset={resetFilters}
+          onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
         />
       </section>
 
@@ -260,116 +237,14 @@ export function Products() {
             <span>{result.pagination.total} {result.pagination.total === 1 ? 'product' : 'products'}</span>
             <span>Page {currentPage} of {totalPages}</span>
           </div>
-           <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-              <div className="space-y-3 p-4 lg:hidden">
-               {result.products.map((product) => (
-                 <article className="rounded-2xl border border-line bg-cream/45 p-4" key={product.id}>
-                   <div className="flex items-start gap-3">
-                     <img className="size-16 shrink-0 rounded-xl object-cover" src={product.image} alt="" />
-                     <div className="min-w-0 flex-1">
-                       <p className="font-bold text-green-dark">{product.name}</p>
-                       <p className="mt-1 break-words text-xs text-muted">{product.description}</p>
-                       <p className="mt-1 text-xs text-muted">{product.category}</p>
-                     </div>
-                   </div>
-                   <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
-                     <div>
-                       <dt className="uppercase tracking-[0.12em] text-muted">Price / unit</dt>
-                        <dd className="mt-1 font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /> <span className="font-normal text-muted">/ {product.unit}</span></dd>
-                     </div>
-                     <div>
-                       <dt className="uppercase tracking-[0.12em] text-muted">Stock</dt>
-                       <dd className="mt-1 font-bold text-green-dark">{product.stockQuantity ?? 0}</dd>
-                     </div>
-                      <div>
-                        <dt className="uppercase tracking-[0.12em] text-muted">Delivery fee</dt>
-                        <dd className="mt-1 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</dd>
-                      </div>
-                     <div>
-                       <dt className="uppercase tracking-[0.12em] text-muted">Availability</dt>
-                       <dd className="mt-1">
-                         <span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${product.isActive && product.isAvailable ? 'bg-sage text-green' : product.isActive ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
-                           {!product.isActive ? 'Inactive' : product.isAvailable ? 'Available' : 'Out of stock'}
-                         </span>
-                       </dd>
-                     </div>
-                      <div>
-                        <dt className="uppercase tracking-[0.12em] text-muted">Featured</dt>
-                        <dd className="mt-1">
-                           <FeaturedStatus isFeatured={product.isFeatured} />
-                        </dd>
-                      </div>
-                     <div>
-                       <dt className="uppercase tracking-[0.12em] text-muted">Created</dt>
-                       <dd className="mt-1 text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</dd>
-                     </div>
-                   </dl>
-                    <div className="mt-4 flex justify-end border-t border-line pt-3">
-                      <ProductActions
-                        product={product}
-                        isBusy={updatingId === product.id || deletingId === product.id}
-                        onToggleStatus={() => requestStatusChange(product)}
-                        onToggleFeatured={() => void toggleFeatured(product.id, product.isFeatured)}
-                        onDelete={() => openDeleteConfirmation(product)}
-                      />
-                   </div>
-                 </article>
-               ))}
-             </div>
-              <div className="hidden lg:block">
-               <ResponsiveDataTable label="Products table horizontal scroll">
-               <table className="w-full min-w-[1540px] whitespace-nowrap text-left text-sm">
-                 <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
-                  <tr>
-                      <th className="px-4 py-4 font-bold">Product</th>
-                     <th className="px-4 py-4 font-bold">Category</th>
-                     <th className="px-4 py-4 font-bold">Price / unit</th>
-                      <th className="px-4 py-4 font-bold">Delivery fee</th>
-                     <th className="px-4 py-4 font-bold">Stock</th>
-                     <th className="px-4 py-4 font-bold">Availability</th>
-                      <th className="px-4 py-4 font-bold">Featured</th>
-                     <th className="px-4 py-4 font-bold">Created</th>
-                     <th className="px-4 py-4 font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {result.products.map((product) => (
-                     <tr key={product.id} className="group align-middle">
-                        <td className="w-[380px] max-w-[380px] overflow-hidden px-4 py-4">
-                          <div className="flex min-w-[340px] max-w-[348px] items-center gap-3">
-                          <img className="size-14 rounded-xl object-cover" src={product.image} alt="" />
-                            <div className="min-w-0 flex-1"><p className="block min-w-0 truncate font-bold text-green-dark">{product.name}</p><p className="block min-w-0 truncate mt-1 text-xs text-muted">{product.description}</p></div>
-                        </div>
-                      </td>
-                       <td className="max-w-[190px] px-4 py-4 text-muted"><span className="block min-w-0 truncate max-w-[150px]">{product.category}</span></td>
-                      <td className="px-4 py-4"><span className="font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /></span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
-                       <td className="px-4 py-4 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</td>
-                      <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>
-                      <td className="px-4 py-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.isActive && product.isAvailable ? 'bg-sage text-green' : product.isActive ? 'bg-orange/10 text-orange' : 'bg-line text-muted'}`}>
-                          {!product.isActive ? 'Inactive' : product.isAvailable ? 'Available' : 'Out of stock'}
-                        </span>
-                      </td>
-                       <td className="px-4 py-4">
-                          <FeaturedStatus isFeatured={product.isFeatured} />
-                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-xs text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</td>
-                       <td className="px-4 py-4 text-right">
-                         <ProductActions
-                           product={product}
-                           isBusy={updatingId === product.id || deletingId === product.id}
-                            onToggleStatus={() => requestStatusChange(product)}
-                           onToggleFeatured={() => void toggleFeatured(product.id, product.isFeatured)}
-                           onDelete={() => openDeleteConfirmation(product)}
-                         />
-                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-               </ResponsiveDataTable>
-            </div>
-          </div>
+           <ProductsTable
+             products={result.products}
+             updatingId={updatingId}
+             deletingId={deletingId}
+             onToggleStatus={requestStatusChange}
+             onToggleFeatured={(product) => void toggleFeatured(product.id, product.isFeatured)}
+             onDelete={openDeleteConfirmation}
+           />
           {totalPages > 1 && <div className="mt-5 flex items-center justify-between gap-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
         </>
       ) : (

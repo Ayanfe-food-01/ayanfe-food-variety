@@ -4,6 +4,50 @@
   gap: 12px;
 }
 
+.products-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.products-sort-control {
+  display: flex;
+  min-width: 190px;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.products-sort-control select {
+  min-height: 42px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-cream);
+  color: var(--color-green-dark);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 0 12px;
+}
+
+.products-sort-control select:focus {
+  border-color: var(--color-green);
+  outline: 2px solid rgb(50 91 57 / 15%);
+}
+
+@media (min-width: 1024px) {
+  .products-filter-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 18px;
+  }
+}
+
 .filter-bar-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -42,6 +86,10 @@
   gap: 8px;
 }
 
+.filter-bar-mobile-quick {
+  display: none;
+}
+
 @media (min-width: 1024px) {
   .filter-bar-desktop {
     display: flex;
@@ -50,6 +98,91 @@
   .filter-bar-mobile {
     display: none;
   }
+}
+
+.filter-quick-filters {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-quick-filter {
+  position: relative;
+  min-width: 0;
+}
+
+.filter-quick-trigger {
+  display: inline-flex;
+  min-height: 38px;
+  max-width: 180px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-cream);
+  color: var(--color-green-dark);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 11px 0 13px;
+  cursor: pointer;
+}
+
+.filter-quick-trigger:hover,
+.filter-quick-trigger.is-active {
+  border-color: var(--color-green);
+  background: var(--color-sage);
+}
+
+.filter-quick-trigger:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+.filter-quick-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-quick-menu {
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(300px, calc(100vw - 32px));
+  padding: 10px;
+}
+
+.filter-quick-filter:last-child .filter-quick-menu {
+  right: 0;
+  left: auto;
+}
+
+.filter-quick-menu-content {
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.filter-quick-menu .filter-options-scroll {
+  max-height: 250px;
+}
+
+.filter-reset {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--color-orange);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.filter-reset:hover {
+  color: var(--color-green-dark);
 }
 
 .filter-trigger {
@@ -129,6 +262,12 @@
   gap: 2px;
 }
 
+.filter-options-scroll {
+  max-height: 330px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .filter-option {
   display: flex;
   width: 100%;
@@ -144,6 +283,52 @@
   padding: 7px 10px;
   text-align: left;
   cursor: pointer;
+}
+
+.filter-option-check {
+  display: inline-flex;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  color: var(--color-cream);
+}
+
+.filter-option.is-selected .filter-option-check {
+  border-color: var(--color-green);
+  background: var(--color-green);
+}
+
+.filter-options-empty {
+  margin: 0;
+  padding: 14px 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.filter-multi-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-multi-select-search {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-size: 13px;
+  padding: 0 11px;
+}
+
+.filter-multi-select-search:focus {
+  border-color: var(--color-green);
+  outline: 2px solid rgb(50 91 57 / 15%);
 }
 
 .filter-option:hover:not(.is-selected) {
@@ -455,7 +640,7 @@
   border-color: var(--color-green-dark);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .filter-sheet-panel {
     inset: 18px 18px 18px auto;
     bottom: auto;
@@ -463,6 +648,12 @@
     max-height: calc(100svh - 36px);
     border-radius: 24px;
     animation-name: filter-sheet-side;
+  }
+}
+
+@media (max-width: 1023px) {
+  .filter-bar-mobile-quick {
+    display: none;
   }
 }
 

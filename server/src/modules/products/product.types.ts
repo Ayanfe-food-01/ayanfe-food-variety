@@ -63,6 +63,7 @@ export interface Product {
 export type PublicProduct = Product
 
 export type PublicProductSort = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
+export type AdminProductSort = 'newest' | 'oldest' | 'updated' | 'price_asc' | 'price_desc' | 'stock_asc' | 'stock_desc'
 
 export interface PublicProductQuery {
   search?: string
@@ -94,7 +95,16 @@ export interface PublicCategoryProductSection {
 export interface AdminProductQuery {
   search?: string
   categoryId?: string
+  categoryIds?: string[]
   availability?: 'active' | 'inactive' | 'out-of-stock'
+  stockStatus?: 'in-stock' | 'low-stock' | 'out-of-stock'
+  featured?: boolean
+  discount?: 'on-sale' | 'no-discount'
+  productType?: 'simple' | 'with-options'
+  wholesale?: 'enabled' | 'not-configured'
+  minPrice?: number
+  maxPrice?: number
+  sort?: AdminProductSort
   page: number
   pageSize: number
 }

@@ -288,7 +288,16 @@ export interface AdminProductsQuery {
   pageSize: number
   search?: string
   categoryId?: string
+  categoryIds?: string[]
   availability?: 'active' | 'inactive' | 'out-of-stock'
+  stockStatus?: 'in-stock' | 'low-stock' | 'out-of-stock'
+  featured?: 'true' | 'false'
+  discount?: 'on-sale' | 'no-discount'
+  productType?: 'simple' | 'with-options'
+  wholesale?: 'enabled' | 'not-configured'
+  minPrice?: string
+  maxPrice?: string
+  sort?: 'newest' | 'oldest' | 'updated' | 'price_asc' | 'price_desc' | 'stock_asc' | 'stock_desc'
 }
 
 export interface AdminProductsPage {
@@ -509,7 +518,16 @@ const toQueryString = (query: AdminProductsQuery): string => {
   })
   if (query.search) params.set('search', query.search)
   if (query.categoryId) params.set('categoryId', query.categoryId)
+  if (query.categoryIds?.length) params.set('categoryIds', query.categoryIds.join(','))
   if (query.availability) params.set('availability', query.availability)
+  if (query.stockStatus) params.set('stockStatus', query.stockStatus)
+  if (query.featured) params.set('featured', query.featured)
+  if (query.discount) params.set('discount', query.discount)
+  if (query.productType) params.set('productType', query.productType)
+  if (query.wholesale) params.set('wholesale', query.wholesale)
+  if (query.minPrice) params.set('minPrice', query.minPrice)
+  if (query.maxPrice) params.set('maxPrice', query.maxPrice)
+  if (query.sort) params.set('sort', query.sort)
   return params.toString()
 }
 

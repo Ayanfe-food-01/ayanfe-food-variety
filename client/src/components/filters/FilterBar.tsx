@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { FilterIcon } from '../../assets/icons'
+import { RefreshCwIcon } from '../../assets/icons'
 import { SearchBar } from '../ui/SearchBar'
 import type { FilterField, FilterValues } from './filterTypes'
 import { FilterChips } from './FilterChips'
+import { FilterQuickFilters } from './FilterQuickFilters'
 import { FilterSheet } from './FilterSheet'
 
 interface FilterBarSearch {
@@ -20,14 +22,17 @@ interface FilterBarProps {
   committed: FilterValues
   onApply: (next: FilterValues) => void
   search?: FilterBarSearch
+  quickFields?: FilterField[]
+  onReset?: () => void
   ariaLabel?: string
   className?: string
 }
 
-export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
+export function FilterBar({ fields, committed, onApply, search, quickFields, onReset, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const activeCount = fields.filter((field) => Boolean(committed[field.key])).length
+  const resolvedQuickFields = quickFields ?? fields.filter((field) => field.quick)
 
   const removeCommitted = (key: string) => {
     const next = { ...committed }
@@ -63,6 +68,7 @@ export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Fil
         </div>
 
         <div className="filter-bar-desktop">
+          <FilterQuickFilters fields={resolvedQuickFields} values={committed} onApply={onApply} />
           <button
             className={`filter-trigger ${activeCount > 0 ? 'is-active' : ''}`}
             type="button"
@@ -75,6 +81,12 @@ export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Fil
             <span>Filters</span>
             {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
           </button>
+          {activeCount > 0 && (
+            <button className="filter-reset" type="button" onClick={onReset ?? clearAll}>
+              <RefreshCwIcon size={14} aria-hidden="true" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
 
         <div className="filter-bar-mobile">
@@ -91,6 +103,10 @@ export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Fil
             {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
           </button>
         </div>
+      </div>
+
+      <div className="filter-bar-mobile-quick">
+        <FilterQuickFilters fields={resolvedQuickFields} values={committed} onApply={onApply} />
       </div>
 
       <FilterChips fields={fields} values={committed} onRemove={removeCommitted} onClearAll={clearAll} />

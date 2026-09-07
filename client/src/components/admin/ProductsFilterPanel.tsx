@@ -1,0 +1,196 @@
+import type { Category } from '../../types/category'
+import type { FilterValues } from '../filters/filterTypes'
+import { FilterBar } from '../filters/FilterBar'
+import type { AdminProductsQuery } from '../../services/adminService'
+
+interface ProductsFilterPanelProps {
+  categories: Category[]
+  query: AdminProductsQuery
+  searchInput: string
+  onSearchInputChange: (value: string) => void
+  onSearch: (value: string) => void
+  onApply: (query: Partial<AdminProductsQuery>) => void
+  onReset: () => void
+  onSortChange: (sort: AdminProductsQuery['sort']) => void
+}
+
+const priceRanges = [
+  { value: '', label: 'Any price' },
+  { value: '0-5000', label: 'Under ₦5,000' },
+  { value: '5000-20000', label: '₦5,000–₦20,000' },
+  { value: '20000-50000', label: '₦20,000–₦50,000' },
+  { value: '50000+', label: '₦50,000+' },
+]
+
+const fields = (categories: Category[]) => [
+  {
+    key: 'categoryIds',
+    label: 'Category',
+    type: 'multi-select' as const,
+    quick: true,
+    searchable: true,
+    group: 'Catalog',
+    placeholder: 'Search categories',
+    options: categories.map((category) => ({ value: category.id, label: category.name })),
+  },
+  {
+    key: 'availability',
+    label: 'Store status',
+    type: 'select' as const,
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All statuses' },
+      { value: 'active', label: 'Active' },
+      { value: 'inactive', label: 'Inactive' },
+    ],
+  },
+  {
+    key: 'stockStatus',
+    label: 'Stock status',
+    type: 'select' as const,
+    quick: true,
+    group: 'Inventory',
+    options: [
+      { value: '', label: 'All stock levels' },
+      { value: 'in-stock', label: 'Healthy stock' },
+      { value: 'low-stock', label: 'Low stock' },
+      { value: 'out-of-stock', label: 'Out of stock' },
+    ],
+  },
+  {
+    key: 'featured',
+    label: 'Featured',
+    type: 'select' as const,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All products' },
+      { value: 'true', label: 'Featured' },
+      { value: 'false', label: 'Not featured' },
+    ],
+  },
+  {
+    key: 'discount',
+    label: 'Discount',
+    type: 'select' as const,
+    group: 'Pricing',
+    options: [
+      { value: '', label: 'All pricing' },
+      { value: 'on-sale', label: 'On sale' },
+      { value: 'no-discount', label: 'No discount' },
+    ],
+  },
+  {
+    key: 'priceRange',
+    label: 'Price range',
+    type: 'select' as const,
+    group: 'Pricing',
+    options: priceRanges,
+  },
+  {
+    key: 'productType',
+    label: 'Product structure',
+    type: 'select' as const,
+    group: 'Catalog',
+    options: [
+      { value: '', label: 'All products' },
+      { value: 'simple', label: 'Simple products' },
+      { value: 'with-options', label: 'Products with options' },
+    ],
+  },
+  {
+    key: 'wholesale',
+    label: 'Wholesale',
+    type: 'select' as const,
+    group: 'Catalog',
+    options: [
+      { value: '', label: 'All products' },
+      { value: 'enabled', label: 'Wholesale enabled' },
+      { value: 'not-configured', label: 'Not configured' },
+    ],
+  },
+]
+
+const parsePriceRange = (value: string): Pick<AdminProductsQuery, 'minPrice' | 'maxPrice'> => {
+  if (!value) return { minPrice: undefined, maxPrice: undefined }
+  if (value.endsWith('+')) return { minPrice: value.slice(0, -1), maxPrice: undefined }
+  const [minPrice, maxPrice] = value.split('-')
+  return { minPrice, maxPrice }
+}
+
+const priceRangeFor = (query: AdminProductsQuery): string => {
+  if (query.minPrice === '0' && query.maxPrice === '5000') return '0-5000'
+  if (query.minPrice === '5000' && query.maxPrice === '20000') return '5000-20000'
+  if (query.minPrice === '20000' && query.maxPrice === '50000') return '20000-50000'
+  if (query.minPrice === '50000' && !query.maxPrice) return '50000+'
+  return ''
+}
+
+export function ProductsFilterPanel({
+  categories,
+  query,
+  searchInput,
+  onSearchInputChange,
+  onSearch,
+  onApply,
+  onReset,
+  onSortChange,
+}: ProductsFilterPanelProps) {
+  const filterFields = fields(categories)
+  const committed: FilterValues = {
+    categoryIds: query.categoryIds?.join(',') ?? query.categoryId ?? '',
+    availability: query.availability ?? '',
+    stockStatus: query.stockStatus ?? '',
+    featured: query.featured ?? '',
+    discount: query.discount ?? '',
+    priceRange: priceRangeFor(query),
+    productType: query.productType ?? '',
+    wholesale: query.wholesale ?? '',
+  }
+
+  const applyFilters = (next: FilterValues) => {
+    const priceRange = parsePriceRange(next.priceRange ?? '')
+    onApply({
+      categoryIds: next.categoryIds ? next.categoryIds.split(',').filter(Boolean) : undefined,
+      categoryId: undefined,
+      availability: (next.availability || undefined) as AdminProductsQuery['availability'],
+      stockStatus: (next.stockStatus || undefined) as AdminProductsQuery['stockStatus'],
+      featured: next.featured ? next.featured as 'true' | 'false' : undefined,
+      discount: (next.discount || undefined) as AdminProductsQuery['discount'],
+      productType: (next.productType || undefined) as AdminProductsQuery['productType'],
+      wholesale: (next.wholesale || undefined) as AdminProductsQuery['wholesale'],
+      ...priceRange,
+    })
+  }
+
+  return (
+    <div className="products-filter-panel">
+      <FilterBar
+        fields={filterFields}
+        quickFields={filterFields.filter((field) => field.quick)}
+        committed={committed}
+        onApply={applyFilters}
+        onReset={onReset}
+        search={{
+          label: 'Search products',
+          value: searchInput,
+          onChange: onSearchInputChange,
+          onSearch,
+          placeholder: 'Name or description',
+        }}
+      />
+      <label className="products-sort-control">
+        <span>Sort</span>
+        <select value={query.sort ?? 'newest'} onChange={(event) => onSortChange(event.target.value as AdminProductsQuery['sort'])}>
+          <option value="newest">Newest first</option>
+          <option value="updated">Recently updated</option>
+          <option value="oldest">Oldest first</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="price_desc">Price: high to low</option>
+          <option value="stock_asc">Lowest stock first</option>
+          <option value="stock_desc">Highest stock first</option>
+        </select>
+      </label>
+    </div>
+  )
+}

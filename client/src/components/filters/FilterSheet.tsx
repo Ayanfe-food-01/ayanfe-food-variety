@@ -33,18 +33,10 @@ const groupFields = (fields: FilterField[]): FieldGroup[] => {
 
 export function FilterSheet({ isOpen, onClose, fields, committed, onApply }: FilterSheetProps) {
   const [draft, setDraft] = useState<FilterValues>(committed)
-  const [previousOpen, setPreviousOpen] = useState(false)
-  const [previousSignature, setPreviousSignature] = useState(() => JSON.stringify(committed))
-
-  const committedSignature = JSON.stringify(committed)
-  if (isOpen && (previousOpen !== isOpen || previousSignature !== committedSignature)) {
-    setPreviousOpen(isOpen)
-    setPreviousSignature(committedSignature)
-    setDraft(committed)
-  }
 
   useEffect(() => {
     if (!isOpen) return
+    setDraft(committed)
     const release = lockBodyScroll()
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
@@ -106,7 +98,7 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply }: Fil
                 <div className="filter-sheet-group-body">
                   {group.fields.map((field) => (
                     <div
-                      className={`filter-sheet-field ${field.type === 'select' ? 'is-stacked' : ''}`}
+                      className={`filter-sheet-field ${field.type !== 'toggle' ? 'is-stacked' : ''}`}
                       key={field.key}
                     >
                       <p className="filter-sheet-field-label">{field.label}</p>

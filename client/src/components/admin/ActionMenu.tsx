@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { MoreHorizontalIcon } from '../../assets/icons'
+import { MoreActionsButton } from './MoreActionsButton'
 
 interface ActionMenuProps {
   ariaLabel: string
@@ -140,25 +140,18 @@ export function ActionMenu({
 
   return (
     <div className="relative inline-block" ref={containerRef}>
-      <button
-        className={triggerVariant === 'plain'
-          ? 'grid size-9 place-items-center rounded-full text-muted transition-colors hover:bg-transparent hover:text-green-dark disabled:cursor-wait disabled:opacity-50'
-          : 'grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50'}
-        type="button"
-        aria-label={ariaLabel}
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        disabled={isBusy}
+      <MoreActionsButton
         ref={buttonRef}
+        label={ariaLabel}
+        isOpen={isOpen}
+        isDisabled={isBusy}
+        variant={triggerVariant}
+        orientation={triggerOrientation}
         onClick={() => {
           setMenuLayout(null)
           setIsOpen((current) => !current)
         }}
-      >
-        <span className={triggerOrientation === 'vertical' ? 'rotate-90' : undefined}>
-          <MoreHorizontalIcon size={20} />
-        </span>
-      </button>
+      />
       {isOpen && (
         <div
           className={`${fixedPosition ? 'fixed' : `absolute right-0 ${menuLayout?.placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}`} z-50 min-w-44 overflow-y-auto overflow-x-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10`}

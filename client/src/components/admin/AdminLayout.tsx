@@ -39,7 +39,7 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
           user={user}
         />
         <main className="px-5 py-7 sm:px-8 sm:py-9 xl:px-10 xl:py-10">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto w-full max-w-[1440px]">
             {children}
           </div>
         </main>

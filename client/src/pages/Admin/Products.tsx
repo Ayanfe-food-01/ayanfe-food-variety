@@ -204,18 +204,18 @@ export function Products() {
 
   return (
     <>
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
+      <div className="flex min-w-0 flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Store operations</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Products & inventory</h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">Manage your catalog, availability, prices, and stock levels. Deactivate products to preserve history; permanent deletion is only available when no protected records exist.</p>
         </div>
-        <Link className="inline-flex w-fit rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/products/new">
+        <Link className="inline-flex shrink-0 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/products/new">
           Add product
         </Link>
       </div>
 
-      <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
+      <section className="admin-products-filter-card mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
         <ProductsFilterPanel
           categories={categories}
           query={query}
@@ -233,7 +233,7 @@ export function Products() {
         <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading products…</div>
       ) : result?.products.length ? (
         <>
-          <div className="mt-5 flex items-center justify-between text-sm text-muted">
+           <div className="admin-products-results-bar mt-5 flex items-center justify-between gap-4 text-sm text-muted">
             <span>{result.pagination.total} {result.pagination.total === 1 ? 'product' : 'products'}</span>
             <span>Page {currentPage} of {totalPages}</span>
           </div>

@@ -42,9 +42,15 @@
 @media (min-width: 1280px) {
   .products-filter-panel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 220px);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .filter-bar-toolbar {
+    display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
-    gap: 18px;
   }
 }
 
@@ -126,6 +132,12 @@
   }
 
   .filter-bar-mobile {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .filter-bar-desktop .filter-quick-filters {
     display: none;
   }
 }
@@ -681,6 +693,43 @@
   }
 }
 
+@media (min-width: 1024px) {
+  .filter-sheet {
+    display: grid;
+    place-items: center;
+    padding: clamp(24px, 5vw, 64px);
+  }
+
+  .filter-sheet-panel {
+    position: relative;
+    inset: auto;
+    width: min(760px, 100%);
+    max-height: min(760px, calc(100dvh - 48px));
+    border-radius: 26px;
+    box-shadow: 0 24px 80px rgb(20 33 22 / 28%);
+    animation-name: filter-sheet-center;
+  }
+
+  .filter-sheet-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 22px;
+    padding: 8px 24px 6px;
+  }
+
+  .filter-sheet-group {
+    min-width: 0;
+  }
+
+  .filter-sheet-header {
+    padding: 18px 24px;
+  }
+
+  .filter-sheet-footer {
+    padding: 16px 24px;
+  }
+}
+
 @media (max-width: 1023px) {
   .filter-bar-mobile-quick {
     display: none;
@@ -690,4 +739,9 @@
 @keyframes filter-sheet-side {
   from { transform: translateX(24px); opacity: .6; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes filter-sheet-center {
+  from { transform: translateY(14px) scale(.98); opacity: .6; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }

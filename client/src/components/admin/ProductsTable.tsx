@@ -53,7 +53,7 @@ export function ProductsTable({
 
       <div className="hidden lg:block">
         <ResponsiveDataTable label="Products table horizontal scroll">
-          <table className="w-full min-w-[1540px] whitespace-nowrap text-left text-sm">
+          <table className="w-full min-w-[1120px] whitespace-nowrap text-left text-sm">
             <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
               <tr>
                 <th className="px-4 py-4 font-bold">Product</th>
@@ -70,8 +70,8 @@ export function ProductsTable({
             <tbody className="divide-y divide-line">
               {products.map((product) => (
                 <tr key={product.id} className="group align-middle">
-                  <td className="w-[380px] max-w-[380px] overflow-hidden px-4 py-4">
-                    <div className="flex min-w-[340px] max-w-[348px] items-center gap-3">
+                  <td className="w-[300px] max-w-[300px] overflow-hidden px-4 py-4">
+                    <div className="flex min-w-[260px] max-w-[276px] items-center gap-3">
                       <img className="size-14 rounded-xl object-cover" src={product.image} alt="" />
                       <div className="min-w-0 flex-1"><p className="block min-w-0 truncate font-bold text-green-dark">{product.name}</p><p className="mt-1 block min-w-0 truncate text-xs text-muted">{product.description}</p></div>
                     </div>

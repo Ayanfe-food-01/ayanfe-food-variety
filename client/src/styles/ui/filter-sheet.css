@@ -197,7 +197,7 @@
   border-color: var(--color-green-dark);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
   .filter-sheet-panel {
     inset: 18px 18px 18px auto;
     bottom: auto;
@@ -208,7 +208,7 @@
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1280px) and (hover: hover) and (pointer: fine) {
   .filter-sheet.is-popover {
     pointer-events: none;
   }

@@ -32,7 +32,7 @@ const groupFields = (fields: FilterField[]): FieldGroup[] => {
   return [...groups.values()]
 }
 
-const desktopPopoverMediaQuery = '(min-width: 1280px)'
+const desktopPopoverMediaQuery = '(min-width: 1280px) and (hover: hover) and (pointer: fine)'
 
 export function FilterSheet({ isOpen, onClose, fields, committed, onApply, anchorRef }: FilterSheetProps) {
   const [draft, setDraft] = useState<FilterValues>(committed)

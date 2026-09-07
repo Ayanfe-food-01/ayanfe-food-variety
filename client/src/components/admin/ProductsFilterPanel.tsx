@@ -197,7 +197,6 @@ export function ProductsFilterPanel({
         }}
       />
       <div className="products-sort-control" ref={sortRootRef}>
-        <span className="products-sort-label">Sort</span>
         <button
           className="products-sort-trigger"
           type="button"
@@ -205,7 +204,8 @@ export function ProductsFilterPanel({
           aria-expanded={isSortOpen}
           onClick={toggleSort}
         >
-          <span>{sortOptions.find((option) => option.value === (query.sort ?? 'newest'))?.label ?? 'Newest first'}</span>
+          <span className="products-sort-icon" aria-hidden="true">↕</span>
+          <span>Sort</span>
           <ChevronDownIcon className={`products-sort-chevron ${isSortOpen ? 'rotate-180' : ''}`} size={14} aria-hidden="true" />
         </button>
         <Popover

@@ -203,57 +203,67 @@ export function Products() {
   const totalPages = result?.pagination.totalPages ?? 1
 
   return (
-    <>
-      <div className="flex min-w-0 flex-col justify-between gap-5 sm:flex-row sm:items-end">
+    <div className="admin-products-page">
+      <div className="admin-products-page-header flex min-w-0 flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Store operations</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Products & inventory</h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">Manage your catalog, availability, prices, and stock levels. Deactivate products to preserve history; permanent deletion is only available when no protected records exist.</p>
         </div>
-        <Link className="inline-flex shrink-0 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/products/new">
+        <Link className="admin-products-add-button inline-flex shrink-0 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/products/new">
           Add product
         </Link>
       </div>
 
-      <section className="admin-products-filter-card mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
-        <ProductsFilterPanel
-          categories={categories}
-          query={query}
-          searchInput={searchInput}
-          onSearchInputChange={setSearchInput}
-          onSearch={updateSearch}
-          onApply={applyFilters}
-          onReset={resetFilters}
-          onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
-        />
-      </section>
-
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      {isLoading ? (
-        <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading products…</div>
-      ) : result?.products.length ? (
-        <>
-           <div className="admin-products-results-bar mt-5 flex items-center justify-between gap-4 text-sm text-muted">
-            <span>{result.pagination.total} {result.pagination.total === 1 ? 'product' : 'products'}</span>
-            <span>Page {currentPage} of {totalPages}</span>
-          </div>
-           <ProductsTable
-             products={result.products}
-             updatingId={updatingId}
-             deletingId={deletingId}
-             onToggleStatus={requestStatusChange}
-             onToggleFeatured={(product) => void toggleFeatured(product.id, product.isFeatured)}
-             onDelete={openDeleteConfirmation}
-           />
-          {totalPages > 1 && <div className="mt-5 flex items-center justify-between gap-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
-        </>
-      ) : (
-        <div className="mt-8 rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
-          <h2 className="text-xl font-bold text-green-dark">No products found</h2>
-          <p className="mt-2 text-sm text-muted">Try a different filter or add your first product.</p>
-          <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add product</Link>
+      <section className="admin-products-workspace mt-8 overflow-hidden rounded-2xl border border-line bg-white shadow-sm" aria-label="Products">
+        <div className="admin-products-filter-card border-b border-line p-4 sm:p-5">
+          <ProductsFilterPanel
+            categories={categories}
+            query={query}
+            searchInput={searchInput}
+            onSearchInputChange={setSearchInput}
+            onSearch={updateSearch}
+            onApply={applyFilters}
+            onReset={resetFilters}
+            onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
+          />
         </div>
-      )}
+
+        {isLoading ? (
+          <div className="admin-products-loading px-5 py-14 text-center text-sm text-muted">Loading products…</div>
+        ) : result?.products.length ? (
+          <>
+            <div className="admin-products-results-bar flex items-center justify-between gap-4 px-4 py-4 text-sm text-muted sm:px-5">
+              <span>{result.pagination.total} {result.pagination.total === 1 ? 'product' : 'products'}</span>
+              <span>Page {currentPage} of {totalPages}</span>
+            </div>
+            <ProductsTable
+              products={result.products}
+              updatingId={updatingId}
+              deletingId={deletingId}
+              onToggleStatus={requestStatusChange}
+              onToggleFeatured={(product) => void toggleFeatured(product.id, product.isFeatured)}
+              onDelete={openDeleteConfirmation}
+            />
+            <div className="admin-products-pagination flex items-center justify-between gap-4 border-t border-line px-4 py-4 sm:px-5">
+              <span className="text-xs font-bold text-muted">Page {currentPage} of {totalPages}</span>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button>
+                  <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="admin-products-empty px-6 py-16 text-center">
+            <h2 className="text-xl font-bold text-green-dark">No products found</h2>
+            <p className="mt-2 text-sm text-muted">Try a different filter or add your first product.</p>
+            <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add product</Link>
+          </div>
+        )}
+      </section>
       {productToStatus && (
         <ConfirmDialog
           eyebrow="Change product availability"
@@ -279,6 +289,6 @@ export function Products() {
           onConfirm={() => void confirmDelete()}
         />
       )}
-    </>
+    </div>
   )
 }

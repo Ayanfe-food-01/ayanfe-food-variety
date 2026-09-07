@@ -24,7 +24,7 @@ export function ProductsTable({
   onDelete,
 }: ProductsTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+    <div className="admin-products-table min-w-0 overflow-hidden">
       <div className="space-y-3 p-4 lg:hidden">
         {products.map((product) => (
           <article className="rounded-2xl border border-line bg-cream/45 p-4" key={product.id}>

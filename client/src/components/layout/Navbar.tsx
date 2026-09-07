@@ -28,17 +28,17 @@ const links = [
 let pendingSearchFocus = false
 
 export function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const [ isMenuOpen, setIsMenuOpen ] = useState(false)
+  const [ isScrolled, setIsScrolled ] = useState(false)
   const { isCartDrawerOpen, openCartDrawer, closeCartDrawer } = useMarketUi()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [search, setSearch] = useState(searchParams.get('search') ?? '')
+  const [ searchParams, setSearchParams ] = useSearchParams()
+  const [ search, setSearch ] = useState(searchParams.get('search') ?? '')
   const closeMenuButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const desktopNavRef = useRef<HTMLDivElement>(null)
   const desktopNavMeasureRef = useRef<HTMLDivElement>(null)
   const headerSearchInputRef = useRef<HTMLInputElement>(null)
-  const [desktopNavCount, setDesktopNavCount] = useState(links.length)
+  const [ desktopNavCount, setDesktopNavCount ] = useState(links.length)
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { totalQuantity } = useCart()
@@ -63,8 +63,8 @@ export function Navbar() {
       const focusable = Array.from(drawer.querySelectorAll<HTMLElement>('a, button, input, [tabindex]:not([tabindex="-1"])'))
         .filter((element) => !element.hasAttribute('disabled'))
       if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
+      const first = focusable[ 0 ]
+      const last = focusable[ focusable.length - 1 ]
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault()
         last.focus()
@@ -80,7 +80,7 @@ export function Navbar() {
       document.removeEventListener('keydown', closeOnEscape)
       previousFocusRef.current?.focus()
     }
-  }, [isMenuOpen])
+  }, [ isMenuOpen ])
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 8)
@@ -136,7 +136,7 @@ export function Navbar() {
     recompute()
     window.addEventListener('resize', recompute)
     return () => window.removeEventListener('resize', recompute)
-  }, [wishlistCount, desktopNavCount])
+  }, [ wishlistCount, desktopNavCount ])
 
   const submitSearch = (query: string) => {
     const trimmed = query.trim()
@@ -170,7 +170,7 @@ export function Navbar() {
         {announcementMessages.length > 0 && (
           <div className="ticker-viewport">
             <div className="ticker-track">
-              {[0, 1].map((group) => (
+              {[ 0, 1 ].map((group) => (
                 <div className="ticker-group" aria-hidden={group === 1} key={group}>
                   {announcementMessages.map((message, index) => (
                     <span className="ticker-message" key={`${group}-${index}-${message}`}>
@@ -185,37 +185,37 @@ export function Navbar() {
         )}
       </div>
       <header className={`store-header ${isScrolled ? 'is-scrolled' : ''}`}>
-      <nav className="container store-nav" aria-label="Main navigation">
-        <button className="icon-button mobile-only" type="button" aria-label="Open navigation menu" onClick={() => setIsMenuOpen(true)}>
-          <MenuIcon size={22} />
-        </button>
-        <Link className="brand-mark" to="/" aria-label="Ayanfe Food Variety home">
-           <img src={logoUrl} alt="Ayanfe Food Variety" />
-        </Link>
-        <ProductSearchAutocomplete
-          value={search}
-          onChange={setSearch}
-          onSearch={submitSearch}
-          onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
-          placeholder="Search products, brands and categories"
-          ariaLabel="Search products"
-          inputRef={headerSearchInputRef}
-        />
-        <div className="store-actions">
-          <AccountMenu />
-          <button
-            className="cart-link"
-            type="button"
-            aria-label={`Open cart with ${totalQuantity} items`}
-            aria-haspopup="dialog"
-            aria-expanded={isCartDrawerOpen}
-            onClick={openCartDrawer}
-          >
-            <CartIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
+        <nav className="container store-nav" aria-label="Main navigation">
+          <button className="icon-button mobile-only" type="button" aria-label="Open navigation menu" onClick={() => setIsMenuOpen(true)}>
+            <MenuIcon size={22} />
           </button>
-        </div>
-      </nav>
-<div className="desktop-nav container" ref={desktopNavRef}>
+          <Link className="brand-mark" to="/" aria-label="Ayanfe Food Variety home">
+            <img src={logoUrl} alt="Ayanfe Food Variety" />
+          </Link>
+          <ProductSearchAutocomplete
+            value={search}
+            onChange={setSearch}
+            onSearch={submitSearch}
+            onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
+            placeholder="Search products, brands and categories"
+            ariaLabel="Search products"
+            inputRef={headerSearchInputRef}
+          />
+          <div className="store-actions">
+            <AccountMenu />
+            <button
+              className="cart-link"
+              type="button"
+              aria-label={`Open cart with ${totalQuantity} items`}
+              aria-haspopup="dialog"
+              aria-expanded={isCartDrawerOpen}
+              onClick={openCartDrawer}
+            >
+              <CartIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
+            </button>
+          </div>
+        </nav>
+        <div className="desktop-nav container" ref={desktopNavRef}>
           {links.slice(0, desktopNavCount).map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
           {desktopNavCount < links.length && (
             <div className="more-nav">
@@ -239,34 +239,34 @@ export function Navbar() {
         <div className="desktop-nav-measure" ref={desktopNavMeasureRef} aria-hidden="true">
           {links.map((link) => <span key={link.href} className="desktop-nav-measure-item">{link.label}</span>)}
         </div>
-      <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
-      <aside className={`mobile-menu y-scrollbar ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
-        <div className="mobile-menu-head">
-           <img className="mobile-menu-logo" src={logoUrl} alt="Ayanfe Food Variety" />
-          <button ref={closeMenuButtonRef} className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>
-        </div>
-        <ProductSearchAutocomplete
-          className="mobile-search"
-          value={search}
-          onChange={setSearch}
-          onSearch={submitSearch}
-          onSelectProduct={(product) => {
-            setIsMenuOpen(false)
-            navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)
-          }}
-          placeholder="Search the store"
-          ariaLabel="Search the store"
-          liveSearch={false}
-        />
-        <ShoppingModeSwitch className="mobile-shopping-mode" />
-        <div className="mobile-links">
-          {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
-           <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
-        </div>
-        {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); openAuth() }}>Sign in</button>}
-      </aside>
-      <CartDrawer open={isCartDrawerOpen} onClose={closeCartDrawer} />
-    </header>
+        <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
+        <aside className={`mobile-menu y-scrollbar ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
+          <div className="mobile-menu-head">
+            <img className="mobile-menu-logo" src={logoUrl} alt="Ayanfe Food Variety" />
+            <button ref={closeMenuButtonRef} className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>
+          </div>
+          <ProductSearchAutocomplete
+            className="mobile-search"
+            value={search}
+            onChange={setSearch}
+            onSearch={submitSearch}
+            onSelectProduct={(product) => {
+              setIsMenuOpen(false)
+              navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)
+            }}
+            placeholder="Search the store"
+            ariaLabel="Search the store"
+            liveSearch={false}
+          />
+          <ShoppingModeSwitch className="mobile-shopping-mode" />
+          <div className="mobile-links">
+            {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
+            <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+          </div>
+          {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); openAuth() }}>Sign in</button>}
+        </aside>
+        <CartDrawer open={isCartDrawerOpen} onClose={closeCartDrawer} />
+      </header>
     </>
   )
 }

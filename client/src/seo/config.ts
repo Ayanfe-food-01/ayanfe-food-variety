@@ -5,7 +5,7 @@ export const DEFAULT_SITE_DESCRIPTION =
   'Shop quality food essentials, carefully selected for your everyday needs, with convenient pickup and delivery options.'
 export const ABOUT_TITLE = 'About Ayanfe Food Variety | Gluten-Free Foodstuff'
 export const ABOUT_DESCRIPTION =
-  `Ayanfe Food Variety offers carefully selected gluten-free foodstuff and pantry essentials for everyday cooking, with convenient online delivery.`
+  `Ayanfe Food Variety manufactures and produces gluten-free foodstuff, made fresh to order with convenient delivery, plus custom food packages for homes and businesses.`
 export const CONTACT_TITLE = 'Contact Ayanfe Food Variety'
 export const CONTACT_DESCRIPTION =
   'Contact Ayanfe Food Variety for gluten-free foodstuff, pickup information, and delivery support. Find the business contact details and pickup location.'

@@ -461,7 +461,7 @@ export function ProductForm() {
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <p className="text-sm font-normal text-muted">Loading product…</p> : (
           <form className="space-y-6" noValidate onSubmit={submit}>
-            <ol className="flex flex-wrap items-center gap-2 sm:gap-3" aria-label="Product form steps">
+            <ol className="admin-product-form-steps flex items-center gap-2 sm:gap-3" aria-label="Product form steps">
               {FORM_STEPS.map((stepConfig, index) => {
                 const isCurrent = index === step
                 const isDone = index < step

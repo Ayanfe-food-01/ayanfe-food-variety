@@ -71,6 +71,31 @@
   color: var(--color-muted);
 }
 
+.admin-products-card-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.admin-product-form-steps {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.admin-product-form-steps::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-product-form-steps > li {
+  flex: 0 0 auto;
+}
+
 .admin-products-loading {
   padding: 20px;
 }

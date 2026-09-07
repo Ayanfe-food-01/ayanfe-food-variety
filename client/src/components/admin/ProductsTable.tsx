@@ -75,7 +75,7 @@ export function ProductsTable({
               <img className="size-16 shrink-0 rounded-xl object-cover" src={product.image} alt="" />
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-green-dark">{product.name}</p>
-                <p className="mt-1 break-words text-xs text-muted">{product.description}</p>
+                <p className="admin-products-card-description mt-1 break-words text-xs text-muted">{product.description}</p>
                 <p className="mt-1 text-xs text-muted">{product.category}</p>
               </div>
             </div>

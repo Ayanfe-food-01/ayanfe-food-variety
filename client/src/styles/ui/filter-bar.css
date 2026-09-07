@@ -503,7 +503,7 @@
   display: flex;
   max-height: 86svh;
   flex-direction: column;
-  border-radius: 22px 22px 0 0;
+  border-radius: 22px;
   background: var(--color-cream);
   box-shadow: 0 -18px 50px rgb(20 33 22 / 25%);
   animation: filter-sheet-up .22s cubic-bezier(.22, .9, .3, 1) both;

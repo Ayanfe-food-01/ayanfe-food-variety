@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "python-base-3.13"]
 
 [[ports]]
 localPort = 5000
@@ -38,5 +38,5 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PUBLIC_APP_URL=http://127.0.0.1:5000 CORS_ORIGINS=http://127.0.0.1:5000 npm run dev"
+args = "CORS_ORIGINS=\"${CORS_ORIGINS:+$CORS_ORIGINS,}http://127.0.0.1:5000${REPLIT_DEV_DOMAIN:+,https://$REPLIT_DEV_DOMAIN}\" PUBLIC_APP_URL=\"${PUBLIC_APP_URL:-http://127.0.0.1:5000}\" npm run dev"
 waitForPort = 5000

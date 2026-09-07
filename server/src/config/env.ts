@@ -56,9 +56,22 @@ export const normalizeOrigin = (origin: string): string => {
   return parsedOrigin.origin
 }
 
-const corsOrigins = corsOriginValue
-  .split(',')
+const developmentOrigins = nodeEnv !== 'production'
+  ? [
+      'http://127.0.0.1:5000',
+      'http://localhost:5000',
+      ...(process.env.REPLIT_DEV_DOMAIN?.trim()
+        ? [`https://${process.env.REPLIT_DEV_DOMAIN.trim()}`]
+        : []),
+    ]
+  : []
+
+const corsOrigins = [
+  ...corsOriginValue.split(','),
+  ...developmentOrigins,
+]
   .map(normalizeOrigin)
+  .filter((origin, index, origins) => origins.indexOf(origin) === index)
 
 if (corsOrigins.length === 0) {
   throw new Error('CORS_ORIGINS must contain at least one origin')

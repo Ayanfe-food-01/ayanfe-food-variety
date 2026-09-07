@@ -230,9 +230,17 @@
   }
 
   .admin-products-selection-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
+    min-width: 0;
+    align-items: center;
+    flex-direction: row;
     gap: 8px;
+  }
+
+  .admin-products-selection-toolbar > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .admin-products-pagination {

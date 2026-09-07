@@ -191,6 +191,10 @@
   width: 100%;
 }
 
+.products-filter-bar .search-bar {
+  background: var(--color-sage);
+}
+
 .filter-bar-desktop {
   display: none;
   align-items: center;

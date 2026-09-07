@@ -115,23 +115,6 @@ export function Products() {
     }))
   }
 
-  const resetFilters = () => {
-    setQuery((current) => ({
-      ...current,
-      categoryId: undefined,
-      categoryIds: undefined,
-      availability: undefined,
-      stockStatus: undefined,
-      featured: undefined,
-      discount: undefined,
-      productType: undefined,
-      wholesale: undefined,
-      minPrice: undefined,
-      maxPrice: undefined,
-      page: 1,
-    }))
-  }
-
   const requestStatusChange = (product: AdminProductsPage['products'][number]) => {
     setProductToStatus(product)
   }
@@ -249,7 +232,6 @@ export function Products() {
             onSearchInputChange={setSearchInput}
             onSearch={updateSearch}
             onApply={applyFilters}
-            onReset={resetFilters}
             onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
           />
         </div>

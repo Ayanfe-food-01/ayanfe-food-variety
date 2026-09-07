@@ -14,7 +14,6 @@ interface ProductsFilterPanelProps {
   onSearchInputChange: (value: string) => void
   onSearch: (value: string) => void
   onApply: (query: Partial<AdminProductsQuery>) => void
-  onReset: () => void
   onSortChange: (sort: AdminProductsQuery['sort']) => void
 }
 
@@ -149,7 +148,6 @@ export function ProductsFilterPanel({
   onSearchInputChange,
   onSearch,
   onApply,
-  onReset,
   onSortChange,
 }: ProductsFilterPanelProps) {
   const { isOpen: isSortOpen, close: closeSort, toggle: toggleSort, rootRef: sortRootRef } = useDropdown()
@@ -227,7 +225,6 @@ export function ProductsFilterPanel({
         quickFields={filterFields.filter((field) => field.quick)}
         committed={committed}
         onApply={applyFilters}
-        onReset={onReset}
         search={{
           label: 'Search products',
           value: searchInput,

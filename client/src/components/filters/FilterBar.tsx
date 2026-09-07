@@ -63,6 +63,7 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, onR
                 ariaLabel={search.ariaLabel}
                 debounceMs={search.debounceMs}
                 liveSearch={Boolean(search.onSearch)}
+                clearable
               />
             </label>
           )}
@@ -72,15 +73,16 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, onR
           <FilterQuickFilters fields={resolvedQuickFields} values={committed} onApply={onApply} />
           <button
             ref={desktopTriggerRef}
-            className={`filter-trigger ${activeCount > 0 ? 'is-active' : ''}`}
+            className={`filter-trigger filter-trigger-icon ${activeCount > 0 ? 'is-active' : ''}`}
             type="button"
+            aria-label="Open filters"
+            title="Open filters"
             aria-haspopup="dialog"
             aria-expanded={isSheetOpen}
             aria-controls="filter-sheet"
             onClick={() => setIsSheetOpen(true)}
           >
             <FilterIcon size={16} aria-hidden="true" />
-            <span>Filters</span>
             {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
           </button>
           {activeCount > 0 && (
@@ -93,15 +95,16 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, onR
 
         <div className="filter-bar-mobile">
           <button
-            className={`filter-trigger ${activeCount > 0 ? 'is-active' : ''} w-full`}
+            className={`filter-trigger filter-trigger-icon ${activeCount > 0 ? 'is-active' : ''}`}
             type="button"
+            aria-label="Open filters"
+            title="Open filters"
             aria-haspopup="dialog"
             aria-expanded={isSheetOpen}
             aria-controls="filter-sheet"
             onClick={() => setIsSheetOpen(true)}
           >
             <FilterIcon size={16} aria-hidden="true" />
-            <span>Filters</span>
             {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
           </button>
         </div>

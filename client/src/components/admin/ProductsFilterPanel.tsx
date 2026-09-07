@@ -1,4 +1,5 @@
 import type { Category } from '../../types/category'
+import { ChevronDownIcon } from '../../assets/icons'
 import type { FilterValues } from '../filters/filterTypes'
 import { FilterBar } from '../filters/FilterBar'
 import type { AdminProductsQuery } from '../../services/adminService'
@@ -166,6 +167,7 @@ export function ProductsFilterPanel({
   return (
     <div className="products-filter-panel">
       <FilterBar
+        className="products-filter-bar"
         fields={filterFields}
         quickFields={filterFields.filter((field) => field.quick)}
         committed={committed}
@@ -180,16 +182,19 @@ export function ProductsFilterPanel({
         }}
       />
       <label className="products-sort-control">
-        <span>Sort</span>
-        <select value={query.sort ?? 'newest'} onChange={(event) => onSortChange(event.target.value as AdminProductsQuery['sort'])}>
-          <option value="newest">Newest first</option>
-          <option value="updated">Recently updated</option>
-          <option value="oldest">Oldest first</option>
-          <option value="price_asc">Price: low to high</option>
-          <option value="price_desc">Price: high to low</option>
-          <option value="stock_asc">Lowest stock first</option>
-          <option value="stock_desc">Highest stock first</option>
-        </select>
+        <span className="products-sort-label">Sort</span>
+        <span className="products-sort-select">
+          <select aria-label="Sort products" value={query.sort ?? 'newest'} onChange={(event) => onSortChange(event.target.value as AdminProductsQuery['sort'])}>
+            <option value="newest">Newest first</option>
+            <option value="updated">Recently updated</option>
+            <option value="oldest">Oldest first</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+            <option value="stock_asc">Lowest stock first</option>
+            <option value="stock_desc">Highest stock first</option>
+          </select>
+          <ChevronDownIcon className="products-sort-chevron" size={14} aria-hidden="true" />
+        </span>
       </label>
     </div>
   )

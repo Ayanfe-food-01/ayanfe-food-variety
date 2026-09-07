@@ -12,9 +12,10 @@
 
 .products-sort-control {
   display: flex;
-  min-width: 190px;
-  flex-direction: column;
-  gap: 6px;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   color: var(--color-muted);
   font-size: 11px;
   font-weight: 800;
@@ -23,20 +24,47 @@
 }
 
 .products-sort-control select {
-  min-height: 42px;
+  width: 100%;
+  min-height: 40px;
+  appearance: none;
   border: 1px solid var(--color-line);
-  border-radius: 12px;
-  background: var(--color-cream);
+  border-radius: 999px;
+  background: var(--color-white);
   color: var(--color-green-dark);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
-  padding: 0 12px;
+  padding: 0 32px 0 13px;
 }
 
 .products-sort-control select:focus {
   border-color: var(--color-green);
   outline: 2px solid rgb(50 91 57 / 15%);
+}
+
+.products-sort-label {
+  flex: 0 0 auto;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.products-sort-select {
+  position: relative;
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.products-sort-chevron {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  pointer-events: none;
+  color: var(--color-muted);
+  transform: translateY(-50%);
 }
 
 @media (min-width: 1280px) {
@@ -56,8 +84,10 @@
 
 @media (min-width: 1024px) and (max-width: 1279px) {
   .products-filter-panel {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
+    align-items: end;
+    gap: 12px;
   }
 
   .filter-bar-toolbar {
@@ -79,8 +109,8 @@
   }
 
   .products-sort-control {
-    width: min(240px, 100%);
-    align-self: flex-end;
+    width: 100%;
+    align-self: end;
   }
 }
 
@@ -117,7 +147,7 @@
 
 .filter-bar-mobile {
   display: flex;
-  flex: 1 1 100%;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
 }
@@ -140,6 +170,10 @@
   .filter-bar-desktop .filter-quick-filters {
     display: none;
   }
+}
+
+.products-filter-bar .filter-quick-filters {
+  display: none;
 }
 
 .filter-quick-filters {
@@ -242,6 +276,35 @@
   padding: 0 16px;
   cursor: pointer;
   transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.filter-trigger-icon {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-color: var(--color-green);
+  background: var(--color-green);
+  color: var(--color-cream);
+  box-shadow: 0 5px 14px rgb(50 91 57 / 16%);
+}
+
+.filter-trigger-icon:hover,
+.filter-trigger-icon.is-active {
+  border-color: var(--color-green-dark);
+  background: var(--color-green-dark);
+  color: var(--color-cream);
+}
+
+.filter-trigger-icon .filter-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-cream);
+  font-size: 10px;
+  padding: 0 4px;
 }
 
 .filter-trigger svg {

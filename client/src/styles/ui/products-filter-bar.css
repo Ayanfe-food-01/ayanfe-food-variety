@@ -85,6 +85,7 @@
   .products-filter-bar .filter-bar-search-label .search-bar input {
     height: 100%;
     padding-block: 0;
+    font-size: 16px;
     line-height: 1.25;
   }
 

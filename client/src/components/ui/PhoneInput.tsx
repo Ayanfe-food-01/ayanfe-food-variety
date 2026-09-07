@@ -100,7 +100,7 @@ export function PhoneInputField({
       international
       smartCaret
       value={value}
-      onChange={(next) => onChange(next ?? '')}
+      onChange={(next?: string) => onChange(next ?? '')}
       placeholder={placeholder}
       autoComplete={autoComplete}
       aria-invalid={hasError || undefined}

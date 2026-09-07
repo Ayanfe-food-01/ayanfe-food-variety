@@ -51,6 +51,7 @@ export function Products() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([])
 
   useInitialRouteLoad(!isLoading)
   const [productToStatus, setProductToStatus] = useState<AdminProductsPage['products'][number] | null>(null)
@@ -69,7 +70,10 @@ export function Products() {
       setError(null)
       getAdminProducts(query)
         .then((page) => {
-          if (current) setResult(page)
+          if (current) {
+            setResult(page)
+            setSelectedProductIds((selected) => selected.filter((id) => page.products.some((product) => product.id === id)))
+          }
         })
         .catch((caught: unknown) => {
           if (current) setError(caught instanceof ApiError ? caught.message : 'Products could not be loaded.')
@@ -132,6 +136,22 @@ export function Products() {
     setProductToStatus(product)
   }
 
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds((current) => current.includes(productId)
+      ? current.filter((id) => id !== productId)
+      : [...current, productId])
+  }
+
+  const toggleAllProductSelection = () => {
+    const pageProductIds = result?.products.map((product) => product.id) ?? []
+    const allSelected = pageProductIds.length > 0 && pageProductIds.every((id) => selectedProductIds.includes(id))
+    setSelectedProductIds((current) => allSelected
+      ? current.filter((id) => !pageProductIds.includes(id))
+      : Array.from(new Set([...current, ...pageProductIds])))
+  }
+
+  const clearProductSelection = () => setSelectedProductIds([])
+
   const confirmStatusChange = async () => {
     if (!productToStatus) return
     const product = productToStatus
@@ -190,6 +210,7 @@ export function Products() {
       const nextTotal = Math.max(0, (result?.pagination.total ?? 1) - 1)
       const nextTotalPages = Math.max(1, Math.ceil(nextTotal / pageSize))
       setQuery((current) => ({ ...current, page: Math.min(current.page, nextTotalPages) }))
+      setSelectedProductIds((current) => current.filter((id) => id !== product.id))
       setProductToDelete(null)
       showToast('Product deleted permanently.', 'success')
     } catch (caught: unknown) {
@@ -201,6 +222,9 @@ export function Products() {
 
   const currentPage = result?.pagination.page ?? query.page
   const totalPages = result?.pagination.totalPages ?? 1
+  const pageProducts = result?.products ?? []
+  const allPageProductsSelected = pageProducts.length > 0 && pageProducts.every((product) => selectedProductIds.includes(product.id))
+  const somePageProductsSelected = pageProducts.some((product) => selectedProductIds.includes(product.id))
 
   return (
     <div className="admin-products-page">
@@ -229,6 +253,16 @@ export function Products() {
             onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
           />
         </div>
+        {selectedProductIds.length > 0 && (
+          <div className="admin-products-selection-toolbar flex items-center justify-between gap-4 border-b border-line bg-sage/20 px-4 py-3 text-sm sm:px-5">
+            <span className="font-bold text-green-dark" role="status">
+              {selectedProductIds.length} product{selectedProductIds.length === 1 ? '' : 's'} selected
+            </span>
+            <button className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-green-dark hover:bg-sage" type="button" onClick={clearProductSelection}>
+              Clear selection
+            </button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="admin-products-loading px-5 py-14 text-center text-sm text-muted">Loading products…</div>
@@ -242,7 +276,13 @@ export function Products() {
               products={result.products}
               updatingId={updatingId}
               deletingId={deletingId}
+              selectedProductIds={selectedProductIds}
+              allProductsSelected={allPageProductsSelected}
+              someProductsSelected={somePageProductsSelected}
+              onToggleSelectAll={toggleAllProductSelection}
+              onToggleSelect={toggleProductSelection}
               onToggleStatus={requestStatusChange}
+              onChangeStatus={requestStatusChange}
               onToggleFeatured={(product) => void toggleFeatured(product.id, product.isFeatured)}
               onDelete={openDeleteConfirmation}
             />

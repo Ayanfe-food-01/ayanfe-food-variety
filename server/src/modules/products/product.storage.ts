@@ -1,5 +1,5 @@
-import { prisma } from '../../lib/prisma.js'
-import { deleteCloudinaryImage, publicIdFromCloudinaryUrl, uploadCloudinaryImage } from '../../lib/cloudinary-image.js'
+import { prisma } from '../../config/prisma.js'
+import { deleteCloudinaryImage, publicIdFromCloudinaryUrl, uploadCloudinaryImage } from '../../services/cloudinary-image.js'
 
 export async function uploadProductImage(file: Express.Multer.File): Promise<string> {
   return (await uploadCloudinaryImage(file, { folder: 'product-images', label: 'Product' })).url

@@ -1,6 +1,6 @@
 import { OrderStatus, PaymentMethod, PaymentStatus, UserRole } from '@prisma/client'
 import { app } from '../src/app.js'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { hashPassword } from '../src/modules/auth/auth.service.js'
 
 const slug = `customer-stories-smoke-${Date.now().toString(36)}`

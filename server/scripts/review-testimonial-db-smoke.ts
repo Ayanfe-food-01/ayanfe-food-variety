@@ -1,5 +1,5 @@
 import { OrderStatus, PaymentStatus, ReviewStatus, ShoppingMode, UserRole } from '@prisma/client'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { hashPassword } from '../src/modules/auth/auth.service.js'
 
 const slug = `review-testimonial-smoke-${Date.now().toString(36)}`

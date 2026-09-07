@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { env } from '../src/config/env.js'
-import { closeDatabase, verifyDatabaseConnection } from '../src/lib/prisma.js'
+import { closeDatabase, verifyDatabaseConnection } from '../src/config/prisma.js'
 
 const run = async () => {
   console.info('Ayanfe API configuration check')

@@ -1,5 +1,5 @@
 import { ReviewStatus } from '@prisma/client'
-import { prisma } from '../../lib/prisma.js'
+import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type {
   CustomerStory,

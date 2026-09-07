@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto'
 import { OrderStatus, PaymentMethod, PaymentStatus, UserRole } from '@prisma/client'
 import { app } from '../src/app.js'
 import { env } from '../src/config/env.js'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { hashPassword } from '../src/modules/auth/auth.service.js'
 
 const CUSTOMER_SESSION_COOKIE = 'ayanfe_customer_session'

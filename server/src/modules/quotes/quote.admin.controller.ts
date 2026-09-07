@@ -5,7 +5,7 @@ import {
   prepareQuotePricing,
   updateAdminQuoteRequestNote,
   updateAdminQuoteRequestStatus,
-} from './quote.service.js'
+} from './admin-quote.service.js'
 import {
   validatePrepareQuotePricingInput,
   validateQuoteNumber,

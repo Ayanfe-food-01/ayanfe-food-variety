@@ -5,7 +5,7 @@ import {
   escapeHtml,
   renderBrandedEmail,
   sendEmail,
-} from '../../lib/email/email.service.js'
+} from '../../services/email/email.service.js'
 
 type VerificationEmailFailureReason = 'configuration' | 'provider' | 'network'
 

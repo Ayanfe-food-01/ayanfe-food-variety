@@ -3,18 +3,16 @@ import { PaymentMethod, PaymentSubmissionStatus } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
 import { reviewPayment } from '../payments/payment.service.js'
 import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../payments/payment.validator.js'
+import { getAdminAnalytics, getDashboardStats } from './admin.service.js'
 import {
-  getAdminOrder,
-  getAdminPayment,
-  getAdminAnalytics,
-  getDashboardStats,
   archiveAdminOrder,
   deleteAdminOrder,
+  getAdminOrder,
   listAdminOrders,
-  listAdminPayments,
   restoreAdminOrder,
   updateAdminOrderStatus,
-} from './admin.service.js'
+} from './admin-order.service.js'
+import { getAdminPayment, listAdminPayments } from './admin-payment.service.js'
 import {
   validateAdminOrdersQuery,
   validateOrderNumber,

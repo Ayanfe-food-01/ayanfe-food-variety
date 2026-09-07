@@ -3,7 +3,7 @@ import {
   escapeHtml,
   renderBrandedEmail,
   sendEmail,
-} from '../../lib/email/email.service.js'
+} from '../../services/email/email.service.js'
 
 type PaymentRejectionReason =
   | 'AMOUNT_MISMATCH'

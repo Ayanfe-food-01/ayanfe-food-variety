@@ -17,7 +17,7 @@
  * by the server startup flow.
  */
 
-import { prisma } from './lib/prisma.js'
+import { prisma } from './config/prisma.js'
 import { NIGERIAN_STATES_AND_LGAS } from './seed-data/nigeria.js'
 
 // States seeded by an earlier, smaller curated seed whose names conflict with

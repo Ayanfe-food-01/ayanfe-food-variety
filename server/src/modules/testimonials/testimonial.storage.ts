@@ -1,4 +1,4 @@
-import { deleteCloudinaryImage, uploadCloudinaryImage } from '../../lib/cloudinary-image.js'
+import { deleteCloudinaryImage, uploadCloudinaryImage } from '../../services/cloudinary-image.js'
 import type { StoredTestimonialImage } from './testimonial.types.js'
 
 export function uploadTestimonialAvatar(file: Express.Multer.File): Promise<StoredTestimonialImage> {

@@ -5,7 +5,7 @@ import {
   renderBrandedEmail,
   sendEmail,
   type EmailMessage,
-} from '../../lib/email/email.service.js'
+} from '../../services/email/email.service.js'
 import { formatPrice } from '../orders/order.email.js'
 
 const formatFulfillment = (method: AdminQuoteRequest['fulfillmentMethod']): string =>

@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express'
 import { HttpError } from '../../utils/http.js'
-import { cancelCustomerOrder, getCustomerOrderByNumber, listCustomerOrders } from './order.service.js'
+import { cancelCustomerOrder, getCustomerOrderByNumber, listCustomerOrders } from './customer-order.service.js'
 import { validateCancellationInput, validateOrderNumber } from './order.validator.js'
 
 export const listCustomerOrdersController: RequestHandler = async (request, response) => {

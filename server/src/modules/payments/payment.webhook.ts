@@ -3,8 +3,9 @@ import { Router } from 'express'
 import express from 'express'
 import type { RequestHandler } from 'express'
 import { env } from '../../config/env.js'
+import { JSON_BODY_LIMIT } from '../../constants/index.js'
 import { HttpError } from '../../utils/http.js'
-import { reconcilePaymentFromWebhook } from './payment.gateway.js'
+import { reconcilePaymentFromWebhook } from './payment.reconcile.js'
 
 // ---------------------------------------------------------------------------
 // Paystack webhook: signature verification, event parsing, and reconciliation.
@@ -160,7 +161,7 @@ export const paymentWebhookRouter = Router()
 
 paymentWebhookRouter.post(
   '/webhook',
-  express.raw({ type: 'application/json', limit: '1mb' }),
+  express.raw({ type: 'application/json', limit: JSON_BODY_LIMIT }),
   paystackWebhookSignatureVerifier,
   paystackWebhookController,
 )

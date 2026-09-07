@@ -1,4 +1,4 @@
-import { deleteCloudinaryImage, uploadCloudinaryImage } from '../../lib/cloudinary-image.js'
+import { deleteCloudinaryImage, uploadCloudinaryImage } from '../../services/cloudinary-image.js'
 
 export interface StoredCategoryImage {
   url: string

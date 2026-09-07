@@ -1,4 +1,4 @@
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { HttpError } from '../src/utils/http.js'
 import {
   createTestimonial,

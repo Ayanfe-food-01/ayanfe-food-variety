@@ -1,5 +1,5 @@
 import { AuthProvider, UserRole } from '@prisma/client'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { loginWithGoogleIdentity } from '../src/modules/auth/auth.service.js'
 import type { GoogleIdentity } from '../src/modules/auth/auth.google.js'
 import { HttpError } from '../src/utils/http.js'

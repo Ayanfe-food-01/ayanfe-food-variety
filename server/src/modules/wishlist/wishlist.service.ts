@@ -1,5 +1,5 @@
 import { Prisma, ReviewStatus } from '@prisma/client'
-import { prisma } from '../../lib/prisma.js'
+import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { toPublicProduct } from '../products/product.service.js'
 import type { WishlistResponse } from './wishlist.types.js'

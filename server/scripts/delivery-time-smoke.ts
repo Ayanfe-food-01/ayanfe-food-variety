@@ -16,7 +16,7 @@
  */
 
 import { Prisma } from '@prisma/client'
-import { prisma } from '../src/lib/prisma.js'
+import { prisma } from '../src/config/prisma.js'
 import { HttpError } from '../src/utils/http.js'
 import {
   validateDeliveryZoneInput,

@@ -4,12 +4,12 @@ import {
   getCustomerQuoteRequest,
   listCustomerQuoteRequests,
   rejectQuoteRequest,
-} from './quote.service.js'
+} from './customer-quote.service.js'
 import {
   validateQuoteNumber,
   validateRejectQuoteRequestInput,
 } from './quote.validator.js'
-import { convertQuoteRequestToOrder } from '../orders/order.service.js'
+import { convertQuoteRequestToOrder } from '../orders/quote-to-order.service.js'
 import { validateConvertQuoteInput } from '../orders/order.validator.js'
 
 export const listCustomerQuoteRequestsController: RequestHandler = async (request, response) => {

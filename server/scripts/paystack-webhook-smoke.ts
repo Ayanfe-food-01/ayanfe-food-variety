@@ -9,7 +9,7 @@
 import { PaymentMethod, Prisma, type Order } from '@prisma/client'
 import { createHmac, randomUUID } from 'node:crypto'
 import { env } from '../src/config/env.js'
-import { prisma } from '../src/lib/prisma.js'
+import { prisma } from '../src/config/prisma.js'
 
 // Override the webhook secret so signature verification is testable.
 const WEBHOOK_SECRET = 'smoke-test-webhook-secret-00000000000000000000000000000000'

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { OrderStatus, Prisma, UserRole } from '@prisma/client'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { addCustomerCartItem, clearCustomerCart, updateCustomerCartItem } from '../src/modules/cart/cart.service.js'
 import { updateAdminOrderStatus } from '../src/modules/admin/admin.service.js'
 import { checkoutCustomerCart } from '../src/modules/orders/order.service.js'

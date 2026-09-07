@@ -2,15 +2,13 @@ import type { RequestHandler } from 'express'
 import multer from 'multer'
 import { HttpError } from '../../utils/http.js'
 import {
-  createProduct,
   deleteProduct,
   getAdminProduct,
   listAdminProducts,
-  updateProduct,
   updateProductFeatured,
   updateProductStatus,
-  validateProductCategory,
-} from './product.service.js'
+} from './admin-product.service.js'
+import { createProduct, updateProduct, validateProductCategory } from './admin-product.write.service.js'
 import {
   validateAdminProductId,
   validateAdminProductsQuery,

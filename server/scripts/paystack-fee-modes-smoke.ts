@@ -19,7 +19,7 @@
 import { PaymentMethod, Prisma, type Order } from '@prisma/client'
 import { createHmac, randomUUID } from 'node:crypto'
 import { env } from '../src/config/env.js'
-import { prisma } from '../src/lib/prisma.js'
+import { prisma } from '../src/config/prisma.js'
 
 const WEBHOOK_SECRET = 'smoke-fee-modes-secret-00000000000000000000000000000000'
 env.payments.paystack.webhookSecret = WEBHOOK_SECRET

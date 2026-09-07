@@ -3,7 +3,7 @@ import { createInterface } from 'node:readline/promises'
 import { stdin, stdout } from 'node:process'
 import { Prisma } from '@prisma/client'
 import { env } from '../src/config/env.js'
-import { prisma, closeDatabase } from '../src/lib/prisma.js'
+import { prisma, closeDatabase } from '../src/config/prisma.js'
 
 // Test-data cleanup for orders, payments and notifications only.
 //

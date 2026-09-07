@@ -6,7 +6,7 @@ import {
   renderBrandedEmail,
   sendEmail,
   type EmailMessage,
-} from '../../lib/email/email.service.js'
+} from '../../services/email/email.service.js'
 
 type OrderEmailItem = {
   name: string

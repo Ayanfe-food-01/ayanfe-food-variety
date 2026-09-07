@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client'
-import { prisma } from '../../lib/prisma.js'
+import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { AdminCategoryQuery, Category, CategoryInput } from './category.types.js'
 import type { StoredCategoryImage } from './category.storage.js'

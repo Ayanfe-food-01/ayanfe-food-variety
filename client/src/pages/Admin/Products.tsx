@@ -3,8 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { FeaturedStatus } from '../../components/admin/FeaturedStatus'
 import { useToast } from '../../components/ui/Toast'
-import { SelectField } from '../../components/ui/SelectField'
-import { SearchBar } from '../../components/ui/SearchBar'
+import { FilterBar } from '../../components/filters/FilterBar'
+import type { FilterValues } from '../../components/filters/filterTypes'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -114,8 +114,13 @@ export function Products() {
     setQuery((current) => ({ ...current, search: value.trim() || undefined, page: 1 }))
   }
 
-  const updateFilter = (key: 'categoryId' | 'availability', value: string) => {
-    setQuery((current) => ({ ...current, [key]: value || undefined, page: 1 }))
+  const applyFilters = (next: FilterValues) => {
+    setQuery((current) => ({
+      ...current,
+      categoryId: next.categoryId || undefined,
+      availability: (next.availability || undefined) as AdminProductsQuery['availability'],
+      page: 1,
+    }))
   }
 
   const requestStatusChange = (product: AdminProductsPage['products'][number]) => {
@@ -206,42 +211,44 @@ export function Products() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-end gap-3">
-            <label className="min-w-0 flex-1 text-xs font-bold text-green-dark">
-              Search products
-              <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Name or description" />
-            </label>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="min-w-0 text-xs font-bold text-green-dark">
-              Category
-              <SelectField
-                className="mt-2 w-full"
-                options={[
-                  { value: '', label: 'All categories' },
-                  ...categories.map((category) => ({ value: category.id, label: category.name })),
-                ]}
-                onChange={(value) => updateFilter('categoryId', value)}
-                value={query.categoryId ?? ''}
-              />
-            </label>
-            <label className="min-w-0 text-xs font-bold text-green-dark">
-              Availability
-              <SelectField
-                className="mt-2 w-full"
-                options={[
-                  { value: '', label: 'All products' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
-                  { value: 'out-of-stock', label: 'Out of stock' },
-                ]}
-                onChange={(value) => updateFilter('availability', value)}
-                value={query.availability ?? ''}
-              />
-            </label>
-          </div>
-        </div>
+        <FilterBar
+          fields={[
+            {
+              key: 'categoryId',
+              label: 'Category',
+              type: 'select',
+              inline: true,
+              options: [
+                { value: '', label: 'All categories' },
+                ...categories.map((category) => ({ value: category.id, label: category.name })),
+              ],
+            },
+            {
+              key: 'availability',
+              label: 'Availability',
+              type: 'select',
+              inline: true,
+              options: [
+                { value: '', label: 'All products' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+                { value: 'out-of-stock', label: 'Out of stock' },
+              ],
+            },
+          ]}
+          committed={{
+            categoryId: query.categoryId ?? '',
+            availability: query.availability ?? '',
+          }}
+          onApply={applyFilters}
+          search={{
+            label: 'Search products',
+            value: searchInput,
+            onChange: setSearchInput,
+            onSearch: updateSearch,
+            placeholder: 'Name or description',
+          }}
+        />
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}

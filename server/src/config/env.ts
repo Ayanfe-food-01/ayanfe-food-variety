@@ -1,89 +1,99 @@
-import dotenv from 'dotenv'
+import dotenv from "dotenv";
 
-dotenv.config({ path: new URL('../../../.env', import.meta.url), quiet: true })
+dotenv.config({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
 const parsePort = (value: string | undefined): number => {
-  const port = Number(value ?? 8000)
+  const port = Number(value ?? 8000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error('PORT must be an integer between 1 and 65535')
+    throw new Error("PORT must be an integer between 1 and 65535");
   }
-  return port
-}
+  return port;
+};
 
-const nodeEnv = process.env.NODE_ENV ?? 'development'
-const databaseUrl = process.env.DATABASE_URL
+const nodeEnv = process.env.NODE_ENV ?? "development";
+const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
-  throw new Error('DATABASE_URL is required to start the server')
+  throw new Error("DATABASE_URL is required to start the server");
 }
 
-const sessionSecret = process.env.SESSION_SECRET
+const sessionSecret = process.env.SESSION_SECRET;
 if (!sessionSecret || sessionSecret.length < 32) {
-  throw new Error('SESSION_SECRET must be configured with at least 32 characters')
+  throw new Error(
+    "SESSION_SECRET must be configured with at least 32 characters",
+  );
 }
-const publicAppUrl = process.env.PUBLIC_APP_URL?.trim()
-const corsOriginValue = process.env.CORS_ORIGINS?.trim()
+const publicAppUrl = process.env.PUBLIC_APP_URL?.trim();
+const corsOriginValue = process.env.CORS_ORIGINS?.trim();
 if (!corsOriginValue) {
-  throw new Error('CORS_ORIGINS is required and must contain complete frontend origins')
+  throw new Error(
+    "CORS_ORIGINS is required and must contain complete frontend origins",
+  );
 }
 
 export const normalizeOrigin = (origin: string): string => {
-  const trimmedOrigin = origin.trim()
+  const trimmedOrigin = origin.trim();
   if (!trimmedOrigin) {
-    throw new Error('CORS_ORIGINS contains an empty origin')
+    throw new Error("CORS_ORIGINS contains an empty origin");
   }
 
-  let parsedOrigin: URL
+  let parsedOrigin: URL;
   try {
-    parsedOrigin = new URL(trimmedOrigin)
+    parsedOrigin = new URL(trimmedOrigin);
   } catch {
     throw new Error(
       `CORS_ORIGINS entry "${trimmedOrigin}" must include its protocol, such as https://example.com`,
-    )
+    );
   }
 
-  if (!['http:', 'https:'].includes(parsedOrigin.protocol) || !parsedOrigin.hostname) {
+  if (
+    !["http:", "https:"].includes(parsedOrigin.protocol) ||
+    !parsedOrigin.hostname
+  ) {
     throw new Error(
       `CORS_ORIGINS entry "${trimmedOrigin}" must be an http or https origin`,
-    )
+    );
   }
 
-  if (parsedOrigin.pathname !== '/' || parsedOrigin.search || parsedOrigin.hash) {
+  if (
+    parsedOrigin.pathname !== "/" ||
+    parsedOrigin.search ||
+    parsedOrigin.hash
+  ) {
     throw new Error(
       `CORS_ORIGINS entry "${trimmedOrigin}" must contain only protocol, host, and optional port`,
-    )
+    );
   }
 
-  return parsedOrigin.origin
-}
+  return parsedOrigin.origin;
+};
 
-const developmentOrigins = nodeEnv !== 'production'
-  ? [
-      'http://127.0.0.1:5000',
-      'http://localhost:5000',
-      'https://replit.com',
-      'https://d934709e-7278-437e-8da5-8d3c5b604fbd-00-1qrnq888n3wlc.worf.replit.dev',
-      ...(process.env.REPLIT_DEV_DOMAIN?.trim()
-        ? [`https://${process.env.REPLIT_DEV_DOMAIN.trim()}`]
-        : []),
-    ]
-  : []
+const developmentOrigins =
+  nodeEnv !== "production"
+    ? [
+        "http://127.0.0.1:5000",
+        "http://localhost:5000",
+        "https://replit.com",
+        "https://1dc9568c-53ca-4d9b-9a1d-6640fa54e776-00-3n10701efjmf9.spock.replit.dev:5000",
+        ...(process.env.REPLIT_DEV_DOMAIN?.trim()
+          ? [`https://${process.env.REPLIT_DEV_DOMAIN.trim()}`]
+          : []),
+      ]
+    : [];
 
-const corsOrigins = [
-  ...corsOriginValue.split(','),
-  ...developmentOrigins,
-]
+const corsOrigins = [...corsOriginValue.split(","), ...developmentOrigins]
   .map(normalizeOrigin)
-  .filter((origin, index, origins) => origins.indexOf(origin) === index)
+  .filter((origin, index, origins) => origins.indexOf(origin) === index);
 
 if (corsOrigins.length === 0) {
-  throw new Error('CORS_ORIGINS must contain at least one origin')
+  throw new Error("CORS_ORIGINS must contain at least one origin");
 }
 
-const businessTimezone = process.env.BUSINESS_TIMEZONE?.trim() || 'Africa/Lagos'
+const businessTimezone =
+  process.env.BUSINESS_TIMEZONE?.trim() || "Africa/Lagos";
 try {
-  new Intl.DateTimeFormat('en-NG', { timeZone: businessTimezone }).format()
+  new Intl.DateTimeFormat("en-NG", { timeZone: businessTimezone }).format();
 } catch {
-  throw new Error('BUSINESS_TIMEZONE must be a valid IANA timezone')
+  throw new Error("BUSINESS_TIMEZONE must be a valid IANA timezone");
 }
 
 export const env = {
@@ -108,8 +118,8 @@ export const env = {
     // Which gateway provider is active for online payments. Leave blank to keep
     // online payment disabled (the project falls back to bank transfer).
     // Provider-specific keys are read by the provider module in a later phase.
-    provider: (process.env.PAYMENT_PROVIDER?.trim() || '') as string,
-    currency: process.env.PAYMENT_CURRENCY?.trim() || 'NGN',
+    provider: (process.env.PAYMENT_PROVIDER?.trim() || "") as string,
+    currency: process.env.PAYMENT_CURRENCY?.trim() || "NGN",
     paystack: {
       secretKey: process.env.PAYSTACK_SECRET_KEY?.trim(),
       publicKey: process.env.PAYSTACK_PUBLIC_KEY?.trim(),
@@ -121,4 +131,4 @@ export const env = {
     businessEmail: process.env.BUSINESS_EMAIL?.trim(),
     from: process.env.EMAIL_FROM?.trim(),
   },
-} as const
+} as const;

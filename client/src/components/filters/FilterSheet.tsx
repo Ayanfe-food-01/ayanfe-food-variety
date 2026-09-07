@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState, type CSSProperties, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon, FilterIcon } from '../../assets/icons'
 import { useAccordion } from '../../hooks/useAccordion'
@@ -12,6 +12,7 @@ interface FilterSheetProps {
   fields: FilterField[]
   committed: FilterValues
   onApply: (next: FilterValues) => void
+  anchorRef?: RefObject<HTMLElement | null>
 }
 
 interface FieldGroup {
@@ -31,22 +32,70 @@ const groupFields = (fields: FilterField[]): FieldGroup[] => {
   return [...groups.values()]
 }
 
-export function FilterSheet({ isOpen, onClose, fields, committed, onApply }: FilterSheetProps) {
+export function FilterSheet({ isOpen, onClose, fields, committed, onApply, anchorRef }: FilterSheetProps) {
   const [draft, setDraft] = useState<FilterValues>(committed)
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number; width: number } | null>(null)
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setPopoverPosition(null)
+      return
+    }
+
+    const updatePosition = () => {
+      const anchor = anchorRef?.current
+      if (!anchor || !window.matchMedia('(min-width: 1024px)').matches) {
+        setPopoverPosition(null)
+        return
+      }
+
+      const rect = anchor.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) {
+        setPopoverPosition(null)
+        return
+      }
+
+      const width = Math.min(400, window.innerWidth - 32)
+      const left = Math.min(
+        Math.max(16, rect.right - width),
+        window.innerWidth - width - 16,
+      )
+
+      setPopoverPosition({
+        top: rect.bottom + 8,
+        left,
+        width,
+      })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [anchorRef, isOpen])
 
   useEffect(() => {
     if (!isOpen) return
     setDraft(committed)
-    const release = lockBodyScroll()
+    const anchor = anchorRef?.current
+    const isDesktopPopover = Boolean(
+      anchor
+      && window.matchMedia('(min-width: 1024px)').matches
+      && anchor.getBoundingClientRect().width > 0,
+    )
+    const release = isDesktopPopover ? undefined : lockBodyScroll()
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', closeOnEscape)
     return () => {
-      release()
+      release?.()
       document.removeEventListener('keydown', closeOnEscape)
     }
-  }, [isOpen, onClose])
+  }, [anchorRef, committed, isOpen, onClose])
 
   const groups = useMemo(() => groupFields(fields), [fields])
   const { isOpen: isGroupOpen, toggle: toggleGroup } = useAccordion({
@@ -67,7 +116,18 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply }: Fil
   }
 
   return createPortal(
-    <div id="filter-sheet" className="filter-sheet" role="dialog" aria-modal="true" aria-label="Filters">
+    <div
+      id="filter-sheet"
+      className={`filter-sheet${popoverPosition ? ' is-popover' : ''}`}
+      role="dialog"
+      aria-modal={popoverPosition ? undefined : true}
+      aria-label="Filters"
+      style={popoverPosition ? {
+        '--filter-sheet-top': `${popoverPosition.top}px`,
+        '--filter-sheet-left': `${popoverPosition.left}px`,
+        '--filter-sheet-width': `${popoverPosition.width}px`,
+      } as CSSProperties : undefined}
+    >
       <div className="filter-sheet-backdrop" onClick={onClose} aria-hidden="true" />
       <div className="filter-sheet-panel">
         <div className="filter-sheet-header">

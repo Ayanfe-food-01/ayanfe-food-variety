@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { FilterIcon } from '../../assets/icons'
 import { RefreshCwIcon } from '../../assets/icons'
 import { SearchBar } from '../ui/SearchBar'
@@ -30,6 +30,7 @@ interface FilterBarProps {
 
 export function FilterBar({ fields, committed, onApply, search, quickFields, onReset, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const desktopTriggerRef = useRef<HTMLButtonElement>(null)
 
   const activeCount = fields.filter((field) => Boolean(committed[field.key])).length
   const resolvedQuickFields = quickFields ?? fields.filter((field) => field.quick)
@@ -70,6 +71,7 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, onR
         <div className="filter-bar-desktop">
           <FilterQuickFilters fields={resolvedQuickFields} values={committed} onApply={onApply} />
           <button
+            ref={desktopTriggerRef}
             className={`filter-trigger ${activeCount > 0 ? 'is-active' : ''}`}
             type="button"
             aria-haspopup="dialog"
@@ -117,6 +119,7 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, onR
         fields={fields}
         committed={committed}
         onApply={onApply}
+        anchorRef={desktopTriggerRef}
       />
     </section>
   )

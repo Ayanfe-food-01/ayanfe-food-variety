@@ -1,6 +1,7 @@
 import type { Category } from '../../types/category'
 import { ChevronDownIcon } from '../../assets/icons'
 import { useDropdown } from '../../hooks/useDropdown'
+import { useLayoutEffect, useState } from 'react'
 import type { FilterValues } from '../filters/filterTypes'
 import { FilterBar } from '../filters/FilterBar'
 import { Popover } from '../ui/Popover'
@@ -152,6 +153,7 @@ export function ProductsFilterPanel({
   onSortChange,
 }: ProductsFilterPanelProps) {
   const { isOpen: isSortOpen, close: closeSort, toggle: toggleSort, rootRef: sortRootRef } = useDropdown()
+  const [sortMenuPosition, setSortMenuPosition] = useState({ vertical: 'below' as 'above' | 'below', left: 0 })
   const filterFields = fields(categories)
   const committed: FilterValues = {
     categoryIds: query.categoryIds?.join(',') ?? query.categoryId ?? '',
@@ -178,6 +180,44 @@ export function ProductsFilterPanel({
       ...priceRange,
     })
   }
+
+  useLayoutEffect(() => {
+    if (!isSortOpen) return
+
+    const updateSortMenuPosition = () => {
+      const root = sortRootRef.current
+      const menu = root?.querySelector<HTMLElement>('.products-sort-menu')
+      if (!root || !menu) return
+
+      const rootRect = root.getBoundingClientRect()
+      const menuWidth = menu.offsetWidth || 220
+      const menuHeight = menu.offsetHeight
+      const viewportPadding = 12
+      const gap = 8
+      const spaceBelow = window.innerHeight - rootRect.bottom
+      const spaceAbove = rootRect.top
+      const vertical = spaceBelow >= menuHeight + gap || spaceBelow >= spaceAbove ? 'below' : 'above'
+      const maxLeft = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding)
+      const desiredLeft = rootRect.left + menuWidth <= window.innerWidth - viewportPadding
+        ? rootRect.left
+        : rootRect.right - menuWidth >= viewportPadding
+          ? rootRect.right - menuWidth
+          : Math.min(Math.max(rootRect.left, viewportPadding), maxLeft)
+
+      setSortMenuPosition({
+        vertical,
+        left: desiredLeft - rootRect.left,
+      })
+    }
+
+    updateSortMenuPosition()
+    window.addEventListener('resize', updateSortMenuPosition)
+    window.addEventListener('scroll', updateSortMenuPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateSortMenuPosition)
+      window.removeEventListener('scroll', updateSortMenuPosition, true)
+    }
+  }, [isSortOpen, sortRootRef])
 
   return (
     <div className="products-filter-panel">
@@ -211,7 +251,8 @@ export function ProductsFilterPanel({
         <Popover
           isOpen={isSortOpen}
           onClose={closeSort}
-          className="products-sort-menu"
+          className={`products-sort-menu is-${sortMenuPosition.vertical}`}
+          style={{ left: `${sortMenuPosition.left}px`, right: 'auto' }}
           role="menu"
           ariaLabel="Sort products"
         >

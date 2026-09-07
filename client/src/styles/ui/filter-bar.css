@@ -192,6 +192,7 @@
 }
 
 .products-filter-bar .search-bar {
+  height: auto;
   background: var(--color-cream);
 }
 
@@ -907,6 +908,10 @@
     flex: 0 0 auto;
     align-self: flex-end;
     white-space: nowrap;
+  }
+
+  .products-filter-bar .search-bar input {
+    padding-block: 11px;
   }
 }
 

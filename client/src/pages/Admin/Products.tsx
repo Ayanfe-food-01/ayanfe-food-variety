@@ -265,7 +265,7 @@ export function Products() {
         )}
 
         {isLoading ? (
-          <div className="admin-products-loading px-5 py-14 text-center text-sm text-muted">Loading products…</div>
+          <ProductsLoadingSkeleton />
         ) : result?.products.length ? (
           <>
             <div className="admin-products-results-bar flex items-center justify-between gap-4 px-4 py-4 text-sm text-muted sm:px-5">
@@ -329,6 +329,62 @@ export function Products() {
           onConfirm={() => void confirmDelete()}
         />
       )}
+    </div>
+  )
+}
+
+function ProductsLoadingSkeleton() {
+  return (
+    <div className="admin-products-loading" role="status" aria-busy="true" aria-label="Loading products">
+      <span className="sr-only">Loading products</span>
+      <div className="admin-products-skeleton-mobile" aria-hidden="true">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div className="admin-products-skeleton-card" key={index}>
+            <div className="admin-products-skeleton-card-header">
+              <span className="admin-products-skeleton-block admin-products-skeleton-checkbox" />
+              <span className="admin-products-skeleton-block admin-products-skeleton-image" />
+              <span className="admin-products-skeleton-copy">
+                <span className="admin-products-skeleton-block admin-products-skeleton-title" />
+                <span className="admin-products-skeleton-block admin-products-skeleton-description" />
+                <span className="admin-products-skeleton-block admin-products-skeleton-category" />
+              </span>
+            </div>
+            <div className="admin-products-skeleton-details">
+              {Array.from({ length: 6 }, (_, detailIndex) => (
+                <span className="admin-products-skeleton-detail" key={detailIndex}>
+                  <span className="admin-products-skeleton-block admin-products-skeleton-label" />
+                  <span className="admin-products-skeleton-block admin-products-skeleton-value" />
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="admin-products-skeleton-desktop" aria-hidden="true">
+        <div className="admin-products-skeleton-table">
+          <div className="admin-products-skeleton-table-row admin-products-skeleton-table-header">
+            {Array.from({ length: 10 }, (_, index) => (
+              <span className="admin-products-skeleton-block" key={index} />
+            ))}
+          </div>
+          {Array.from({ length: 6 }, (_, rowIndex) => (
+            <div className="admin-products-skeleton-table-row" key={rowIndex}>
+              <span className="admin-products-skeleton-block admin-products-skeleton-checkbox" />
+              <span className="admin-products-skeleton-product">
+                <span className="admin-products-skeleton-block admin-products-skeleton-image" />
+                <span className="admin-products-skeleton-copy">
+                  <span className="admin-products-skeleton-block admin-products-skeleton-title" />
+                  <span className="admin-products-skeleton-block admin-products-skeleton-description" />
+                </span>
+              </span>
+              {Array.from({ length: 8 }, (_, cellIndex) => (
+                <span className="admin-products-skeleton-block admin-products-skeleton-cell" key={cellIndex} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

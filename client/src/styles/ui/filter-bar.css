@@ -69,6 +69,10 @@
   transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 
+.filter-trigger svg {
+  flex: 0 0 auto;
+}
+
 .filter-trigger:hover {
   border-color: var(--color-green);
 }
@@ -185,18 +189,28 @@
 
 .filter-chips {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
   align-items: center;
   gap: 8px;
 }
 
 .filter-chips-row {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
   gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.filter-chips-row::-webkit-scrollbar {
+  display: none;
 }
 
 .filter-chip {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -228,6 +242,7 @@
 }
 
 .filter-chips-clear {
+  flex: 0 0 auto;
   border: 0;
   background: transparent;
   color: var(--color-orange);
@@ -294,6 +309,9 @@
 }
 
 .filter-sheet-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-size: 16px;
   font-weight: 800;
@@ -435,4 +453,20 @@
 .filter-sheet-apply:hover {
   background: var(--color-green-dark);
   border-color: var(--color-green-dark);
+}
+
+@media (min-width: 1024px) {
+  .filter-sheet-panel {
+    inset: 18px 18px 18px auto;
+    bottom: auto;
+    width: min(460px, calc(100vw - 36px));
+    max-height: calc(100svh - 36px);
+    border-radius: 24px;
+    animation-name: filter-sheet-side;
+  }
+}
+
+@keyframes filter-sheet-side {
+  from { transform: translateX(24px); opacity: .6; }
+  to { transform: translateX(0); opacity: 1; }
 }

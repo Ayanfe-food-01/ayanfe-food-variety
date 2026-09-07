@@ -13,3 +13,4 @@
 - [Declared dependency availability](declared-dependency-availability.md) — a locked package can still be absent from node_modules after environment changes; verify imports at runtime and reinstall before debugging app code.
 - [Responsive table sticky context](responsive-table-sticky-context.md) — align sticky headers as a row and use a custom visual rail over one synchronized proxy scroller.
 - [Replit workspace preview origin](replit-workspace-preview-origin.md) — mobile workspace previews can send requests with origin https://replit.com instead of the app's replit.dev hostname.
+- [Responsive filter controls](responsive-filter-controls.md) — keep filter bars compact with one trigger, horizontal active chips, and a scroll-safe responsive sheet.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CloseIcon } from '../../assets/icons'
+import { CloseIcon, FilterIcon } from '../../assets/icons'
 import { useAccordion } from '../../hooks/useAccordion'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import type { FilterField, FilterValues } from './filterTypes'
@@ -75,11 +75,14 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply }: Fil
   }
 
   return createPortal(
-    <div className="filter-sheet" role="dialog" aria-modal="true" aria-label="Filters">
+    <div id="filter-sheet" className="filter-sheet" role="dialog" aria-modal="true" aria-label="Filters">
       <div className="filter-sheet-backdrop" onClick={onClose} aria-hidden="true" />
       <div className="filter-sheet-panel">
         <div className="filter-sheet-header">
-          <h2 className="filter-sheet-title">Filters</h2>
+          <h2 className="filter-sheet-title">
+            <FilterIcon size={18} aria-hidden="true" />
+            <span>Filters</span>
+          </h2>
           <button className="filter-sheet-close" type="button" aria-label="Close filters" onClick={onClose}>
             <CloseIcon size={18} aria-hidden="true" />
           </button>

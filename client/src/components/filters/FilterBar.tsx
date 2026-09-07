@@ -1,9 +1,8 @@
 import { useState } from 'react'
+import { FilterIcon } from '../../assets/icons'
 import { SearchBar } from '../ui/SearchBar'
 import type { FilterField, FilterValues } from './filterTypes'
-import { getValueLabel } from './filterTypes'
 import { FilterChips } from './FilterChips'
-import { FilterDropdown } from './FilterDropdown'
 import { FilterSheet } from './FilterSheet'
 
 interface FilterBarSearch {
@@ -28,8 +27,6 @@ interface FilterBarProps {
 export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
-  const inlineFields = fields.filter((field) => field.inline)
-  const overflowFields = fields.filter((field) => !field.inline)
   const activeCount = fields.filter((field) => Boolean(committed[field.key])).length
 
   const removeCommitted = (key: string) => {
@@ -42,11 +39,6 @@ export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Fil
     const next: FilterValues = {}
     for (const field of fields) next[field.key] = ''
     onApply(next)
-  }
-
-  const singleFieldLabel = (field: FilterField): string => {
-    const value = getValueLabel(field, committed)
-    return value ? `${field.label}: ${value}` : field.label
   }
 
   return (
@@ -71,23 +63,18 @@ export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Fil
         </div>
 
         <div className="filter-bar-desktop">
-          {inlineFields.map((field) => (
-            <FilterDropdown
-              key={field.key}
-              fields={[field]}
-              values={committed}
-              triggerLabel={singleFieldLabel(field)}
-              onApply={onApply}
-            />
-          ))}
-          {overflowFields.length > 0 && (
-            <FilterDropdown
-              fields={overflowFields}
-              values={committed}
-              triggerLabel="More filters"
-              onApply={onApply}
-            />
-          )}
+          <button
+            className={`filter-trigger ${activeCount > 0 ? 'is-active' : ''}`}
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={isSheetOpen}
+            aria-controls="filter-sheet"
+            onClick={() => setIsSheetOpen(true)}
+          >
+            <FilterIcon size={16} aria-hidden="true" />
+            <span>Filters</span>
+            {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
+          </button>
         </div>
 
         <div className="filter-bar-mobile">
@@ -95,8 +82,11 @@ export function FilterBar({ fields, committed, onApply, search, ariaLabel = 'Fil
             className={`filter-trigger ${activeCount > 0 ? 'is-active' : ''} w-full`}
             type="button"
             aria-haspopup="dialog"
+            aria-expanded={isSheetOpen}
+            aria-controls="filter-sheet"
             onClick={() => setIsSheetOpen(true)}
           >
+            <FilterIcon size={16} aria-hidden="true" />
             <span>Filters</span>
             {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
           </button>

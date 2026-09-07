@@ -220,9 +220,13 @@
   }
 
   .admin-products-results-bar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
+    justify-content: flex-start;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .admin-products-results-separator {
+    display: inline;
   }
 
   .admin-products-selection-toolbar {

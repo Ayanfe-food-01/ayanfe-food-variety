@@ -1,5 +1,4 @@
 import type { Category } from '../../types/category'
-import { ChevronDownIcon } from '../../assets/icons'
 import { useDropdown } from '../../hooks/useDropdown'
 import { useLayoutEffect, useState } from 'react'
 import type { FilterValues } from '../filters/filterTypes'
@@ -232,18 +231,18 @@ export function ProductsFilterPanel({
           onSearch,
           placeholder: 'Name or description',
         }}
-        footer={
+        headerActions={
           <div className="products-sort-control" ref={sortRootRef}>
             <button
               className="products-sort-trigger"
               type="button"
               aria-haspopup="menu"
               aria-expanded={isSortOpen}
+              aria-label={`Sort products: ${sortOptions.find((option) => option.value === (query.sort ?? 'newest'))?.label ?? 'Newest first'}`}
+              title="Sort products"
               onClick={toggleSort}
             >
               <span className="products-sort-icon" aria-hidden="true">↕</span>
-              <span>Sort</span>
-              <ChevronDownIcon className={`products-sort-chevron ${isSortOpen ? 'rotate-180' : ''}`} size={14} aria-hidden="true" />
             </button>
             <Popover
               isOpen={isSortOpen}

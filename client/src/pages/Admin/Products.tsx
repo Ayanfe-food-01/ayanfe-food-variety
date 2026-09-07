@@ -252,6 +252,7 @@ export function Products() {
           <>
             <div className="admin-products-results-bar flex items-center justify-between gap-4 px-4 py-4 text-sm text-muted sm:px-5">
               <span>{result.pagination.total} {result.pagination.total === 1 ? 'product' : 'products'}</span>
+              <span className="admin-products-results-separator" aria-hidden="true">·</span>
               <span>Page {currentPage} of {totalPages}</span>
             </div>
             <ProductsTable

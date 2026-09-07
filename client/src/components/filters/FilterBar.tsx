@@ -23,19 +23,26 @@ interface FilterBarProps {
   onApply: (next: FilterValues) => void
   search?: FilterBarSearch
   quickFields?: FilterField[]
-  footer?: ReactNode
+  headerActions?: ReactNode
   ariaLabel?: string
   className?: string
 }
 
-export function FilterBar({ fields, committed, onApply, search, quickFields, footer, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
+export function FilterBar({ fields, committed, onApply, search, quickFields, headerActions, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const desktopTriggerRef = useRef<HTMLButtonElement>(null)
 
   const activeCount = fields.filter((field) => Boolean(committed[field.key])).length
   const resolvedQuickFields = quickFields ?? fields.filter((field) => field.quick)
 
-  const removeCommitted = (key: string) => {
+  const removeCommitted = (key: string, value?: string) => {
+    const field = fields.find((candidate) => candidate.key === key)
+    if (field?.type === 'multi-select' && value) {
+      const remaining = (committed[key] ?? '').split(',').filter((selectedValue) => selectedValue && selectedValue !== value)
+      onApply({ ...committed, [key]: remaining.join(',') })
+      return
+    }
+
     const next = { ...committed }
     delete next[key]
     onApply(next)
@@ -102,6 +109,7 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, foo
             {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
           </button>
         </div>
+        {headerActions && <div className="filter-bar-actions">{headerActions}</div>}
       </div>
 
       <div className="filter-bar-mobile-quick">
@@ -110,7 +118,6 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, foo
 
       <div className="filter-bar-footer">
         <FilterChips fields={fields} values={committed} onRemove={removeCommitted} onClearAll={clearAll} />
-        {footer}
       </div>
 
       <FilterSheet

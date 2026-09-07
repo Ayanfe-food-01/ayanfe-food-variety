@@ -21,6 +21,8 @@ interface FieldGroup {
   fields: FilterField[]
 }
 
+type FilterSheetMode = 'sheet' | 'side' | 'popover'
+
 const groupFields = (fields: FilterField[]): FieldGroup[] => {
   const groups = new Map<string, FieldGroup>()
   for (const field of fields) {
@@ -32,10 +34,19 @@ const groupFields = (fields: FilterField[]): FieldGroup[] => {
   return [...groups.values()]
 }
 
-const desktopPopoverMediaQuery = '(min-width: 1280px) and (hover: hover) and (pointer: fine)'
+const getFilterSheetMode = (): FilterSheetMode => {
+  const viewportWidth = window.visualViewport?.width ?? window.innerWidth
+  const screenWidth = window.screen?.width || viewportWidth
+  const effectiveWidth = Math.min(viewportWidth, screenWidth)
+
+  if (effectiveWidth >= 1024) return 'popover'
+  if (effectiveWidth >= 768) return 'side'
+  return 'sheet'
+}
 
 export function FilterSheet({ isOpen, onClose, fields, committed, onApply, anchorRef }: FilterSheetProps) {
   const [draft, setDraft] = useState<FilterValues>(committed)
+  const [filterMode, setFilterMode] = useState<FilterSheetMode>('sheet')
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number; width: number } | null>(null)
 
   useLayoutEffect(() => {
@@ -45,8 +56,10 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
     }
 
     const updatePosition = () => {
+      const mode = getFilterSheetMode()
+      setFilterMode(mode)
       const anchor = anchorRef?.current
-      if (!anchor || !window.matchMedia(desktopPopoverMediaQuery).matches) {
+      if (mode !== 'popover' || !anchor) {
         setPopoverPosition(null)
         return
       }
@@ -85,7 +98,7 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
     const anchor = anchorRef?.current
     const isDesktopPopover = Boolean(
       anchor
-      && window.matchMedia(desktopPopoverMediaQuery).matches
+      && getFilterSheetMode() === 'popover'
       && anchor.getBoundingClientRect().width > 0,
     )
     const release = isDesktopPopover ? undefined : lockBodyScroll()
@@ -106,6 +119,8 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
 
   if (!isOpen) return null
 
+  const modeClass = filterMode === 'popover' ? 'is-popover' : filterMode === 'side' ? 'is-side' : ''
+
   const setFieldValue = (key: string, value: string) => {
     setDraft((current) => ({ ...current, [key]: value || '' }))
   }
@@ -120,7 +135,7 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
   return createPortal(
     <div
       id="filter-sheet"
-      className={`filter-sheet${popoverPosition ? ' is-popover' : ''}`}
+      className={`filter-sheet ${modeClass}`.trim()}
       role="dialog"
       aria-modal={popoverPosition ? undefined : true}
       aria-label="Filters"

@@ -1,7 +1,9 @@
 import type { Category } from '../../types/category'
 import { ChevronDownIcon } from '../../assets/icons'
+import { useDropdown } from '../../hooks/useDropdown'
 import type { FilterValues } from '../filters/filterTypes'
 import { FilterBar } from '../filters/FilterBar'
+import { Popover } from '../ui/Popover'
 import type { AdminProductsQuery } from '../../services/adminService'
 
 interface ProductsFilterPanelProps {
@@ -21,6 +23,18 @@ const priceRanges = [
   { value: '5000-20000', label: '₦5,000–₦20,000' },
   { value: '20000-50000', label: '₦20,000–₦50,000' },
   { value: '50000+', label: '₦50,000+' },
+]
+
+type ProductSort = NonNullable<AdminProductsQuery['sort']>
+
+const sortOptions: Array<{ value: ProductSort; label: string }> = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'updated', label: 'Recently updated' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'price_asc', label: 'Price: low to high' },
+  { value: 'price_desc', label: 'Price: high to low' },
+  { value: 'stock_asc', label: 'Lowest stock first' },
+  { value: 'stock_desc', label: 'Highest stock first' },
 ]
 
 const fields = (categories: Category[]) => [
@@ -137,6 +151,7 @@ export function ProductsFilterPanel({
   onReset,
   onSortChange,
 }: ProductsFilterPanelProps) {
+  const { isOpen: isSortOpen, close: closeSort, toggle: toggleSort, rootRef: sortRootRef } = useDropdown()
   const filterFields = fields(categories)
   const committed: FilterValues = {
     categoryIds: query.categoryIds?.join(',') ?? query.categoryId ?? '',
@@ -181,21 +196,49 @@ export function ProductsFilterPanel({
           placeholder: 'Name or description',
         }}
       />
-      <label className="products-sort-control">
+      <div className="products-sort-control" ref={sortRootRef}>
         <span className="products-sort-label">Sort</span>
-        <span className="products-sort-select">
-          <select aria-label="Sort products" value={query.sort ?? 'newest'} onChange={(event) => onSortChange(event.target.value as AdminProductsQuery['sort'])}>
-            <option value="newest">Newest first</option>
-            <option value="updated">Recently updated</option>
-            <option value="oldest">Oldest first</option>
-            <option value="price_asc">Price: low to high</option>
-            <option value="price_desc">Price: high to low</option>
-            <option value="stock_asc">Lowest stock first</option>
-            <option value="stock_desc">Highest stock first</option>
-          </select>
-          <ChevronDownIcon className="products-sort-chevron" size={14} aria-hidden="true" />
-        </span>
-      </label>
+        <button
+          className="products-sort-trigger"
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={isSortOpen}
+          onClick={toggleSort}
+        >
+          <span>{sortOptions.find((option) => option.value === (query.sort ?? 'newest'))?.label ?? 'Newest first'}</span>
+          <ChevronDownIcon className={`products-sort-chevron ${isSortOpen ? 'rotate-180' : ''}`} size={14} aria-hidden="true" />
+        </button>
+        <Popover
+          isOpen={isSortOpen}
+          onClose={closeSort}
+          className="products-sort-menu"
+          role="menu"
+          ariaLabel="Sort products"
+        >
+          {(close) => (
+            <div className="products-sort-options">
+              {sortOptions.map((option) => {
+                const isSelected = option.value === (query.sort ?? 'newest')
+                return (
+                  <button
+                    className={`products-sort-option${isSelected ? ' is-selected' : ''}`}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isSelected}
+                    key={option.value}
+                    onClick={() => {
+                      onSortChange(option.value)
+                      close()
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </Popover>
+      </div>
     </div>
   )
 }

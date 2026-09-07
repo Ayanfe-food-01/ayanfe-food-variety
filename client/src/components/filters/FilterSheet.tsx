@@ -50,7 +50,7 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply }: Fil
 
   const groups = useMemo(() => groupFields(fields), [fields])
   const { isOpen: isGroupOpen, toggle: toggleGroup } = useAccordion({
-    defaultOpen: groups.map((_, index) => index),
+    defaultOpen: [],
   })
 
   if (!isOpen) return null

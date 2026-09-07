@@ -32,7 +32,7 @@ export function CheckoutSummary({
   total,
 }: CheckoutSummaryProps) {
   return (
-    <aside className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-28" aria-labelledby="checkout-summary-heading">
+    <aside className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-40" aria-labelledby="checkout-summary-heading">
       <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
         <span className={mode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
         <span className={mode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>

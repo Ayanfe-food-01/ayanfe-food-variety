@@ -951,3 +951,103 @@
     white-space: nowrap;
   }
 }
+
+@media (min-width: 1280px) {
+  .products-filter-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: end;
+    gap: 14px;
+  }
+
+  .products-filter-bar {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .products-filter-bar .filter-bar-toolbar {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .products-filter-bar .filter-bar-search {
+    width: min(260px, 25vw);
+    flex: 0 1 260px;
+  }
+
+  .products-filter-bar .filter-bar-search-label {
+    font-size: 0;
+  }
+
+  .products-filter-bar .filter-bar-search-label .search-bar {
+    margin-top: 0;
+  }
+
+  .products-filter-bar .filter-bar-desktop {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 8px;
+  }
+
+  .products-filter-bar .filter-bar-desktop .filter-quick-filters {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 8px;
+  }
+
+  .products-filter-bar .filter-quick-filter {
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+
+  .products-filter-bar .filter-quick-filter:nth-child(3) {
+    display: none;
+  }
+
+  .products-filter-bar .filter-quick-trigger {
+    min-height: 38px;
+    max-width: 170px;
+    border-radius: 9px;
+    padding-inline: 11px;
+  }
+
+  .products-filter-bar .filter-trigger-icon {
+    width: auto;
+    min-width: auto;
+    min-height: 38px;
+    border-color: var(--color-line);
+    border-radius: 9px;
+    background: var(--color-cream);
+    color: var(--color-green-dark);
+    padding-inline: 11px;
+    box-shadow: none;
+  }
+
+  .products-filter-bar .filter-trigger-icon::after {
+    content: 'Filter';
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .products-filter-bar .filter-trigger-icon:hover,
+  .products-filter-bar .filter-trigger-icon.is-active {
+    border-color: var(--color-green);
+    background: var(--color-cream);
+    color: var(--color-green-dark);
+  }
+
+  .products-filter-bar .filter-trigger-icon .filter-badge {
+    top: -6px;
+    right: -6px;
+  }
+
+  .products-filter-bar .filter-reset {
+    white-space: nowrap;
+  }
+
+  .products-sort-control,
+  .products-sort-trigger {
+    height: 38px;
+  }
+}

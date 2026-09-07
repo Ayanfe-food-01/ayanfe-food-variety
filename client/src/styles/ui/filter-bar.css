@@ -998,6 +998,7 @@
 
   .products-filter-bar .filter-bar-search-label .search-bar {
     margin-top: 0;
+    font-size: 13px;
   }
 
   .products-filter-bar .filter-bar-desktop {
@@ -1044,6 +1045,10 @@
     width: 100%;
     min-height: 40px;
     margin-top: 0;
+  }
+
+  .products-filter-bar .filter-bar-search-label .search-bar input {
+    font-size: 13px;
   }
 
   .products-sort-control,

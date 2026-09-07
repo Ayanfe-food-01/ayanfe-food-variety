@@ -31,14 +31,14 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-cream">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={() => void logout()} />
-      <div className="admin-main min-w-0 lg:pl-72">
+      <div className="admin-main min-w-0 xl:pl-72">
         <AdminHeader
           isLoggingOut={isLoggingOut}
           onLogout={() => void logout()}
           onOpenNavigation={() => setIsSidebarOpen(true)}
           user={user}
         />
-        <main className="px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
+        <main className="px-5 py-7 sm:px-8 sm:py-9 xl:px-10 xl:py-10">
           <div className="mx-auto max-w-7xl">
             {children}
           </div>

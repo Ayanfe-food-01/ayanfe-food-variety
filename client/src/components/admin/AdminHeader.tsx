@@ -37,10 +37,10 @@ export function AdminHeader({ isLoggingOut, onLogout, onOpenNavigation, user }: 
   const profileInitial = user.name.trim().charAt(0).toUpperCase() || 'A'
 
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-cream/90 px-4 backdrop-blur-xl sm:px-8 lg:px-10">
+      <header className="sticky top-0 z-20 border-b border-line bg-cream/90 px-4 backdrop-blur-xl sm:px-8 xl:px-10">
       <div className="flex min-h-[80px] items-center gap-3">
         <button
-          className="rounded-xl border border-line bg-white p-2 text-green-dark lg:hidden"
+          className="rounded-xl border border-line bg-white p-2 text-green-dark xl:hidden"
           type="button"
           aria-label="Open admin navigation"
           onClick={onOpenNavigation}

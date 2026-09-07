@@ -39,12 +39,42 @@
   outline: 2px solid rgb(50 91 57 / 15%);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .products-filter-panel {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
     gap: 18px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .products-filter-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .filter-bar-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .filter-bar-search {
+    grid-column: 1;
+  }
+
+  .filter-bar-desktop {
+    grid-column: 2;
+  }
+
+  .filter-bar-desktop .filter-quick-filters {
+    display: none;
+  }
+
+  .products-sort-control {
+    width: min(240px, 100%);
+    align-self: flex-end;
   }
 }
 

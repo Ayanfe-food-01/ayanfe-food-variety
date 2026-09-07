@@ -232,51 +232,53 @@ export function ProductsFilterPanel({
           onSearch,
           placeholder: 'Name or description',
         }}
+        footer={
+          <div className="products-sort-control" ref={sortRootRef}>
+            <button
+              className="products-sort-trigger"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={isSortOpen}
+              onClick={toggleSort}
+            >
+              <span className="products-sort-icon" aria-hidden="true">↕</span>
+              <span>Sort</span>
+              <ChevronDownIcon className={`products-sort-chevron ${isSortOpen ? 'rotate-180' : ''}`} size={14} aria-hidden="true" />
+            </button>
+            <Popover
+              isOpen={isSortOpen}
+              onClose={closeSort}
+              className={`products-sort-menu is-${sortMenuPosition.vertical}`}
+              style={{ left: `${sortMenuPosition.left}px`, right: 'auto' }}
+              role="menu"
+              ariaLabel="Sort products"
+            >
+              {(close) => (
+                <div className="products-sort-options">
+                  {sortOptions.map((option) => {
+                    const isSelected = option.value === (query.sort ?? 'newest')
+                    return (
+                      <button
+                        className={`products-sort-option${isSelected ? ' is-selected' : ''}`}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isSelected}
+                        key={option.value}
+                        onClick={() => {
+                          onSortChange(option.value)
+                          close()
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </Popover>
+          </div>
+        }
       />
-      <div className="products-sort-control" ref={sortRootRef}>
-        <button
-          className="products-sort-trigger"
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={isSortOpen}
-          onClick={toggleSort}
-        >
-          <span className="products-sort-icon" aria-hidden="true">↕</span>
-          <span>Sort</span>
-          <ChevronDownIcon className={`products-sort-chevron ${isSortOpen ? 'rotate-180' : ''}`} size={14} aria-hidden="true" />
-        </button>
-        <Popover
-          isOpen={isSortOpen}
-          onClose={closeSort}
-          className={`products-sort-menu is-${sortMenuPosition.vertical}`}
-          style={{ left: `${sortMenuPosition.left}px`, right: 'auto' }}
-          role="menu"
-          ariaLabel="Sort products"
-        >
-          {(close) => (
-            <div className="products-sort-options">
-              {sortOptions.map((option) => {
-                const isSelected = option.value === (query.sort ?? 'newest')
-                return (
-                  <button
-                    className={`products-sort-option${isSelected ? ' is-selected' : ''}`}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={isSelected}
-                    key={option.value}
-                    onClick={() => {
-                      onSortChange(option.value)
-                      close()
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </Popover>
-      </div>
     </div>
   )
 }

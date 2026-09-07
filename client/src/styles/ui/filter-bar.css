@@ -10,6 +10,23 @@
   gap: 12px;
 }
 
+.filter-bar-footer {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-bar-footer .filter-chips {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.filter-bar-footer .products-sort-control {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .products-sort-control {
   position: relative;
   display: flex;
@@ -875,16 +892,13 @@
  */
 @media (min-width: 1024px) {
   .products-filter-panel {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    gap: 18px;
+    display: block;
   }
 
   .products-filter-bar {
-    width: max-content;
+    width: 100%;
     min-width: 0;
-    flex: 0 1 auto;
+    flex: none;
   }
 
   .products-filter-bar .filter-bar-toolbar {

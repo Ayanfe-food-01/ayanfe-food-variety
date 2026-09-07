@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { FilterIcon } from '../../assets/icons'
 import { SearchBar } from '../ui/SearchBar'
 import type { FilterField, FilterValues } from './filterTypes'
@@ -22,11 +23,12 @@ interface FilterBarProps {
   onApply: (next: FilterValues) => void
   search?: FilterBarSearch
   quickFields?: FilterField[]
+  footer?: ReactNode
   ariaLabel?: string
   className?: string
 }
 
-export function FilterBar({ fields, committed, onApply, search, quickFields, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
+export function FilterBar({ fields, committed, onApply, search, quickFields, footer, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const desktopTriggerRef = useRef<HTMLButtonElement>(null)
 
@@ -106,7 +108,10 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, ari
         <FilterQuickFilters fields={resolvedQuickFields} values={committed} onApply={onApply} />
       </div>
 
-      <FilterChips fields={fields} values={committed} onRemove={removeCommitted} onClearAll={clearAll} />
+      <div className="filter-bar-footer">
+        <FilterChips fields={fields} values={committed} onRemove={removeCommitted} onClearAll={clearAll} />
+        {footer}
+      </div>
 
       <FilterSheet
         isOpen={isSheetOpen}

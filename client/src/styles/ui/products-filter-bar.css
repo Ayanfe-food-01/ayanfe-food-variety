@@ -58,7 +58,7 @@
   .products-filter-bar .filter-bar-toolbar {
     display: flex;
     flex-wrap: nowrap;
-    align-items: flex-end;
+    align-items: center;
     gap: 8px;
   }
 
@@ -77,7 +77,15 @@
   }
 
   .products-filter-bar .filter-bar-search-label .search-bar {
+    height: 38px;
+    min-height: 38px;
     margin-top: 0;
+  }
+
+  .products-filter-bar .filter-bar-search-label .search-bar input {
+    height: 100%;
+    padding-block: 0;
+    line-height: 1.25;
   }
 
   .products-filter-bar .filter-trigger-icon {

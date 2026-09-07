@@ -847,3 +847,84 @@
   from { transform: translateY(-4px) scale(.98); opacity: .6; }
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
+
+/*
+ * Product filters have a compact desktop toolbar and a flexible mobile
+ * toolbar. Keep the search width stable on desktop so the filter and sort
+ * controls stay on the same line; on smaller screens the search must be able
+ * to shrink around the filter trigger.
+ */
+@media (min-width: 1024px) {
+  .products-filter-panel {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 18px;
+  }
+
+  .products-filter-bar {
+    width: max-content;
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+
+  .products-filter-bar .filter-bar-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .products-filter-bar .filter-bar-search {
+    width: 360px;
+    min-width: 0;
+    flex: 0 0 360px;
+  }
+
+  .products-filter-bar .filter-bar-desktop {
+    flex: 0 0 auto;
+  }
+
+  .products-sort-control {
+    flex: 0 0 auto;
+    align-self: flex-end;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1023px) {
+  .products-filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .products-filter-bar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .products-filter-bar .filter-bar-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .products-filter-bar .filter-bar-search {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .products-filter-bar .filter-bar-mobile {
+    flex: 0 0 auto;
+  }
+
+  .products-sort-control {
+    width: max-content;
+    max-width: 100%;
+    align-self: flex-start;
+    white-space: nowrap;
+  }
+}

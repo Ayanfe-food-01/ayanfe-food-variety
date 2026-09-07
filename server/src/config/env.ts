@@ -73,7 +73,7 @@ const developmentOrigins =
         "http://127.0.0.1:5000",
         "http://localhost:5000",
         "https://replit.com",
-        "https://1dc9568c-53ca-4d9b-9a1d-6640fa54e776-00-3n10701efjmf9.spock.replit.dev:5000",
+        "https://18e691e3-416c-4dbc-a154-ade105a53a50-00-47k6t8kqwvjy.janeway.replit.dev:5000",
         ...(process.env.REPLIT_DEV_DOMAIN?.trim()
           ? [`https://${process.env.REPLIT_DEV_DOMAIN.trim()}`]
           : []),

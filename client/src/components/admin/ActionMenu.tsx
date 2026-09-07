@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { MoreActionsButton } from './MoreActionsButton'
+import { useDropdown } from '../../hooks/useDropdown'
 
 interface ActionMenuProps {
   ariaLabel: string
@@ -26,29 +27,10 @@ export function ActionMenu({
   triggerOrientation = 'horizontal',
   children,
 }: ActionMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, toggle, close, rootRef } = useDropdown()
   const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setIsOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false)
-    }
-
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [isOpen])
 
   useLayoutEffect(() => {
     if (!isOpen || !fixedPosition) return
@@ -139,7 +121,7 @@ export function ActionMenu({
   }, [fixedPosition, isOpen])
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative inline-block" ref={rootRef}>
       <MoreActionsButton
         ref={buttonRef}
         label={ariaLabel}
@@ -149,7 +131,7 @@ export function ActionMenu({
         orientation={triggerOrientation}
         onClick={() => {
           setMenuLayout(null)
-          setIsOpen((current) => !current)
+          toggle()
         }}
       />
       {isOpen && (
@@ -166,7 +148,7 @@ export function ActionMenu({
             visibility: menuLayout ? 'visible' : 'hidden',
           }}
         >
-          {children(() => setIsOpen(false))}
+          {children(close)}
         </div>
       )}
     </div>

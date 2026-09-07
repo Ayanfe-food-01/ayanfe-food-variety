@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BellIcon } from '../../assets/icons'
 import {
@@ -8,6 +8,8 @@ import {
   type AdminNotification,
 } from '../../services/notificationService'
 import { AdminNotificationList } from './AdminNotificationList'
+import { useDropdown } from '../../hooks/useDropdown'
+import { Popover } from '../ui/Popover'
 
 const pollingIntervalMs = 30_000
 const recentNotificationPageSize = 8
@@ -16,14 +18,13 @@ const notificationViewportGutter = 16
 
 export function AdminNotifications() {
   const navigate = useNavigate()
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, close, toggle, rootRef } = useDropdown()
   const [notifications, setNotifications] = useState<AdminNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const notificationMenuRef = useRef<HTMLDivElement>(null)
   const [notificationPanelStyle, setNotificationPanelStyle] = useState<CSSProperties | null>(null)
 
   const updateNotificationPanelPosition = useCallback(() => {
-    const trigger = notificationMenuRef.current?.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')
+    const trigger = rootRef.current?.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')
     if (!trigger) return
 
     const triggerRect = trigger.getBoundingClientRect()
@@ -44,12 +45,12 @@ export function AdminNotifications() {
       top: Math.round(triggerRect.bottom + 12),
       width: Math.round(panelWidth),
     })
-  }, [])
+  }, [rootRef])
 
   const closeMenu = useCallback(() => {
-    setIsOpen(false)
+    close()
     setNotificationPanelStyle(null)
-  }, [])
+  }, [close])
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -69,24 +70,6 @@ export function AdminNotifications() {
       window.clearInterval(intervalId)
     }
   }, [loadNotifications])
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const closeOnPointerDown = (event: PointerEvent) => {
-      if (!notificationMenuRef.current?.contains(event.target as Node)) closeMenu()
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMenu()
-    }
-
-    document.addEventListener('pointerdown', closeOnPointerDown)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('pointerdown', closeOnPointerDown)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [closeMenu, isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -114,7 +97,8 @@ export function AdminNotifications() {
       closeMenu()
       return
     }
-    setIsOpen(true)
+    setNotificationPanelStyle(null)
+    toggle()
     void loadNotifications()
   }
 
@@ -146,7 +130,7 @@ export function AdminNotifications() {
   }
 
   return (
-    <div className="relative" ref={notificationMenuRef}>
+    <div className="relative" ref={rootRef}>
       <button
         className="relative grid size-10 place-items-center rounded-full border border-transparent bg-sage/45 text-green-dark transition-colors hover:border-line hover:bg-white"
         type="button"
@@ -163,47 +147,53 @@ export function AdminNotifications() {
         )}
       </button>
 
-      {isOpen && (
-        <section
-          className="fixed z-50 max-h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-xl"
-          style={notificationPanelStyle ?? { visibility: 'hidden' }}
-          role="dialog"
-          aria-label="Admin notifications"
-        >
-          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-            <div>
-              <h2 className="text-sm font-bold text-green-dark">Notifications</h2>
-              <p className="mt-0.5 text-xs text-muted">
-                {unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up'}
-              </p>
+      <Popover
+        isOpen={isOpen}
+        onClose={closeMenu}
+        maxHeight="calc(100dvh - 5rem)"
+        style={{ position: 'fixed', ...(notificationPanelStyle ?? { visibility: 'hidden' }) }}
+        surface="white"
+        role="dialog"
+        ariaLabel="Admin notifications"
+        className="overflow-hidden"
+      >
+        {(closePanel) => (
+          <>
+            <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+              <div>
+                <h2 className="text-sm font-bold text-green-dark">Notifications</h2>
+                <p className="mt-0.5 text-xs text-muted">
+                  {unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up'}
+                </p>
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  className="rounded-lg px-2 py-1 text-xs font-bold text-green hover:bg-sage/45"
+                  type="button"
+                  onClick={() => void markAllRead()}
+                >
+                  Mark all read
+                </button>
+              )}
             </div>
-            {unreadCount > 0 && (
-              <button
-                className="rounded-lg px-2 py-1 text-xs font-bold text-green hover:bg-sage/45"
-                type="button"
-                onClick={() => void markAllRead()}
-              >
-                Mark all read
-              </button>
-            )}
-          </div>
 
-          <AdminNotificationList
-            compact
-            notifications={notifications}
-            onOpen={(notification) => void openNotification(notification)}
-          />
-          <div className="border-t border-line px-4 py-3 text-center">
-            <Link
-              className="text-xs font-bold text-green hover:text-orange"
-              to="/admin/notifications"
-              onClick={closeMenu}
-            >
-              View all notifications
-            </Link>
-          </div>
-        </section>
-      )}
+            <AdminNotificationList
+              compact
+              notifications={notifications}
+              onOpen={(notification) => void openNotification(notification)}
+            />
+            <div className="border-t border-line px-4 py-3 text-center">
+              <Link
+                className="text-xs font-bold text-green hover:text-orange"
+                to="/admin/notifications"
+                onClick={closePanel}
+              >
+                View all notifications
+              </Link>
+            </div>
+          </>
+        )}
+      </Popover>
     </div>
   )
 }

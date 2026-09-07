@@ -12,6 +12,8 @@ import { ShoppingModeSwitch } from './ShoppingModeSwitch'
 import { AccountMenu } from './AccountMenu'
 import { CartDrawer } from '../cart/CartDrawer'
 import { useMarketUi } from '../../hooks/useMarketUi'
+import { useDropdown } from '../../hooks/useDropdown'
+import { Popover } from '../ui/Popover'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -41,6 +43,7 @@ export function Navbar() {
   const [ desktopNavCount, setDesktopNavCount ] = useState(links.length)
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const { isOpen: isMoreNavOpen, close: closeMoreNav, toggle: toggleMoreNav, rootRef: moreNavRef } = useDropdown()
   const { totalQuantity } = useCart()
   const { user, logout, openAuth } = useCustomerAuth()
   const { count: wishlistCount } = useWishlist()
@@ -218,16 +221,32 @@ export function Navbar() {
         <div className="desktop-nav container" ref={desktopNavRef}>
           {links.slice(0, desktopNavCount).map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
           {desktopNavCount < links.length && (
-            <div className="more-nav">
-              <button className="more-nav-trigger" type="button" aria-haspopup="true" aria-expanded="false">
+            <div className="more-nav" ref={moreNavRef}>
+              <button
+                className="more-nav-trigger"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={isMoreNavOpen}
+                onClick={toggleMoreNav}
+              >
                 More <ChevronDownIcon size={14} />
               </button>
-              <div className="more-nav-menu" role="menu">
-                {links.slice(desktopNavCount).map((link) => (
-                  <Link to={link.href} role="menuitem" key={link.href}>{link.label}</Link>
-                ))}
-                <Link className="wishlist-nav-link" to="/wishlist" role="menuitem" aria-label={`Wishlist with ${wishlistCount} saved items`}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
-              </div>
+              <Popover
+                isOpen={isMoreNavOpen}
+                onClose={closeMoreNav}
+                className="top-[calc(100%+8px)] left-0 min-w-[190px] p-2"
+                role="menu"
+                ariaLabel="More navigation"
+              >
+                {(closeMenu) => (
+                  <>
+                    {links.slice(desktopNavCount).map((link) => (
+                      <Link className="more-nav-menu-link" to={link.href} role="menuitem" key={link.href} onClick={closeMenu}>{link.label}</Link>
+                    ))}
+                    <Link className="more-nav-menu-link wishlist-nav-link" to="/wishlist" role="menuitem" aria-label={`Wishlist with ${wishlistCount} saved items`} onClick={closeMenu}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
+                  </>
+                )}
+              </Popover>
             </div>
           )}
           {desktopNavCount >= links.length && (

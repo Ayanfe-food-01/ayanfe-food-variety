@@ -208,7 +208,7 @@
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .filter-sheet.is-popover {
     pointer-events: none;
   }

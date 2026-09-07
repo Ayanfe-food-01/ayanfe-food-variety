@@ -32,6 +32,8 @@ const groupFields = (fields: FilterField[]): FieldGroup[] => {
   return [...groups.values()]
 }
 
+const desktopPopoverMediaQuery = '(min-width: 1280px)'
+
 export function FilterSheet({ isOpen, onClose, fields, committed, onApply, anchorRef }: FilterSheetProps) {
   const [draft, setDraft] = useState<FilterValues>(committed)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number; width: number } | null>(null)
@@ -44,7 +46,7 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
 
     const updatePosition = () => {
       const anchor = anchorRef?.current
-      if (!anchor || !window.matchMedia('(min-width: 1024px)').matches) {
+      if (!anchor || !window.matchMedia(desktopPopoverMediaQuery).matches) {
         setPopoverPosition(null)
         return
       }
@@ -83,7 +85,7 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
     const anchor = anchorRef?.current
     const isDesktopPopover = Boolean(
       anchor
-      && window.matchMedia('(min-width: 1024px)').matches
+      && window.matchMedia(desktopPopoverMediaQuery).matches
       && anchor.getBoundingClientRect().width > 0,
     )
     const release = isDesktopPopover ? undefined : lockBodyScroll()

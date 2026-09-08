@@ -175,29 +175,26 @@ export function ProductsFilterPanel({
   }
 
   return (
-    <div className="products-filter-panel">
-      <FilterBar
-        className="products-filter-bar"
-        fields={filterFields}
-        quickFields={filterFields.filter((field) => field.quick)}
-        committed={committed}
-        onApply={applyFilters}
-        search={{
-          label: 'Search products',
-          value: searchInput,
-          onChange: onSearchInputChange,
-          onSearch,
-          placeholder: 'Name or description',
-        }}
-        headerActions={
-          <FilterSort
-            ariaLabel="Sort products"
-            value={query.sort ?? 'newest'}
-            options={sortOptions}
-            onChange={onSortChange}
-          />
-        }
-      />
-    </div>
+    <FilterBar
+      fields={filterFields}
+      quickFields={filterFields.filter((field) => field.quick)}
+      committed={committed}
+      onApply={applyFilters}
+      search={{
+        label: 'Search products',
+        value: searchInput,
+        onChange: onSearchInputChange,
+        onSearch,
+        placeholder: 'Name or description',
+      }}
+      headerActions={
+        <FilterSort
+          ariaLabel="Sort products"
+          value={query.sort ?? 'newest'}
+          options={sortOptions}
+          onChange={onSortChange}
+        />
+      }
+    />
   )
 }

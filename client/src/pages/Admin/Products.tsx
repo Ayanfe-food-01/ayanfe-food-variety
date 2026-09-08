@@ -251,9 +251,8 @@ export function Products() {
           <ProductsLoadingSkeleton />
         ) : result?.products.length ? (
           <>
-            <div className="admin-products-results-bar flex items-center justify-between gap-4 px-4 py-4 text-sm text-muted sm:px-5">
+            <div className="mb-4 flex items-center justify-between px-5 pt-5 text-sm text-muted">
               <span>{result.pagination.total} {result.pagination.total === 1 ? 'product' : 'products'}</span>
-              <span className="admin-products-results-separator" aria-hidden="true">·</span>
               <span>Page {currentPage} of {totalPages}</span>
             </div>
             <ProductsTable
@@ -270,18 +269,17 @@ export function Products() {
               onToggleFeatured={(product) => void toggleFeatured(product.id, product.isFeatured)}
               onDelete={openDeleteConfirmation}
             />
-            <div className="admin-products-pagination border-t border-line px-4 py-4 sm:px-5">
-              {totalPages > 1 && (
-                <AdminPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
-                />
-              )}
-            </div>
+            {totalPages > 1 && (
+              <AdminPagination
+                className="border-t border-line px-5 py-4"
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
+              />
+            )}
           </>
         ) : (
-          <div className="admin-products-empty px-6 py-16 text-center">
+          <div className="admin-products-empty rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
             <h2 className="text-xl font-bold text-green-dark">No products found</h2>
             <p className="mt-2 text-sm text-muted">Try a different filter or add your first product.</p>
             <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add product</Link>

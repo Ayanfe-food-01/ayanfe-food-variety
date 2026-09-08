@@ -23,6 +23,15 @@ interface FieldGroup {
 
 type FilterSheetMode = 'sheet' | 'side' | 'popover'
 
+interface FilterSheetPanelProps {
+  fields: FilterField[]
+  committed: FilterValues
+  onApply: (next: FilterValues) => void
+  onClose: () => void
+  filterMode: FilterSheetMode
+  popoverPosition: { top: number; left: number; width: number } | null
+}
+
 const groupFields = (fields: FilterField[]): FieldGroup[] => {
   const groups = new Map<string, FieldGroup>()
   for (const field of fields) {
@@ -45,15 +54,11 @@ const getFilterSheetMode = (): FilterSheetMode => {
 }
 
 export function FilterSheet({ isOpen, onClose, fields, committed, onApply, anchorRef }: FilterSheetProps) {
-  const [draft, setDraft] = useState<FilterValues>(committed)
   const [filterMode, setFilterMode] = useState<FilterSheetMode>('sheet')
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number; width: number } | null>(null)
 
   useLayoutEffect(() => {
-    if (!isOpen) {
-      setPopoverPosition(null)
-      return
-    }
+    if (!isOpen) return
 
     const updatePosition = () => {
       const mode = getFilterSheetMode()
@@ -94,7 +99,6 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
 
   useEffect(() => {
     if (!isOpen) return
-    setDraft(committed)
     const anchor = anchorRef?.current
     const isDesktopPopover = Boolean(
       anchor
@@ -110,14 +114,28 @@ export function FilterSheet({ isOpen, onClose, fields, committed, onApply, ancho
       release?.()
       document.removeEventListener('keydown', closeOnEscape)
     }
-  }, [anchorRef, committed, isOpen, onClose])
+  }, [anchorRef, isOpen, onClose])
 
+  if (!isOpen) return null
+
+  return (
+    <FilterSheetPanel
+      fields={fields}
+      committed={committed}
+      onApply={onApply}
+      onClose={onClose}
+      filterMode={filterMode}
+      popoverPosition={popoverPosition}
+    />
+  )
+}
+
+function FilterSheetPanel({ fields, committed, onApply, onClose, filterMode, popoverPosition }: FilterSheetPanelProps) {
+  const [draft, setDraft] = useState<FilterValues>(committed)
   const groups = useMemo(() => groupFields(fields), [fields])
   const { isOpen: isGroupOpen, toggle: toggleGroup } = useAccordion({
     defaultOpen: [],
   })
-
-  if (!isOpen) return null
 
   const modeClass = filterMode === 'popover' ? 'is-popover' : filterMode === 'side' ? 'is-side' : ''
 

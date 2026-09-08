@@ -22,12 +22,12 @@
   flex: 1 1 auto;
 }
 
-.filter-bar-footer .products-sort-control {
+.filter-bar-footer .filter-sort-control {
   flex: 0 0 auto;
   margin-left: auto;
 }
 
-.products-sort-control {
+.filter-sort-control {
   position: relative;
   display: flex;
   min-width: 0;
@@ -42,7 +42,7 @@
   text-transform: uppercase;
 }
 
-.products-sort-trigger {
+.filter-sort-trigger {
   display: inline-flex;
   min-width: 0;
   height: 44px;
@@ -60,54 +60,54 @@
   cursor: pointer;
 }
 
-.products-sort-trigger[aria-expanded="true"] {
+.filter-sort-trigger[aria-expanded="true"] {
   background: transparent;
 }
 
-.products-sort-trigger:hover {
+.filter-sort-trigger:hover {
   background: transparent;
   color: var(--color-orange);
 }
 
-.products-sort-trigger:focus-visible {
+.filter-sort-trigger:focus-visible {
   outline: 2px solid rgb(50 91 57 / 15%);
 }
 
-.products-sort-icon {
+.filter-sort-icon {
   color: var(--color-green);
   font-size: 17px;
   font-weight: 800;
   line-height: 1;
 }
 
-.products-sort-chevron {
+.filter-sort-chevron {
   pointer-events: none;
   color: var(--color-muted);
   transition: transform .16s ease;
 }
 
-.products-sort-menu {
+.filter-sort-menu {
   min-width: 220px;
   padding: 6px;
 }
 
-.products-sort-menu.is-below {
+.filter-sort-menu.is-below {
   top: calc(100% + 8px);
   bottom: auto;
 }
 
-.products-sort-menu.is-above {
+.filter-sort-menu.is-above {
   top: auto;
   bottom: calc(100% + 8px);
 }
 
-.products-sort-options {
+.filter-sort-options {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.products-sort-option {
+.filter-sort-option {
   display: flex;
   width: 100%;
   min-height: 38px;
@@ -123,13 +123,13 @@
   cursor: pointer;
 }
 
-.products-sort-option.is-selected {
+.filter-sort-option.is-selected {
   background: var(--color-sage);
   color: var(--color-green-dark);
   font-weight: 800;
 }
 
-.products-sort-option:hover {
+.filter-sort-option:hover {
   background: transparent;
   color: var(--color-orange);
 }
@@ -175,7 +175,7 @@
     display: none;
   }
 
-  .products-sort-control {
+  .filter-sort-control {
     width: max-content;
     align-self: end;
   }

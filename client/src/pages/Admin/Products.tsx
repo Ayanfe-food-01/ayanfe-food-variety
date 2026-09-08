@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '../../components/ui/Toast'
 import { ProductsFilterPanel } from '../../components/admin/ProductsFilterPanel'
 import { ProductsTable } from '../../components/admin/ProductsTable'
+import { AdminPagination } from '../../components/admin/AdminPagination'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -269,13 +270,13 @@ export function Products() {
               onToggleFeatured={(product) => void toggleFeatured(product.id, product.isFeatured)}
               onDelete={openDeleteConfirmation}
             />
-            <div className="admin-products-pagination flex items-center justify-between gap-4 border-t border-line px-4 py-4 sm:px-5">
-              <span className="text-xs font-bold text-muted">Page {currentPage} of {totalPages}</span>
+            <div className="admin-products-pagination border-t border-line px-4 py-4 sm:px-5">
               {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button>
-                  <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button>
-                </div>
+                <AdminPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
+                />
               )}
             </div>
           </>

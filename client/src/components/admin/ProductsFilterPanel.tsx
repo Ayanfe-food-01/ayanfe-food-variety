@@ -1,9 +1,7 @@
 import type { Category } from '../../types/category'
-import { useDropdown } from '../../hooks/useDropdown'
-import { useLayoutEffect, useState } from 'react'
 import type { FilterValues } from '../filters/filterTypes'
 import { FilterBar } from '../filters/FilterBar'
-import { Popover } from '../ui/Popover'
+import { FilterSort } from './FilterSort'
 import type { AdminProductsQuery } from '../../services/adminService'
 
 interface ProductsFilterPanelProps {
@@ -149,8 +147,6 @@ export function ProductsFilterPanel({
   onApply,
   onSortChange,
 }: ProductsFilterPanelProps) {
-  const { isOpen: isSortOpen, close: closeSort, toggle: toggleSort, rootRef: sortRootRef } = useDropdown()
-  const [sortMenuPosition, setSortMenuPosition] = useState({ vertical: 'below' as 'above' | 'below', left: 0 })
   const filterFields = fields(categories)
   const committed: FilterValues = {
     categoryIds: query.categoryIds?.join(',') ?? query.categoryId ?? '',
@@ -178,44 +174,6 @@ export function ProductsFilterPanel({
     })
   }
 
-  useLayoutEffect(() => {
-    if (!isSortOpen) return
-
-    const updateSortMenuPosition = () => {
-      const root = sortRootRef.current
-      const menu = root?.querySelector<HTMLElement>('.products-sort-menu')
-      if (!root || !menu) return
-
-      const rootRect = root.getBoundingClientRect()
-      const menuWidth = menu.offsetWidth || 220
-      const menuHeight = menu.offsetHeight
-      const viewportPadding = 12
-      const gap = 8
-      const spaceBelow = window.innerHeight - rootRect.bottom
-      const spaceAbove = rootRect.top
-      const vertical = spaceBelow >= menuHeight + gap || spaceBelow >= spaceAbove ? 'below' : 'above'
-      const maxLeft = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding)
-      const desiredLeft = rootRect.left + menuWidth <= window.innerWidth - viewportPadding
-        ? rootRect.left
-        : rootRect.right - menuWidth >= viewportPadding
-          ? rootRect.right - menuWidth
-          : Math.min(Math.max(rootRect.left, viewportPadding), maxLeft)
-
-      setSortMenuPosition({
-        vertical,
-        left: desiredLeft - rootRect.left,
-      })
-    }
-
-    updateSortMenuPosition()
-    window.addEventListener('resize', updateSortMenuPosition)
-    window.addEventListener('scroll', updateSortMenuPosition, true)
-    return () => {
-      window.removeEventListener('resize', updateSortMenuPosition)
-      window.removeEventListener('scroll', updateSortMenuPosition, true)
-    }
-  }, [isSortOpen, sortRootRef])
-
   return (
     <div className="products-filter-panel">
       <FilterBar
@@ -232,50 +190,12 @@ export function ProductsFilterPanel({
           placeholder: 'Name or description',
         }}
         headerActions={
-          <div className="products-sort-control" ref={sortRootRef}>
-            <button
-              className="products-sort-trigger"
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={isSortOpen}
-              aria-label={`Sort products: ${sortOptions.find((option) => option.value === (query.sort ?? 'newest'))?.label ?? 'Newest first'}`}
-              title="Sort products"
-              onClick={toggleSort}
-            >
-              <span className="products-sort-icon" aria-hidden="true">↕</span>
-            </button>
-            <Popover
-              isOpen={isSortOpen}
-              onClose={closeSort}
-              className={`products-sort-menu is-${sortMenuPosition.vertical}`}
-              style={{ left: `${sortMenuPosition.left}px`, right: 'auto' }}
-              role="menu"
-              ariaLabel="Sort products"
-            >
-              {(close) => (
-                <div className="products-sort-options">
-                  {sortOptions.map((option) => {
-                    const isSelected = option.value === (query.sort ?? 'newest')
-                    return (
-                      <button
-                        className={`products-sort-option${isSelected ? ' is-selected' : ''}`}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={isSelected}
-                        key={option.value}
-                        onClick={() => {
-                          onSortChange(option.value)
-                          close()
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </Popover>
-          </div>
+          <FilterSort
+            ariaLabel="Sort products"
+            value={query.sort ?? 'newest'}
+            options={sortOptions}
+            onChange={onSortChange}
+          />
         }
       />
     </div>

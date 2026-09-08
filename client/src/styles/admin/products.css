@@ -206,10 +206,6 @@
   min-height: 68px;
 }
 
-.admin-products-pagination > span {
-  flex: 0 0 auto;
-}
-
 @media (max-width: 639px) {
   .admin-products-page-header {
     gap: 16px;

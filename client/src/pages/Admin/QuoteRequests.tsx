@@ -7,12 +7,33 @@ import {
   type AdminQuoteRequestsQuery,
 } from '../../services/quoteService'
 import { QuoteTable } from '../../components/admin/QuoteTable'
-import { SelectField } from '../../components/ui/SelectField'
-import { SearchBar } from '../../components/ui/SearchBar'
+import { AdminPagination } from '../../components/admin/AdminPagination'
+import { FilterBar } from '../../components/filters/FilterBar'
+import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
+import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { formatQuoteStatus, getAllQuoteStatuses } from '../../utils/quoteStatus'
 
 const pageSize = 10
+
+const quoteFields: FilterField[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All statuses' },
+      ...getAllQuoteStatuses().map((status) => ({ value: status, label: formatQuoteStatus(status) })),
+    ],
+  },
+]
+
+const quoteSortOptions: FilterSortOption[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+]
 
 export function QuoteRequests() {
   const [searchInput, setSearchInput] = useState('')
@@ -73,33 +94,30 @@ export function QuoteRequests() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Quote request filters">
-        <div className="flex flex-col gap-3 lg:flex-row">
-          <label className="flex-1 text-xs font-bold text-green-dark">
-            Search quote requests
-            <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Reference, customer, email, or phone" />
-          </label>
-          <label className="text-xs font-bold text-green-dark">
-            Status
-            <SelectField
-              className="mt-2 w-full sm:w-48"
-              options={[{ value: '', label: 'All statuses' }, ...getAllQuoteStatuses().map((status) => ({ value: status, label: formatQuoteStatus(status) }))]}
-              onChange={(value) => updateFilter('status', value)}
-              value={query.status ?? ''}
-            />
-          </label>
-          <label className="text-xs font-bold text-green-dark">
-            Sort
-            <SelectField
-              className="mt-2 w-full sm:w-36"
-              options={[
-                { value: 'newest', label: 'Newest first' },
-                { value: 'oldest', label: 'Oldest first' },
-              ]}
-              onChange={(value) => updateFilter('sort', value)}
+        <FilterBar
+          fields={quoteFields}
+          committed={{ status: query.status ?? '' }}
+          onApply={(next: FilterValues) => setQuery((current) => ({
+            ...current,
+            status: (next.status || undefined) as AdminQuoteRequestsQuery['status'],
+            page: 1,
+          }))}
+          search={{
+            label: 'Search quote requests',
+            value: searchInput,
+            onChange: setSearchInput,
+            onSearch: updateSearch,
+            placeholder: 'Reference, customer, email, or phone',
+          }}
+          headerActions={
+            <FilterSort
+              ariaLabel="Sort quote requests"
               value={query.sort ?? 'newest'}
+              options={quoteSortOptions}
+              onChange={(value) => updateFilter('sort', value)}
             />
-          </label>
-        </div>
+          }
+        />
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
@@ -112,11 +130,12 @@ export function QuoteRequests() {
             <QuoteTable quoteRequests={result?.quoteRequests ?? []} />
           </div>
           {totalPages > 1 && (
-            <div className="mt-5 flex items-center justify-between gap-4">
-              <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button>
-              <span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span>
-              <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button>
-            </div>
+            <AdminPagination
+              className="mt-5"
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
+            />
           )}
         </>
       )}

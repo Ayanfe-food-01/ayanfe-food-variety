@@ -12,14 +12,48 @@ import {
 } from '../../services/paymentService'
 import { PaymentReview } from '../../components/admin/PaymentReview'
 import { PaymentTable } from '../../components/admin/PaymentTable'
-import { SelectField } from '../../components/ui/SelectField'
-import { SearchBar } from '../../components/ui/SearchBar'
+import { AdminPagination } from '../../components/admin/AdminPagination'
+import { FilterBar } from '../../components/filters/FilterBar'
+import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
+import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
 import { useToast } from '../../components/ui/Toast'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 10
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
+
+const paymentFields: FilterField[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All statuses' },
+      { value: 'PENDING', label: 'Pending' },
+      { value: 'VERIFIED', label: 'Confirmed' },
+      { value: 'REJECTED', label: 'Rejected' },
+    ],
+  },
+  {
+    key: 'paymentMethod',
+    label: 'Method',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All methods' },
+      { value: 'BANK_TRANSFER', label: 'Bank transfer' },
+    ],
+  },
+]
+
+const paymentSortOptions: FilterSortOption[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+]
 
 function SummaryCard({ label, count, total, emphasis }: { label: string; count: number; total: string; emphasis?: boolean }) {
   return (
@@ -132,27 +166,40 @@ export function Payments() {
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Payment filters">
         <div className="space-y-4">
-          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <label className="min-w-0 text-xs font-bold text-green-dark">
-              Search payments
-              <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Order, customer, email, or reference" />
-            </label>
-          </div>
-          <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <label className="min-w-0 text-xs font-bold text-green-dark">Status
-              <SelectField className="mt-2 w-full min-w-0" options={[{ value: 'PENDING', label: 'Pending first' }, { value: '', label: 'All statuses' }, { value: 'VERIFIED', label: 'Confirmed' }, { value: 'REJECTED', label: 'Rejected' }]} onChange={(value) => updateFilter('status', value)} value={query.status ?? ''} />
-            </label>
-            <label className="min-w-0 text-xs font-bold text-green-dark">Method
-              <SelectField className="mt-2 w-full min-w-0" options={[{ value: '', label: 'All methods' }, { value: 'BANK_TRANSFER', label: 'Bank transfer' }]} onChange={(value) => updateFilter('paymentMethod', value)} value={query.paymentMethod ?? ''} />
-            </label>
+          <FilterBar
+            fields={paymentFields}
+            committed={{
+              status: query.status ?? '',
+              paymentMethod: query.paymentMethod ?? '',
+            }}
+            onApply={(next: FilterValues) => setQuery((current) => ({
+              ...current,
+              status: (next.status || undefined) as AdminPaymentsQuery['status'],
+              paymentMethod: next.paymentMethod as AdminPaymentsQuery['paymentMethod'],
+              page: 1,
+            }))}
+            search={{
+              label: 'Search payments',
+              value: searchInput,
+              onChange: setSearchInput,
+              onSearch: updateSearch,
+              placeholder: 'Order, customer, email, or reference',
+            }}
+            headerActions={
+              <FilterSort
+                ariaLabel="Sort payments"
+                value={query.sort ?? 'newest'}
+                options={paymentSortOptions}
+                onChange={(value) => updateFilter('sort', value)}
+              />
+            }
+          />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <label className="min-w-0 text-xs font-bold text-green-dark">From
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
+              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
             </label>
             <label className="min-w-0 text-xs font-bold text-green-dark">To
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
-            </label>
-            <label className="min-w-0 text-xs font-bold text-green-dark">Sort
-              <SelectField className="mt-2 w-full min-w-0" options={[{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }]} onChange={(value) => updateFilter('sort', value)} value={query.sort ?? 'newest'} />
+              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
             </label>
           </div>
         </div>
@@ -165,7 +212,7 @@ export function Payments() {
         <>
           <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{result?.pagination.total ?? 0} submissions</span><span>Page {currentPage} of {totalPages}</span></div>
           <div className="mt-3"><PaymentTable payments={result?.payments ?? []} onSelect={(payment) => void openReview(payment)} /></div>
-          {totalPages > 1 && <div className="mt-5 flex items-center justify-between gap-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
+          {totalPages > 1 && <AdminPagination className="mt-5" currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => setQuery((current) => ({ ...current, page }))} />}
         </>
       )}
 

@@ -223,7 +223,7 @@ export function Checkout() {
 
         <section className="container py-12 sm:py-16 lg:py-24">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
-            <form className="space-y-0" onSubmit={handleSubmit} noValidate>
+            <form className="min-w-0 space-y-0" onSubmit={handleSubmit} noValidate>
               {cartError && (
                 <div className="rounded-2xl border border-orange/30 bg-orange/5 p-5 text-sm leading-6 text-orange" role="alert">
                   {cartError}

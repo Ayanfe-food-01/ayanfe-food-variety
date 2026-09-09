@@ -107,7 +107,7 @@ export function PhoneInputField({
       aria-describedby={ariaDescribedBy}
       inputComponent={PhoneNumberInput}
       countrySelectComponent={PhoneCountrySelect}
-      className={`phone-input-root flex items-stretch overflow-hidden rounded-xl bg-white transition-colors focus-within:ring-2 ${
+      className={`phone-input-root min-w-0 flex items-stretch overflow-hidden rounded-xl bg-white transition-colors focus-within:ring-2 ${
         hasError
           ? 'border border-orange focus-within:border-orange focus-within:ring-orange/10'
           : 'border border-line focus-within:border-green focus-within:ring-green/10'

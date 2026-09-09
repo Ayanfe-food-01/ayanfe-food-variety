@@ -259,6 +259,7 @@ interface ProductWholesalePricingResponse {
     productId: string
     packages: Array<{
       packageId: string
+      productOptionId: string | null
       name: string
       unitsPerPackage: number
       price: string
@@ -288,6 +289,7 @@ export async function getProductWholesalePricing(id: string, signal?: AbortSigna
       }
       return {
         packageId: pkg.packageId,
+        productOptionId: typeof pkg.productOptionId === 'string' ? pkg.productOptionId : null,
         name: pkg.name,
         unitsPerPackage: pkg.unitsPerPackage,
         price,

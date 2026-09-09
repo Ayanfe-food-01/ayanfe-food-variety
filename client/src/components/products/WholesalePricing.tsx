@@ -7,6 +7,7 @@ interface WholesalePricingProps {
   selectedPackageId: string | null
   onSelectPackage: (packageId: string) => void
   unit: string
+  optionLabelById?: Record<string, string>
 }
 
 export function WholesalePricing({
@@ -15,6 +16,7 @@ export function WholesalePricing({
   selectedPackageId,
   onSelectPackage,
   unit,
+  optionLabelById = {},
 }: WholesalePricingProps) {
   if (status === 'loading' || status === 'idle') {
     return (
@@ -50,6 +52,7 @@ export function WholesalePricing({
         {packages.map((pkg) => {
           const perUnit = pkg.unitsPerPackage > 0 ? pkg.price / pkg.unitsPerPackage : null
           const isSelected = pkg.packageId === selectedPackageId
+          const sizeLabel = pkg.productOptionId ? (optionLabelById[pkg.productOptionId] ?? null) : null
           return (
             <button
               key={pkg.packageId}
@@ -66,12 +69,13 @@ export function WholesalePricing({
                 <span className="block text-sm font-bold text-green-dark">{pkg.name}</span>
                 <span className="block text-xs text-muted">
                   {pkg.unitsPerPackage} {pkg.unitsPerPackage === 1 ? 'unit' : 'units'} per package
+                  {sizeLabel ? ` · ${sizeLabel} pack` : ''}
                 </span>
               </span>
               <span className="text-right">
                 <span className="block text-sm font-bold text-green-dark">{formatPrice(pkg.price)}</span>
                 <span className="block text-xs text-muted">
-                  {perUnit !== null ? `${formatPrice(perUnit)} / ${unit}` : ''}
+                  {sizeLabel ? `${sizeLabel} · ` : ''}{perUnit !== null ? `${formatPrice(perUnit)} / ${unit}` : ''}
                 </span>
               </span>
             </button>

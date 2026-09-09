@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { CartIcon, CloseIcon } from '../../assets/icons'
 import { useCart } from '../../hooks/useCart'
-import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { cartItemLineKey } from '../../context/cartContext'
 import { useToast } from '../ui/Toast'
 import { formatPrice } from '../../utils/formatPrice'
@@ -21,9 +20,7 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
   const options = [...(product.options ?? [])]
     .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
   const { addToCart, pendingItemIds } = useCart()
-  const { user, shoppingMode } = useCustomerAuth()
   const { showToast } = useToast()
-  const isWholesaleShopper = user?.role === 'CUSTOMER' && shoppingMode === 'WHOLESALE'
 
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(() => {
     if (options.length === 0) return null
@@ -47,8 +44,7 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
   const selectedOption = hasOptions ? (options.find((option) => option.id === selectedOptionId) ?? null) : null
   const availableStock = hasOptions ? (selectedOption?.stockQuantity ?? 0) : product.stockQuantity
   const maxSelectableQuantity = Math.max(1, availableStock)
-  const wholesaleMoq = isWholesaleShopper ? (selectedOption?.wholesaleMoq ?? null) : null
-  const quantityFloor = wholesaleMoq ? Math.max(1, Math.min(wholesaleMoq, maxSelectableQuantity)) : 1
+  const quantityFloor = 1
   const selectedQuantity = Math.max(quantityFloor, Math.min(quantity, maxSelectableQuantity))
   const isUnavailable = product.isAvailable === false || (hasOptions && (selectedOption === null || selectedOption.stockQuantity <= 0))
   const canAddToCart = !isUnavailable
@@ -117,7 +113,7 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
 
           <div>
             <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-green-dark" htmlFor="product-options-quantity">
-              Quantity{wholesaleMoq ? ` · MOQ ${wholesaleMoq} units` : ''}
+              Quantity
             </label>
             <div className="flex h-12 items-center justify-between rounded-xl border border-line bg-white px-1">
               <button

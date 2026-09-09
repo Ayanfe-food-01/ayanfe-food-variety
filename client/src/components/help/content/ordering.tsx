@@ -54,19 +54,18 @@ export const orderingCategory: HelpCategory = {
       answer: (
         <p>
           Retail is everyday shopping at the standard unit price — you can do this as a guest without an account.
-          Wholesale shows bulk, quantity-based prices and is available to signed-in customers. You can switch between
-          the two with the “Shopping Mode” switch in the store navigation.
+          Wholesale sells items in ready-made packages at package prices and is available to signed-in customers. You
+          can switch between the two with the “Shopping Mode” switch in the store navigation.
         </p>
       ),
     },
     {
-      question: 'How does quantity-based pricing work?',
+      question: 'How does wholesale pricing work?',
       answer: (
         <p>
-          For wholesale, the price per unit goes down as you buy more. Each size is split into price bands such as
-          1–9 units, 10–49 units, and 50+ units. On a product page in Wholesale mode, choose your quantity to see the
-          unit price for that quantity, and the full price table is listed on the page. Some items also have a minimum
-          order quantity (MOQ).
+          For wholesale, each product is sold in ready-made packages (such as a carton of 20 units) at a fixed price
+          per package. On a product page in Wholesale mode, choose the package and set how many packages you want. The
+          price is always per whole package, and there is no minimum order quantity.
         </p>
       ),
     },

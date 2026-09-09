@@ -113,8 +113,12 @@ const createCartItem = (
 ): CartItem => {
   const isOptioned = selectedOption !== null
   const isWholesale = wholesalePackage !== null
+  const wholesaleOptionId = isWholesale ? (wholesalePackage?.productOptionId ?? null) : null
+  const stockForWholesale = wholesaleOptionId && selectedOption && selectedOption.id === wholesaleOptionId
+    ? selectedOption.stockQuantity
+    : product.stockQuantity
   const availableQuantity = isWholesale
-    ? Math.max(0, Math.floor(product.stockQuantity / wholesalePackage.unitsPerPackage))
+    ? Math.max(0, Math.floor(stockForWholesale / wholesalePackage.unitsPerPackage))
     : isOptioned ? selectedOption.stockQuantity : product.stockQuantity
   const unitPrice = isWholesale
     ? wholesalePackage.price
@@ -285,7 +289,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     const isWholesale = wholesalePackage !== null
-    const optionId = isWholesale ? null : (selectedOption?.id ?? null)
+    const optionId = isWholesale ? (wholesalePackage.productOptionId ?? null) : (selectedOption?.id ?? null)
     const lineKey = cartItemLineKey(product.id, optionId, wholesalePackage?.packageId ?? null)
 
     if (user) {

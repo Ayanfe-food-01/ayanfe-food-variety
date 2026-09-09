@@ -190,8 +190,11 @@ export function ProductDetails() {
     : null
   const isWholesaleConfigured = selectedPackage !== null
 
+  const wholesaleUnitsOnHand = isWholesaleConfigured && selectedPackage.productOptionId
+    ? (productOptions.find((option) => option.id === selectedPackage.productOptionId)?.stockQuantity ?? 0)
+    : (product?.stockQuantity ?? 0)
   const wholesaleAvailableCartons = isWholesaleConfigured
-    ? Math.max(0, Math.floor((product?.stockQuantity ?? 0) / selectedPackage.unitsPerPackage))
+    ? Math.max(0, Math.floor(wholesaleUnitsOnHand / selectedPackage.unitsPerPackage))
     : 0
   const cartLineQuantity = isWholesaleConfigured
     ? items
@@ -222,7 +225,10 @@ export function ProductDetails() {
   const addProductToCart = async (cartonsOrUnits: number, pkg: WholesalePackage | null) => {
     if (!product || !canAddToCart) return
     try {
-      await addToCart(product, cartonsOrUnits, null, pkg)
+      const packageOption = pkg?.productOptionId
+        ? (productOptions.find((option) => option.id === pkg.productOptionId) ?? null)
+        : null
+      await addToCart(product, cartonsOrUnits, packageOption, pkg)
       showToast(`${product.name} added to your cart.`, 'success')
     } catch (error: unknown) {
       showToast(error instanceof Error ? error.message : 'This product could not be added to your cart.', 'error')
@@ -235,7 +241,11 @@ export function ProductDetails() {
   }
 
   const isAdding = product
-    ? pendingItemIds.includes(cartItemLineKey(product.id, isWholesaleShopper ? null : (selectedOption?.id ?? null), selectedPackage?.packageId ?? null))
+    ? pendingItemIds.includes(cartItemLineKey(
+        product.id,
+        isWholesaleShopper ? (selectedPackage?.productOptionId ?? null) : (selectedOption?.id ?? null),
+        selectedPackage?.packageId ?? null,
+      ))
     : false
 
   const retryProduct = () => {
@@ -498,6 +508,7 @@ export function ProductDetails() {
                     selectedPackageId={selectedPackageId}
                     onSelectPackage={setSelectedPackageId}
                     unit={product.unit}
+                    optionLabelById={Object.fromEntries(productOptions.map((option) => [option.id, option.label]))}
                   />
                 ) : (
                   <>
@@ -602,7 +613,9 @@ export function ProductDetails() {
               </div>
               <Link
                 className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-green/25 px-6 text-sm font-bold text-green transition-colors hover:bg-green hover:text-cream"
-                to={`/request-a-quote?product=${encodeURIComponent(product.id)}${hasOptions && selectedOption ? `&option=${encodeURIComponent(selectedOption.id)}` : ''}&qty=${Math.max(1, selectedQuantity)}`}
+                to={`/request-a-quote?product=${encodeURIComponent(product.id)}${isWholesaleShopper
+                  ? (selectedPackage?.productOptionId ? `&option=${encodeURIComponent(selectedPackage.productOptionId)}` : '')
+                  : (hasOptions && selectedOption ? `&option=${encodeURIComponent(selectedOption.id)}` : '')}&qty=${Math.max(1, selectedQuantity)}`}
               >
                 Request a quote{isWholesaleShopper ? ' for bulk pricing' : ''}
               </Link>

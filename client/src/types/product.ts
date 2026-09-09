@@ -55,9 +55,12 @@ export interface WholesalePricingTier {
   price: number
 }
 
-// A wholesale package (carton/case) customers buy as a whole.
+// A wholesale package (carton/case) customers buy as a whole. productOptionId
+// is the unit/size (ProductOption) the package belongs to (null = the product's
+// single unit).
 export interface WholesalePackage {
   packageId: string
+  productOptionId: string | null
   name: string
   unitsPerPackage: number
   price: number

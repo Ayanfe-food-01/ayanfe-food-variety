@@ -72,7 +72,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </Link>
       <WishlistButton product={product} className="product-card-wishlist" />
       <div className="product-card-actions">
-        {hasOptions ? (
+        {hasOptions && !isWholesaleShopper ? (
           <button
             className="product-card-add"
             type="button"
@@ -82,6 +82,15 @@ export function ProductCard({ product }: ProductCardProps) {
             <CartIcon size={15} />
             Select options
           </button>
+        ) : hasOptions && isWholesaleShopper ? (
+          <Link
+            className="product-card-add"
+            to={`/product/${product.slug ?? product.id}`}
+            aria-label={`Choose a wholesale package for ${product.name}`}
+          >
+            <CartIcon size={15} />
+            Choose package
+          </Link>
         ) : (
           <button
             className="product-card-add"

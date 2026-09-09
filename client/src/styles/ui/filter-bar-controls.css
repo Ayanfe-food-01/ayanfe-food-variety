@@ -87,17 +87,16 @@
   width: 44px;
   min-width: 44px;
   padding: 0;
-  border-color: var(--color-green);
-  background: var(--color-green);
-  color: var(--color-cream);
-  box-shadow: 0 5px 14px rgb(50 91 57 / 16%);
+  border-radius: 10px;
+  background: var(--color-cream);
+  color: var(--color-green-dark);
 }
 
 .filter-trigger-icon:hover,
 .filter-trigger-icon.is-active {
-  border-color: var(--color-green-dark);
-  background: var(--color-green-dark);
-  color: var(--color-cream);
+  border-color: var(--color-green);
+  background: var(--color-sage);
+  color: var(--color-green-dark);
 }
 
 .filter-trigger-icon .filter-badge {

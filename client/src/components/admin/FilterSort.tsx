@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from 'react'
 import { useDropdown } from '../../hooks/useDropdown'
 import { Popover } from '../ui/Popover'
+import { SortIcon } from '../../assets/icons'
 
 export interface FilterSortOption<T extends string = string> {
   value: T
@@ -71,7 +72,7 @@ export function FilterSort<T extends string = string>({ value, options, onChange
         title="Sort"
         onClick={toggle}
       >
-        <span className="filter-sort-icon" aria-hidden="true">↕</span>
+        <SortIcon className="filter-sort-icon" size={17} />
       </button>
       <Popover
         isOpen={isOpen}

@@ -67,7 +67,9 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
   const [packagesOpenIndex, setPackagesOpenIndex] = useState<number | null>(null)
 
   const [packages, setPackages] = useState<WholesalePackageClient[]>([])
-  const [packagesLoading, setPackagesLoading] = useState(false)
+  // Loading starts true for a persisted product; the mount effect only clears
+  // it from the async finally so it never sets state synchronously in an effect.
+  const [packagesLoading, setPackagesLoading] = useState(Boolean(productId))
   const [packagesError, setPackagesError] = useState<string | null>(null)
 
   // Editor modal state: which option's packages are being edited.
@@ -88,7 +90,6 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
   useEffect(() => {
     if (!productId) return
     let current = true
-    setPackagesLoading(true)
     listAdminWholesalePackages(productId)
       .then((loaded) => {
         if (current) setPackages(loaded)

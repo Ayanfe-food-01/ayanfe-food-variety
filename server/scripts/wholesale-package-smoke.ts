@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { FulfillmentMethod, PaymentMethod, Prisma, ShoppingMode, UserRole } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { HttpError } from '../src/utils/http.js'
@@ -11,8 +12,11 @@ import {
   toggleAdminWholesalePackageActive,
 } from '../src/modules/products/admin-wholesale.service.js'
 import { resolveCheckoutCart } from '../src/modules/orders/checkout.cart.js'
+import { createCheckoutOrder } from '../src/modules/orders/checkout.order.js'
+import { toOrderResponse } from '../src/modules/orders/order.mapper.js'
 
 const slug = `wholesale-opt-${Date.now().toString(36)}`
+const checkoutKey = randomUUID()
 
 const expectHttpError = async (operation: Promise<unknown>, expectedStatus: number, label: string): Promise<void> => {
   try {
@@ -27,6 +31,7 @@ const expectHttpError = async (operation: Promise<unknown>, expectedStatus: numb
 async function main() {
   console.info('Wholesale package (unit/size-linked) smoke test')
   const createdIds: string[] = []
+  const createdOrderIds: string[] = []
   let wholesaleUserId = ''
   let retailUserId = ''
 
@@ -332,7 +337,7 @@ async function main() {
         transaction,
         { id: wholesaleUserId, shoppingMode: ShoppingMode.WHOLESALE },
         {
-          checkoutKey: `ws-opt-${slug}-1`,
+          checkoutKey,
           customerName: 'WS Customer',
           phone: '+2348012345678',
           email: `${slug}@example.com`,
@@ -355,8 +360,37 @@ async function main() {
       throw new Error(`Checkout subtotal ${checkoutResolved.subtotal} does not match expected ${expectedSubtotal}.`)
     }
 
+    const persisted = await prisma.$transaction((transaction) =>
+      createCheckoutOrder(transaction, {
+        input: {
+          checkoutKey,
+          customerName: 'WS Customer',
+          phone: '+2348012345678',
+          email: 'ws@example.com',
+          fulfillmentMethod: FulfillmentMethod.PICKUP,
+          paymentMethod: PaymentMethod.BANK_TRANSFER,
+        },
+        user: { id: wholesaleUserId, email: 'ws@example.com' },
+        isWholesale: checkoutResolved.isWholesale,
+        cartId: checkoutResolved.cartId ?? null,
+        cartItems: checkoutResolved.cartItems,
+        orderItems: checkoutResolved.orderItems,
+        subtotal: checkoutResolved.subtotal,
+        paymentSettings: checkoutResolved.paymentSettings,
+      }),
+    )
+    const mappedOrder = toOrderResponse(persisted)
+    const persistedCarton5 = mappedOrder.orderItems.find((item) => item.wholesalePackageId === carton5.id)
+    if (!persistedCarton5) throw new Error('Persisted order item missing the 5kg carton package.')
+    if (persistedCarton5.wholesalePackageName !== 'Carton') throw new Error('Persisted order should snapshot package name.')
+    if (persistedCarton5.wholesaleUnitsPerPackage !== 20) throw new Error('Persisted order should snapshot units per package.')
+    if (persistedCarton5.quantity !== 5) throw new Error('Persisted order quantity should be number of cartons.')
+    if (Number(persistedCarton5.unitPrice) !== 40000) throw new Error('Persisted order must use the DB package price.')
+    createdOrderIds.push(persisted.id)
+
     console.info('ALL WHOLESALE PACKAGE (OPTION-LINKED) SMOKE CHECKS PASSED')
   } finally {
+    await prisma.order.deleteMany({ where: { id: { in: createdOrderIds } } })
     await prisma.customerCartItem.deleteMany({ where: { productId: { in: createdIds } } })
     await prisma.wholesalePackage.deleteMany({ where: { productId: { in: createdIds } } })
     await prisma.productOption.deleteMany({ where: { productId: { in: createdIds } } })

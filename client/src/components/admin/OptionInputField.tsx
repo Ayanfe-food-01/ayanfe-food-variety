@@ -373,7 +373,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                                         canMoveDown={canMoveDown}
                                         onMoveUp={() => movePackage(pkg, -1)}
                                         onMoveDown={() => movePackage(pkg, 1)}
-                                        onEdit={() => openEdit(pkg.id, pkg)}
+                                        onEdit={() => openEdit(option.id as string, pkg)}
                                         onDuplicate={() => openDuplicate(option.id as string, pkg)}
                                         onToggleActive={() => toggleActive(pkg)}
                                         onRemove={() => removePackage(pkg)}

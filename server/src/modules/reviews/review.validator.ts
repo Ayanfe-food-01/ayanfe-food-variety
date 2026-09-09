@@ -1,4 +1,5 @@
 import { HttpError } from '../../utils/http.js'
+import { normalizeSearchQuery } from '../../utils/search.js'
 import type {
   AdminReviewsQuery,
   PublicProductReviewsQuery,
@@ -92,7 +93,7 @@ export function validateAdminReviewsQuery(query: Record<string, unknown>): Admin
   return {
     page,
     pageSize,
-    search: typeof query.search === 'string' ? query.search.trim().slice(0, 200) || undefined : undefined,
+    search: normalizeSearchQuery(query.search, 200),
     status,
     verified,
     rating,

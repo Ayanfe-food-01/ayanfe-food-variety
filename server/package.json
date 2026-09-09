@@ -32,6 +32,8 @@
     "test:reviews-admin": "tsx scripts/reviews-admin-smoke.ts",
     "test:customer-stories": "tsx scripts/customer-stories-smoke.ts",
     "test:delivery-time": "tsx scripts/delivery-time-smoke.ts",
+    "test:search": "tsx scripts/search-smoke.ts",
+    "test:search-api": "tsx scripts/search-api-smoke.ts",
     "test:wholesale-packages": "tsx scripts/wholesale-package-smoke.ts"
   },
   "dependencies": {

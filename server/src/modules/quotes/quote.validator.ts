@@ -1,5 +1,6 @@
 import { QuoteRequestStatus } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
+import { normalizeSearchQuery } from '../../utils/search.js'
 import type { QuoteRequestQuery, RejectQuoteRequestInput } from './quote.types.js'
 import { isRecord, optionalText } from './quote.validator.common.js'
 
@@ -30,7 +31,7 @@ export function validateQuoteRequestQuery(query: Record<string, unknown>): Quote
   }
 
   return {
-    search: typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined,
+    search: normalizeSearchQuery(query.search, 120),
     status: parseEnum(query.status, Object.values(QuoteRequestStatus), 'Quote status'),
     sort: query.sort === 'oldest' ? 'oldest' : 'newest',
     page,

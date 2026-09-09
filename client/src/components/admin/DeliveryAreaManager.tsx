@@ -3,6 +3,7 @@ import { useToast } from '../ui/Toast'
 import { SelectField } from '../ui/SelectField'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
+import { filterSearchable, normalizeSearchQuery } from '../../utils/search'
 import { ActionMenu, ActionMenuButton } from './ActionMenu'
 import { ApiError } from '../../services/api'
 import {
@@ -188,12 +189,9 @@ export function DeliveryAreaManager({ onClose }: DeliveryAreaManagerProps) {
   const isBusy = Boolean(savingId || creating || deleting || statusId)
 
   const filteredAreas = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
+    const query = normalizeSearchQuery(searchQuery)
     if (!query) return areas ?? []
-    return (areas ?? []).filter((area) =>
-      area.name.toLowerCase().includes(query)
-      || (area.coveredBy?.zoneLabel.toLowerCase().includes(query) ?? false),
-    )
+    return filterSearchable(areas ?? [], query, (area) => [area.name, area.coveredBy?.zoneLabel])
   }, [areas, searchQuery])
 
   return (

@@ -1,4 +1,5 @@
 import { HttpError } from '../../utils/http.js'
+import { normalizeSearchQuery } from '../../utils/search.js'
 import type { DeliveryZoneInput, ReorderDeliveryZonesInput } from './delivery-zone.types.js'
 import { booleanValue, isRecord, moneyValue, positiveIntValue, validateId } from './delivery-zone.validator.common.js'
 
@@ -94,7 +95,7 @@ export function validateAdminDeliveryZonesQuery(query: Record<string, unknown>) 
   return {
     page,
     pageSize,
-    search: typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined,
+    search: normalizeSearchQuery(query.search, 120),
     status,
   } as const
 }

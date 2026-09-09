@@ -2,17 +2,20 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { adminProductInclude, toAdminProduct } from './admin-product.mapper.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import type { AdminProductQuery, Product } from './product.types.js'
 
 const LOW_STOCK_THRESHOLD = 5
 
+const ADMIN_PRODUCT_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'name', primary: true, weight: 2 },
+  { path: 'category.name', weight: 1.2 },
+  { path: 'description', weight: 0.4 },
+]
+
 export async function listAdminProducts(query: AdminProductQuery) {
-  const where: Prisma.ProductWhereInput = {}
-  if (query.search) {
-    where.OR = [
-      { name: { contains: query.search, mode: 'insensitive' } },
-      { description: { contains: query.search, mode: 'insensitive' } },
-    ]
+  const where: Prisma.ProductWhereInput = {
+    ...(buildSearchWhere<Prisma.ProductWhereInput>(query.search, ADMIN_PRODUCT_SEARCH_FIELDS) ?? {}),
   }
   if (query.categoryIds?.length) where.categoryId = { in: query.categoryIds }
   else if (query.categoryId) where.categoryId = query.categoryId

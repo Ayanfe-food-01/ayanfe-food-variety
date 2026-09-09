@@ -1,7 +1,16 @@
 import { OrderStatus, PaymentStatus, PaymentSubmissionStatus, Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import type { AdminPaymentListItem, AdminPaymentsPage, AdminPaymentsQuery } from './admin.types.js'
+
+const ADMIN_PAYMENT_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'transactionReference', primary: true, weight: 2 },
+  { path: 'senderName', primary: true, weight: 1.5 },
+  { path: 'order.orderNumber', primary: true, weight: 1.5 },
+  { path: 'order.customerName', weight: 1.2 },
+  { path: 'order.email', weight: 0.6 },
+]
 
 const toPaymentListItem = (payment: {
   id: string
@@ -69,17 +78,7 @@ const toPaymentListItem = (payment: {
 })
 
 export async function listAdminPayments(query: AdminPaymentsQuery): Promise<AdminPaymentsPage> {
-  const search = query.search
-    ? {
-        OR: [
-          { transactionReference: { contains: query.search, mode: 'insensitive' as const } },
-          { senderName: { contains: query.search, mode: 'insensitive' as const } },
-          { order: { orderNumber: { contains: query.search, mode: 'insensitive' as const } } },
-          { order: { customerName: { contains: query.search, mode: 'insensitive' as const } } },
-          { order: { email: { contains: query.search, mode: 'insensitive' as const } } },
-        ],
-      }
-    : undefined
+  const search = buildSearchWhere<Prisma.PaymentSubmissionWhereInput>(query.search, ADMIN_PAYMENT_SEARCH_FIELDS)
   const where: Prisma.PaymentSubmissionWhereInput = {
     ...(search ?? {}),
     ...(query.status ? { status: query.status } : {}),

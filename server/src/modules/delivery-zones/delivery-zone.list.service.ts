@@ -1,8 +1,14 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import type { AdminDeliveryZonesQuery, DeliveryZone, DeliveryZoneDetail } from './delivery-zone.types.js'
 import { orderByDisplay, toAssignedArea, toAssignedCity, toZone, zoneInclude } from './delivery-zone.mapper.js'
+
+const ADMIN_DELIVERY_ZONE_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'deliveryZoneCities.city.name', toMany: true, weight: 1.2 },
+  { path: 'deliveryZoneAreas.area.name', toMany: true, weight: 1 },
+]
 
 export async function listActiveDeliveryZones(): Promise<DeliveryZone[]> {
   const zones = await prisma.deliveryZone.findMany({
@@ -15,15 +21,8 @@ export async function listActiveDeliveryZones(): Promise<DeliveryZone[]> {
 
 export async function listAdminDeliveryZones(query: AdminDeliveryZonesQuery) {
   const where: Prisma.DeliveryZoneWhereInput = {
-    // Search matches any covered city or area (case-insensitive, partial match).
-    ...(query.search
-      ? {
-          OR: [
-            { deliveryZoneCities: { some: { city: { name: { contains: query.search, mode: 'insensitive' } } } } },
-            { deliveryZoneAreas: { some: { area: { name: { contains: query.search, mode: 'insensitive' } } } } },
-          ],
-        }
-      : {}),
+    // Search matches any covered city or area (multi-word, case-insensitive, substring).
+    ...(buildSearchWhere<Prisma.DeliveryZoneWhereInput>(query.search, ADMIN_DELIVERY_ZONE_SEARCH_FIELDS) ?? {}),
     ...(query.status ? { isActive: query.status === 'active' } : {}),
   }
 

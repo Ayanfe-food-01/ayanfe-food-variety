@@ -1,6 +1,7 @@
 import { PaymentStatus, OrderStatus, Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import type { AdminOrdersPage, AdminOrdersQuery } from './admin.types.js'
 import { getAdminOrder } from './admin-order.detail.service.js'
 import { toOrderListItem } from './admin-order.mapper.js'
@@ -8,17 +9,15 @@ import { toOrderListItem } from './admin-order.mapper.js'
 export { getAdminOrder } from './admin-order.detail.service.js'
 export { updateAdminOrderStatus } from './admin-order.status.service.js'
 
+const ADMIN_ORDER_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'orderNumber', primary: true, weight: 2 },
+  { path: 'customerName', primary: true, weight: 2 },
+  { path: 'email', weight: 0.6 },
+  { path: 'phone', weight: 0.6 },
+]
+
 export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrdersPage> {
-  const search = query.search
-    ? {
-        OR: [
-          { orderNumber: { contains: query.search, mode: 'insensitive' as const } },
-          { customerName: { contains: query.search, mode: 'insensitive' as const } },
-          { email: { contains: query.search, mode: 'insensitive' as const } },
-          { phone: { contains: query.search, mode: 'insensitive' as const } },
-        ],
-      }
-    : undefined
+  const search = buildSearchWhere<Prisma.OrderWhereInput>(query.search, ADMIN_ORDER_SEARCH_FIELDS)
   const where: Prisma.OrderWhereInput = {
     ...(search ?? {}),
     ...(query.paymentStatus ? { paymentStatus: query.paymentStatus } : {}),

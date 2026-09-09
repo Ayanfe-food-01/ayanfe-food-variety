@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import {
   assertHomepageFeaturedCapacity,
   getHomepageFeaturedMetrics,
@@ -40,16 +41,14 @@ const toTestimonial = (testimonial: TestimonialRecord): Testimonial => ({
   updatedAt: testimonial.updatedAt.toISOString(),
 })
 
+const ADMIN_TESTIMONIAL_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'authorName', primary: true, weight: 2 },
+  { path: 'content', weight: 0.4 },
+]
+
 export async function listAdminTestimonials(query: AdminTestimonialQuery) {
   const where: Prisma.TestimonialWhereInput = {
-    ...(query.search
-      ? {
-          OR: [
-            { authorName: { contains: query.search, mode: 'insensitive' } },
-            { content: { contains: query.search, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
+    ...(buildSearchWhere<Prisma.TestimonialWhereInput>(query.search, ADMIN_TESTIMONIAL_SEARCH_FIELDS) ?? {}),
     ...(query.status ? { isActive: query.status === 'active' } : {}),
     ...(query.featured ? { isFeatured: query.featured === 'featured' } : {}),
   }

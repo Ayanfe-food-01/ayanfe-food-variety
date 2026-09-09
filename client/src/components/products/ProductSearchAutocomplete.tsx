@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react'
 import { useProductSearchAutocomplete } from '../../hooks/useProductSearchAutocomplete'
 import { SearchBar } from '../ui/SearchBar'
+import { normalizeSearchQuery } from '../../utils/search'
 import type { Product } from '../../types/product'
 
 interface ProductSearchAutocompleteProps {
@@ -34,7 +35,7 @@ export function ProductSearchAutocomplete({
   const [activeIndex, setActiveIndex] = useState(-1)
   const [isFocused, setIsFocused] = useState(false)
   const { suggestions, isLoading, hasError } = useProductSearchAutocomplete(value)
-  const query = value.trim()
+  const query = normalizeSearchQuery(value)
   const canShowSuggestions = query.length >= 2
 
   useEffect(() => {

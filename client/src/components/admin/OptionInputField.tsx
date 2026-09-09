@@ -61,6 +61,10 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
   const [openOptionIndex, setOpenOptionIndex] = useState<number | null>(null)
   const openIndex = openOptionIndex !== null && openOptionIndex < options.length ? openOptionIndex : null
 
+  // Only one wholesale packaging panel can be expanded at a time, mirroring the
+  // one-open-option behavior of the size rows above.
+  const [packagesOpenIndex, setPackagesOpenIndex] = useState<number | null>(null)
+
   const [packages, setPackages] = useState<WholesalePackageClient[]>([])
   const [packagesLoading, setPackagesLoading] = useState(false)
   const [packagesError, setPackagesError] = useState<string | null>(null)
@@ -227,6 +231,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
         <ul className="mt-4 space-y-3">
           {options.map((option, index) => {
             const isOpen = openIndex === index
+            const packagesOpen = packagesOpenIndex === index
             const rowErrors = errors[index]
             const optionPackages = option.id ? (packagesByOption.get(option.id) ?? []) : []
             const canManagePackages = Boolean(productId && option.id)
@@ -239,7 +244,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
             return (
               <li className="overflow-hidden rounded-xl border border-line bg-white" key={option.id ?? `option-${index}`}>
                 <div className="flex flex-wrap items-center gap-2 px-4 py-3.5">
-                  <button className="flex min-w-0 flex-1 items-center gap-3 text-left" type="button" aria-expanded={isOpen} onClick={() => setOpenOptionIndex(isOpen ? null : index)}>
+                  <button className="flex min-w-0 flex-1 items-center gap-3 text-left" type="button" aria-expanded={isOpen} onClick={() => { setOpenOptionIndex(isOpen ? null : index); setPackagesOpenIndex(null) }}>
                     <ChevronDownIcon size={16} className={`shrink-0 text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-bold text-green-dark">{label || `Option ${index + 1}`}</span>
@@ -262,15 +267,36 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                     </div>
 
                     <div className="mt-4 rounded-xl border border-dashed border-green/25 bg-sage/25 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-green-dark">Wholesale packaging for {label.trim() || 'this size'}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                          type="button"
+                          disabled={!canManagePackages}
+                          aria-expanded={canManagePackages ? packagesOpen : undefined}
+                          onClick={() => setPackagesOpenIndex(packagesOpen ? null : index)}
+                        >
+                          {canManagePackages && (
+                            <ChevronDownIcon size={15} className={`shrink-0 text-muted transition-transform ${packagesOpen ? 'rotate-180' : ''}`} />
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-bold text-green-dark">Wholesale packaging for {label.trim() || 'this size'}</span>
+                            {canManagePackages && optionPackages.length > 0 && (
+                              <span className="mt-0.5 block truncate text-xs font-normal text-muted">{optionPackages.length} package{optionPackages.length === 1 ? '' : 's'} · {activePackageCount} active</span>
+                            )}
+                          </span>
+                          {canManagePackages && optionPackages.length > 0 && (
+                            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${activePackageCount > 0 ? 'bg-sage text-green-dark' : 'bg-orange/10 text-orange'}`}>
+                              {activePackageCount > 0 ? `${activePackageCount} active` : 'All inactive'}
+                            </span>
+                          )}
+                        </button>
                         {canManagePackages && (
-                          <button className="rounded-xl bg-green px-4 py-2 text-xs font-bold text-cream transition-colors hover:bg-green-dark" type="button" onClick={() => openCreate(option.id as string)}>Add package</button>
+                          <button className="shrink-0 rounded-xl bg-green px-4 py-2 text-xs font-bold text-cream transition-colors hover:bg-green-dark" type="button" onClick={() => openCreate(option.id as string)}>Add package</button>
                         )}
                       </div>
                       {!canManagePackages ? (
                         <p className="mt-2 text-xs font-normal leading-5 text-muted">Save the product first, then add wholesale packages (e.g. a carton of 20) to this size and set its price per carton.</p>
-                      ) : (
+                      ) : packagesOpen ? (
                         <>
                           {packagesLoading ? (
                             <p className="mt-2 text-xs font-normal text-muted">Loading wholesale packaging…</p>
@@ -285,7 +311,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                                       <p className="text-sm font-bold text-green-dark">{pkg.name}</p>
                                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${pkg.isActive ? 'bg-sage text-green-dark' : 'bg-orange/10 text-orange'}`}>{pkg.isActive ? 'Active' : 'Inactive'}</span>
                                     </div>
-                                    <p className="mt-0.5 text-xs font-normal text-muted">{pkg.unitsPerPackage} unit{pkg.unitsPerPackage === 1 ? '' : 's'} per carton · {formatPrice(Number(pkg.price))}/carton</p>
+                                    <p className="mt-0.5 text-xs font-normal text-muted">{pkg.unitsPerPackage} unit{pkg.unitsPerPackage === 1 ? '' : 's'} per carton · {formatPrice(Number(pkg.price))}/carton{pkg.unitsPerPackage >= 1 ? ` · ${formatPrice(Number(pkg.price) / pkg.unitsPerPackage)}/unit` : ''}</p>
                                   </div>
                                   <div className="flex shrink-0 flex-wrap gap-2">
                                     <button className={packageActionClassName} type="button" onClick={() => openEdit(pkg.id, pkg)}>Edit</button>
@@ -297,7 +323,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                             </ul>
                           )}
                         </>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 )}

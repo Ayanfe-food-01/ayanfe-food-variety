@@ -11,6 +11,10 @@
   gap: 12px;
 }
 
+.filter-bar-footer:empty {
+  display: none;
+}
+
 .filter-bar-footer .filter-chips {
   min-width: 0;
   flex: 1 1 auto;
@@ -153,14 +157,14 @@
 
 .filter-bar-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-end;
   gap: 10px;
 }
 
 .filter-bar-search {
   min-width: 0;
-  flex: 1 1 280px;
+  flex: 1 1 0;
 }
 
 .filter-bar-search-label {
@@ -173,6 +177,11 @@
 
 .filter-bar-search-input {
   width: 100%;
+  height: 44px;
+}
+
+.filter-bar-search-input input {
+  padding: 0;
 }
 
 .filter-bar-desktop {

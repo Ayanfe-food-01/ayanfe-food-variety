@@ -1,72 +1,83 @@
-import type { WholesalePricingTier } from '../../types/product'
 import { formatPrice } from '../../utils/formatPrice'
+import type { WholesalePackage } from '../../types/product'
 
 interface WholesalePricingProps {
-  optionLabel: string
-  moq: number | null
-  tiers: WholesalePricingTier[]
-  quantity: number
-  unitPrice: number | null
-  isCalculating: boolean
-  error: string | null
-}
-
-const tierRangeLabel = (tier: WholesalePricingTier): string => {
-  if (tier.maxQuantity === null) return `${tier.minQuantity}+`
-  if (tier.maxQuantity === tier.minQuantity) return String(tier.minQuantity)
-  return `${tier.minQuantity} – ${tier.maxQuantity}`
+  status: 'loading' | 'ready' | 'error' | 'idle'
+  packages: WholesalePackage[]
+  selectedPackageId: string | null
+  onSelectPackage: (packageId: string) => void
+  unit: string
 }
 
 export function WholesalePricing({
-  optionLabel,
-  moq,
-  tiers,
-  quantity,
-  unitPrice,
-  isCalculating,
-  error,
+  status,
+  packages,
+  selectedPackageId,
+  onSelectPackage,
+  unit,
 }: WholesalePricingProps) {
-  const isTierActive = (tier: WholesalePricingTier) =>
-    quantity >= tier.minQuantity && (tier.maxQuantity === null || quantity <= tier.maxQuantity)
+  if (status === 'loading' || status === 'idle') {
+    return (
+      <p className="wholesale-price-line" role="status" aria-live="polite">
+        Loading wholesale pricing…
+      </p>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <p className="wholesale-price-line wholesale-price-error" role="status" aria-live="polite">
+        Wholesale pricing could not be loaded right now.
+      </p>
+    )
+  }
+
+  if (packages.length === 0) {
+    return (
+      <p className="wholesale-note" role="status">
+        Wholesale pricing is not available for this product yet.
+      </p>
+    )
+  }
 
   return (
-    <div className="wholesale-pricing" role="region" aria-label="Wholesale pricing">
+    <div className="wholesale-pricing" role="region" aria-label="Wholesale packaging">
       <div className="wholesale-pricing-head">
         <span className="wholesale-badge">Wholesale</span>
-        {moq !== null && moq > 1 && <span className="wholesale-moq">Minimum order: {moq} units</span>}
       </div>
-      {error ? (
-        <p className="wholesale-price-line wholesale-price-error" role="status" aria-live="polite">
-          {error}
-        </p>
-      ) : isCalculating || unitPrice === null ? (
-        <p className="wholesale-price-line" aria-live="polite">
-          Calculating price for {quantity} {quantity === 1 ? 'unit' : 'units'}…
-        </p>
-      ) : (
-        <p className="wholesale-price-line">
-          <strong className="wholesale-unit-price">{formatPrice(unitPrice)}</strong>
-          <span className="wholesale-per">
-            per {optionLabel} at {quantity} {quantity === 1 ? 'unit' : 'units'}
-          </span>
-        </p>
-      )}
-      <table className="wholesale-tier-table">
-        <thead>
-          <tr>
-            <th scope="col">Units</th>
-            <th scope="col">Unit price</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tiers.map((tier) => (
-            <tr key={`${tier.minQuantity}-${tier.maxQuantity ?? 'unlimited'}`} className={isTierActive(tier) ? 'is-active' : undefined}>
-              <td>{tierRangeLabel(tier)}</td>
-              <td>{formatPrice(tier.price)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="wholesale-price-line">Choose a package (carton/case) to see the wholesale price.</p>
+      <div className="mt-3 flex flex-col gap-2">
+        {packages.map((pkg) => {
+          const perUnit = pkg.unitsPerPackage > 0 ? pkg.price / pkg.unitsPerPackage : null
+          const isSelected = pkg.packageId === selectedPackageId
+          return (
+            <button
+              key={pkg.packageId}
+              type="button"
+              onClick={() => onSelectPackage(pkg.packageId)}
+              aria-pressed={isSelected}
+              className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+                isSelected
+                  ? 'border-green bg-green/5'
+                  : 'border-line bg-white hover:border-green/40'
+              }`}
+            >
+              <span>
+                <span className="block text-sm font-bold text-green-dark">{pkg.name}</span>
+                <span className="block text-xs text-muted">
+                  {pkg.unitsPerPackage} {pkg.unitsPerPackage === 1 ? 'unit' : 'units'} per package
+                </span>
+              </span>
+              <span className="text-right">
+                <span className="block text-sm font-bold text-green-dark">{formatPrice(pkg.price)}</span>
+                <span className="block text-xs text-muted">
+                  {perUnit !== null ? `${formatPrice(perUnit)} / ${unit}` : ''}
+                </span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

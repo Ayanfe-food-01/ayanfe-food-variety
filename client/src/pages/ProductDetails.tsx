@@ -23,9 +23,8 @@ import {
   getProduct,
   getProductWholesalePricing,
   getProducts,
-  getWholesaleUnitPrice,
 } from '../services/productService'
-import type { Product, WholesaleOptionPricing } from '../types/product'
+import type { Product, WholesalePackage } from '../types/product'
 import { Seo } from '../seo/Seo'
 import { optimizedImageUrl } from '../utils/optimizedImageUrl'
 import {
@@ -57,19 +56,15 @@ export function ProductDetails() {
   const [wholesalePricing, setWholesalePricing] = useState<{
     productId: string
     status: 'ready' | 'error'
-    options: WholesaleOptionPricing[]
+    packages: WholesalePackage[]
   } | null>(null)
-  const [wholesaleLookup, setWholesaleLookup] = useState<{
-    context: string
-    unitPrice?: number
-    error?: string
-  } | null>(null)
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null)
 
   useInitialRouteLoad(!isLoading)
 
   const isWholesalePricingVisible = isWholesaleShopper && Boolean(product) && wholesalePricing?.productId === product?.id
-  const effectiveWholesalePricingOptions = isWholesalePricingVisible && product
-    ? (wholesalePricing?.options ?? [])
+  const effectiveWholesalePackages = isWholesalePricingVisible && product
+    ? (wholesalePricing?.packages ?? [])
     : []
   const effectiveWholesalePricingStatus = isWholesaleShopper && product
     ? (isWholesalePricingVisible ? wholesalePricing!.status : 'loading')
@@ -94,6 +89,7 @@ export function ProductDetails() {
     setFailedImageUrls(new Set())
     setQuantity(1)
     setSelectedOptionId(null)
+    setSelectedPackageId(null)
 
     try {
       const loadedProduct = await getProduct(id)
@@ -162,11 +158,15 @@ export function ProductDetails() {
     getProductWholesalePricing(productId, controller.signal)
       .then((pricing) => {
         if (cancelled) return
-        setWholesalePricing({ productId, status: 'ready', options: pricing.options })
+        setWholesalePricing({ productId, status: 'ready', packages: pricing.packages })
+        setSelectedPackageId((current) => {
+          if (current && pricing.packages.some((pkg) => pkg.packageId === current)) return current
+          return pricing.packages[0]?.packageId ?? null
+        })
       })
       .catch(() => {
         if (cancelled) return
-        setWholesalePricing({ productId, status: 'error', options: [] })
+        setWholesalePricing({ productId, status: 'error', packages: [] })
       })
     return () => {
       cancelled = true
@@ -184,61 +184,59 @@ export function ProductDetails() {
   const selectedOption = hasOptions
     ? (productOptions.find((option) => option.id === selectedOptionId) ?? null)
     : null
-  const availableStock = hasOptions
-    ? (selectedOption?.stockQuantity ?? 0)
-    : (product?.stockQuantity ?? 0)
-  const remainingStockForCart = hasOptions
-    ? availableStock
-    : Math.max(0, availableStock - currentCartQuantity)
-  const maxSelectableQuantity = Math.max(1, remainingStockForCart)
-  const selectedOptionWholesale = hasOptions
-    ? (effectiveWholesalePricingOptions.find((option) => option.optionId === selectedOptionId) ?? null)
+
+  const selectedPackage = isWholesaleShopper && product
+    ? (effectiveWholesalePackages.find((pkg) => pkg.packageId === selectedPackageId) ?? null)
     : null
-  const isOptionWholesaleConfigured = selectedOptionWholesale !== null
-  const quantityFloor = isWholesaleShopper && isOptionWholesaleConfigured
-    ? Math.max(1, Math.min(selectedOptionWholesale.moq ?? 1, maxSelectableQuantity))
-    : 1
+  const isWholesaleConfigured = selectedPackage !== null
+
+  const wholesaleAvailableCartons = isWholesaleConfigured
+    ? Math.max(0, Math.floor((product?.stockQuantity ?? 0) / selectedPackage.unitsPerPackage))
+    : 0
+  const cartLineQuantity = isWholesaleConfigured
+    ? items
+        .filter((item) => item.id === product!.id && item.wholesalePackageId === selectedPackage.packageId)
+        .reduce((sum, item) => sum + item.quantity, 0)
+    : 0
+
+  const availableStock = isWholesaleConfigured
+    ? wholesaleAvailableCartons
+    : hasOptions
+      ? (selectedOption?.stockQuantity ?? 0)
+      : (product?.stockQuantity ?? 0)
+  const remainingStockForCart = isWholesaleConfigured
+    ? Math.max(0, wholesaleAvailableCartons - cartLineQuantity)
+    : hasOptions
+      ? availableStock
+      : Math.max(0, availableStock - currentCartQuantity)
+  const maxSelectableQuantity = Math.max(1, remainingStockForCart)
+  const quantityFloor = 1
   const selectedQuantity = Math.max(quantityFloor, Math.min(quantity, maxSelectableQuantity))
   const canAddToCart = Boolean(
     product?.isAvailable
-    && (!hasOptions || selectedOption !== null)
+    && (!isWholesaleShopper || isWholesaleConfigured)
+    && (!hasOptions || isWholesaleShopper || selectedOption !== null)
     && remainingStockForCart > 0,
   )
 
-  const isWholesaleLookupApplicable =
-    isWholesaleShopper && Boolean(product) && Boolean(selectedOption) && selectedOptionWholesale !== null
-  const wholesaleLookupContext = isWholesaleLookupApplicable
-    ? `${product!.id}|${selectedOption!.id}|${selectedQuantity}`
-    : null
-  const currentWholesaleLookup = wholesaleLookupContext !== null && wholesaleLookup?.context === wholesaleLookupContext
-    ? wholesaleLookup
-    : null
-  const effectiveWholesaleUnitPrice = currentWholesaleLookup?.unitPrice ?? null
-  const effectiveWholesaleLookupLoading = isWholesaleLookupApplicable
-    && currentWholesaleLookup === null
-    && effectiveWholesalePricingStatus === 'ready'
-    && selectedOptionWholesale !== null
-  const effectiveWholesaleLookupError = currentWholesaleLookup?.error ?? null
-
-  useEffect(() => {
-    if (!isWholesaleLookupApplicable) return
-    let cancelled = false
-    const context = wholesaleLookupContext!
-    getWholesaleUnitPrice(product!.id, selectedOption!.id, selectedQuantity)
-      .then((result) => {
-        if (!cancelled) setWholesaleLookup({ context, unitPrice: result.unitPrice })
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setWholesaleLookup({
-          context,
-          error: error instanceof Error ? error.message : 'Wholesale pricing could not be calculated right now.',
-        })
-      })
-    return () => {
-      cancelled = true
+  const addProductToCart = async (cartonsOrUnits: number, pkg: WholesalePackage | null) => {
+    if (!product || !canAddToCart) return
+    try {
+      await addToCart(product, cartonsOrUnits, null, pkg)
+      showToast(`${product.name} added to your cart.`, 'success')
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'This product could not be added to your cart.', 'error')
     }
-  }, [isWholesaleLookupApplicable, wholesaleLookupContext, product, selectedOption, selectedQuantity])
+  }
+
+  const handleAddToCart = () => {
+    if (!product?.isAvailable || !canAddToCart) return
+    void addProductToCart(selectedQuantity, selectedPackage)
+  }
+
+  const isAdding = product
+    ? pendingItemIds.includes(cartItemLineKey(product.id, isWholesaleShopper ? null : (selectedOption?.id ?? null), selectedPackage?.packageId ?? null))
+    : false
 
   const retryProduct = () => {
     setIsLoading(true)
@@ -268,22 +266,6 @@ export function ProductDetails() {
     moveImage(delta < 0 ? 1 : -1)
   }
 
-  const addProductToCart = async () => {
-    if (!product || !canAddToCart) return
-    try {
-      await addToCart(product, selectedQuantity, selectedOption)
-      showToast(`${product.name} added to your cart.`, 'success')
-    } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'This product could not be added to your cart.', 'error')
-    }
-  }
-
-  const handleAddToCart = () => {
-    if (!product?.isAvailable || !canAddToCart) return
-    void addProductToCart()
-  }
-
-  const isAdding = product ? pendingItemIds.includes(cartItemLineKey(product.id, selectedOption?.id ?? null)) : false
   const productPath = product ? `/product/${product.slug ?? product.id}` : `/product/${id ?? ''}`
   const productDescription = product ? getProductMetaDescription(product.name) : 'View product details from Ayanfe Food Variety.'
   const productSchema = product ? {
@@ -509,15 +491,13 @@ export function ProductDetails() {
                 <WishlistButton product={product} />
               </div>
               <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
-                {isWholesaleShopper && isOptionWholesaleConfigured ? (
+                {isWholesaleShopper ? (
                   <WholesalePricing
-                    optionLabel={selectedOption ? selectedOption.label : product.unit}
-                    moq={selectedOptionWholesale?.moq ?? null}
-                    tiers={selectedOptionWholesale?.tiers ?? []}
-                    quantity={selectedQuantity}
-                    unitPrice={effectiveWholesaleUnitPrice}
-                    isCalculating={effectiveWholesaleLookupLoading}
-                    error={effectiveWholesaleLookupError}
+                    status={effectiveWholesalePricingStatus}
+                    packages={effectiveWholesalePackages}
+                    selectedPackageId={selectedPackageId}
+                    onSelectPackage={setSelectedPackageId}
+                    unit={product.unit}
                   />
                 ) : (
                   <>
@@ -554,17 +534,9 @@ export function ProductDetails() {
               )}
               {isWholesaleShopper
                 && effectiveWholesalePricingStatus === 'ready'
-                && !hasOptions && (
+                && effectiveWholesalePackages.length === 0 && (
                   <p className="wholesale-note" role="status">
                     Wholesale pricing is not available for this product yet.
-                  </p>
-                )}
-              {isWholesaleShopper
-                && effectiveWholesalePricingStatus === 'ready'
-                && hasOptions
-                && !isOptionWholesaleConfigured && (
-                  <p className="wholesale-note" role="status">
-                    Wholesale pricing is not available for this size yet.
                   </p>
                 )}
               <p className="mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">
@@ -573,7 +545,7 @@ export function ProductDetails() {
 
               <div className="my-8 h-px bg-line" />
 
-              {hasOptions && (
+              {hasOptions && !isWholesaleShopper && (
                 <div className="mb-5">
                   <ProductOptionSelector
                     options={productOptions}
@@ -586,9 +558,7 @@ export function ProductDetails() {
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-green-dark" htmlFor="quantity">
-                    Quantity{isOptionWholesaleConfigured && selectedOptionWholesale?.moq
-                      ? ` · MOQ ${selectedOptionWholesale.moq} units`
-                      : ''}
+                    Quantity{isWholesaleConfigured ? ` · ${selectedPackage.unitsPerPackage} ${selectedPackage.unitsPerPackage === 1 ? 'unit' : 'units'} per package` : ''}
                   </label>
                   <div className="flex h-12 items-center rounded-xl border border-line bg-white">
                     <button
@@ -641,14 +611,18 @@ export function ProductDetails() {
               </p>
                <p className={`mt-4 text-sm font-semibold ${availableStock > 0 ? 'text-green-dark' : 'text-orange'}`} role="status" aria-live="polite">
                  {availableStock > 0
-                   ? `${availableStock} ${availableStock === 1 ? 'unit' : 'units'} available`
-                   : 'Out of stock'}
+                   ? `${availableStock} ${availableStock === 1 ? (isWholesaleShopper ? 'package' : 'unit') : (isWholesaleShopper ? 'packages' : 'units')} available`
+                   : isWholesaleShopper
+                     ? 'This package is out of stock'
+                     : 'Out of stock'}
                </p>
-               {!hasOptions && availableStock > 0 && currentCartQuantity >= availableStock && (
-                 <p className="mt-1 text-xs text-muted">All available units are already in your cart.</p>
-               )}
+               {isWholesaleShopper
+                 ? (cartLineQuantity >= availableStock && cartLineQuantity > 0 && (
+                     <p className="mt-1 text-xs text-muted">All available packages are already in your cart.</p>))
+                 : (!hasOptions && availableStock > 0 && currentCartQuantity >= availableStock && (
+                     <p className="mt-1 text-xs text-muted">All available units are already in your cart.</p>))}
               <p className="mt-3 text-xs text-muted">
-                 {selectedQuantity} {selectedQuantity === 1 ? 'unit' : 'units'} selected
+                 {selectedQuantity} {selectedQuantity === 1 ? (isWholesaleShopper ? 'package' : 'unit') : (isWholesaleShopper ? 'packages' : 'units')} selected{isWholesaleShopper ? ` · ${selectedQuantity * (selectedPackage?.unitsPerPackage ?? 1)} units total` : ''}
               </p>
             </article>
           </div>

@@ -47,6 +47,7 @@ export interface Product {
   images: string[]
   options: ProductOption[]
   archivedOptions?: ProductOption[]
+  wholesalePackages?: WholesalePackageInput[]
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number
@@ -132,6 +133,29 @@ export interface WholesalePricingTier {
   price: string
 }
 
+export interface WholesalePackagePricing {
+  packageId: string
+  name: string
+  unitsPerPackage: number
+  price: string
+  isActive: boolean
+}
+
+// Admin shape of a wholesale package (carton/case).
+export interface WholesalePackageInput {
+  id?: string
+  name: string
+  unitsPerPackage: number
+  price: string
+  isActive?: boolean
+  sortOrder?: number
+}
+
+export interface ProductWholesalePricing {
+  productId: string
+  packages: WholesalePackagePricing[]
+}
+
 export interface WholesaleOptionPricing {
   optionId: string
   label: string
@@ -141,21 +165,5 @@ export interface WholesaleOptionPricing {
 
 export interface ProductWholesalePricing {
   productId: string
-  options: WholesaleOptionPricing[]
-}
-
-export interface WholesalePriceLookupInput {
-  productId: string
-  productOptionId: string
-  quantity: number
-}
-
-export interface WholesalePriceLookupResult {
-  productId: string
-  productOptionId: string
-  optionLabel: string
-  quantity: number
-  moq: number | null
-  unitPrice: string
-  tier: WholesalePricingTier
+  packages: WholesalePackagePricing[]
 }

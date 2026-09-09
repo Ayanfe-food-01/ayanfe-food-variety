@@ -45,7 +45,7 @@ export function CheckoutSummary({
       </div>
       <div className="mt-6 space-y-5">
         {items.map((item) => (
-          <div className="flex gap-3" key={cartItemLineKey(item.id, item.productOptionId)}>
+          <div className="flex gap-3" key={cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)}>
             <div className="relative shrink-0">
               {item.image ? (
                 <img className="size-16 rounded-xl object-cover" src={item.image} alt={item.name} />
@@ -59,13 +59,18 @@ export function CheckoutSummary({
               {item.productOptionLabel && (
                 <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>
               )}
+              {item.wholesalePackageName && (
+                <p className="mt-0.5 text-xs font-semibold text-orange">{item.wholesalePackageName}</p>
+              )}
               <p className="mt-1 text-xs text-muted">
-                {item.unit} · <ProductPrice
+                {item.unit}{' '}
+                {item.wholesaleUnitsPerPackage ? `· ${item.wholesaleUnitsPerPackage} units per package · ` : '· '}
+                <ProductPrice
                   originalPrice={item.originalPrice}
                   discountedPrice={item.price}
                   discountedClassName="font-bold text-green-dark"
                   originalClassName="ml-1 text-muted"
-                /> each
+                /> {item.wholesalePackageName ? 'per package' : 'each'}
               </p>
             </div>
             <strong className="text-sm text-green-dark">{formatPrice(getItemSubtotal(item))}</strong>

@@ -1,7 +1,7 @@
 import { Prisma, ShoppingMode } from '@prisma/client'
 import type { CustomerCartResponse } from './cart.types.js'
 import { calculateDiscountedPrice } from '../products/product.pricing.js'
-import { wholesaleUnitPriceFromOption } from '../products/wholesale.pricing.js'
+import { wholesaleAvailableCartons } from '../products/wholesale.package.js'
 
 export const cartInclude = {
   items: {
@@ -27,8 +27,15 @@ export const cartInclude = {
           price: true,
           stockQuantity: true,
           isActive: true,
-          wholesaleMoq: true,
-          wholesalePriceTiers: { orderBy: { minQuantity: 'asc' as const } },
+        },
+      },
+      wholesalePackage: {
+        select: {
+          id: true,
+          name: true,
+          unitsPerPackage: true,
+          price: true,
+          isActive: true,
         },
       },
     },
@@ -52,9 +59,8 @@ const retailLineUnitPrice = (item: CartLinePayload): Prisma.Decimal => {
 }
 
 export const lineUnitPrice = (item: CartLinePayload, mode: ShoppingMode): Prisma.Decimal => {
-  if (mode === ShoppingMode.WHOLESALE && item.productOption) {
-    const wholesalePrice = wholesaleUnitPriceFromOption(item.productOption, item.quantity)
-    if (wholesalePrice !== null) return wholesalePrice
+  if (mode === ShoppingMode.WHOLESALE && item.wholesalePackage) {
+    return item.wholesalePackage.price
   }
   return retailLineUnitPrice(item)
 }
@@ -63,10 +69,7 @@ export const lineStockQuantity = (item: CartLinePayload): number =>
   item.productOption ? item.productOption.stockQuantity : item.product.stockQuantity
 
 export const lineMinQuantity = (item: CartLinePayload, mode: ShoppingMode): number => {
-  if (mode === ShoppingMode.WHOLESALE && item.productOption) {
-    const { wholesaleMoq } = item.productOption
-    if (wholesaleMoq !== null && wholesaleMoq > 1) return wholesaleMoq
-  }
+  if (mode === ShoppingMode.WHOLESALE && item.wholesalePackage) return 1
   return 1
 }
 
@@ -77,27 +80,42 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
 
   const items = cart.items.map((item) => {
     const option = item.productOption
-    const unitPrice = lineUnitPrice(item, cart.mode)
-    const stockQuantity = lineStockQuantity(item)
-    const minQuantity = lineMinQuantity(item, cart.mode)
+    const pkg = item.wholesalePackage
+    const isWholesaleLine = cart.mode === ShoppingMode.WHOLESALE && pkg
+
+    // A wholesale line is priced per complete package (cartons); the browser
+    // never supplies a price. Availability is expressed in whole packages
+    // floor(stockUnits / unitsPerPackage).
+    const unitPrice = isWholesaleLine ? pkg.price : lineUnitPrice(item, cart.mode)
+    const stockQuantity = isWholesaleLine
+      ? wholesaleAvailableCartons(item.product.stockQuantity, pkg.unitsPerPackage)
+      : lineStockQuantity(item)
+    const minQuantity = isWholesaleLine ? 1 : lineMinQuantity(item, cart.mode)
     const itemSubtotal = unitPrice.mul(item.quantity)
     const isProductActive = item.product.isActive && item.product.category.isActive
     const isOptionActive = option ? option.isActive : true
-    const isActive = isProductActive && isOptionActive
+    const isPackageActive = pkg ? pkg.isActive : true
+    const isActive = isProductActive && isOptionActive && isPackageActive
     const canUpdateQuantity = isActive && stockQuantity > 0
     const isAvailable = isActive && stockQuantity >= item.quantity && stockQuantity > 0
     const availabilityMessage = !isActive
       ? option
         ? `The ${option.label} option is no longer available.`
-        : 'This product is no longer available.'
+        : pkg
+          ? `The ${pkg.name} package is no longer available.`
+          : 'This product is no longer available.'
       : stockQuantity === 0
         ? option
           ? `The ${option.label} option is out of stock.`
-          : 'This product is out of stock.'
+          : pkg
+            ? 'This package is out of stock.'
+            : 'This product is out of stock.'
         : stockQuantity < item.quantity
           ? option
             ? `Only ${stockQuantity} unit(s) of the ${option.label} option are currently available.`
-            : `Only ${stockQuantity} unit(s) are currently available.`
+            : pkg
+              ? `Only ${stockQuantity} package(s) are currently available.`
+              : `Only ${stockQuantity} unit(s) are currently available.`
           : null
 
     subtotal = subtotal.add(itemSubtotal)
@@ -108,6 +126,9 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
       productId: item.product.id,
       productOptionId: option?.id ?? null,
       productOptionLabel: option?.label ?? null,
+      wholesalePackageId: pkg?.id ?? null,
+      wholesalePackageName: pkg?.name ?? null,
+      wholesaleUnitsPerPackage: pkg?.unitsPerPackage ?? null,
       name: item.product.name,
       unit: item.product.unit,
       price: unitPrice.toString(),

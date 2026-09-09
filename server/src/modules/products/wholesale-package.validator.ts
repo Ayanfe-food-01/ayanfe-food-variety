@@ -1,0 +1,45 @@
+import { HttpError } from '../../utils/http.js'
+import type { WholesalePackageInput } from './product.types.js'
+import { UUID_PATTERN, booleanValue, integerValue, isRecord, moneyValue, requiredText } from './product.validator.common.js'
+
+export const MAX_WHOLESALE_PACKAGES = 50
+
+const positiveIntegerValue = (value: unknown, field: string): number => {
+  const number = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN
+  if (!Number.isInteger(number) || number < 1 || number > 1000000000) {
+    throw new HttpError(400, `${field} must be a whole number of 1 or more.`)
+  }
+  return number
+}
+
+export function validateWholesalePackageId(value: unknown): string {
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+    throw new HttpError(400, 'Wholesale package ID is invalid.')
+  }
+  return value.trim()
+}
+
+export function parseWholesalePackageInput(body: unknown): WholesalePackageInput {
+  if (!isRecord(body)) throw new HttpError(400, 'A wholesale package is required.')
+
+  const optionalId = (value: unknown): string | undefined => {
+    if (value === undefined || value === null) return undefined
+    const raw = String(value).trim()
+    if (!UUID_PATTERN.test(raw)) throw new HttpError(400, 'Wholesale package ID is invalid.')
+    return raw
+  }
+
+  return {
+    id: optionalId(body.id),
+    name: requiredText(body.name, 'Package name', 1, 120),
+    unitsPerPackage: positiveIntegerValue(body.unitsPerPackage, 'Units per package'),
+    price: moneyValue(body.price, 'Package price', false),
+    isActive: booleanValue(body.isActive, 'Package availability', true),
+    sortOrder: body.sortOrder === undefined ? 0 : integerValue(body.sortOrder, 'Package order'),
+  }
+}
+
+export function validateWholesalePackageStatusInput(body: unknown): boolean {
+  if (!isRecord(body)) throw new HttpError(400, 'A wholesale package availability value is required.')
+  return booleanValue(body.isActive, 'Package availability', true)
+}

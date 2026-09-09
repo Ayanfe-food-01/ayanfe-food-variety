@@ -1,7 +1,8 @@
 import { Prisma, ShoppingMode } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { cartInclude, type CartPayload } from './cart.serializer.js'
-import { assertProductCanFulfill, assertWholesaleFulfillment, findFulfillmentContext } from './cart.fulfillment.js'
+import { assertProductCanFulfill, assertWholesaleFulfillment } from './cart.fulfillment.js'
+import type { FulfillmentContext } from './cart.fulfillment.js'
 
 export const upsertCustomerCart = async (
   transaction: Prisma.TransactionClient,
@@ -19,8 +20,9 @@ export const findCartLine = (
   cartId: string,
   productId: string,
   productOptionId: string | null,
+  wholesalePackageId: string | null,
 ) => transaction.customerCartItem.findFirst({
-  where: { cartId, productId, productOptionId: productOptionId ?? null },
+  where: { cartId, productId, productOptionId: productOptionId ?? null, wholesalePackageId: wholesalePackageId ?? null },
 })
 
 export const findCartWithItems = (transaction: Prisma.TransactionClient, cartId: string) =>
@@ -37,7 +39,10 @@ export const getOrCreateCart = async (userId: string, mode: ShoppingMode): Promi
     include: cartInclude,
   })
 
-export const assertFulfillment = (product: Awaited<ReturnType<typeof findFulfillmentContext>>, mode: ShoppingMode, quantity: number) => {
+export const assertFulfillment = (product: FulfillmentContext | null | undefined, mode: ShoppingMode, quantity: number) => {
+  if (mode === ShoppingMode.WHOLESALE) {
+    assertWholesaleFulfillment(product, mode, quantity)
+    return
+  }
   assertProductCanFulfill(product, quantity)
-  assertWholesaleFulfillment(product, mode, quantity)
 }

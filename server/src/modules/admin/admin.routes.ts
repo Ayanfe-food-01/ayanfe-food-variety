@@ -33,6 +33,13 @@ import {
   updateAdminProductStatusController,
 } from '../products/admin-product.controller.js'
 import {
+  createAdminWholesalePackageController,
+  deleteAdminWholesalePackageController,
+  listAdminWholesalePackagesController,
+  updateAdminWholesalePackageController,
+  updateAdminWholesalePackageStatusController,
+} from '../products/admin-wholesale.controller.js'
+import {
   createAdminCategoryController,
   deleteAdminCategoryController,
   getAdminCategoryController,
@@ -141,6 +148,11 @@ adminRoutes.patch('/products/:id', productImageUpload, updateAdminProductControl
 adminRoutes.patch('/products/:id/status', updateAdminProductStatusController)
 adminRoutes.patch('/products/:id/featured', updateAdminProductFeaturedController)
 adminRoutes.delete('/products/:id', deleteAdminProductController)
+adminRoutes.get('/products/:id/wholesale-packages', listAdminWholesalePackagesController)
+adminRoutes.post('/products/:id/wholesale-packages', createAdminWholesalePackageController)
+adminRoutes.patch('/wholesale-packages/:packageId', updateAdminWholesalePackageController)
+adminRoutes.patch('/wholesale-packages/:packageId/status', updateAdminWholesalePackageStatusController)
+adminRoutes.delete('/wholesale-packages/:packageId', deleteAdminWholesalePackageController)
 adminRoutes.get('/dashboard', getDashboardController)
 adminRoutes.get('/analytics', getAnalyticsController)
 adminRoutes.get('/orders', listAdminOrdersController)

@@ -5,7 +5,6 @@ import type {
   PublicProductQuery,
   PublicProductSort,
   AdminProductSort,
-  WholesalePriceLookupInput,
 } from './product.types.js'
 import {
   UUID_PATTERN,
@@ -198,30 +197,4 @@ export function requireProductIdentifier(value: string | undefined): string {
   }
 
   return identifier
-}
-
-export function validateWholesalePriceInput(body: unknown): WholesalePriceLookupInput {
-  if (!isRecord(body)) throw new HttpError(400, 'Wholesale pricing request is required.')
-
-  const productId = requiredText(body.productId, 'Product', 1, 40)
-  if (!UUID_PATTERN.test(productId)) throw new HttpError(400, 'Product is invalid.')
-
-  const rawOptionId = body.productOptionId
-  if (rawOptionId === undefined || rawOptionId === null || String(rawOptionId).trim() === '') {
-    throw new HttpError(400, 'Select a product size first.')
-  }
-  const productOptionId = String(rawOptionId).trim()
-  if (!UUID_PATTERN.test(productOptionId)) throw new HttpError(400, 'Product size is invalid.')
-
-  const rawQuantity = body.quantity
-  const quantity = typeof rawQuantity === 'number'
-    ? rawQuantity
-    : typeof rawQuantity === 'string' && rawQuantity.trim()
-      ? Number(rawQuantity)
-      : NaN
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000000000) {
-    throw new HttpError(400, 'Quantity must be a whole number of 1 or more.')
-  }
-
-  return { productId, productOptionId, quantity }
 }

@@ -2,7 +2,6 @@ import { request } from './api'
 import type {
   Product,
   ProductWholesalePricing,
-  WholesalePriceResult,
 } from '../types/product'
 
 interface ProductApiResponse {
@@ -258,24 +257,13 @@ export async function getProduct(id: string): Promise<Product> {
 interface ProductWholesalePricingResponse {
   data: {
     productId: string
-    options: Array<{
-      optionId: string
-      label: string
-      moq: number | null
-      tiers: Array<{ minQuantity: number; maxQuantity: number | null; price: string }>
+    packages: Array<{
+      packageId: string
+      name: string
+      unitsPerPackage: number
+      price: string
+      isActive: boolean
     }>
-  }
-}
-
-interface WholesalePriceResponse {
-  data: {
-    productId: string
-    productOptionId: string
-    optionLabel: string
-    quantity: number
-    moq: number | null
-    unitPrice: string
-    tier: { minQuantity: number; maxQuantity: number | null; price: string }
   }
 }
 
@@ -286,58 +274,25 @@ export async function getProductWholesalePricing(id: string, signal?: AbortSigna
   )
   return {
     productId: response.data.productId,
-    options: response.data.options.map((option) => {
-      if (option.moq !== null && (!Number.isInteger(option.moq) || option.moq < 1)) {
+    packages: response.data.packages.map((pkg) => {
+      const price = Number(pkg.price)
+      if (
+        !Number.isFinite(price)
+        || price <= 0
+        || !Number.isInteger(pkg.unitsPerPackage)
+        || pkg.unitsPerPackage < 1
+        || typeof pkg.name !== 'string'
+        || pkg.name.trim().length === 0
+      ) {
         throw new Error('The wholesale pricing data is invalid.')
       }
       return {
-        optionId: option.optionId,
-        label: option.label,
-        moq: option.moq,
-        tiers: option.tiers.map((tier) => {
-          const price = Number(tier.price)
-          if (!Number.isFinite(price) || price <= 0) {
-            throw new Error('The wholesale pricing data is invalid.')
-          }
-          if (!Number.isInteger(tier.minQuantity) || tier.minQuantity < 1) {
-            throw new Error('The wholesale pricing data is invalid.')
-          }
-          if (tier.maxQuantity !== null && (!Number.isInteger(tier.maxQuantity) || tier.maxQuantity < tier.minQuantity)) {
-            throw new Error('The wholesale pricing data is invalid.')
-          }
-          return { minQuantity: tier.minQuantity, maxQuantity: tier.maxQuantity, price }
-        }),
+        packageId: pkg.packageId,
+        name: pkg.name,
+        unitsPerPackage: pkg.unitsPerPackage,
+        price,
+        isActive: pkg.isActive,
       }
     }),
-  }
-}
-
-export async function getWholesaleUnitPrice(
-  productId: string,
-  productOptionId: string,
-  quantity: number,
-): Promise<WholesalePriceResult> {
-  const response = await request<WholesalePriceResponse>('/products/wholesale-price', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId, productOptionId, quantity }),
-  })
-  const unitPrice = Number(response.data.unitPrice)
-  const tierPrice = Number(response.data.tier.price)
-  if (!Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isFinite(tierPrice) || tierPrice <= 0) {
-    throw new Error('The wholesale pricing data is invalid.')
-  }
-  return {
-    productId: response.data.productId,
-    productOptionId: response.data.productOptionId,
-    optionLabel: response.data.optionLabel,
-    quantity: response.data.quantity,
-    moq: response.data.moq,
-    unitPrice,
-    tier: {
-      minQuantity: response.data.tier.minQuantity,
-      maxQuantity: response.data.tier.maxQuantity,
-      price: tierPrice,
-    },
   }
 }

@@ -19,7 +19,11 @@ export async function addCustomerCartItem(
   item: CartItemInput,
 ): Promise<CustomerCartResponse> {
   return prisma.$transaction(async (transaction) => {
-    const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+    const product = await findFulfillmentContext(transaction, {
+      productId: item.productId,
+      productOptionId: item.productOptionId,
+      wholesalePackageId: item.wholesalePackageId,
+    })
     if (!product) throw new HttpError(404, 'Product no longer exists or is unavailable.')
     if (item.productOptionId && !product.option) {
       throw new HttpError(404, 'Product option no longer exists or is unavailable.')
@@ -27,7 +31,7 @@ export async function addCustomerCartItem(
     assertFulfillment(product, mode, item.quantity)
 
     const cart = await upsertCustomerCart(transaction, userId, mode)
-    const existing = await findCartLine(transaction, cart.id, item.productId, item.productOptionId)
+    const existing = await findCartLine(transaction, cart.id, item.productId, item.productOptionId, item.wholesalePackageId)
 
     if (existing) {
       const nextQuantity = existing.quantity + item.quantity
@@ -43,6 +47,7 @@ export async function addCustomerCartItem(
           cartId: cart.id,
           productId: item.productId,
           productOptionId: item.productOptionId,
+          wholesalePackageId: item.wholesalePackageId,
           quantity: item.quantity,
         },
       })
@@ -61,10 +66,14 @@ export async function updateCustomerCartItem(
   return prisma.$transaction(async (transaction) => {
     const item = await transaction.customerCartItem.findFirst({
       where: { id: cartItemId, cart: { userId, mode } },
-      select: { id: true, cartId: true, productId: true, productOptionId: true },
+      select: { id: true, cartId: true, productId: true, productOptionId: true, wholesalePackageId: true },
     })
     if (!item) throw new HttpError(404, 'Cart item not found.')
-    const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+    const product = await findFulfillmentContext(transaction, {
+      productId: item.productId,
+      productOptionId: item.productOptionId,
+      wholesalePackageId: item.wholesalePackageId,
+    })
     assertFulfillment(product, mode, quantity)
 
     await transaction.customerCartItem.update({

@@ -9,13 +9,11 @@ import {
   getProductWholesalePricing,
   getProducts,
   isWholesaleCustomer,
-  lookupWholesalePrice,
 } from './product.service.js'
 import {
   requireProductIdentifier,
   validateCategorySectionsQuery,
   validatePublicProductsQuery,
-  validateWholesalePriceInput,
 } from './product.validator.js'
 
 export const getProductsController: RequestHandler = async (request, response) => {
@@ -94,9 +92,4 @@ export const getProductWholesalePricingController: RequestHandler = async (reque
   }
 
   response.json({ data: pricing })
-}
-
-export const getWholesalePriceController: RequestHandler = async (request, response) => {
-  const result = await lookupWholesalePrice(validateWholesalePriceInput(request.body))
-  response.json({ data: result })
 }

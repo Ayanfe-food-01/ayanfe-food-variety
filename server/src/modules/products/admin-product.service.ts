@@ -30,8 +30,8 @@ export async function listAdminProducts(query: AdminProductQuery) {
   if (query.discount === 'no-discount') where.discountType = null
   if (query.productType === 'with-options') where.options = { some: {} }
   if (query.productType === 'simple') where.options = { none: {} }
-  if (query.wholesale === 'enabled') where.wholesalePriceTiers = { some: {} }
-  if (query.wholesale === 'not-configured') where.wholesalePriceTiers = { none: {} }
+  if (query.wholesale === 'enabled') where.wholesalePackages = { some: { isActive: true } }
+  if (query.wholesale === 'not-configured') where.wholesalePackages = { none: {} }
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
     where.price = {
       ...(query.minPrice !== undefined ? { gte: new Prisma.Decimal(query.minPrice) } : {}),

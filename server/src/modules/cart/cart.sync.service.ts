@@ -19,12 +19,16 @@ export async function mergeCustomerCart(
   return prisma.$transaction(async (transaction) => {
     const cart = await upsertCustomerCart(transaction, userId, mode)
     for (const item of items) {
-      const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+      const product = await findFulfillmentContext(transaction, {
+        productId: item.productId,
+        productOptionId: item.productOptionId,
+        wholesalePackageId: item.wholesalePackageId,
+      })
       if (!product) throw new HttpError(404, 'Product no longer exists or is unavailable.')
       if (item.productOptionId && !product.option) {
         throw new HttpError(404, 'Product option no longer exists or is unavailable.')
       }
-      const existing = await findCartLine(transaction, cart.id, item.productId, item.productOptionId)
+      const existing = await findCartLine(transaction, cart.id, item.productId, item.productOptionId, item.wholesalePackageId)
       const nextQuantity = (existing?.quantity ?? 0) + item.quantity
       if (nextQuantity > 1000) throw new HttpError(400, 'Cart quantity cannot exceed 1000.')
       assertFulfillment(product, mode, nextQuantity)
@@ -39,6 +43,7 @@ export async function mergeCustomerCart(
             cartId: cart.id,
             productId: item.productId,
             productOptionId: item.productOptionId,
+            wholesalePackageId: item.wholesalePackageId,
             quantity: item.quantity,
           },
         })
@@ -56,7 +61,11 @@ export async function replaceCustomerCart(
   return prisma.$transaction(async (transaction) => {
     const cart = await upsertCustomerCart(transaction, userId, mode)
     for (const item of items) {
-      const product = await findFulfillmentContext(transaction, item.productId, item.productOptionId)
+      const product = await findFulfillmentContext(transaction, {
+        productId: item.productId,
+        productOptionId: item.productOptionId,
+        wholesalePackageId: item.wholesalePackageId,
+      })
       if (!product) throw new HttpError(404, 'Product no longer exists or is unavailable.')
       if (item.productOptionId && !product.option) {
         throw new HttpError(404, 'Product option no longer exists or is unavailable.')
@@ -70,6 +79,7 @@ export async function replaceCustomerCart(
           cartId: cart.id,
           productId: item.productId,
           productOptionId: item.productOptionId,
+          wholesalePackageId: item.wholesalePackageId,
           quantity: item.quantity,
         })),
       })

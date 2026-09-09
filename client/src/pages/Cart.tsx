@@ -213,9 +213,9 @@ export function Cart() {
               <div className="grid items-start gap-10 lg:grid-cols-[1fr_360px] lg:gap-16">
                 <div className="space-y-4" aria-label="Cart items">
                   {items.map((item) => {
-                    const isPending = pendingItemIds.includes(cartItemLineKey(item.id, item.productOptionId))
+                    const isPending = pendingItemIds.includes(cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId))
                     return (
-                      <article className={`flex gap-4 rounded-2xl border bg-white p-4 sm:gap-6 sm:p-5 ${item.isAvailable ? 'border-line' : 'border-orange/40'}`} key={cartItemLineKey(item.id, item.productOptionId)}>
+                      <article className={`flex gap-4 rounded-2xl border bg-white p-4 sm:gap-6 sm:p-5 ${item.isAvailable ? 'border-line' : 'border-orange/40'}`} key={cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)}>
                         <CartImage item={item} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
@@ -224,6 +224,14 @@ export function Cart() {
                               <h2 className="m-0 text-lg font-bold text-green-dark sm:text-xl">{item.name}</h2>
                               {item.productOptionLabel && (
                                 <p className="mt-1 text-sm font-semibold text-muted">{item.productOptionLabel}</p>
+                              )}
+                              {item.wholesalePackageName && (
+                                <p className="mt-1 text-sm font-semibold text-muted">
+                                  {item.wholesalePackageName}
+                                  {item.wholesaleUnitsPerPackage
+                                    ? ` · ${item.wholesaleUnitsPerPackage} ${item.wholesaleUnitsPerPackage === 1 ? 'unit' : 'units'} per package`
+                                    : ''}
+                                </p>
                               )}
                               {typeof item.minQuantity === 'number' && item.minQuantity > 1 && (
                                 <p className="mt-1 text-xs font-semibold text-orange">
@@ -234,7 +242,7 @@ export function Cart() {
                             <button
                               className="grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-sage hover:text-green disabled:cursor-not-allowed disabled:opacity-40"
                               type="button"
-                              aria-label={`Remove ${item.name}${item.productOptionLabel ? ` (${item.productOptionLabel})` : ''} from cart`}
+                              aria-label={`Remove ${item.name}${item.productOptionLabel ? ` (${item.productOptionLabel})` : ''}${item.wholesalePackageName ? ` (${item.wholesalePackageName})` : ''} from cart`}
                               disabled={isPending || isClearing}
                               onClick={() => void removeFromCart(item)}
                             >
@@ -262,7 +270,7 @@ export function Cart() {
                                   discountedClassName="font-bold text-green-dark"
                                   originalClassName="ml-1 text-muted"
                                 />{' '}
-                                each
+                                {item.wholesalePackageName ? 'per package' : 'each'}
                               </p>
                                <p className="mt-1 text-base font-bold text-green-dark">{formatPrice(getItemSubtotal(item))}</p>
                             </div>

@@ -1,7 +1,7 @@
 import { FulfillmentMethod, PaymentMethod, Prisma, ShoppingMode, UserRole } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/config/prisma.js'
 import { HttpError } from '../src/utils/http.js'
-import { addCustomerCartItem } from '../src/modules/cart/cart.mutations.service.js'
+import { addCustomerCartItem, updateCustomerCartItem } from '../src/modules/cart/cart.mutations.service.js'
 import { getCustomerCart } from '../src/modules/cart/cart.service.js'
 import { getProductWholesaleFromMap, getProductWholesalePricing } from '../src/modules/products/product.wholesale.service.js'
 import {
@@ -267,6 +267,19 @@ async function main() {
     const carton5Acc = accumulated.items.find((item) => item.wholesalePackageId === carton5.id)
     if (!carton5Acc || carton5Acc.quantity !== 5) throw new Error('Cartons should accumulate to 5.')
     if (Number(carton5Acc.itemSubtotal) !== 200000) throw new Error('Accumulated carton subtotal is wrong.')
+
+    // --- Updating a wholesale line keeps the unit/size + package and is capped
+    // by that size's stock (floor(100 / 20) = 5 cartons) ---
+    const updatedCart = await updateCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, carton5Acc.id, 5)
+    const updatedCarton5 = updatedCart.items.find((item) => item.wholesalePackageId === carton5.id)
+    if (!updatedCarton5 || updatedCarton5.productOptionId !== size5kg.id || updatedCarton5.quantity !== 5 || Number(updatedCarton5.itemSubtotal) !== 200000) {
+      throw new Error('Wholesale cart line update should keep the unit/size and package.')
+    }
+    await expectHttpError(
+      updateCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, carton5Acc.id, 6),
+      409,
+      'update over size stock',
+    )
 
     // --- Inactive package is rejected on add ---
     await toggleAdminWholesalePackageActive(carton5.id, false)

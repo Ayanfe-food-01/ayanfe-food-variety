@@ -121,6 +121,22 @@ export async function updateAdminWholesalePackage(packageId: string, input: Whol
   }).then((row) => serializePackage(row))
 }
 
+export async function reorderAdminWholesalePackages(productId: string, orderedIds: string[]) {
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true } })
+  if (!product) throw new HttpError(404, 'Product not found.')
+  const rows = await prisma.wholesalePackage.findMany({ where: { productId }, select: { id: true } })
+  const existingIds = new Set(rows.map((row) => row.id))
+  if (orderedIds.length !== existingIds.size || orderedIds.some((id) => !existingIds.has(id))) {
+    throw new HttpError(400, "The package order does not match this product's wholesale packages.")
+  }
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.wholesalePackage.update({ where: { id }, data: { sortOrder: index } }),
+    ),
+  )
+  return listAdminWholesalePackages(productId)
+}
+
 export async function toggleAdminWholesalePackageActive(packageId: string, isActive: boolean) {
   const existing = await prisma.wholesalePackage.findUnique({ where: { id: packageId } })
   if (!existing) throw new HttpError(404, 'Wholesale package not found.')

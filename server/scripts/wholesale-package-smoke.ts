@@ -9,6 +9,7 @@ import {
   createAdminWholesalePackage,
   deleteAdminWholesalePackage,
   listAdminWholesalePackages,
+  reorderAdminWholesalePackages,
   toggleAdminWholesalePackageActive,
 } from '../src/modules/products/admin-wholesale.service.js'
 import { resolveCheckoutCart } from '../src/modules/orders/checkout.cart.js'
@@ -387,6 +388,14 @@ async function main() {
     if (persistedCarton5.quantity !== 5) throw new Error('Persisted order quantity should be number of cartons.')
     if (Number(persistedCarton5.unitPrice) !== 40000) throw new Error('Persisted order must use the DB package price.')
     createdOrderIds.push(persisted.id)
+
+    const reversed = await reorderAdminWholesalePackages(product.id, [carton10.id, carton5.id, crate5.id])
+    if (reversed[0]?.id !== carton10.id || reversed[1]?.id !== carton5.id || reversed[2]?.id !== crate5.id) {
+      throw new Error('Reorder should persist the new sortOrder.')
+    }
+    await expectHttpError(reorderAdminWholesalePackages(product.id, [carton5.id]), 400, 'reorder partial list')
+    await expectHttpError(reorderAdminWholesalePackages(product.id, [carton5.id, carton10.id, size5kg.id]), 400, 'reorder foreign id')
+    await reorderAdminWholesalePackages(product.id, [carton5.id, crate5.id, carton10.id])
 
     console.info('ALL WHOLESALE PACKAGE (OPTION-LINKED) SMOKE CHECKS PASSED')
   } finally {

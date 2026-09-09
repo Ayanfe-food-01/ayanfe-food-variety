@@ -5,11 +5,13 @@ import {
   createAdminWholesalePackage,
   deleteAdminWholesalePackage,
   listAdminWholesalePackages,
+  reorderAdminWholesalePackages,
   setAdminWholesalePackageActive,
   updateAdminWholesalePackage,
 } from '../../services/adminService'
 import { formatPrice } from '../../utils/formatPrice'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
+import { WholesalePackageActionsMenu } from './WholesalePackageActionsMenu'
 
 export interface OptionRowErrors {
   label?: string
@@ -32,7 +34,6 @@ const MAX_OPTIONS = 50
 
 const inputClassName = 'w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green'
 const packageInputClassName = 'w-full rounded-lg border border-line px-3 py-2 text-sm font-normal outline-none focus:border-green'
-const packageActionClassName = 'rounded-lg border border-line bg-white px-3 py-1.5 text-[11px] font-bold text-green-dark transition-colors hover:border-green disabled:cursor-not-allowed disabled:opacity-40'
 
 interface PackageDraft {
   name: string
@@ -147,6 +148,13 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
     setEditor({ optionId, pkg })
   }
 
+  const openDuplicate = (optionId: string, pkg: WholesalePackageClient) => {
+    setDraft({ name: `${pkg.name} (copy)`, unitsPerPackage: String(pkg.unitsPerPackage), price: pkg.price, isActive: pkg.isActive })
+    setDraftErrors({})
+    setSaveError(null)
+    setEditor({ optionId })
+  }
+
   const updateDraft = (field: keyof PackageDraft, value: string | boolean) => {
     setDraft((current) => ({ ...current, [field]: value }))
     setDraftErrors((current) => ({ ...current, [field]: undefined }))
@@ -214,6 +222,30 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
     }
   }
 
+  // Swap a package with the previous/next package that shares its unit/size.
+  // The full ordered id list is then persisted back to the server.
+  const movePackage = async (pkg: WholesalePackageClient, direction: -1 | 1) => {
+    if (!productId) return
+    const index = packages.findIndex((candidate) => candidate.id === pkg.id)
+    if (index < 0) return
+    let neighbor = index + direction
+    while (neighbor >= 0 && neighbor < packages.length && packages[neighbor].productOptionId !== pkg.productOptionId) {
+      neighbor += direction
+    }
+    if (neighbor < 0 || neighbor >= packages.length || packages[neighbor].productOptionId !== pkg.productOptionId) return
+    const next = [...packages]
+    const swap = next[index]
+    next[index] = next[neighbor]
+    next[neighbor] = swap
+    setPackages(next)
+    try {
+      setPackages(await reorderAdminWholesalePackages(productId, next.map((item) => item.id)))
+    } catch (caught: unknown) {
+      setPackagesError(caught instanceof Error ? caught.message : 'Package order could not be updated.')
+      await loadPackages(productId)
+    }
+  }
+
   const editorOptionLabel = editor ? (optionLabels.get(editor.optionId) ?? 'this size') : ''
 
   return (
@@ -241,6 +273,9 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
             const stock = option.stockQuantity.trim() === '' ? '0' : option.stockQuantity.trim()
             const activePackageCount = optionPackages.filter((pkg) => pkg.isActive).length
             const summaryDetail = `${price} · ${stock} in stock${optionPackages.length > 0 ? ` · ${activePackageCount} active wholesale package${activePackageCount === 1 ? '' : 's'}` : ''}`
+            const parsedRetailPrice = Number(option.price)
+            const perUnitPriceVariants = [...new Set(optionPackages.flatMap((pkg) => pkg.unitsPerPackage >= 1 ? [Math.round((Number(pkg.price) / pkg.unitsPerPackage) * 100) / 100] : []))]
+            const inconsistentPerUnit = perUnitPriceVariants.length > 1
             return (
               <li className="overflow-hidden rounded-xl border border-line bg-white" key={option.id ?? `option-${index}`}>
                 <div className="flex flex-wrap items-center gap-2 px-4 py-3.5">
@@ -304,23 +339,52 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                             <p className="mt-2 text-xs font-normal leading-5 text-muted">No wholesale packages yet. Add one, for example a “Carton of 20” at ₦40,000 per carton.</p>
                           ) : (
                             <ul className="mt-2 space-y-2">
-                              {optionPackages.map((pkg) => (
-                                <li className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-white px-3 py-2.5" key={pkg.id}>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="text-sm font-bold text-green-dark">{pkg.name}</p>
-                                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${pkg.isActive ? 'bg-sage text-green-dark' : 'bg-orange/10 text-orange'}`}>{pkg.isActive ? 'Active' : 'Inactive'}</span>
+                              {optionPackages.map((pkg) => {
+                                const globalIndex = packages.findIndex((candidate) => candidate.id === pkg.id)
+                                let canMoveUp = false
+                                let canMoveDown = false
+                                if (globalIndex >= 0) {
+                                  let neighbor = globalIndex - 1
+                                  while (neighbor >= 0 && packages[neighbor].productOptionId !== pkg.productOptionId) neighbor -= 1
+                                  canMoveUp = neighbor >= 0
+                                  neighbor = globalIndex + 1
+                                  while (neighbor < packages.length && packages[neighbor].productOptionId !== pkg.productOptionId) neighbor += 1
+                                  canMoveDown = neighbor < packages.length
+                                }
+                                const perUnit = pkg.unitsPerPackage >= 1 ? Number(pkg.price) / pkg.unitsPerPackage : NaN
+                                const notCheaperThanRetail = Number.isFinite(perUnit) && Number.isFinite(parsedRetailPrice) && parsedRetailPrice > 0 && perUnit >= parsedRetailPrice
+                                return (
+                                  <li className="flex flex-wrap items-start gap-3 rounded-xl border border-line bg-white px-3 py-2.5" key={pkg.id}>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-sm font-bold text-green-dark">{pkg.name}</p>
+                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${pkg.isActive ? 'bg-sage text-green-dark' : 'bg-orange/10 text-orange'}`}>{pkg.isActive ? 'Active' : 'Inactive'}</span>
+                                      </div>
+                                      <p className="mt-0.5 text-xs font-normal text-muted">{pkg.unitsPerPackage} unit{pkg.unitsPerPackage === 1 ? '' : 's'} per carton · {formatPrice(Number(pkg.price))}/carton{pkg.unitsPerPackage >= 1 ? ` · ${formatPrice(perUnit)}/unit` : ''}</p>
+                                      {notCheaperThanRetail && (
+                                        <p className="mt-0.5 text-[11px] font-semibold text-orange">Per-unit ({formatPrice(perUnit)}) is not under the retail price ({formatPrice(parsedRetailPrice)}).</p>
+                                      )}
                                     </div>
-                                    <p className="mt-0.5 text-xs font-normal text-muted">{pkg.unitsPerPackage} unit{pkg.unitsPerPackage === 1 ? '' : 's'} per carton · {formatPrice(Number(pkg.price))}/carton{pkg.unitsPerPackage >= 1 ? ` · ${formatPrice(Number(pkg.price) / pkg.unitsPerPackage)}/unit` : ''}</p>
-                                  </div>
-                                  <div className="flex shrink-0 flex-wrap gap-2">
-                                    <button className={packageActionClassName} type="button" onClick={() => openEdit(pkg.id, pkg)}>Edit</button>
-                                    <button className={packageActionClassName} type="button" onClick={() => toggleActive(pkg)}>{pkg.isActive ? 'Deactivate' : 'Activate'}</button>
-                                    <button className={`${packageActionClassName} text-orange`} type="button" onClick={() => removePackage(pkg)}>Remove</button>
-                                  </div>
-                                </li>
-                              ))}
+                                    <div className="flex shrink-0 items-center">
+                                      <WholesalePackageActionsMenu
+                                        pkg={pkg}
+                                        canMoveUp={canMoveUp}
+                                        canMoveDown={canMoveDown}
+                                        onMoveUp={() => movePackage(pkg, -1)}
+                                        onMoveDown={() => movePackage(pkg, 1)}
+                                        onEdit={() => openEdit(pkg.id, pkg)}
+                                        onDuplicate={() => openDuplicate(option.id as string, pkg)}
+                                        onToggleActive={() => toggleActive(pkg)}
+                                        onRemove={() => removePackage(pkg)}
+                                      />
+                                    </div>
+                                  </li>
+                                )
+                              })}
                             </ul>
+                          )}
+                          {inconsistentPerUnit && (
+                            <p className="mt-2 text-xs font-semibold text-orange">These packages price the unit differently ({perUnitPriceVariants.slice(0, 2).map((variant) => `${formatPrice(variant)}/unit`).join(' vs ')}). Check the carton prices.</p>
                           )}
                         </>
                       ) : null}

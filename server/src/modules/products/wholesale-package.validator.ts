@@ -54,3 +54,25 @@ export function validateWholesalePackageStatusInput(body: unknown): boolean {
   if (!isRecord(body)) throw new HttpError(400, 'A wholesale package availability value is required.')
   return booleanValue(body.isActive, 'Package availability', true)
 }
+
+export function validateWholesalePackageReorderInput(body: unknown): string[] {
+  if (!isRecord(body)) throw new HttpError(400, 'A wholesale package order is required.')
+  if (!Array.isArray(body.packageIds) || body.packageIds.length === 0) {
+    throw new HttpError(400, 'packageIds must be a non-empty array.')
+  }
+  if (body.packageIds.length > MAX_WHOLESALE_PACKAGES) {
+    throw new HttpError(400, `A product can have at most ${MAX_WHOLESALE_PACKAGES} wholesale packages.`)
+  }
+  const seen = new Set<string>()
+  const ids: string[] = []
+  for (const value of body.packageIds) {
+    if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+      throw new HttpError(400, 'Wholesale package ID is invalid.')
+    }
+    const id = value.trim()
+    if (seen.has(id)) throw new HttpError(400, 'Wholesale package IDs must be unique.')
+    seen.add(id)
+    ids.push(id)
+  }
+  return ids
+}

@@ -3,12 +3,14 @@ import {
   createAdminWholesalePackage,
   deleteAdminWholesalePackage,
   listAdminWholesalePackages,
+  reorderAdminWholesalePackages,
   toggleAdminWholesalePackageActive,
   updateAdminWholesalePackage,
 } from './admin-wholesale.service.js'
 import {
   parseWholesalePackageInput,
   validateWholesalePackageId,
+  validateWholesalePackageReorderInput,
   validateWholesalePackageStatusInput,
 } from './wholesale-package.validator.js'
 import { validateAdminProductId } from './product.validator.js'
@@ -42,6 +44,12 @@ export const updateAdminWholesalePackageStatusController: RequestHandler = async
     message: isActive ? 'Wholesale package activated.' : 'Wholesale package deactivated.',
     data: { package: pkg },
   })
+}
+
+export const reorderAdminWholesalePackagesController: RequestHandler = async (request, response) => {
+  const productId = validateAdminProductId(routeParam(request.params.id))
+  const packages = await reorderAdminWholesalePackages(productId, validateWholesalePackageReorderInput(request.body))
+  response.json({ success: true, message: 'Wholesale package order updated.', data: { packages } })
 }
 
 export const deleteAdminWholesalePackageController: RequestHandler = async (request, response) => {

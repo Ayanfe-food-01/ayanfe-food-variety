@@ -665,6 +665,15 @@ export async function listAdminWholesalePackages(productId: string): Promise<Who
   return response.data.packages
 }
 
+export async function reorderAdminWholesalePackages(productId: string, packageIds: string[]): Promise<WholesalePackageClient[]> {
+  const response = await request<AdminWholesalePackagesResponse>(`/admin/products/${encodeURIComponent(productId)}/wholesale-packages/reorder`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ packageIds }),
+  })
+  return response.data.packages
+}
+
 const toWholesalePackageDraft = (draft: WholesalePackageDraft) => ({
   name: draft.name.trim(),
   unitsPerPackage: Number(draft.unitsPerPackage),

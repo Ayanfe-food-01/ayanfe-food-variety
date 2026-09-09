@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { FilterIcon } from '../../assets/icons'
 import { SearchBar } from '../ui/SearchBar'
@@ -31,6 +31,11 @@ interface FilterBarProps {
 export function FilterBar({ fields, committed, onApply, search, quickFields, headerActions, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const desktopTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null)
+  const anchorRefs = useMemo(
+    () => [desktopTriggerRef, mobileTriggerRef] as const,
+    [],
+  )
 
   const activeCount = fields.filter((field) => Boolean(committed[field.key])).length
   const resolvedQuickFields = quickFields ?? fields.filter((field) => field.quick)
@@ -59,20 +64,17 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
       <div className="filter-bar-toolbar">
         <div className="filter-bar-search">
           {search && (
-            <label className="filter-bar-search-label">
-              {search.label ?? search.ariaLabel ?? 'Search'}
-              <SearchBar
-                className="filter-bar-search-input mt-2"
-                value={search.value}
-                onChange={search.onChange}
-                onSearch={search.onSearch}
-                placeholder={search.placeholder}
-                ariaLabel={search.ariaLabel}
-                debounceMs={search.debounceMs}
-                liveSearch={Boolean(search.onSearch)}
-                clearable
-              />
-            </label>
+            <SearchBar
+              className="filter-bar-search-input"
+              value={search.value}
+              onChange={search.onChange}
+              onSearch={search.onSearch}
+              placeholder={search.placeholder}
+              ariaLabel={search.ariaLabel}
+              debounceMs={search.debounceMs}
+              liveSearch={Boolean(search.onSearch)}
+              clearable
+            />
           )}
         </div>
 
@@ -96,6 +98,7 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
 
         <div className="filter-bar-mobile">
           <button
+            ref={mobileTriggerRef}
             className={`filter-trigger filter-trigger-icon ${activeCount > 0 ? 'is-active' : ''}`}
             type="button"
             aria-label="Open filters"
@@ -120,14 +123,15 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
         <FilterChips fields={fields} values={committed} onRemove={removeCommitted} onClearAll={clearAll} />
       </div>
 
-      <FilterSheet
-        isOpen={isSheetOpen}
-        onClose={() => setIsSheetOpen(false)}
-        fields={fields}
-        committed={committed}
-        onApply={onApply}
-        anchorRef={desktopTriggerRef}
-      />
+      {isSheetOpen && (
+        <FilterSheet
+          onClose={() => setIsSheetOpen(false)}
+          fields={fields}
+          committed={committed}
+          onApply={onApply}
+          anchorRefs={anchorRefs}
+        />
+      )}
     </section>
   )
 }

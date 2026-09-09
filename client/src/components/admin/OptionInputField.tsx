@@ -275,8 +275,6 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
             const activePackageCount = optionPackages.filter((pkg) => pkg.isActive).length
             const summaryDetail = `${price} · ${stock} in stock${optionPackages.length > 0 ? ` · ${activePackageCount} active wholesale package${activePackageCount === 1 ? '' : 's'}` : ''}`
             const parsedRetailPrice = Number(option.price)
-            const perUnitPriceVariants = [...new Set(optionPackages.flatMap((pkg) => pkg.unitsPerPackage >= 1 ? [Math.round((Number(pkg.price) / pkg.unitsPerPackage) * 100) / 100] : []))]
-            const inconsistentPerUnit = perUnitPriceVariants.length > 1
             return (
               <li className="overflow-hidden rounded-xl border border-line bg-white" key={option.id ?? `option-${index}`}>
                 <div className="flex flex-wrap items-center gap-2 px-4 py-3.5">
@@ -383,9 +381,6 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                                 )
                               })}
                             </ul>
-                          )}
-                          {inconsistentPerUnit && (
-                            <p className="mt-2 text-xs font-semibold text-orange">These packages price the unit differently ({perUnitPriceVariants.slice(0, 2).map((variant) => `${formatPrice(variant)}/unit`).join(' vs ')}). Check the carton prices.</p>
                           )}
                         </>
                       ) : null}

@@ -135,15 +135,20 @@ export interface WholesalePricingTier {
 
 export interface WholesalePackagePricing {
   packageId: string
+  productId: string
+  productOptionId: string | null
   name: string
   unitsPerPackage: number
   price: string
   isActive: boolean
 }
 
-// Admin shape of a wholesale package (carton/case).
+// Admin shape of a wholesale package (carton/case). A package belongs to a
+// specific unit/size (ProductOption) when productOptionId is provided; a null
+// productOptionId means the product's single unit.
 export interface WholesalePackageInput {
   id?: string
+  productOptionId?: string | null
   name: string
   unitsPerPackage: number
   price: string
@@ -161,9 +166,4 @@ export interface WholesaleOptionPricing {
   label: string
   moq: number | null
   tiers: WholesalePricingTier[]
-}
-
-export interface ProductWholesalePricing {
-  productId: string
-  packages: WholesalePackagePricing[]
 }

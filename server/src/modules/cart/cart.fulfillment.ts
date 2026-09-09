@@ -9,9 +9,12 @@ export interface FulfillmentOption {
   isActive: boolean
 }
 
-// A wholesale package (carton/case) selected for a wholesale cart line.
+// A wholesale package (carton/case) selected for a wholesale cart line. A
+// package belongs to a specific unit/size (productOptionId when it is a size
+// variant; null means the product's single unit).
 export interface FulfillmentPackage {
   id: string
+  productOptionId: string | null
   unitsPerPackage: number
   isActive: boolean
 }
@@ -40,6 +43,7 @@ const FULFILLMENT_OPTION_SELECT = {
 
 const FULFILLMENT_PACKAGE_SELECT = {
   id: true,
+  productOptionId: true,
   unitsPerPackage: true,
   isActive: true,
 } as const
@@ -124,7 +128,26 @@ export const assertWholesaleFulfillment = (product: FulfillmentContext | null | 
     throw new HttpError(409, 'The selected wholesale package is not valid.')
   }
 
-  const availableCartons = wholesaleAvailableCartons(product.stockQuantity, pkg.unitsPerPackage)
+  // The selected package must belong to the selected unit/size. When the
+  // package is option-linked the wholesale line must carry that same option;
+  // when it is product-level the line must not carry an option.
+  if (pkg.productOptionId) {
+    const option = product.option
+    if (!option || option.id !== pkg.productOptionId) {
+      throw new HttpError(409, 'The selected wholesale package does not match the selected unit/size.')
+    }
+    if (!option.isActive) {
+      throw new HttpError(409, `The ${option.label} unit/size is no longer available.`)
+    }
+  } else if (product.option) {
+    throw new HttpError(409, 'The selected wholesale package does not match the selected unit/size.')
+  }
+
+  // Availability is expressed in whole packages: floor(unitsOnHand / units per
+  // package). For a size-linked package this uses that size's stock; otherwise
+  // it uses the product's own stock.
+  const unitsOnHand = pkg.productOptionId ? (product.option?.stockQuantity ?? 0) : product.stockQuantity
+  const availableCartons = wholesaleAvailableCartons(unitsOnHand, pkg.unitsPerPackage)
   if (availableCartons <= 0) {
     throw new HttpError(409, 'There is not enough stock to fulfill this wholesale package.')
   }

@@ -29,8 +29,19 @@ export function parseWholesalePackageInput(body: unknown): WholesalePackageInput
     return raw
   }
 
+  // The unit/size (ProductOption) a package belongs to. Explicit null means the
+  // product's single unit; undefined means "not specified".
+  const optionalOptionId = (value: unknown): string | null | undefined => {
+    if (value === undefined) return undefined
+    if (value === null) return null
+    const raw = String(value).trim()
+    if (!UUID_PATTERN.test(raw)) throw new HttpError(400, 'Wholesale package unit/size ID is invalid.')
+    return raw
+  }
+
   return {
     id: optionalId(body.id),
+    productOptionId: optionalOptionId(body.productOptionId),
     name: requiredText(body.name, 'Package name', 1, 120),
     unitsPerPackage: positiveIntegerValue(body.unitsPerPackage, 'Units per package'),
     price: moneyValue(body.price, 'Package price', false),

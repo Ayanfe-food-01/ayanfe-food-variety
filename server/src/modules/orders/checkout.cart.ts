@@ -194,6 +194,7 @@ export async function resolveCheckoutCart(
       select: {
         id: true,
         productId: true,
+        productOptionId: true,
         name: true,
         unitsPerPackage: true,
         price: true,
@@ -215,7 +216,18 @@ export async function resolveCheckoutCart(
       if (!Number.isInteger(pkg.unitsPerPackage) || pkg.unitsPerPackage < 1) {
         return [`${product.name} (${pkg.name}): this package is not valid.`]
       }
-      const available = wholesaleAvailableCartons(product.stockQuantity, pkg.unitsPerPackage)
+      // A package belongs to a specific unit/size; it must match the line's option.
+      const option = pkg.productOptionId ? productOptionsById.get(pkg.productOptionId) : null
+      if (pkg.productOptionId) {
+        if (!option || item.productOptionId !== pkg.productOptionId) {
+          return [`${product.name} (${pkg.name}): this package does not match the selected unit/size.`]
+        }
+        if (!option.isActive) return [`${product.name} (${option.label}): this unit/size is no longer available.`]
+      } else if (item.productOptionId) {
+        return [`${product.name} (${pkg.name}): this package does not match the selected unit/size.`]
+      }
+      const unitsOnHand = pkg.productOptionId ? (option?.stockQuantity ?? 0) : product.stockQuantity
+      const available = wholesaleAvailableCartons(unitsOnHand, pkg.unitsPerPackage)
       if (available < item.quantity) {
         return [`${product.name} (${pkg.name}): only ${available} package(s) currently available.`]
       }
@@ -252,6 +264,12 @@ export async function resolveCheckoutCart(
       assertWholesalePackageActive(pkg as WholesalePackageShape | undefined)
       if (pkg && product && pkg.productId !== product.id) {
         throw new HttpError(409, 'One or more selected wholesale packages are invalid.')
+      }
+      if (pkg) {
+        const expectedOption = pkg.productOptionId ?? null
+        if ((expectedOption ?? null) !== (item.productOptionId ?? null)) {
+          throw new HttpError(409, 'A wholesale package must match its unit/size (select the correct size).')
+        }
       }
     }
   }

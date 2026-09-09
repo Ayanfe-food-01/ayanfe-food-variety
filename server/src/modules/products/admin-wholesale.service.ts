@@ -10,6 +10,7 @@ const serializePackage = (pkg: PackageRow) => {
   return {
     id: pkg.id,
     productId: pkg.productId,
+    productOptionId: pkg.productOptionId,
     name: pkg.name,
     unitsPerPackage: pkg.unitsPerPackage,
     price: pkg.price.toString(),
@@ -20,24 +21,46 @@ const serializePackage = (pkg: PackageRow) => {
   }
 }
 
-// Prevents invalid duplicate wholesale package configs for the same product:
-// a package name must be unique and two packages must not share the same
-// units-per-package + price (which would produce identical, confusing options).
+// A wholesale package belongs to a specific unit/size (ProductOption). Resolve
+// and validate the supplied productOptionId against the product; null means the
+// product's single unit (a product without size variants). undefined is treated
+// as "not specified" by callers.
+const resolveProductOptionId = async (
+  tx: Prisma.TransactionClient,
+  productId: string,
+  productOptionId: string | null | undefined,
+): Promise<string | null> => {
+  if (productOptionId === null || productOptionId === undefined) return null
+  const option = await tx.productOption.findUnique({ where: { id: productOptionId } })
+  if (!option || option.productId !== productId) {
+    throw new HttpError(400, 'The selected unit/size is invalid for this product.')
+  }
+  return option.id
+}
+
+// Prevents invalid duplicate wholesale package configs for the same product and
+// unit/size: a package name must be unique within that unit/size and two
+// packages must not share the same units-per-package + price within that
+// unit/size (which would produce identical, confusing options).
 const assertPackageConfigValid = async (
   tx: Prisma.TransactionClient,
   productId: string,
+  productOptionId: string | null,
   input: WholesalePackageInput,
   excludeId?: string,
 ): Promise<void> => {
   const others = await tx.wholesalePackage.findMany({ where: { productId, ...(excludeId ? { id: { not: excludeId } } : {}) } })
-  const nameKey = input.name.toLowerCase()
-  const duplicateName = others.find((row) => row.name.toLowerCase() === nameKey)
-  if (duplicateName) throw new HttpError(400, `A wholesale package named "${input.name}" already exists for this product.`)
+  const optionScope = productOptionId ?? ''
+  const nameKey = `${optionScope}|${input.name.toLowerCase()}`
+  const duplicateName = others.find((row) => `${row.productOptionId ?? ''}|${row.name.toLowerCase()}` === nameKey)
+  if (duplicateName) throw new HttpError(400, `A wholesale package named "${input.name}" already exists for this unit/size.`)
+
+  const configKey = `${optionScope}|${input.unitsPerPackage}|${input.price}`
   const duplicateConfig = others.find(
-    (row) => row.unitsPerPackage === input.unitsPerPackage && row.price.toString() === input.price,
+    (row) => `${row.productOptionId ?? ''}|${row.unitsPerPackage}|${row.price.toString()}` === configKey,
   )
   if (duplicateConfig) {
-    throw new HttpError(400, 'A wholesale package with the same units and price already exists for this product.')
+    throw new HttpError(400, 'A wholesale package with the same units and price already exists for this unit/size.')
   }
 }
 
@@ -55,10 +78,12 @@ export async function createAdminWholesalePackage(productId: string, input: Whol
   return prisma.$transaction(async (transaction) => {
     const product = await transaction.product.findUnique({ where: { id: productId }, select: { id: true } })
     if (!product) throw new HttpError(404, 'Product not found.')
-    await assertPackageConfigValid(transaction, productId, input)
+    const productOptionId = await resolveProductOptionId(transaction, productId, input.productOptionId)
+    await assertPackageConfigValid(transaction, productId, productOptionId, input)
     const created = await transaction.wholesalePackage.create({
       data: {
         productId,
+        productOptionId,
         name: input.name,
         unitsPerPackage: input.unitsPerPackage,
         price: input.price,
@@ -74,10 +99,14 @@ export async function updateAdminWholesalePackage(packageId: string, input: Whol
   return prisma.$transaction(async (transaction) => {
     const existing = await transaction.wholesalePackage.findUnique({ where: { id: packageId } })
     if (!existing) throw new HttpError(404, 'Wholesale package not found.')
-    await assertPackageConfigValid(transaction, existing.productId, input, existing.id)
+    const productOptionId = input.productOptionId === undefined
+      ? existing.productOptionId
+      : await resolveProductOptionId(transaction, existing.productId, input.productOptionId)
+    await assertPackageConfigValid(transaction, existing.productId, productOptionId, input, existing.id)
     const updated = await transaction.wholesalePackage.update({
       where: { id: existing.id },
       data: {
+        productOptionId,
         name: input.name,
         unitsPerPackage: input.unitsPerPackage,
         price: input.price,

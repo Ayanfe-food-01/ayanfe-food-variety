@@ -32,6 +32,7 @@ export const cartInclude = {
       wholesalePackage: {
         select: {
           id: true,
+          productOptionId: true,
           name: true,
           unitsPerPackage: true,
           price: true,
@@ -87,8 +88,13 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
     // never supplies a price. Availability is expressed in whole packages
     // floor(stockUnits / unitsPerPackage).
     const unitPrice = isWholesaleLine ? pkg.price : lineUnitPrice(item, cart.mode)
+    // A size-linked package is fulfilled from that size's stock; a product-level
+    // package (no unit/size) from the product's own stock.
+    const wholesaleUnitsOnHand = isWholesaleLine && pkg.productOptionId
+      ? (item.productOption?.stockQuantity ?? 0)
+      : item.product.stockQuantity
     const stockQuantity = isWholesaleLine
-      ? wholesaleAvailableCartons(item.product.stockQuantity, pkg.unitsPerPackage)
+      ? wholesaleAvailableCartons(wholesaleUnitsOnHand, pkg.unitsPerPackage)
       : lineStockQuantity(item)
     const minQuantity = isWholesaleLine ? 1 : lineMinQuantity(item, cart.mode)
     const itemSubtotal = unitPrice.mul(item.quantity)

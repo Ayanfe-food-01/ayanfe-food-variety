@@ -37,13 +37,15 @@ export async function getProductWholesalePricing(productId: string): Promise<Pro
   const packages = await prisma.wholesalePackage.findMany({
     where: { productId, isActive: true },
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    select: { id: true, name: true, unitsPerPackage: true, price: true, isActive: true },
+    select: { id: true, productId: true, productOptionId: true, name: true, unitsPerPackage: true, price: true, isActive: true },
   })
 
   return {
     productId,
     packages: packages.map((pkg) => ({
       packageId: pkg.id,
+      productId: pkg.productId,
+      productOptionId: pkg.productOptionId,
       name: pkg.name,
       unitsPerPackage: pkg.unitsPerPackage,
       price: pkg.price.toString(),

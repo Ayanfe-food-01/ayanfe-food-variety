@@ -12,7 +12,7 @@ import {
 } from '../src/modules/products/admin-wholesale.service.js'
 import { resolveCheckoutCart } from '../src/modules/orders/checkout.cart.js'
 
-const slug = `wholesale-pkg-${Date.now().toString(36)}`
+const slug = `wholesale-opt-${Date.now().toString(36)}`
 
 const expectHttpError = async (operation: Promise<unknown>, expectedStatus: number): Promise<void> => {
   try {
@@ -25,28 +25,42 @@ const expectHttpError = async (operation: Promise<unknown>, expectedStatus: numb
 }
 
 async function main() {
-  console.info('Wholesale package smoke test')
+  console.info('Wholesale package (unit/size-linked) smoke test')
   const createdIds: string[] = []
   let wholesaleUserId = ''
   let retailUserId = ''
 
   try {
-    const category = await prisma.category.create({ data: { name: `WS Package Cat ${slug}`, slug, imageUrl: '' } })
+    const category = await prisma.category.create({ data: { name: `WS Opt Cat ${slug}`, slug, imageUrl: '' } })
     createdIds.push(category.id)
+
+    // A product with two unit/size variants: "5kg" and "10kg", mirroring the
+    // Plantain Flour example (5kg -> carton of 20 @ 40,000; 10kg -> carton of 10 @ 45,000).
     const product = await prisma.product.create({
       data: {
         categoryId: category.id,
-        name: 'WS Package Product',
+        name: 'Plantain Flour (WS)',
         slug,
-        description: 'Wholesale package smoke fixture',
+        description: 'Wholesale option-linked package fixture',
         price: '1500.00',
         deliveryFee: '800.00',
-        unit: 'unit',
+        unit: 'kg',
         image: '',
-        stockQuantity: 100,
+        stockQuantity: 1000,
+        options: {
+          create: [
+            { label: '5kg', price: '2800.00', stockQuantity: 100, sortOrder: 0, isActive: true },
+            { label: '10kg', price: '4800.00', stockQuantity: 50, sortOrder: 1, isActive: true },
+          ],
+        },
       },
     })
     createdIds.push(product.id)
+    const [size5kg, size10kg] = await prisma.productOption.findMany({
+      where: { productId: product.id },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, label: true, stockQuantity: true },
+    })
 
     const wholesaleCustomer = await prisma.user.create({
       data: { name: 'WS Customer', email: `${slug}@example.com`, role: UserRole.CUSTOMER, shoppingMode: ShoppingMode.WHOLESALE, emailVerified: true },
@@ -59,20 +73,25 @@ async function main() {
     createdIds.push(retailCustomer.id)
     retailUserId = retailCustomer.id
 
-    // --- Phase 2 case: one package, and package price is authoritative ---
-    const carton = await createAdminWholesalePackage(product.id, {
+    // --- A wholesale package belongs to a specific unit/size ---
+    const carton5 = await createAdminWholesalePackage(product.id, {
+      productOptionId: size5kg.id,
       name: 'Carton',
-      unitsPerPackage: 10,
-      price: '20000.00',
+      unitsPerPackage: 20,
+      price: '40000.00',
       isActive: true,
       sortOrder: 0,
     })
-    if (carton.price !== '20000.00' || carton.unitsPerPackage !== 10) {
+    if (carton5.productOptionId !== size5kg.id) {
+      throw new Error('Created wholesale package should be linked to the 5kg unit/size.')
+    }
+    if (carton5.price !== '40000.00' || carton5.unitsPerPackage !== 20) {
       throw new Error('Created wholesale package does not match input.')
     }
 
-    // --- Phase 2 case: multiple packages ---
-    const crate = await createAdminWholesalePackage(product.id, {
+    // --- One unit/size can have multiple package configurations ---
+    const crate5 = await createAdminWholesalePackage(product.id, {
+      productOptionId: size5kg.id,
       name: 'Crate',
       unitsPerPackage: 25,
       price: '45000.00',
@@ -80,70 +99,113 @@ async function main() {
       sortOrder: 1,
     })
 
-    // Duplicate config is rejected: same name, and same units+price.
-    await expectHttpError(
-      createAdminWholesalePackage(product.id, { name: 'Carton', unitsPerPackage: 10, price: '20000.00' }),
-      400,
-    )
-    await expectHttpError(
-      createAdminWholesalePackage(product.id, { name: 'Other', unitsPerPackage: 25, price: '45000.00' }),
-      400,
-    )
-    // units must be a positive whole number and price must be positive.
-    await expectHttpError(createAdminWholesalePackage(product.id, { name: 'Bad Units', unitsPerPackage: 0, price: '100.00' }), 400)
-    await expectHttpError(createAdminWholesalePackage(product.id, { name: 'Bad Price', unitsPerPackage: 5, price: '0.00' }), 400)
+    // --- The other unit/size has its own, independent package ---
+    const carton10 = await createAdminWholesalePackage(product.id, {
+      productOptionId: size10kg.id,
+      name: 'Carton',
+      unitsPerPackage: 10,
+      price: '45000.00',
+      isActive: true,
+      sortOrder: 0,
+    })
 
-    // --- Wholesale pricing endpoint returns active packages ---
+    // Duplicate config is rejected WITHIN the same unit/size scope.
+    await expectHttpError(
+      createAdminWholesalePackage(product.id, { productOptionId: size5kg.id, name: 'Carton', unitsPerPackage: 20, price: '40000.00' }),
+      400,
+    )
+    await expectHttpError(
+      createAdminWholesalePackage(product.id, { productOptionId: size5kg.id, name: 'Other', unitsPerPackage: 25, price: '45000.00' }),
+      400,
+    )
+    // The same "Carton" name on a DIFFERENT size is allowed (it is scoped per unit/size).
+    const carton10NameCheck = (await listAdminWholesalePackages(product.id))
+      .filter((pkg) => pkg.name === 'Carton')
+    if (carton10NameCheck.length !== 2) throw new Error('A package name should be reusable across different sizes.')
+    // units must be a positive whole number, price positive.
+    await expectHttpError(createAdminWholesalePackage(product.id, { productOptionId: size5kg.id, name: 'Bad Units', unitsPerPackage: 0, price: '100.00' }), 400)
+    await expectHttpError(createAdminWholesalePackage(product.id, { productOptionId: size5kg.id, name: 'Bad Price', unitsPerPackage: 5, price: '0.00' }), 400)
+    // An option that does not belong to this product is rejected.
+    const otherCat = await prisma.category.create({ data: { name: `WS Other Cat ${slug}`, slug: `${slug}-other`, imageUrl: '' } })
+    createdIds.push(otherCat.id)
+    const otherProduct = await prisma.product.create({
+      data: { categoryId: otherCat.id, name: 'Other', slug: `${slug}-other-prod`, price: '10.00', unit: 'unit', image: '', stockQuantity: 5 },
+    })
+    createdIds.push(otherProduct.id)
+    const strayOption = await prisma.productOption.create({
+      data: { productId: otherProduct.id, label: '1kg', price: '10.00', stockQuantity: 5, sortOrder: 0 },
+    })
+    await expectHttpError(
+      createAdminWholesalePackage(product.id, { productOptionId: strayOption.id, name: 'Bad Option', unitsPerPackage: 5, price: '100.00' }),
+      400,
+    )
+
+    // --- The wholesale pricing endpoint exposes each package with its size ---
     const pricing = await getProductWholesalePricing(product.id)
-    if (!pricing || pricing.packages.length !== 2) throw new Error('Wholesale pricing should expose the two active packages.')
-    const cartonPricing = pricing.packages.find((p) => p.packageId === carton.id)
-    if (!cartonPricing || cartonPricing.price !== '20000.00' || cartonPricing.unitsPerPackage !== 10) {
-      throw new Error('Wholesale pricing package data is wrong.')
+    if (!pricing || pricing.packages.length !== 3) throw new Error('Wholesale pricing should expose the three option-linked packages.')
+    const carton5Pricing = pricing.packages.find((p) => p.packageId === carton5.id)
+    if (!carton5Pricing || carton5Pricing.productOptionId !== size5kg.id || carton5Pricing.price !== '40000.00' || carton5Pricing.unitsPerPackage !== 20) {
+      throw new Error('Wholesale pricing package (with unit/size) is wrong.')
     }
     const fromMap = await getProductWholesaleFromMap([product.id])
-    if (fromMap.get(product.id) !== '20000.00') throw new Error('Wholesale "from" price should be the lowest package price.')
+    if (fromMap.get(product.id) !== '40000.00') throw new Error('Wholesale "from" price should be the lowest package price.')
 
-    // --- Add 2 cartons: subtotal must be price-per-carton x cartons (server-derived) ---
+    // --- Add 2 cartons of the 5kg Carton: subtotal = price-per-carton x cartons ---
     const addResult = await addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
       productId: product.id,
-      productOptionId: null,
-      wholesalePackageId: carton.id,
+      productOptionId: size5kg.id,
+      wholesalePackageId: carton5.id,
       quantity: 2,
     })
-    const cartonLine2 = addResult.items.find((item) => item.wholesalePackageId === carton.id)
-    if (!cartonLine2) throw new Error('Wholesale cart line missing the carton package.')
-    if (cartonLine2.price !== '20000.00') throw new Error('Cart line price should be the per-carton price from the DB.')
-    if (cartonLine2.quantity !== 2) throw new Error('Cart line quantity should equal the number of cartons.')
-    if (cartonLine2.itemSubtotal !== '40000.00') throw new Error('Cart line subtotal should be price x cartons.')
-    if (cartonLine2.wholesaleUnitsPerPackage !== 10) throw new Error('Cart line should report units per package.')
+    const carton5Line = addResult.items.find((item) => item.wholesalePackageId === carton5.id)
+    if (!carton5Line) throw new Error('Wholesale cart line missing the carton package.')
+    if (carton5Line.productOptionId !== size5kg.id) throw new Error('Wholesale cart line should carry the unit/size.')
+    if (carton5Line.price !== '40000.00') throw new Error('Cart line price should be the per-carton price from the DB.')
+    if (carton5Line.quantity !== 2) throw new Error('Cart line quantity should equal the number of cartons.')
+    if (carton5Line.itemSubtotal !== '80000.00') {
+      throw new Error('Cart line subtotal should be price x cartons.')
+    }
+    if (carton5Line.wholesaleUnitsPerPackage !== 20) throw new Error('Cart line should report units per package.')
 
     // --- Missing package selection in wholesale mode is rejected ---
     await expectHttpError(
       addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
         productId: product.id,
-        productOptionId: null,
+        productOptionId: size5kg.id,
         wholesalePackageId: null,
         quantity: 1,
       }),
       400,
     )
 
-    // --- Invalid package ID is rejected ---
+    // --- Invalid (nonexistent) package ID is rejected ---
     await expectHttpError(
       addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
         productId: product.id,
-        productOptionId: null,
+        productOptionId: size5kg.id,
         wholesalePackageId: '00000000-0000-4000-8000-000000000000',
         quantity: 1,
       }),
-      404,
+      400,
     )
+
+    // --- A package that does not match its unit/size is rejected (invalid unit) ---
+    await expectHttpError(
+      addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
+        productId: product.id,
+        productOptionId: size10kg.id,
+        wholesalePackageId: carton5.id,
+        quantity: 1,
+      }),
+      409,
+    )
+
     // --- Invalid / negative / non-integer carton quantity is rejected ---
     await expectHttpError(
       addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
         productId: product.id,
-        productOptionId: null,
-        wholesalePackageId: carton.id,
+        productOptionId: size5kg.id,
+        wholesalePackageId: carton5.id,
         quantity: 0,
       }),
       400,
@@ -151,49 +213,64 @@ async function main() {
     await expectHttpError(
       addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
         productId: product.id,
-        productOptionId: null,
-        wholesalePackageId: carton.id,
+        productOptionId: size5kg.id,
+        wholesalePackageId: carton5.id,
         quantity: -3,
       }),
       400,
     )
 
-    // --- Multiple packages in one wholesale cart stay as distinct lines ---
+    // --- Availability is capped by the size's stock, not the product's ---
+    // size5kg stock = 100 units -> 5 cartons of 20. Adding 6 cartons of the 5kg
+    // Carton would need 120 units, so it must be rejected even though product
+    // stock (1000) is high.
+    await expectHttpError(
+      addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
+        productId: product.id,
+        productOptionId: size5kg.id,
+        wholesalePackageId: carton5.id,
+        quantity: 6,
+      }),
+      409,
+    )
+
+    // --- Multiple packages (different sizes) in one wholesale cart are distinct lines ---
     await addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
       productId: product.id,
-      productOptionId: null,
-      wholesalePackageId: crate.id,
+      productOptionId: size10kg.id,
+      wholesalePackageId: carton10.id,
       quantity: 1,
     })
     const multiCart = await getCustomerCart(wholesaleUserId, ShoppingMode.WHOLESALE)
-    if (multiCart.items.length !== 2) throw new Error('Wholesale cart should hold two distinct package lines.')
-    const crateLine = multiCart.items.find((item) => item.wholesalePackageId === crate.id)
-    if (!crateLine || crateLine.itemSubtotal !== '45000.00') throw new Error('Crate line subtotal is wrong.')
+    const wholesaleLines = multiCart.items.filter((item) => item.wholesalePackageId)
+    if (wholesaleLines.length !== 2) throw new Error('Wholesale cart should hold two distinct package lines (one per size).')
+    const carton10Line = wholesaleLines.find((item) => item.wholesalePackageId === carton10.id)
+    if (!carton10Line || carton10Line.itemSubtotal !== '45000.00') throw new Error('10kg carton line subtotal is wrong.')
 
     // --- Multiple cartons of the same package accumulate quantity & subtotal ---
     await addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
       productId: product.id,
-      productOptionId: null,
-      wholesalePackageId: carton.id,
+      productOptionId: size5kg.id,
+      wholesalePackageId: carton5.id,
       quantity: 3,
     })
     const accumulated = await getCustomerCart(wholesaleUserId, ShoppingMode.WHOLESALE)
-    const cartonLine5 = accumulated.items.find((item) => item.wholesalePackageId === carton.id)
-    if (!cartonLine5 || cartonLine5.quantity !== 5) throw new Error('Cartons should accumulate to 5.')
-    if (cartonLine5.itemSubtotal !== '100000.00') throw new Error('Accumulated carton subtotal is wrong.')
+    const carton5Acc = accumulated.items.find((item) => item.wholesalePackageId === carton5.id)
+    if (!carton5Acc || carton5Acc.quantity !== 5) throw new Error('Cartons should accumulate to 5.')
+    if (carton5Acc.itemSubtotal !== '200000.00') throw new Error('Accumulated carton subtotal is wrong.')
 
     // --- Inactive package is rejected on add ---
-    await toggleAdminWholesalePackageActive(carton.id, false)
+    await toggleAdminWholesalePackageActive(carton5.id, false)
     await expectHttpError(
       addCustomerCartItem(wholesaleUserId, ShoppingMode.WHOLESALE, {
         productId: product.id,
-        productOptionId: null,
-        wholesalePackageId: carton.id,
+        productOptionId: size5kg.id,
+        wholesalePackageId: carton5.id,
         quantity: 1,
       }),
       409,
     )
-    await toggleAdminWholesalePackageActive(carton.id, true)
+    await toggleAdminWholesalePackageActive(carton5.id, true)
 
     // --- Retail is completely unaffected: simple-unit line uses retail price ---
     const retailAdd = await addCustomerCartItem(retailUserId, ShoppingMode.RETAIL, {
@@ -211,7 +288,7 @@ async function main() {
     // --- Tampered "frontend price": no price field exists on the input; the
     // subtotal is always re-derived from the DB package price, never the client.
     const cartonList = await listAdminWholesalePackages(product.id)
-    if (cartonList.length !== 2) throw new Error('Admin list should return both packages.')
+    if (cartonList.length !== 3) throw new Error('Admin list should return the three packages.')
 
     // --- Checkout: server re-derives wholesale pricing from the DB package ---
     await prisma.paymentSettings.upsert({
@@ -232,7 +309,7 @@ async function main() {
         transaction,
         { id: wholesaleUserId, shoppingMode: ShoppingMode.WHOLESALE },
         {
-          checkoutKey: `ws-pkg-${slug}-1`,
+          checkoutKey: `ws-opt-${slug}-1`,
           customerName: 'WS Customer',
           phone: '+2348012345678',
           email: `${slug}@example.com`,
@@ -242,20 +319,23 @@ async function main() {
       ),
     )
     if (!checkoutResolved.isWholesale) throw new Error('Checkout should be flagged wholesale.')
-    const checkoutCarton = checkoutResolved.orderItems.find((item) => item.wholesalePackageId === carton.id)
-    if (!checkoutCarton) throw new Error('Checkout order item missing carton package.')
-    if (checkoutCarton.quantity !== 5) throw new Error('Checkout quantity should be the number of cartons.')
-    if (checkoutCarton.unitPrice.toString() !== '20000.00') throw new Error('Checkout must use the DB package price.')
-    if (checkoutCarton.wholesalePackageName !== 'Carton') throw new Error('Checkout should snapshot package name.')
-    if (checkoutCarton.wholesaleUnitsPerPackage !== 10) throw new Error('Checkout should snapshot units per package.')
-    const expectedSubtotal = new Prisma.Decimal(20000).mul(5).add(new Prisma.Decimal(45000))
+    const checkoutCarton5 = checkoutResolved.orderItems.find((item) => item.wholesalePackageId === carton5.id)
+    if (!checkoutCarton5) throw new Error('Checkout order item missing the 5kg carton package.')
+    if (checkoutCarton5.quantity !== 5) throw new Error('Checkout quantity should be the number of cartons.')
+    if (checkoutCarton5.unitPrice.toString() !== '40000.00') throw new Error('Checkout must use the DB package price.')
+    if (checkoutCarton5.wholesalePackageName !== 'Carton') throw new Error('Checkout should snapshot package name.')
+    if (checkoutCarton5.wholesaleUnitsPerPackage !== 20) throw new Error('Checkout should snapshot units per package.')
+    const checkoutCarton10 = checkoutResolved.orderItems.find((item) => item.wholesalePackageId === carton10.id)
+    if (!checkoutCarton10) throw new Error('Checkout order item missing the 10kg carton package.')
+    const expectedSubtotal = new Prisma.Decimal(40000).mul(5).add(new Prisma.Decimal(45000))
     if (!checkoutResolved.subtotal.equals(expectedSubtotal)) {
       throw new Error(`Checkout subtotal ${checkoutResolved.subtotal} does not match expected ${expectedSubtotal}.`)
     }
 
-    console.info('ALL WHOLESALE PACKAGE SMOKE CHECKS PASSED')
+    console.info('ALL WHOLESALE PACKAGE (OPTION-LINKED) SMOKE CHECKS PASSED')
   } finally {
     await prisma.wholesalePackage.deleteMany({ where: { productId: { in: createdIds } } })
+    await prisma.productOption.deleteMany({ where: { productId: { in: createdIds } } })
     await prisma.customerCartItem.deleteMany({ where: { productId: { in: createdIds } } })
     await prisma.paymentSettings.deleteMany({ where: { bankName: 'Smoke Bank' } })
     await prisma.user.deleteMany({ where: { id: { in: [wholesaleUserId, retailUserId].filter(Boolean) } } })

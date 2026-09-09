@@ -9,6 +9,7 @@ import { HttpError } from '../../utils/http.js'
 
 export interface WholesalePackageShape {
   id: string
+  productOptionId: string | null
   unitsPerPackage: number
   price: { toString(): string }
   isActive: boolean

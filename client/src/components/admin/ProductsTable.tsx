@@ -115,10 +115,11 @@ export function ProductsTable({
                 <th className="px-4 py-4 font-bold">Price / unit</th>
                 <th className="px-4 py-4 font-bold">Delivery fee</th>
                 <th className="px-4 py-4 font-bold">Stock</th>
+                <th className="px-4 py-4 font-bold">Status</th>
                 <th className="px-4 py-4 font-bold">Availability</th>
                 <th className="px-4 py-4 font-bold">Featured</th>
                 <th className="px-4 py-4 font-bold">Created</th>
-                <th className="px-4 py-4 font-bold">Actions</th>
+                <th className="px-4 py-4 text-center font-bold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -147,7 +148,7 @@ export function ProductsTable({
                   <td className="px-4 py-4"><AvailabilityPill product={product} /></td>
                   <td className="px-4 py-4"><FeaturedStatus isFeatured={product.isFeatured} /></td>
                   <td className="whitespace-nowrap px-4 py-4 text-xs text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</td>
-                  <td className="px-4 py-4 text-right"><ProductActions product={product} isBusy={updatingId === product.id || deletingId === product.id} onToggleStatus={() => onToggleStatus(product)} onToggleFeatured={() => onToggleFeatured(product)} onDelete={() => onDelete(product)} /></td>
+                  <td className="px-4 py-4 text-center"><ProductActions product={product} isBusy={updatingId === product.id || deletingId === product.id} onToggleStatus={() => onToggleStatus(product)} onToggleFeatured={() => onToggleFeatured(product)} onDelete={() => onDelete(product)} /></td>
                 </tr>
               ))}
             </tbody>

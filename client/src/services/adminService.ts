@@ -490,6 +490,27 @@ export interface WholesaleTierDraft {
   price: string
 }
 
+// A wholesale package (carton/case) that belongs to a specific unit/size
+// (ProductOption). productOptionId links the package to its unit/size.
+export interface WholesalePackageClient {
+  id: string
+  productId: string
+  productOptionId: string | null
+  name: string
+  unitsPerPackage: number
+  price: string
+  isActive: boolean
+  sortOrder: number
+}
+
+export interface WholesalePackageDraft {
+  productOptionId: string | null
+  name: string
+  unitsPerPackage: string
+  price: string
+  isActive: boolean
+}
+
 export const isFilledProductOption = (option: ProductOptionDraft): boolean =>
   option.label.trim() !== '' || option.price.trim() !== '' || option.stockQuantity.trim() !== ''
 
@@ -554,13 +575,6 @@ const formDataFor = (input: ProductFormInput): FormData => {
     price: option.price.trim(),
     stockQuantity: option.stockQuantity.trim() === '' ? 0 : Number(option.stockQuantity),
     sortOrder,
-    wholesaleMoq: option.wholesaleMoq !== undefined && option.wholesaleMoq.trim() !== '' ? Number(option.wholesaleMoq) : null,
-    wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
-      ...(tier.id ? { id: tier.id } : {}),
-      minQuantity: tier.minQuantity.trim() === '' ? null : Number(tier.minQuantity),
-      maxQuantity: tier.maxQuantity.trim() === '' ? null : Number(tier.maxQuantity),
-      price: tier.price.trim(),
-    })),
   }))))
   input.images.forEach((image) => formData.append('images', image))
   return formData
@@ -636,6 +650,57 @@ export async function updateAdminProduct(id: string, input: ProductFormInput): P
     body: formDataFor(input),
   })
   return toProduct(response.data.product)
+}
+
+interface AdminWholesalePackageResponse {
+  data: { package: WholesalePackageClient }
+}
+
+interface AdminWholesalePackagesResponse {
+  data: { packages: WholesalePackageClient[] }
+}
+
+export async function listAdminWholesalePackages(productId: string): Promise<WholesalePackageClient[]> {
+  const response = await request<AdminWholesalePackagesResponse>(`/admin/products/${encodeURIComponent(productId)}/wholesale-packages`)
+  return response.data.packages
+}
+
+const toWholesalePackageDraft = (draft: WholesalePackageDraft) => ({
+  name: draft.name.trim(),
+  unitsPerPackage: Number(draft.unitsPerPackage),
+  price: draft.price.trim(),
+  isActive: draft.isActive,
+})
+
+export async function createAdminWholesalePackage(productId: string, draft: WholesalePackageDraft): Promise<WholesalePackageClient> {
+  const response = await request<AdminWholesalePackageResponse>(`/admin/products/${encodeURIComponent(productId)}/wholesale-packages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...toWholesalePackageDraft(draft), productOptionId: draft.productOptionId }),
+  })
+  return response.data.package
+}
+
+export async function updateAdminWholesalePackage(packageId: string, draft: WholesalePackageDraft): Promise<WholesalePackageClient> {
+  const response = await request<AdminWholesalePackageResponse>(`/admin/wholesale-packages/${encodeURIComponent(packageId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...toWholesalePackageDraft(draft), productOptionId: draft.productOptionId }),
+  })
+  return response.data.package
+}
+
+export async function setAdminWholesalePackageActive(packageId: string, isActive: boolean): Promise<WholesalePackageClient> {
+  const response = await request<AdminWholesalePackageResponse>(`/admin/wholesale-packages/${encodeURIComponent(packageId)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.package
+}
+
+export async function deleteAdminWholesalePackage(packageId: string): Promise<void> {
+  await request<{ success: true }>(`/admin/wholesale-packages/${encodeURIComponent(packageId)}`, { method: 'DELETE' })
 }
 
 export async function updateAdminProductStatus(id: string, isActive: boolean): Promise<Product> {

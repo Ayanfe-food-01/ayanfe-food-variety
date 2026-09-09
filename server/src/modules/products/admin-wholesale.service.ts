@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { WholesalePackageInput } from './product.types.js'
+import { parseWholesalePackageInput } from './wholesale-package.validator.js'
 
 type PackageRow = Awaited<ReturnType<typeof prisma.wholesalePackage.findFirst>>
 
@@ -55,9 +56,9 @@ const assertPackageConfigValid = async (
   const duplicateName = others.find((row) => `${row.productOptionId ?? ''}|${row.name.toLowerCase()}` === nameKey)
   if (duplicateName) throw new HttpError(400, `A wholesale package named "${input.name}" already exists for this unit/size.`)
 
-  const configKey = `${optionScope}|${input.unitsPerPackage}|${input.price}`
+  const configKey = `${optionScope}|${input.unitsPerPackage}|${new Prisma.Decimal(input.price).toFixed(2)}`
   const duplicateConfig = others.find(
-    (row) => `${row.productOptionId ?? ''}|${row.unitsPerPackage}|${row.price.toString()}` === configKey,
+    (row) => `${row.productOptionId ?? ''}|${row.unitsPerPackage}|${row.price.toFixed(2)}` === configKey,
   )
   if (duplicateConfig) {
     throw new HttpError(400, 'A wholesale package with the same units and price already exists for this unit/size.')
@@ -75,20 +76,21 @@ export async function listAdminWholesalePackages(productId: string) {
 }
 
 export async function createAdminWholesalePackage(productId: string, input: WholesalePackageInput) {
+  const parsed = parseWholesalePackageInput(input)
   return prisma.$transaction(async (transaction) => {
     const product = await transaction.product.findUnique({ where: { id: productId }, select: { id: true } })
     if (!product) throw new HttpError(404, 'Product not found.')
-    const productOptionId = await resolveProductOptionId(transaction, productId, input.productOptionId)
-    await assertPackageConfigValid(transaction, productId, productOptionId, input)
+    const productOptionId = await resolveProductOptionId(transaction, productId, parsed.productOptionId)
+    await assertPackageConfigValid(transaction, productId, productOptionId, parsed)
     const created = await transaction.wholesalePackage.create({
       data: {
         productId,
         productOptionId,
-        name: input.name,
-        unitsPerPackage: input.unitsPerPackage,
-        price: input.price,
-        isActive: input.isActive,
-        sortOrder: input.sortOrder ?? 0,
+        name: parsed.name,
+        unitsPerPackage: parsed.unitsPerPackage,
+        price: parsed.price,
+        isActive: parsed.isActive,
+        sortOrder: parsed.sortOrder ?? 0,
       },
     })
     return created
@@ -96,22 +98,23 @@ export async function createAdminWholesalePackage(productId: string, input: Whol
 }
 
 export async function updateAdminWholesalePackage(packageId: string, input: WholesalePackageInput) {
+  const parsed = parseWholesalePackageInput(input)
   return prisma.$transaction(async (transaction) => {
     const existing = await transaction.wholesalePackage.findUnique({ where: { id: packageId } })
     if (!existing) throw new HttpError(404, 'Wholesale package not found.')
-    const productOptionId = input.productOptionId === undefined
+    const productOptionId = parsed.productOptionId === undefined
       ? existing.productOptionId
-      : await resolveProductOptionId(transaction, existing.productId, input.productOptionId)
-    await assertPackageConfigValid(transaction, existing.productId, productOptionId, input, existing.id)
+      : await resolveProductOptionId(transaction, existing.productId, parsed.productOptionId)
+    await assertPackageConfigValid(transaction, existing.productId, productOptionId, parsed, existing.id)
     const updated = await transaction.wholesalePackage.update({
       where: { id: existing.id },
       data: {
         productOptionId,
-        name: input.name,
-        unitsPerPackage: input.unitsPerPackage,
-        price: input.price,
-        isActive: input.isActive,
-        sortOrder: input.sortOrder ?? existing.sortOrder,
+        name: parsed.name,
+        unitsPerPackage: parsed.unitsPerPackage,
+        price: parsed.price,
+        isActive: parsed.isActive,
+        sortOrder: parsed.sortOrder ?? existing.sortOrder,
       },
     })
     return updated

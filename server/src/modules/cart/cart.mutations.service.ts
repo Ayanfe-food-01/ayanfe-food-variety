@@ -18,6 +18,9 @@ export async function addCustomerCartItem(
   mode: ShoppingMode,
   item: CartItemInput,
 ): Promise<CustomerCartResponse> {
+  if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) {
+    throw new HttpError(400, 'Quantity must be a positive integer up to 1000.')
+  }
   return prisma.$transaction(async (transaction) => {
     const product = await findFulfillmentContext(transaction, {
       productId: item.productId,
@@ -63,6 +66,9 @@ export async function updateCustomerCartItem(
   cartItemId: string,
   quantity: number,
 ): Promise<CustomerCartResponse> {
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
+    throw new HttpError(400, 'Quantity must be a positive integer up to 1000.')
+  }
   return prisma.$transaction(async (transaction) => {
     const item = await transaction.customerCartItem.findFirst({
       where: { id: cartItemId, cart: { userId, mode } },

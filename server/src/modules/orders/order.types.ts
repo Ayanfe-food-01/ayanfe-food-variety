@@ -54,6 +54,9 @@ export interface OrderItemResponse {
   productName: string
   productOptionId: string | null
   productOptionLabel: string | null
+  wholesalePackageId: string | null
+  wholesalePackageName: string | null
+  wholesaleUnitsPerPackage: number | null
   unitPrice: string
   quantity: number
   subtotal: string
@@ -127,6 +130,9 @@ export interface GuestOrderResponse {
     id: string
     productName: string
     productOptionLabel: string | null
+    wholesalePackageId: string | null
+    wholesalePackageName: string | null
+    wholesaleUnitsPerPackage: number | null
     unitPrice: string
     quantity: number
     subtotal: string

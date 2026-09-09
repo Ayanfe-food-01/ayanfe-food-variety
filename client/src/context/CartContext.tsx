@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Product, ProductOption } from '../types/product'
+import type { Product, ProductOption, WholesalePackage } from '../types/product'
 import {
   addCustomerCartItem,
   clearCustomerCart,
@@ -24,6 +24,9 @@ const toCartItem = (item: CustomerCartItem): CartItem => ({
   id: item.productId,
   productOptionId: item.productOptionId,
   productOptionLabel: item.productOptionLabel,
+  wholesalePackageId: item.wholesalePackageId,
+  wholesalePackageName: item.wholesalePackageName,
+  wholesaleUnitsPerPackage: item.wholesaleUnitsPerPackage,
   name: item.name,
   unit: item.unit,
   price: Number(item.price),
@@ -78,6 +81,12 @@ const readStoredCart = (): CartItem[] => {
       ...item,
       productOptionId: typeof item.productOptionId === 'string' ? item.productOptionId : null,
       productOptionLabel: typeof item.productOptionLabel === 'string' ? item.productOptionLabel : null,
+      wholesalePackageId: typeof item.wholesalePackageId === 'string' ? item.wholesalePackageId : null,
+      wholesalePackageName: typeof item.wholesalePackageName === 'string' ? item.wholesalePackageName : null,
+      wholesaleUnitsPerPackage:
+        typeof item.wholesaleUnitsPerPackage === 'number' && Number.isInteger(item.wholesaleUnitsPerPackage) && item.wholesaleUnitsPerPackage > 0
+          ? item.wholesaleUnitsPerPackage
+          : null,
       originalPrice: typeof item.originalPrice === 'number' ? item.originalPrice : item.price,
       discountType: item.discountType === 'PERCENTAGE' || item.discountType === 'FIXED' ? item.discountType : null,
       discountValue: typeof item.discountValue === 'number' && Number.isFinite(item.discountValue) ? item.discountValue : null,
@@ -96,29 +105,48 @@ const readStoredCart = (): CartItem[] => {
   }
 }
 
-const createCartItem = (product: Product, quantity: number, selectedOption: ProductOption | null): CartItem => {
+const createCartItem = (
+  product: Product,
+  quantity: number,
+  selectedOption: ProductOption | null,
+  wholesalePackage: WholesalePackage | null = null,
+): CartItem => {
   const isOptioned = selectedOption !== null
-  const unitPrice = isOptioned ? selectedOption.price : product.discountedPrice
-  const originalPrice = isOptioned ? selectedOption.price : product.price
-  const availableQuantity = isOptioned ? selectedOption.stockQuantity : product.stockQuantity
-  const optionInStock = isOptioned ? selectedOption.stockQuantity > 0 : product.stockQuantity > 0
+  const isWholesale = wholesalePackage !== null
+  const wholesaleOptionId = isWholesale ? (wholesalePackage?.productOptionId ?? null) : null
+  const stockForWholesale = wholesaleOptionId && selectedOption && selectedOption.id === wholesaleOptionId
+    ? selectedOption.stockQuantity
+    : product.stockQuantity
+  const availableQuantity = isWholesale
+    ? Math.max(0, Math.floor(stockForWholesale / wholesalePackage.unitsPerPackage))
+    : isOptioned ? selectedOption.stockQuantity : product.stockQuantity
+  const unitPrice = isWholesale
+    ? wholesalePackage.price
+    : isOptioned ? selectedOption.price : product.discountedPrice
+  const originalPrice = isWholesale ? wholesalePackage.price : isOptioned ? selectedOption.price : product.price
+  const optionInStock = availableQuantity > 0
   const isAvailable = product.isAvailable && optionInStock
   const availabilityMessage = isOptioned && selectedOption.stockQuantity === 0
     ? `The ${selectedOption.label} option is out of stock.`
-    : product.isAvailable
-      ? null
-      : 'This product is no longer available.'
+    : isWholesale && availableQuantity === 0
+      ? 'This package is out of stock.'
+      : product.isAvailable
+        ? null
+        : 'This product is no longer available.'
 
   return {
     id: product.id,
     productOptionId: selectedOption?.id ?? null,
     productOptionLabel: selectedOption?.label ?? null,
+    wholesalePackageId: wholesalePackage?.packageId ?? null,
+    wholesalePackageName: wholesalePackage?.name ?? null,
+    wholesaleUnitsPerPackage: wholesalePackage?.unitsPerPackage ?? null,
     name: product.name,
     unit: product.unit,
     price: unitPrice,
     originalPrice,
-    discountType: isOptioned ? null : product.discountType,
-    discountValue: isOptioned ? null : product.discountValue,
+    discountType: isWholesale || isOptioned ? null : product.discountType,
+    discountValue: isWholesale || isOptioned ? null : product.discountValue,
     deliveryFee: product.deliveryFee * quantity,
     image: product.image,
     quantity,
@@ -207,6 +235,7 @@ export function CartProvider({ children }: CartProviderProps) {
       productId: item.id,
       quantity: item.quantity,
       productOptionId: item.productOptionId,
+      wholesalePackageId: item.wholesalePackageId,
     }))
     const hydrateCart = storedCartOwner === user.id
       ? getCustomerCart()
@@ -248,18 +277,29 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, [applySnapshot])
 
-  const addToCart = useCallback(async (product: Product, quantity = 1, selectedOption: ProductOption | null = null) => {
+  const addToCart = useCallback(async (
+    product: Product,
+    quantity = 1,
+    selectedOption: ProductOption | null = null,
+    wholesalePackage: WholesalePackage | null = null,
+  ) => {
     const safeQuantity = Math.floor(quantity)
     if (!Number.isInteger(safeQuantity) || safeQuantity < 1) {
       throw new Error('Quantity must be a positive whole number.')
     }
 
-    const optionId = selectedOption?.id ?? null
-    const lineKey = cartItemLineKey(product.id, optionId)
+    const isWholesale = wholesalePackage !== null
+    const optionId = isWholesale ? (wholesalePackage.productOptionId ?? null) : (selectedOption?.id ?? null)
+    const lineKey = cartItemLineKey(product.id, optionId, wholesalePackage?.packageId ?? null)
 
     if (user) {
-      await runItemMutation(lineKey, () => addCustomerCartItem(product.id, safeQuantity, optionId))
+      await runItemMutation(lineKey, () =>
+        addCustomerCartItem(product.id, safeQuantity, optionId, wholesalePackage?.packageId ?? null))
       return
+    }
+
+    if (isWholesale) {
+      throw new Error('Wholesale ordering requires a wholesale account. Please sign in first.')
     }
 
     const stockQuantity = selectedOption ? selectedOption.stockQuantity : product.stockQuantity
@@ -270,7 +310,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     const existingItem = itemsRef.current.find(
-      (item) => item.id === product.id && (item.productOptionId ?? null) === optionId,
+      (item) => cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId) === lineKey,
     )
     const nextQuantity = (existingItem?.quantity ?? 0) + safeQuantity
     if (nextQuantity > stockQuantity) {
@@ -281,9 +321,9 @@ export function CartProvider({ children }: CartProviderProps) {
     setError(null)
     setAuthoritativeSubtotal(null)
     const nextItems = !existingItem
-      ? [...itemsRef.current, createCartItem(product, safeQuantity, selectedOption)]
+      ? [...itemsRef.current, createCartItem(product, safeQuantity, selectedOption, wholesalePackage)]
       : itemsRef.current.map((item) =>
-          cartItemLineKey(item.id, item.productOptionId) === lineKey
+          cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId) === lineKey
             ? {
                 ...item,
                 quantity: item.quantity + safeQuantity,
@@ -297,8 +337,8 @@ export function CartProvider({ children }: CartProviderProps) {
   }, [runItemMutation, user])
 
   const increaseQuantity = useCallback(async (item: CartItem) => {
-    const lineKey = cartItemLineKey(item.id, item.productOptionId)
-    const currentItem = itemsRef.current.find((candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey)
+    const lineKey = cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)
+    const currentItem = itemsRef.current.find((candidate) => cartItemLineKey(candidate.id, candidate.productOptionId, candidate.wholesalePackageId) === lineKey)
     if (!currentItem || pendingItemIds.includes(lineKey)) return
 
     if (user && currentItem.cartItemId) {
@@ -314,7 +354,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }
     setAuthoritativeSubtotal(null)
     setItems((currentItems) => currentItems.map((candidate) =>
-      cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey
+      cartItemLineKey(candidate.id, candidate.productOptionId, candidate.wholesalePackageId) === lineKey
         ? {
             ...candidate,
             quantity: candidate.quantity + 1,
@@ -326,8 +366,8 @@ export function CartProvider({ children }: CartProviderProps) {
   }, [pendingItemIds, runItemMutation, user])
 
   const decreaseQuantity = useCallback(async (item: CartItem) => {
-    const lineKey = cartItemLineKey(item.id, item.productOptionId)
-    const currentItem = itemsRef.current.find((candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey)
+    const lineKey = cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)
+    const currentItem = itemsRef.current.find((candidate) => cartItemLineKey(candidate.id, candidate.productOptionId, candidate.wholesalePackageId) === lineKey)
     const minQuantity = currentItem?.minQuantity ?? 1
     if (!currentItem || currentItem.quantity <= minQuantity || pendingItemIds.includes(lineKey)) return
 
@@ -343,7 +383,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
     setAuthoritativeSubtotal(null)
     setItems((currentItems) => currentItems.map((candidate) =>
-      cartItemLineKey(candidate.id, candidate.productOptionId) === lineKey
+      cartItemLineKey(candidate.id, candidate.productOptionId, candidate.wholesalePackageId) === lineKey
         ? {
             ...candidate,
             quantity: candidate.quantity - 1,
@@ -355,7 +395,7 @@ export function CartProvider({ children }: CartProviderProps) {
   }, [pendingItemIds, runItemMutation, user])
 
   const removeFromCart = useCallback(async (item: CartItem) => {
-    const lineKey = cartItemLineKey(item.id, item.productOptionId)
+    const lineKey = cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)
     if (!item || pendingItemIds.includes(lineKey)) return
 
     if (user && item.cartItemId) {
@@ -366,7 +406,7 @@ export function CartProvider({ children }: CartProviderProps) {
     setError(null)
     setAuthoritativeSubtotal(null)
     setItems((currentItems) => currentItems.filter(
-      (candidate) => cartItemLineKey(candidate.id, candidate.productOptionId) !== lineKey,
+      (candidate) => cartItemLineKey(candidate.id, candidate.productOptionId, candidate.wholesalePackageId) !== lineKey,
     ))
   }, [pendingItemIds, runItemMutation, user])
 

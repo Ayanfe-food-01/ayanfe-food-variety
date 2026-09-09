@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
+import { AdminPagination } from '../../components/admin/AdminPagination'
+import { FilterBar } from '../../components/filters/FilterBar'
+import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
 import { useToast } from '../../components/ui/Toast'
-import { SelectField } from '../../components/ui/SelectField'
-import { SearchBar } from '../../components/ui/SearchBar'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -22,6 +23,21 @@ const pageSize = 10
 const formatDate = (value?: string) => value
   ? formatCompatibleDate(value)
   : '—'
+
+const categoryFields: FilterField[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All categories' },
+      { value: 'active', label: 'Active' },
+      { value: 'inactive', label: 'Inactive' },
+    ],
+  },
+]
 
 interface CategoryActionsProps {
   category: Category
@@ -155,25 +171,22 @@ export function Categories() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Category filters">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="flex-1 text-xs font-bold text-green-dark">
-            Search categories
-            <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Name, description, or slug" />
-          </label>
-          <label className="text-xs font-bold text-green-dark">
-            Status
-            <SelectField
-              className="mt-2 w-full sm:w-40"
-              options={[
-                { value: '', label: 'All categories' },
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
-              ]}
-              onChange={(value) => setQuery((current) => ({ ...current, status: (value || undefined) as AdminCategoriesQuery['status'], page: 1 }))}
-              value={query.status ?? ''}
-            />
-          </label>
-        </div>
+        <FilterBar
+          fields={categoryFields}
+          committed={{ status: query.status ?? '' }}
+          onApply={(next: FilterValues) => setQuery((current) => ({
+            ...current,
+            status: (next.status || undefined) as AdminCategoriesQuery['status'],
+            page: 1,
+          }))}
+          search={{
+            label: 'Search categories',
+            value: searchInput,
+            onChange: setSearchInput,
+            onSearch: updateSearch,
+            placeholder: 'Name, description, or slug',
+          }}
+        />
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
@@ -256,7 +269,7 @@ export function Categories() {
             </table>
              </ResponsiveDataTable>
           </div>
-          {totalPages > 1 && <div className="flex items-center justify-between gap-4 border-t border-line px-5 py-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
+          {totalPages > 1 && <AdminPagination className="border-t border-line px-5 py-4" currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => setQuery((current) => ({ ...current, page }))} />}
         </div>
       )}
       {categoryToStatus && (

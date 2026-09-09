@@ -12,5 +12,4 @@ export {
   getProductWholesaleFromMap,
   getProductWholesalePricing,
   isWholesaleCustomer,
-  lookupWholesalePrice,
 } from './product.wholesale.service.js'

@@ -7,6 +7,9 @@ export interface CustomerCartItem {
   productId: string
   productOptionId: string | null
   productOptionLabel: string | null
+  wholesalePackageId: string | null
+  wholesalePackageName: string | null
+  wholesaleUnitsPerPackage: number | null
   name: string
   unit: string
   price: string
@@ -37,6 +40,7 @@ export interface CustomerCartItemInput {
   productId: string
   quantity: number
   productOptionId?: string | null
+  wholesalePackageId?: string | null
 }
 
 interface CustomerCartResponse {
@@ -64,11 +68,17 @@ export async function addCustomerCartItem(
   productId: string,
   quantity: number,
   productOptionId?: string | null,
+  wholesalePackageId?: string | null,
 ): Promise<CustomerCartSnapshot> {
   const response = await request<CustomerCartResponse>('/cart/items', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId, quantity, productOptionId: productOptionId ?? null }),
+    body: JSON.stringify({
+      productId,
+      quantity,
+      productOptionId: productOptionId ?? null,
+      wholesalePackageId: wholesalePackageId ?? null,
+    }),
   })
   return response.data
 }

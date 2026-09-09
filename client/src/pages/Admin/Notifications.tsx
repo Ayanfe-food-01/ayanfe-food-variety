@@ -9,6 +9,7 @@ import {
   type AdminNotificationsPage,
 } from '../../services/notificationService'
 import { AdminNotificationList } from '../../components/admin/AdminNotificationList'
+import { AdminPagination } from '../../components/admin/AdminPagination'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 20
@@ -134,27 +135,7 @@ export function Notifications() {
         )}
       </section>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="mt-5 flex items-center justify-between gap-4">
-          <button
-            className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40"
-            type="button"
-            disabled={currentPage <= 1}
-            onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}
-          >
-            Previous
-          </button>
-          <span className="text-xs font-bold text-muted">Page {currentPage} of {totalPages}</span>
-          <button
-            className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40"
-            type="button"
-            disabled={currentPage >= totalPages}
-            onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      {!isLoading && <AdminPagination className="mt-5" currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => setQuery((current) => ({ ...current, page }))} />}
     </div>
   )
 }

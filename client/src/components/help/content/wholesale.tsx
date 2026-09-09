@@ -6,14 +6,14 @@ export const wholesaleCategory: HelpCategory = {
   id: 'wholesale',
   icon: LayersIcon,
   title: 'Wholesale Shopping',
-  intro: 'Bulk, quantity-based pricing for signed-in customers.',
+  intro: 'Package-based bulk pricing for signed-in customers.',
   faqs: [
     {
       question: 'What is wholesale shopping?',
       answer: (
         <p>
-          Wholesale shopping shows lower unit prices when you buy in bulk. Instead of a single
-          price, each product uses quantity-based tiers, so the more you buy, the lower the price per unit.
+          Wholesale shopping sells products in ready-made packages (cartons or cases). Instead of buying individual
+          units, you choose a package and order whole packages at a fixed price per package.
         </p>
       ),
     },
@@ -37,21 +37,21 @@ export const wholesaleCategory: HelpCategory = {
       ),
     },
     {
-      question: 'How do wholesale price tiers work?',
+      question: 'How do wholesale packages work?',
       answer: (
         <p>
-          Each size is divided into quantity bands, such as 1–9 units, 10–49 units, and 50+ units, with a unit price
-          for each band. On a product page in Wholesale mode you can set the quantity and see the unit price for that
-          quantity, plus the complete price table.
+          Each product can have one or more packages, for example a carton of 20 units or a crate of 25 units. A
+          package belongs to a specific size when the product comes in sizes. On a product page in Wholesale mode,
+          pick a package and set how many packages you want; the quantity you choose is counted in whole packages.
         </p>
       ),
     },
     {
-      question: 'What is a minimum order quantity (MOQ)?',
+      question: 'Is there a minimum order quantity?',
       answer: (
         <p>
-          Some wholesale products require a minimum quantity per order. The product page shows “Minimum order: N
-          units”, and you cannot add a quantity below that.
+          No. Wholesale items have no minimum order quantity — you can start with a single package. Packages are sold
+          as whole units (you cannot order a fraction of a carton).
         </p>
       ),
     },

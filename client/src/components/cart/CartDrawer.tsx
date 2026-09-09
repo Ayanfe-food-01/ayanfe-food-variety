@@ -196,7 +196,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
           <>
             <ul className="cart-drawer-items y-scrollbar" aria-label="Cart items">
               {items.map((item) => {
-                const lineKey = cartItemLineKey(item.id, item.productOptionId)
+                const lineKey = cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)
                 const isPending = pendingItemIds.includes(lineKey)
                 const isBusy = isPending || isClearing
                 return (
@@ -210,6 +210,14 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                           {item.productOptionLabel && (
                             <p className="cart-drawer-item-option">{item.productOptionLabel}</p>
                           )}
+                          {item.wholesalePackageName && (
+                            <p className="cart-drawer-item-option">
+                              {item.wholesalePackageName}
+                              {item.wholesaleUnitsPerPackage
+                                ? ` · ${item.wholesaleUnitsPerPackage} ${item.wholesaleUnitsPerPackage === 1 ? 'unit' : 'units'} per package`
+                                : ''}
+                            </p>
+                          )}
                           {typeof item.minQuantity === 'number' && item.minQuantity > 1 && (
                             <p className="cart-drawer-item-min">Minimum order: {item.minQuantity} units</p>
                           )}
@@ -217,7 +225,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                         <button
                           className="cart-drawer-remove"
                           type="button"
-                          aria-label={`Remove ${item.name}${item.productOptionLabel ? ` (${item.productOptionLabel})` : ''} from cart`}
+                          aria-label={`Remove ${item.name}${item.productOptionLabel ? ` (${item.productOptionLabel})` : ''}${item.wholesalePackageName ? ` (${item.wholesalePackageName})` : ''} from cart`}
                           disabled={isBusy}
                           onClick={() => void removeFromCart(item)}
                         >
@@ -244,7 +252,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                               discountedClassName="font-bold text-green-dark"
                               originalClassName="text-muted"
                             />{' '}
-                            each
+                            {item.wholesalePackageName ? 'per package' : 'each'}
                           </p>
                           <p className="cart-drawer-item-subtotal">{formatPrice(getItemSubtotal(item))}</p>
                         </div>

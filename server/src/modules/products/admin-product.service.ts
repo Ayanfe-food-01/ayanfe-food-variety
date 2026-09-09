@@ -4,6 +4,8 @@ import { HttpError } from '../../utils/http.js'
 import { adminProductInclude, toAdminProduct } from './admin-product.mapper.js'
 import type { AdminProductQuery, Product } from './product.types.js'
 
+const LOW_STOCK_THRESHOLD = 5
+
 export async function listAdminProducts(query: AdminProductQuery) {
   const where: Prisma.ProductWhereInput = {}
   if (query.search) {
@@ -12,20 +14,51 @@ export async function listAdminProducts(query: AdminProductQuery) {
       { description: { contains: query.search, mode: 'insensitive' } },
     ]
   }
-  if (query.categoryId) where.categoryId = query.categoryId
+  if (query.categoryIds?.length) where.categoryId = { in: query.categoryIds }
+  else if (query.categoryId) where.categoryId = query.categoryId
   if (query.availability === 'active') where.isActive = true
   if (query.availability === 'inactive') where.isActive = false
   if (query.availability === 'out-of-stock') {
     where.isActive = true
     where.stockQuantity = 0
   }
+  if (query.stockStatus === 'in-stock') where.stockQuantity = { gt: LOW_STOCK_THRESHOLD }
+  if (query.stockStatus === 'low-stock') where.stockQuantity = { gt: 0, lte: LOW_STOCK_THRESHOLD }
+  if (query.stockStatus === 'out-of-stock') where.stockQuantity = 0
+  if (query.featured !== undefined) where.isFeatured = query.featured
+  if (query.discount === 'on-sale') where.discountType = { not: null }
+  if (query.discount === 'no-discount') where.discountType = null
+  if (query.productType === 'with-options') where.options = { some: {} }
+  if (query.productType === 'simple') where.options = { none: {} }
+  if (query.wholesale === 'enabled') where.wholesalePackages = { some: { isActive: true } }
+  if (query.wholesale === 'not-configured') where.wholesalePackages = { none: {} }
+  if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+    where.price = {
+      ...(query.minPrice !== undefined ? { gte: new Prisma.Decimal(query.minPrice) } : {}),
+      ...(query.maxPrice !== undefined ? { lte: new Prisma.Decimal(query.maxPrice) } : {}),
+    }
+  }
+
+  const orderBy = query.sort === 'oldest'
+    ? { createdAt: 'asc' as const }
+    : query.sort === 'updated'
+      ? { updatedAt: 'desc' as const }
+      : query.sort === 'price_asc'
+        ? { price: 'asc' as const }
+        : query.sort === 'price_desc'
+          ? { price: 'desc' as const }
+          : query.sort === 'stock_asc'
+            ? { stockQuantity: 'asc' as const }
+            : query.sort === 'stock_desc'
+              ? { stockQuantity: 'desc' as const }
+              : { createdAt: 'desc' as const }
 
   const [total, products] = await prisma.$transaction([
     prisma.product.count({ where }),
     prisma.product.findMany({
       where,
       include: adminProductInclude,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
     }),

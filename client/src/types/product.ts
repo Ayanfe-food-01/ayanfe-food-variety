@@ -55,24 +55,19 @@ export interface WholesalePricingTier {
   price: number
 }
 
-export interface WholesaleOptionPricing {
-  optionId: string
-  label: string
-  moq: number | null
-  tiers: WholesalePricingTier[]
+// A wholesale package (carton/case) customers buy as a whole. productOptionId
+// is the unit/size (ProductOption) the package belongs to (null = the product's
+// single unit).
+export interface WholesalePackage {
+  packageId: string
+  productOptionId: string | null
+  name: string
+  unitsPerPackage: number
+  price: number
+  isActive: boolean
 }
 
 export interface ProductWholesalePricing {
   productId: string
-  options: WholesaleOptionPricing[]
-}
-
-export interface WholesalePriceResult {
-  productId: string
-  productOptionId: string
-  optionLabel: string
-  quantity: number
-  moq: number | null
-  unitPrice: number
-  tier: WholesalePricingTier
+  packages: WholesalePackage[]
 }

@@ -7,7 +7,6 @@ import {
   getProductByIdController,
   getProductWholesalePricingController,
   getProductsController,
-  getWholesalePriceController,
 } from './product.controller.js'
 import { getPublicProductReviewsController } from '../reviews/review.controller.js'
 import {
@@ -23,7 +22,6 @@ productRoutes.get('/category-sections', optionalCustomerAuthentication, getCateg
 productRoutes.get('/new-arrivals', optionalCustomerAuthentication, getNewArrivalsController)
 productRoutes.get('/featured', optionalCustomerAuthentication, getFeaturedProductsController)
 productRoutes.get('/popular', optionalCustomerAuthentication, getPopularProductsController)
-productRoutes.post('/wholesale-price', requireCustomerAuthentication, requireWholesaleMode, getWholesalePriceController)
 productRoutes.get('/:id/wholesale', requireCustomerAuthentication, requireWholesaleMode, getProductWholesalePricingController)
 productRoutes.get('/:id/reviews', optionalCustomerAuthentication, getPublicProductReviewsController)
 productRoutes.get('/:id', optionalCustomerAuthentication, getProductByIdController)

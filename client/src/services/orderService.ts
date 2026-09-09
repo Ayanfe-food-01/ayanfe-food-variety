@@ -32,6 +32,9 @@ export interface CreatedOrder {
     productName: string
     productOptionId: string | null
     productOptionLabel: string | null
+    wholesalePackageId: string | null
+    wholesalePackageName: string | null
+    wholesaleUnitsPerPackage: number | null
     unitPrice: string
     quantity: number
     subtotal: string
@@ -92,6 +95,9 @@ export interface GuestOrder {
     id: string
     productName: string
     productOptionLabel: string | null
+    wholesalePackageId: string | null
+    wholesalePackageName: string | null
+    wholesaleUnitsPerPackage: number | null
     unitPrice: string
     quantity: number
     subtotal: string
@@ -239,6 +245,9 @@ export interface AdminOrder {
     productName: string
     productOptionId: string | null
     productOptionLabel: string | null
+    wholesalePackageId: string | null
+    wholesalePackageName: string | null
+    wholesaleUnitsPerPackage: number | null
     unitPrice: string
     quantity: number
     subtotal: string

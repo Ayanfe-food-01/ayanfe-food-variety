@@ -1,0 +1,124 @@
+.filter-menu-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.filter-options-scroll {
+  max-height: 330px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.filter-option {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 13px;
+  padding: 7px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filter-option-check {
+  display: inline-flex;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  color: var(--color-cream);
+}
+
+.filter-option.is-selected .filter-option-check {
+  border-color: var(--color-green);
+  background: var(--color-green);
+}
+
+.filter-options-empty {
+  margin: 0;
+  padding: 14px 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.filter-multi-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-multi-select-search {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-size: 13px;
+  padding: 0 11px;
+}
+
+.filter-multi-select-search:focus {
+  border-color: var(--color-green);
+  outline: 2px solid rgb(50 91 57 / 15%);
+}
+
+.filter-option:hover:not(.is-selected) {
+  color: var(--color-orange);
+}
+
+.filter-option.is-selected {
+  background: var(--color-sage);
+  color: var(--color-green-dark);
+  font-weight: 700;
+}
+
+.filter-toggle {
+  display: inline-flex;
+  width: 44px;
+  height: 26px;
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-line);
+  padding: 3px;
+  cursor: pointer;
+  transition: background .18s ease;
+}
+
+.filter-toggle-track {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--color-cream);
+  box-shadow: 0 1px 3px rgb(20 33 22 / 25%);
+  transition: transform .18s ease;
+}
+
+.filter-toggle.is-on {
+  background: var(--color-green);
+}
+
+.filter-toggle.is-on .filter-toggle-track {
+  transform: translateX(18px);
+}

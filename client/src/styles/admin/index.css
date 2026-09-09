@@ -1,4 +1,5 @@
 @import "./theme.css";
+@import "./products.css";
 
 .y-scrollbar {
   scrollbar-width: thin;

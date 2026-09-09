@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { spawn } from 'node:child_process'
 
 const commands = [
-  ['client', ['--prefix', 'client', 'run', 'dev', '--', '--host', '127.0.0.1', '--port', '5000']],
+  ['client', ['--prefix', 'client', 'run', 'dev', '--', '--port', '5000']],
   ['server', ['--prefix', 'server', 'run', 'dev']],
 ]
 

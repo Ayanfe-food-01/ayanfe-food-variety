@@ -31,7 +31,8 @@
     "test:product-reviews-api": "tsx scripts/product-reviews-smoke.ts",
     "test:reviews-admin": "tsx scripts/reviews-admin-smoke.ts",
     "test:customer-stories": "tsx scripts/customer-stories-smoke.ts",
-    "test:delivery-time": "tsx scripts/delivery-time-smoke.ts"
+    "test:delivery-time": "tsx scripts/delivery-time-smoke.ts",
+    "test:wholesale-packages": "tsx scripts/wholesale-package-smoke.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

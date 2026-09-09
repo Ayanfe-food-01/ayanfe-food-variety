@@ -1,0 +1,144 @@
+.filter-quick-filters {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-quick-filter {
+  position: relative;
+  min-width: 0;
+}
+
+.filter-quick-trigger {
+  display: inline-flex;
+  min-height: 38px;
+  max-width: 180px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-cream);
+  color: var(--color-green-dark);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 11px 0 13px;
+  cursor: pointer;
+}
+
+.filter-quick-trigger:hover,
+.filter-quick-trigger.is-active {
+  border-color: var(--color-green);
+  background: var(--color-sage);
+}
+
+.filter-quick-trigger:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+.filter-quick-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-quick-menu {
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(300px, calc(100vw - 32px));
+  padding: 10px;
+}
+
+.filter-quick-filter:last-child .filter-quick-menu {
+  right: 0;
+  left: auto;
+}
+
+.filter-quick-menu-content {
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.filter-quick-menu .filter-options-scroll {
+  max-height: 250px;
+}
+
+.filter-trigger {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-cream);
+  color: var(--color-green-dark);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.filter-trigger-icon {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-radius: 10px;
+  background: var(--color-cream);
+  color: var(--color-green-dark);
+}
+
+.filter-trigger-icon:hover,
+.filter-trigger-icon.is-active {
+  border-color: var(--color-green);
+  background: var(--color-sage);
+  color: var(--color-green-dark);
+}
+
+.filter-trigger-icon .filter-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-cream);
+  font-size: 10px;
+  padding: 0 4px;
+}
+
+.filter-trigger svg {
+  flex: 0 0 auto;
+}
+
+.filter-trigger:hover {
+  border-color: var(--color-green);
+}
+
+.filter-trigger:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+.filter-trigger.is-active {
+  border-color: var(--color-green);
+  background: var(--color-sage);
+  color: var(--color-green-dark);
+}
+
+.filter-badge {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-orange);
+  color: var(--color-cream);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 6px;
+}

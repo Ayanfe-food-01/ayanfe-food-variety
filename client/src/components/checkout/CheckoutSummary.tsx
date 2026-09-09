@@ -32,7 +32,7 @@ export function CheckoutSummary({
   total,
 }: CheckoutSummaryProps) {
   return (
-    <aside className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-28" aria-labelledby="checkout-summary-heading">
+    <aside className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-40" aria-labelledby="checkout-summary-heading">
       <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
         <span className={mode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
         <span className={mode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>
@@ -45,7 +45,7 @@ export function CheckoutSummary({
       </div>
       <div className="mt-6 space-y-5">
         {items.map((item) => (
-          <div className="flex gap-3" key={cartItemLineKey(item.id, item.productOptionId)}>
+          <div className="flex gap-3" key={cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)}>
             <div className="relative shrink-0">
               {item.image ? (
                 <img className="size-16 rounded-xl object-cover" src={item.image} alt={item.name} />
@@ -59,13 +59,18 @@ export function CheckoutSummary({
               {item.productOptionLabel && (
                 <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>
               )}
+              {item.wholesalePackageName && (
+                <p className="mt-0.5 text-xs font-semibold text-orange">{item.wholesalePackageName}</p>
+              )}
               <p className="mt-1 text-xs text-muted">
-                {item.unit} · <ProductPrice
+                {item.unit}{' '}
+                {item.wholesaleUnitsPerPackage ? `· ${item.wholesaleUnitsPerPackage} units per package · ` : '· '}
+                <ProductPrice
                   originalPrice={item.originalPrice}
                   discountedPrice={item.price}
                   discountedClassName="font-bold text-green-dark"
                   originalClassName="ml-1 text-muted"
-                /> each
+                /> {item.wholesalePackageName ? 'per package' : 'each'}
               </p>
             </div>
             <strong className="text-sm text-green-dark">{formatPrice(getItemSubtotal(item))}</strong>

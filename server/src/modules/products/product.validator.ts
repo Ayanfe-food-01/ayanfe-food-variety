@@ -4,7 +4,7 @@ import type {
   ProductInput,
   PublicProductQuery,
   PublicProductSort,
-  WholesalePriceLookupInput,
+  AdminProductSort,
 } from './product.types.js'
 import {
   UUID_PATTERN,
@@ -93,16 +93,65 @@ export function validateAdminProductsQuery(query: Record<string, unknown>): Admi
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) throw new HttpError(400, 'Page size must be between 1 and 50.')
   const categoryId = typeof query.categoryId === 'string' && query.categoryId ? query.categoryId : undefined
   if (categoryId && !UUID_PATTERN.test(categoryId)) throw new HttpError(400, 'Category filter is invalid.')
+  const categoryIds = typeof query.categoryIds === 'string'
+    ? [...new Set(query.categoryIds.split(',').map((value) => value.trim()).filter(Boolean))]
+    : undefined
+  if (categoryIds?.some((value) => !UUID_PATTERN.test(value))) throw new HttpError(400, 'Category filters are invalid.')
   const availability = query.availability === 'active' || query.availability === 'inactive' || query.availability === 'out-of-stock'
     ? query.availability
     : undefined
   if (query.availability && !availability) throw new HttpError(400, 'Availability filter is invalid.')
+  const stockStatus = query.stockStatus === 'in-stock' || query.stockStatus === 'low-stock' || query.stockStatus === 'out-of-stock'
+    ? query.stockStatus
+    : undefined
+  if (query.stockStatus && !stockStatus) throw new HttpError(400, 'Stock status filter is invalid.')
+  const featured = query.featured === 'true' ? true : query.featured === 'false' ? false : undefined
+  if (query.featured !== undefined && featured === undefined) throw new HttpError(400, 'Featured filter is invalid.')
+  const discount = query.discount === 'on-sale' || query.discount === 'no-discount'
+    ? query.discount
+    : undefined
+  if (query.discount && !discount) throw new HttpError(400, 'Discount filter is invalid.')
+  const productType = query.productType === 'simple' || query.productType === 'with-options'
+    ? query.productType
+    : undefined
+  if (query.productType && !productType) throw new HttpError(400, 'Product type filter is invalid.')
+  const wholesale = query.wholesale === 'enabled' || query.wholesale === 'not-configured'
+    ? query.wholesale
+    : undefined
+  if (query.wholesale && !wholesale) throw new HttpError(400, 'Wholesale filter is invalid.')
+  const parsePrice = (key: string): number | undefined => {
+    if (query[key] === undefined || query[key] === '') return undefined
+    const value = Number(query[key])
+    if (!Number.isFinite(value) || value < 0) throw new HttpError(400, `${key} must be a non-negative number.`)
+    return value
+  }
+  const minPrice = parsePrice('minPrice')
+  const maxPrice = parsePrice('maxPrice')
+  if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+    throw new HttpError(400, 'Minimum price cannot exceed maximum price.')
+  }
+  const sortValues: AdminProductSort[] = ['newest', 'oldest', 'updated', 'price_asc', 'price_desc', 'stock_asc', 'stock_desc']
+  const sort = typeof query.sort === 'string' && sortValues.includes(query.sort as AdminProductSort)
+    ? query.sort as AdminProductSort
+    : query.sort === undefined
+      ? 'newest'
+      : undefined
+  if (!sort) throw new HttpError(400, 'Product sort is invalid.')
   return {
     page,
     pageSize,
     search: typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined,
     categoryId,
+    categoryIds: categoryIds?.length ? categoryIds : undefined,
     availability,
+    stockStatus,
+    featured,
+    discount,
+    productType,
+    wholesale,
+    minPrice,
+    maxPrice,
+    sort,
   }
 }
 
@@ -148,30 +197,4 @@ export function requireProductIdentifier(value: string | undefined): string {
   }
 
   return identifier
-}
-
-export function validateWholesalePriceInput(body: unknown): WholesalePriceLookupInput {
-  if (!isRecord(body)) throw new HttpError(400, 'Wholesale pricing request is required.')
-
-  const productId = requiredText(body.productId, 'Product', 1, 40)
-  if (!UUID_PATTERN.test(productId)) throw new HttpError(400, 'Product is invalid.')
-
-  const rawOptionId = body.productOptionId
-  if (rawOptionId === undefined || rawOptionId === null || String(rawOptionId).trim() === '') {
-    throw new HttpError(400, 'Select a product size first.')
-  }
-  const productOptionId = String(rawOptionId).trim()
-  if (!UUID_PATTERN.test(productOptionId)) throw new HttpError(400, 'Product size is invalid.')
-
-  const rawQuantity = body.quantity
-  const quantity = typeof rawQuantity === 'number'
-    ? rawQuantity
-    : typeof rawQuantity === 'string' && rawQuantity.trim()
-      ? Number(rawQuantity)
-      : NaN
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000000000) {
-    throw new HttpError(400, 'Quantity must be a whole number of 1 or more.')
-  }
-
-  return { productId, productOptionId, quantity }
 }

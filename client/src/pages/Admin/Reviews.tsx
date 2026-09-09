@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
+import { AdminPagination } from '../../components/admin/AdminPagination'
 import { OrderInput } from '../../components/admin/OrderInput'
 import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { useToast } from '../../components/ui/Toast'
-import { SelectField } from '../../components/ui/SelectField'
-import { SearchBar } from '../../components/ui/SearchBar'
+import { FilterBar } from '../../components/filters/FilterBar'
+import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -27,6 +28,49 @@ import { VerifiedPurchaseBadge } from '../../components/reviews/VerifiedPurchase
 
 const pageSize = 10
 const formatDate = (value: string) => value ? formatCompatibleDate(value) : '—'
+
+const reviewFields: FilterField[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All' },
+      { value: 'pending', label: 'Pending' },
+      { value: 'approved', label: 'Approved' },
+      { value: 'rejected', label: 'Rejected' },
+    ],
+  },
+  {
+    key: 'verified',
+    label: 'Purchase',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All' },
+      { value: 'verified', label: 'Verified' },
+      { value: 'not-verified', label: 'Not verified' },
+    ],
+  },
+  {
+    key: 'rating',
+    label: 'Rating',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All' },
+      { value: '5', label: '5 stars' },
+      { value: '4', label: '4 stars' },
+      { value: '3', label: '3 stars' },
+      { value: '2', label: '2 stars' },
+      { value: '1', label: '1 star' },
+    ],
+  },
+]
 
 const toPreviewStory = (review: AdminReviewItem): CustomerStory => ({
   id: `review:${review.id}`,
@@ -217,55 +261,28 @@ export function Reviews() {
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Review filters">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="flex-1 text-xs font-bold text-green-dark">
-            Search reviews
-            <SearchBar className="mt-2" value={searchInput} onChange={setSearchInput} onSearch={updateSearch} placeholder="Customer, product, or review" />
-          </label>
-          <label className="text-xs font-bold text-green-dark">
-            Status
-            <SelectField
-              className="mt-2 w-full sm:w-36"
-              options={[
-                { value: '', label: 'All' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'approved', label: 'Approved' },
-                { value: 'rejected', label: 'Rejected' },
-              ]}
-              onChange={(value) => setQuery((current) => ({ ...current, status: (value || undefined) as AdminReviewsQuery['status'], page: 1 }))}
-              value={query.status ?? ''}
-            />
-          </label>
-          <label className="text-xs font-bold text-green-dark">
-            Purchase
-            <SelectField
-              className="mt-2 w-full sm:w-36"
-              options={[
-                { value: '', label: 'All' },
-                { value: 'verified', label: 'Verified' },
-                { value: 'not-verified', label: 'Not verified' },
-              ]}
-              onChange={(value) => setQuery((current) => ({ ...current, verified: (value || undefined) as AdminReviewsQuery['verified'], page: 1 }))}
-              value={query.verified ?? ''}
-            />
-          </label>
-          <label className="text-xs font-bold text-green-dark">
-            Rating
-            <SelectField
-              className="mt-2 w-full sm:w-32"
-              options={[
-                { value: '', label: 'All' },
-                { value: '5', label: '5 stars' },
-                { value: '4', label: '4 stars' },
-                { value: '3', label: '3 stars' },
-                { value: '2', label: '2 stars' },
-                { value: '1', label: '1 star' },
-              ]}
-              onChange={(value) => setQuery((current) => ({ ...current, rating: value || undefined, page: 1 }))}
-              value={query.rating ?? ''}
-            />
-          </label>
-        </div>
+        <FilterBar
+          fields={reviewFields}
+          committed={{
+            status: query.status ?? '',
+            verified: query.verified ?? '',
+            rating: query.rating ?? '',
+          }}
+          onApply={(next: FilterValues) => setQuery((current) => ({
+            ...current,
+            status: (next.status || undefined) as AdminReviewsQuery['status'],
+            verified: (next.verified || undefined) as AdminReviewsQuery['verified'],
+            rating: next.rating || undefined,
+            page: 1,
+          }))}
+          search={{
+            label: 'Search reviews',
+            value: searchInput,
+            onChange: setSearchInput,
+            onSearch: updateSearch,
+            placeholder: 'Customer, product, or review',
+          }}
+        />
       </section>
 
       {result?.featured && (
@@ -375,7 +392,7 @@ export function Reviews() {
               </table>
             </ResponsiveDataTable>
           </div>
-          {totalPages > 1 && <div className="flex items-center justify-between gap-4 border-t border-line px-5 py-4"><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage <= 1} onClick={() => setQuery((current) => ({ ...current, page: currentPage - 1 }))}>Previous</button><span className="text-xs font-bold text-muted">{currentPage} / {totalPages}</span><button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={currentPage >= totalPages} onClick={() => setQuery((current) => ({ ...current, page: currentPage + 1 }))}>Next</button></div>}
+          {totalPages > 1 && <AdminPagination className="border-t border-line px-5 py-4" currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => setQuery((current) => ({ ...current, page }))} />}
         </div>
       )}
       {previewStory && <StoryPreviewModal story={previewStory} onClose={() => setPreviewStory(null)} />}

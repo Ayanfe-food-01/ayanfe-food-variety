@@ -288,7 +288,16 @@ export interface AdminProductsQuery {
   pageSize: number
   search?: string
   categoryId?: string
+  categoryIds?: string[]
   availability?: 'active' | 'inactive' | 'out-of-stock'
+  stockStatus?: 'in-stock' | 'low-stock' | 'out-of-stock'
+  featured?: 'true' | 'false'
+  discount?: 'on-sale' | 'no-discount'
+  productType?: 'simple' | 'with-options'
+  wholesale?: 'enabled' | 'not-configured'
+  minPrice?: string
+  maxPrice?: string
+  sort?: 'newest' | 'oldest' | 'updated' | 'price_asc' | 'price_desc' | 'stock_asc' | 'stock_desc'
 }
 
 export interface AdminProductsPage {
@@ -481,6 +490,27 @@ export interface WholesaleTierDraft {
   price: string
 }
 
+// A wholesale package (carton/case) that belongs to a specific unit/size
+// (ProductOption). productOptionId links the package to its unit/size.
+export interface WholesalePackageClient {
+  id: string
+  productId: string
+  productOptionId: string | null
+  name: string
+  unitsPerPackage: number
+  price: string
+  isActive: boolean
+  sortOrder: number
+}
+
+export interface WholesalePackageDraft {
+  productOptionId: string | null
+  name: string
+  unitsPerPackage: string
+  price: string
+  isActive: boolean
+}
+
 export const isFilledProductOption = (option: ProductOptionDraft): boolean =>
   option.label.trim() !== '' || option.price.trim() !== '' || option.stockQuantity.trim() !== ''
 
@@ -509,7 +539,16 @@ const toQueryString = (query: AdminProductsQuery): string => {
   })
   if (query.search) params.set('search', query.search)
   if (query.categoryId) params.set('categoryId', query.categoryId)
+  if (query.categoryIds?.length) params.set('categoryIds', query.categoryIds.join(','))
   if (query.availability) params.set('availability', query.availability)
+  if (query.stockStatus) params.set('stockStatus', query.stockStatus)
+  if (query.featured) params.set('featured', query.featured)
+  if (query.discount) params.set('discount', query.discount)
+  if (query.productType) params.set('productType', query.productType)
+  if (query.wholesale) params.set('wholesale', query.wholesale)
+  if (query.minPrice) params.set('minPrice', query.minPrice)
+  if (query.maxPrice) params.set('maxPrice', query.maxPrice)
+  if (query.sort) params.set('sort', query.sort)
   return params.toString()
 }
 
@@ -536,13 +575,6 @@ const formDataFor = (input: ProductFormInput): FormData => {
     price: option.price.trim(),
     stockQuantity: option.stockQuantity.trim() === '' ? 0 : Number(option.stockQuantity),
     sortOrder,
-    wholesaleMoq: option.wholesaleMoq !== undefined && option.wholesaleMoq.trim() !== '' ? Number(option.wholesaleMoq) : null,
-    wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
-      ...(tier.id ? { id: tier.id } : {}),
-      minQuantity: tier.minQuantity.trim() === '' ? null : Number(tier.minQuantity),
-      maxQuantity: tier.maxQuantity.trim() === '' ? null : Number(tier.maxQuantity),
-      price: tier.price.trim(),
-    })),
   }))))
   input.images.forEach((image) => formData.append('images', image))
   return formData
@@ -618,6 +650,66 @@ export async function updateAdminProduct(id: string, input: ProductFormInput): P
     body: formDataFor(input),
   })
   return toProduct(response.data.product)
+}
+
+interface AdminWholesalePackageResponse {
+  data: { package: WholesalePackageClient }
+}
+
+interface AdminWholesalePackagesResponse {
+  data: { packages: WholesalePackageClient[] }
+}
+
+export async function listAdminWholesalePackages(productId: string): Promise<WholesalePackageClient[]> {
+  const response = await request<AdminWholesalePackagesResponse>(`/admin/products/${encodeURIComponent(productId)}/wholesale-packages`)
+  return response.data.packages
+}
+
+export async function reorderAdminWholesalePackages(productId: string, packageIds: string[]): Promise<WholesalePackageClient[]> {
+  const response = await request<AdminWholesalePackagesResponse>(`/admin/products/${encodeURIComponent(productId)}/wholesale-packages/reorder`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ packageIds }),
+  })
+  return response.data.packages
+}
+
+const toWholesalePackageDraft = (draft: WholesalePackageDraft) => ({
+  name: draft.name.trim(),
+  unitsPerPackage: Number(draft.unitsPerPackage),
+  price: draft.price.trim(),
+  isActive: draft.isActive,
+})
+
+export async function createAdminWholesalePackage(productId: string, draft: WholesalePackageDraft): Promise<WholesalePackageClient> {
+  const response = await request<AdminWholesalePackageResponse>(`/admin/products/${encodeURIComponent(productId)}/wholesale-packages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...toWholesalePackageDraft(draft), productOptionId: draft.productOptionId }),
+  })
+  return response.data.package
+}
+
+export async function updateAdminWholesalePackage(packageId: string, draft: WholesalePackageDraft): Promise<WholesalePackageClient> {
+  const response = await request<AdminWholesalePackageResponse>(`/admin/wholesale-packages/${encodeURIComponent(packageId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...toWholesalePackageDraft(draft), productOptionId: draft.productOptionId }),
+  })
+  return response.data.package
+}
+
+export async function setAdminWholesalePackageActive(packageId: string, isActive: boolean): Promise<WholesalePackageClient> {
+  const response = await request<AdminWholesalePackageResponse>(`/admin/wholesale-packages/${encodeURIComponent(packageId)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isActive }),
+  })
+  return response.data.package
+}
+
+export async function deleteAdminWholesalePackage(packageId: string): Promise<void> {
+  await request<{ success: true }>(`/admin/wholesale-packages/${encodeURIComponent(packageId)}`, { method: 'DELETE' })
 }
 
 export async function updateAdminProductStatus(id: string, isActive: boolean): Promise<Product> {

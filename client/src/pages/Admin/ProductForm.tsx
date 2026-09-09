@@ -4,7 +4,7 @@ import { ApiError } from '../../services/api'
 import { CheckIcon, CloseIcon } from '../../assets/icons'
 import { FeaturedToggle } from '../../components/admin/FeaturedToggle'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
-import { OptionInputField, type OptionRowErrors, type OptionTierRowErrors } from '../../components/admin/OptionInputField'
+import { OptionInputField, type OptionRowErrors } from '../../components/admin/OptionInputField'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { SelectField } from '../../components/ui/SelectField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
@@ -20,72 +20,6 @@ const archivedDisplayLabel = (label: string): string => {
   let cleaned = label
   while (cleaned.startsWith(ARCHIVED_PREFIX)) cleaned = cleaned.slice(ARCHIVED_PREFIX.length)
   return cleaned
-}
-
-const MONEY_PATTERN = /^\d+(?:\.\d{1,2})?$/
-const WHOLE_PATTERN = /^\d+$/
-const isValidMoney = (value: string) => MONEY_PATTERN.test(value.trim()) && Number(value.trim()) > 0
-const isValidWhole = (value: string) => WHOLE_PATTERN.test(value.trim()) && Number(value.trim()) >= 1
-
-type WholesaleValidation = {
-  wholesaleMoq?: string
-  wholesalePrices?: string
-  wholesaleTierErrors?: Record<number, OptionTierRowErrors>
-}
-
-const validateWholesale = (option: ProductOptionDraft): WholesaleValidation => {
-  const errors: WholesaleValidation = {}
-  const moq = option.wholesaleMoq?.trim() ?? ''
-  if (moq !== '' && !isValidWhole(moq)) errors.wholesaleMoq = 'Enter a whole number of 1 or more.'
-
-  const tiers = option.wholesalePrices ?? []
-  const filledIndexes = tiers.map((tier) => tier.minQuantity.trim() !== '' || tier.maxQuantity.trim() !== '' || tier.price.trim() !== '')
-  if (filledIndexes.every((filled) => !filled)) return errors
-
-  const tierErrors: Record<number, OptionTierRowErrors> = {}
-  const validTiers: Array<{ min: number; max: number | null }> = []
-  tiers.forEach((tier, tierIndex) => {
-    if (!filledIndexes[tierIndex]) return
-    const row: OptionTierRowErrors = {}
-    const min = tier.minQuantity.trim()
-    const max = tier.maxQuantity.trim()
-    const price = tier.price.trim()
-    let minValue: number | null = null
-    if (!isValidWhole(min)) row.minQuantity = 'Enter a whole number of 1 or more.'
-    else minValue = Number(min)
-    let maxValue: number | null = null
-    if (max !== '') {
-      const maxIsInvalid = !isValidWhole(max) || (minValue !== null && Number(max) < minValue)
-      if (maxIsInvalid) row.maxQuantity = 'Enter a maximum quantity of 1 or more.'
-      else maxValue = Number(max)
-    }
-    if (!isValidMoney(price)) row.price = 'Enter a price greater than zero with up to 2 decimals.'
-    if (Object.keys(row).length > 0) tierErrors[tierIndex] = row
-    if (minValue !== null && !row.minQuantity && !row.maxQuantity && !row.price) {
-      validTiers.push({ min: minValue, max: maxValue })
-    }
-  })
-
-  validTiers.sort((a, b) => a.min - b.min)
-  for (let index = 1; index < validTiers.length; index += 1) {
-    const previous = validTiers[index - 1]!
-    const current = validTiers[index]!
-    if (previous.max === null) {
-      errors.wholesalePrices = 'Only the final tier can have an unlimited maximum quantity, for example 50+.'
-      break
-    }
-    if (current.min === previous.min) {
-      errors.wholesalePrices = 'Each quantity range must be unique.'
-      break
-    }
-    if (previous.max >= current.min) {
-      errors.wholesalePrices = 'Quantity ranges must not overlap.'
-      break
-    }
-  }
-
-  if (Object.keys(tierErrors).length > 0) errors.wholesaleTierErrors = tierErrors
-  return errors
 }
 
 const initialForm: ProductFormInput = {
@@ -175,13 +109,6 @@ export function ProductForm() {
           label: option.label,
           price: String(option.price),
           stockQuantity: String(option.stockQuantity),
-          wholesaleMoq: option.wholesaleMoq === null || option.wholesaleMoq === undefined ? undefined : String(option.wholesaleMoq),
-          wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
-            id: tier.id,
-            minQuantity: String(tier.minQuantity),
-            maxQuantity: tier.maxQuantity === null ? '' : String(tier.maxQuantity),
-            price: String(tier.price),
-          })),
         })),
       })
       setArchivedOptions((product.archivedOptions ?? []).map((option) => ({
@@ -189,13 +116,6 @@ export function ProductForm() {
         label: archivedDisplayLabel(option.label),
         price: String(option.price),
         stockQuantity: String(option.stockQuantity),
-        wholesaleMoq: option.wholesaleMoq === null || option.wholesaleMoq === undefined ? undefined : String(option.wholesaleMoq),
-        wholesalePrices: (option.wholesalePrices ?? []).map((tier) => ({
-          id: tier.id,
-          minQuantity: String(tier.minQuantity),
-          maxQuantity: tier.maxQuantity === null ? '' : String(tier.maxQuantity),
-          price: String(tier.price),
-        })),
       })))
       setImageDrafts(existingImages.map((url, index) => ({ id: `existing-${index}-${url}`, url })))
     }).catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Product could not be loaded.')).finally(() => setIsLoading(false))
@@ -356,10 +276,6 @@ export function ProductForm() {
       const labelKey = label.toLowerCase()
       if (label && labels.has(labelKey)) rowErrors.label = 'Each option label must be unique.'
       if (label) labels.add(labelKey)
-      const wholesaleErrors = validateWholesale(option)
-      if (wholesaleErrors.wholesaleMoq) rowErrors.wholesaleMoq = wholesaleErrors.wholesaleMoq
-      if (wholesaleErrors.wholesalePrices) rowErrors.wholesalePrices = wholesaleErrors.wholesalePrices
-      if (wholesaleErrors.wholesaleTierErrors) rowErrors.wholesaleTierErrors = wholesaleErrors.wholesaleTierErrors
       optionErrors.push(rowErrors)
     })
 
@@ -448,9 +364,6 @@ export function ProductForm() {
   const displayDiscount = hasFilledOptions
     ? 'Not available with options'
     : (form.discountType === '' || form.discountValue.trim() === '' ? 'None' : form.discountType === 'PERCENTAGE' ? `${form.discountValue.trim()}% off` : formatPrice(Number(form.discountValue)))
-  const totalWholesaleTiers = filledOptions.reduce((sum, option) =>
-    sum + (option.wholesalePrices ?? []).filter((tier) => tier.minQuantity.trim() !== '' || tier.maxQuantity.trim() !== '' || tier.price.trim() !== '').length,
-  0)
 
   return (
     <>
@@ -461,7 +374,7 @@ export function ProductForm() {
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <p className="text-sm font-normal text-muted">Loading product…</p> : (
           <form className="space-y-6" noValidate onSubmit={submit}>
-            <ol className="flex flex-wrap items-center gap-2 sm:gap-3" aria-label="Product form steps">
+            <ol className="admin-product-form-steps flex items-center gap-2 sm:gap-3" aria-label="Product form steps">
               {FORM_STEPS.map((stepConfig, index) => {
                 const isCurrent = index === step
                 const isDone = index < step
@@ -585,6 +498,7 @@ export function ProductForm() {
                   options={form.options}
                   errors={optionErrors}
                   maxOptions={MAX_PRODUCT_OPTIONS}
+                  productId={id}
                   onChange={(nextOptions) => {
                     setForm((current) => {
                       const next = { ...current, options: nextOptions }
@@ -658,8 +572,7 @@ export function ProductForm() {
                     <div className="sm:col-span-2">
                       <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Size options</dt>
                       <dd className="mt-1 text-sm font-bold text-green-dark">
-                        {filledOptions.length === 0 ? 'None' : `${filledOptions.length} filled option${filledOptions.length === 1 ? '' : 's'}`}
-                        {totalWholesaleTiers > 0 && <span className="text-xs font-normal text-muted"> · {totalWholesaleTiers} wholesale tier{totalWholesaleTiers === 1 ? '' : 's'}</span>}
+                        {filledOptions.length === 0 ? 'None' : `${filledOptions.length} size option${filledOptions.length === 1 ? '' : 's'}`}
                       </dd>
                     </div>
                   </dl>

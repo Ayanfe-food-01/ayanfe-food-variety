@@ -21,10 +21,11 @@ export function validateCartItems(body: unknown): CartItemInput[] {
       throw new HttpError(400, `items[${index}].quantity must be a positive integer.`)
     }
     const productOptionId = validateProductOptionId(value.productOptionId)
-    const lineKey = `${value.productId}:${productOptionId ?? ''}`
+    const wholesalePackageId = validateWholesalePackageId(value.wholesalePackageId)
+    const lineKey = `${value.productId}:${productOptionId ?? ''}:${wholesalePackageId ?? ''}`
     if (lineKeys.has(lineKey)) throw new HttpError(400, 'Duplicate products are not allowed in a cart.')
     lineKeys.add(lineKey)
-    return { productId: value.productId, productOptionId, quantity: value.quantity }
+    return { productId: value.productId, productOptionId, wholesalePackageId, quantity: value.quantity }
   })
 }
 
@@ -36,6 +37,7 @@ export function validateCartItemInput(body: unknown): CartItemInput {
   return {
     productId: body.productId.trim(),
     productOptionId: validateProductOptionId(body.productOptionId),
+    wholesalePackageId: validateWholesalePackageId(body.wholesalePackageId),
     quantity: validateQuantity(body.quantity),
   }
 }
@@ -44,6 +46,14 @@ export function validateProductOptionId(value: unknown): string | null {
   if (value === undefined || value === null || value === '') return null
   if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
     throw new HttpError(400, 'productOptionId must be valid.')
+  }
+  return value.trim()
+}
+
+export function validateWholesalePackageId(value: unknown): string | null {
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
+    throw new HttpError(400, 'wholesalePackageId must be valid.')
   }
   return value.trim()
 }

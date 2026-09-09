@@ -3,6 +3,7 @@ import type { ProductDiscountType, ShoppingMode } from '@prisma/client'
 export interface CartItemInput {
   productId: string
   productOptionId: string | null
+  wholesalePackageId: string | null
   quantity: number
 }
 
@@ -11,6 +12,9 @@ export interface CustomerCartItemResponse {
   productId: string
   productOptionId: string | null
   productOptionLabel: string | null
+  wholesalePackageId: string | null
+  wholesalePackageName: string | null
+  wholesaleUnitsPerPackage: number | null
   name: string
   unit: string
   price: string

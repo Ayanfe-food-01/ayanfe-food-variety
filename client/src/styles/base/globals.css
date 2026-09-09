@@ -95,19 +95,43 @@
 
 .safe-modal-backdrop,
 .image-preview-backdrop {
-  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
 }
 
 .image-preview-panel {
-  max-height: calc(100vh - 2rem);
-  max-height: calc(100svh - 2rem);
-  max-height: calc(100dvh - 2rem);
+  max-height: calc(100vh - 3rem);
+  max-height: calc(100svh - 3rem);
+  max-height: calc(100dvh - 3rem);
 }
 
 .image-preview-content {
   max-height: calc(100vh - 9rem);
   max-height: calc(100svh - 9rem);
   max-height: calc(100dvh - 9rem);
+}
+
+@media (min-width: 640px) {
+  .image-preview-backdrop {
+    padding-top: max(2rem, env(safe-area-inset-top));
+    padding-right: max(2rem, env(safe-area-inset-right));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    padding-left: max(2rem, env(safe-area-inset-left));
+  }
+
+  .image-preview-panel {
+    max-height: calc(100vh - 4rem);
+    max-height: calc(100svh - 4rem);
+    max-height: calc(100dvh - 4rem);
+  }
+
+  .image-preview-content {
+    max-height: calc(100vh - 11rem);
+    max-height: calc(100svh - 11rem);
+    max-height: calc(100dvh - 11rem);
+  }
 }
 
 .payment-review-backdrop {

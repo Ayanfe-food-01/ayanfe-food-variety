@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { MoreHorizontalIcon } from '../../assets/icons'
+import { MoreActionsButton } from './MoreActionsButton'
+import { useDropdown } from '../../hooks/useDropdown'
 
 interface ActionMenuProps {
   ariaLabel: string
@@ -26,29 +27,10 @@ export function ActionMenu({
   triggerOrientation = 'horizontal',
   children,
 }: ActionMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, toggle, close, rootRef } = useDropdown()
   const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setIsOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false)
-    }
-
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [isOpen])
 
   useLayoutEffect(() => {
     if (!isOpen || !fixedPosition) return
@@ -139,26 +121,19 @@ export function ActionMenu({
   }, [fixedPosition, isOpen])
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
-      <button
-        className={triggerVariant === 'plain'
-          ? 'grid size-9 place-items-center rounded-full text-muted transition-colors hover:bg-transparent hover:text-green-dark disabled:cursor-wait disabled:opacity-50'
-          : 'grid size-9 place-items-center rounded-full border border-line bg-white text-muted transition-colors hover:border-green/30 hover:bg-sage/40 hover:text-green-dark disabled:cursor-wait disabled:opacity-50'}
-        type="button"
-        aria-label={ariaLabel}
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        disabled={isBusy}
+    <div className="relative inline-block" ref={rootRef}>
+      <MoreActionsButton
         ref={buttonRef}
+        label={ariaLabel}
+        isOpen={isOpen}
+        isDisabled={isBusy}
+        variant={triggerVariant}
+        orientation={triggerOrientation}
         onClick={() => {
           setMenuLayout(null)
-          setIsOpen((current) => !current)
+          toggle()
         }}
-      >
-        <span className={triggerOrientation === 'vertical' ? 'rotate-90' : undefined}>
-          <MoreHorizontalIcon size={20} />
-        </span>
-      </button>
+      />
       {isOpen && (
         <div
           className={`${fixedPosition ? 'fixed' : `absolute right-0 ${menuLayout?.placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}`} z-50 min-w-44 overflow-y-auto overflow-x-hidden rounded-xl border border-line bg-white p-1.5 text-left shadow-xl shadow-green-dark/10`}
@@ -173,7 +148,7 @@ export function ActionMenu({
             visibility: menuLayout ? 'visible' : 'hidden',
           }}
         >
-          {children(() => setIsOpen(false))}
+          {children(close)}
         </div>
       )}
     </div>

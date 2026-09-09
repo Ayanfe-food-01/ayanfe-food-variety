@@ -1,14 +1,16 @@
 import { HttpError } from '../../utils/http.js'
 import { PaymentMethod, Prisma, ShoppingMode, type ProductDiscountType } from '@prisma/client'
 import { calculateDiscountedPrice } from '../products/product.pricing.js'
-import { assertWholesaleOrderable, wholesaleUnitPriceFromOption } from '../products/wholesale.pricing.js'
+import { assertWholesalePackageActive, wholesaleAvailableCartons } from '../products/wholesale.package.js'
 import { isOnlinePaymentEnabled } from '../payments/payment.provider.js'
 import type { CheckoutInput } from './order.types.js'
+import type { WholesalePackageShape } from '../products/wholesale.package.js'
 
 export interface CheckoutCartItem {
   id?: string
   productId: string
   productOptionId?: string | null
+  wholesalePackageId?: string | null
   quantity: number
   createdAt: Date
 }
@@ -31,8 +33,6 @@ export interface CheckoutProductOption {
   price: Prisma.Decimal
   stockQuantity: number
   isActive: boolean
-  wholesaleMoq: number | null
-  wholesalePriceTiers: Array<{ minQuantity: number; price: Prisma.Decimal }>
 }
 
 export interface CheckoutOrderItem {
@@ -40,6 +40,9 @@ export interface CheckoutOrderItem {
   productName: string
   productOptionId: string | null
   productOptionLabel: string | null
+  wholesalePackageId: string | null
+  wholesalePackageName: string | null
+  wholesaleUnitsPerPackage: number | null
   unitPrice: Prisma.Decimal
   quantity: number
   subtotal: Prisma.Decimal
@@ -68,9 +71,11 @@ export interface ResolvedCheckoutCart {
 /**
  * Resolves the cart-facing facts a checkout needs before an order can be
  * created: the source cart rows (database cart or guest line items), the
- * payment method availability snapshot, and the server-authoritative product
- * prices/stock. Cart prices are never used as order authorities; everything
- * money-related is re-derived from the database here.
+ * payment method availability snapshot, and the server-authoritative product,
+ * option and wholesale package prices/stock. Cart prices are never used as
+ * order authorities; everything money-related is re-derived from the database
+ * here. A wholesale line must carry a selected package and its price is always
+ * the package's price (cost of one complete carton/case) taken from the DB.
  */
 export async function resolveCheckoutCart(
   transaction: Prisma.TransactionClient,
@@ -94,7 +99,14 @@ export async function resolveCheckoutCart(
       where: { id: cartReference.id },
       include: {
         items: {
-          select: { id: true, productId: true, productOptionId: true, quantity: true, createdAt: true },
+          select: {
+            id: true,
+            productId: true,
+            productOptionId: true,
+            wholesalePackageId: true,
+            quantity: true,
+            createdAt: true,
+          },
           orderBy: { createdAt: 'asc' as const },
         },
       },
@@ -106,6 +118,7 @@ export async function resolveCheckoutCart(
     cartItems = (input.cartItems ?? []).map((item, index) => ({
       productId: item.productId,
       productOptionId: item.productOptionId ?? null,
+      wholesalePackageId: null,
       quantity: item.quantity,
       createdAt: new Date(index),
     }))
@@ -167,17 +180,59 @@ export async function resolveCheckoutCart(
         price: true,
         stockQuantity: true,
         isActive: true,
-        wholesaleMoq: true,
-        wholesalePriceTiers: { orderBy: { minQuantity: 'asc' as const } },
       },
     })
     : []
   const productOptionsById = new Map(productOptions.map((option) => [option.id, option]))
 
+  // Wholesale packages are resolved server-side too. A wholesale order line's
+  // price is the package price and its quantity is the number of packages.
+  const wholesalePackageIds = cartItems.flatMap((item) => (item.wholesalePackageId ? [item.wholesalePackageId] : []))
+  const wholesalePackages = wholesalePackageIds.length > 0
+    ? await transaction.wholesalePackage.findMany({
+      where: { id: { in: wholesalePackageIds } },
+      select: {
+        id: true,
+        productId: true,
+        productOptionId: true,
+        name: true,
+        unitsPerPackage: true,
+        price: true,
+        isActive: true,
+      },
+    })
+    : []
+  const wholesalePackagesById = new Map(wholesalePackages.map((pkg) => [pkg.id, pkg]))
+
   const unavailableMessages = cartItems.flatMap((item) => {
     const product = productsById.get(item.productId)
     if (!product) return [`Product ${item.productId} no longer exists.`]
     if (!product.isActive || !product.category.isActive) return [`${product.name} is no longer available.`]
+    if (item.wholesalePackageId) {
+      const pkg = wholesalePackagesById.get(item.wholesalePackageId)
+      if (!pkg) return [`${product.name}: the selected wholesale package no longer exists.`]
+      if (pkg.productId !== product.id) return [`${product.name}: the selected wholesale package is invalid.`]
+      if (!pkg.isActive) return [`${product.name} (${pkg.name}): this package is no longer available.`]
+      if (!Number.isInteger(pkg.unitsPerPackage) || pkg.unitsPerPackage < 1) {
+        return [`${product.name} (${pkg.name}): this package is not valid.`]
+      }
+      // A package belongs to a specific unit/size; it must match the line's option.
+      const option = pkg.productOptionId ? productOptionsById.get(pkg.productOptionId) : null
+      if (pkg.productOptionId) {
+        if (!option || item.productOptionId !== pkg.productOptionId) {
+          return [`${product.name} (${pkg.name}): this package does not match the selected unit/size.`]
+        }
+        if (!option.isActive) return [`${product.name} (${option.label}): this unit/size is no longer available.`]
+      } else if (item.productOptionId) {
+        return [`${product.name} (${pkg.name}): this package does not match the selected unit/size.`]
+      }
+      const unitsOnHand = pkg.productOptionId ? (option?.stockQuantity ?? 0) : product.stockQuantity
+      const available = wholesaleAvailableCartons(unitsOnHand, pkg.unitsPerPackage)
+      if (available < item.quantity) {
+        return [`${product.name} (${pkg.name}): only ${available} package(s) currently available.`]
+      }
+      return []
+    }
     if (item.productOptionId) {
       const option = productOptionsById.get(item.productOptionId)
       if (!option) return [`${product.name}: the selected option no longer exists.`]
@@ -196,14 +251,26 @@ export async function resolveCheckoutCart(
   }
 
   // An order's shopping mode is decided by the signed-in customer's mode and
-  // is never taken from the browser. Wholesale prices and minimums are
-  // re-validated against the database at order time.
+  // is never taken from the browser. Wholesale orders must carry a valid,
+  // active package on every line; prices are re-derived from the DB.
   const isWholesale = user?.shoppingMode === ShoppingMode.WHOLESALE
   if (isWholesale) {
     for (const item of cartItems) {
-      if (!item.productOptionId) continue
-      const option = productOptionsById.get(item.productOptionId)
-      if (option) assertWholesaleOrderable(option, item.quantity)
+      if (!item.wholesalePackageId) {
+        throw new HttpError(400, 'Select a wholesale package (e.g. a carton) for every wholesale item.')
+      }
+      const pkg = wholesalePackagesById.get(item.wholesalePackageId)
+      const product = productsById.get(item.productId)
+      assertWholesalePackageActive(pkg as WholesalePackageShape | undefined)
+      if (pkg && product && pkg.productId !== product.id) {
+        throw new HttpError(409, 'One or more selected wholesale packages are invalid.')
+      }
+      if (pkg) {
+        const expectedOption = pkg.productOptionId ?? null
+        if ((expectedOption ?? null) !== (item.productOptionId ?? null)) {
+          throw new HttpError(409, 'A wholesale package must match its unit/size (select the correct size).')
+        }
+      }
     }
   }
 
@@ -214,21 +281,29 @@ export async function resolveCheckoutCart(
     if (option && option.productId !== product.id) {
       throw new HttpError(409, 'One or more selected options are invalid.')
     }
-    const unitPrice = option
-      ? (isWholesale
-        ? (wholesaleUnitPriceFromOption(option, item.quantity) ?? option.price)
-        : option.price)
-      : calculateDiscountedPrice(
+    const pkg = isWholesale && item.wholesalePackageId ? wholesalePackagesById.get(item.wholesalePackageId) : null
+
+    let unitPrice: Prisma.Decimal
+    if (pkg) {
+      unitPrice = pkg.price
+    } else if (option) {
+      unitPrice = option.price
+    } else {
+      unitPrice = calculateDiscountedPrice(
         product.price,
         product.discountType,
         product.discountValue,
       )
+    }
     const subtotal = unitPrice.mul(item.quantity)
     return {
       productId: product.id,
       productName: product.name,
       productOptionId: option?.id ?? null,
       productOptionLabel: option?.label ?? null,
+      wholesalePackageId: pkg?.id ?? null,
+      wholesalePackageName: pkg?.name ?? null,
+      wholesaleUnitsPerPackage: pkg?.unitsPerPackage ?? null,
       unitPrice,
       quantity: item.quantity,
       subtotal,

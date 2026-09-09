@@ -47,6 +47,7 @@ export interface Product {
   images: string[]
   options: ProductOption[]
   archivedOptions?: ProductOption[]
+  wholesalePackages?: WholesalePackageInput[]
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number
@@ -63,6 +64,7 @@ export interface Product {
 export type PublicProduct = Product
 
 export type PublicProductSort = 'relevance' | 'price_asc' | 'price_desc' | 'newest'
+export type AdminProductSort = 'newest' | 'oldest' | 'updated' | 'price_asc' | 'price_desc' | 'stock_asc' | 'stock_desc'
 
 export interface PublicProductQuery {
   search?: string
@@ -94,7 +96,16 @@ export interface PublicCategoryProductSection {
 export interface AdminProductQuery {
   search?: string
   categoryId?: string
+  categoryIds?: string[]
   availability?: 'active' | 'inactive' | 'out-of-stock'
+  stockStatus?: 'in-stock' | 'low-stock' | 'out-of-stock'
+  featured?: boolean
+  discount?: 'on-sale' | 'no-discount'
+  productType?: 'simple' | 'with-options'
+  wholesale?: 'enabled' | 'not-configured'
+  minPrice?: number
+  maxPrice?: number
+  sort?: AdminProductSort
   page: number
   pageSize: number
 }
@@ -122,30 +133,37 @@ export interface WholesalePricingTier {
   price: string
 }
 
+export interface WholesalePackagePricing {
+  packageId: string
+  productId: string
+  productOptionId: string | null
+  name: string
+  unitsPerPackage: number
+  price: string
+  isActive: boolean
+}
+
+// Admin shape of a wholesale package (carton/case). A package belongs to a
+// specific unit/size (ProductOption) when productOptionId is provided; a null
+// productOptionId means the product's single unit.
+export interface WholesalePackageInput {
+  id?: string
+  productOptionId?: string | null
+  name: string
+  unitsPerPackage: number
+  price: string
+  isActive?: boolean
+  sortOrder?: number
+}
+
+export interface ProductWholesalePricing {
+  productId: string
+  packages: WholesalePackagePricing[]
+}
+
 export interface WholesaleOptionPricing {
   optionId: string
   label: string
   moq: number | null
   tiers: WholesalePricingTier[]
-}
-
-export interface ProductWholesalePricing {
-  productId: string
-  options: WholesaleOptionPricing[]
-}
-
-export interface WholesalePriceLookupInput {
-  productId: string
-  productOptionId: string
-  quantity: number
-}
-
-export interface WholesalePriceLookupResult {
-  productId: string
-  productOptionId: string
-  optionLabel: string
-  quantity: number
-  moq: number | null
-  unitPrice: string
-  tier: WholesalePricingTier
 }

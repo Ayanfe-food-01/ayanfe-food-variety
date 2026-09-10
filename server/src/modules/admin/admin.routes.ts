@@ -113,10 +113,22 @@ import {
   updateAdminDeliveryZoneController,
   updateAdminDeliveryZoneStatusController,
 } from '../delivery-zones/delivery-zone.controller.js'
+import {
+  adjustStockController,
+  listInventoryController,
+  getInventorySummaryController,
+  listStockMovementsController,
+  getProductMovementsController,
+} from '../inventory/inventory.controller.js'
 
 export const adminRoutes = Router()
 
 adminRoutes.use(...requireAdminAccess)
+adminRoutes.get('/inventory', listInventoryController)
+adminRoutes.get('/inventory/summary', getInventorySummaryController)
+adminRoutes.get('/inventory/movements', listStockMovementsController)
+adminRoutes.get('/inventory/movements/:productId', getProductMovementsController)
+adminRoutes.post('/inventory/adjust', adjustStockController)
 adminRoutes.get('/categories', listAdminCategoriesController)
 adminRoutes.post('/categories', categoryImageUpload, createAdminCategoryController)
 adminRoutes.get('/categories/:id', getAdminCategoryController)

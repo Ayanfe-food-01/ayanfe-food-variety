@@ -5,6 +5,14 @@
   "outputDirectory": "client/dist",
   "rewrites": [
     {
+      "source": "/api/v1/(.*)",
+      "destination": "https://RENDER_API_URL_PLACEHOLDER/api/v1/$1"
+    },
+    {
+      "source": "/api/v1",
+      "destination": "https://RENDER_API_URL_PLACEHOLDER/api/v1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

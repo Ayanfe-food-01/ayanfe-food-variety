@@ -86,9 +86,18 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
       throw new Error('Sign in to shop wholesale.')
     }
     if (userRef.current.shoppingMode === mode) return
-    const updatedUser = await setShoppingMode(mode)
-    setUser(updatedUser.role === 'CUSTOMER' ? updatedUser : null)
-  }, [])
+    try {
+      const updatedUser = await setShoppingMode(mode)
+      setUser(updatedUser.role === 'CUSTOMER' ? updatedUser : null)
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.status === 401) {
+        userRef.current = null
+        setUser(null)
+        openAuth(() => { void switchShoppingMode(mode) })
+      }
+      throw error
+    }
+  }, [openAuth])
 
   const value: CustomerAuthContextValue = {
     user,

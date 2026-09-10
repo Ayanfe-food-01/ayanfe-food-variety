@@ -1,6 +1,7 @@
 import { Prisma, ReviewStatus } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import {
   assertHomepageFeaturedCapacity,
   getHomepageFeaturedMetrics,
@@ -11,6 +12,12 @@ import type {
   AdminReviewsPage,
   AdminReviewsQuery,
 } from './review.types.js'
+
+const ADMIN_REVIEW_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'user.name', primary: true, weight: 2 },
+  { path: 'product.name', primary: true, weight: 2 },
+  { path: 'content', weight: 0.4 },
+]
 
 const adminReviewInclude = {
   user: { select: { id: true, name: true, email: true } },
@@ -51,15 +58,7 @@ const toAdminReviewDetail = (review: AdminReviewRow): AdminReviewDetail => ({
 
 export async function listAdminReviews(query: AdminReviewsQuery): Promise<AdminReviewsPage> {
   const where: Prisma.ReviewWhereInput = {
-    ...(query.search
-      ? {
-          OR: [
-            { user: { name: { contains: query.search, mode: 'insensitive' } } },
-            { product: { name: { contains: query.search, mode: 'insensitive' } } },
-            { content: { contains: query.search, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
+    ...(buildSearchWhere<Prisma.ReviewWhereInput>(query.search, ADMIN_REVIEW_SEARCH_FIELDS) ?? {}),
     ...(query.status ? { status: query.status.toUpperCase() as ReviewStatus } : {}),
     ...(query.verified ? { verifiedPurchase: query.verified === 'verified' } : {}),
     ...(query.rating !== undefined ? { rating: query.rating } : {}),

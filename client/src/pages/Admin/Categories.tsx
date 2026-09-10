@@ -167,7 +167,7 @@ export function Categories() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Categories</h1>
           <p className="mt-3 text-sm text-muted">Create and control the categories available to your product catalog.</p>
         </div>
-        <Link className="inline-flex w-fit rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/categories/new">Add category</Link>
+        <Link className="inline-flex w-full justify-center rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark sm:w-fit" to="/admin/categories/new">Add category</Link>
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Category filters">

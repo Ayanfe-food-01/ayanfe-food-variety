@@ -12,12 +12,8 @@ interface OrderTableProps {
 }
 
 export function OrderTable({ orders, archiveView, busyOrderNumber, onArchive, onRestore, onDelete }: OrderTableProps) {
-  if (orders.length === 0) {
-    return <div className="rounded-2xl border border-dashed border-line bg-white px-5 py-14 text-center text-sm text-muted">No orders found.</div>
-  }
-
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+    <div className="min-w-0 overflow-hidden">
       <div className="space-y-3 p-4 lg:hidden">
         {orders.map((order) => (
           <OrderMobileCard

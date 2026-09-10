@@ -3,12 +3,36 @@ import { prisma } from '../../config/prisma.js'
 import { productInclude, toProduct } from './product.mapper.js'
 import type { ProductWithRatings } from './product.mapper.js'
 import { getProductWholesaleFromMap } from './product.wholesale.service.js'
+import { buildSearchWhere, rankSearchResults, type SearchFieldConfig, type SearchRankConfig } from '../../utils/search.js'
 import type { PublicCategoryProductSection, PublicProduct, PublicProductPage, PublicProductQuery } from './product.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export const toPublicProduct = (product: ProductWithRatings, isWishlisted = false, wholesaleFrom?: string | null): PublicProduct => {
   return toProduct(product, isWishlisted, wholesaleFrom)
+}
+
+const PUBLIC_PRODUCT_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'name', primary: true, weight: 2 },
+  { path: 'category.name', weight: 1.2 },
+  { path: 'category.slug', weight: 0.8 },
+  { path: 'description', weight: 0.4 },
+]
+
+interface PublicProductCandidate {
+  id: string
+  name: string
+  description: string
+  category: { name: string; slug: string } | null
+}
+
+const PUBLIC_PRODUCT_RANKING: SearchRankConfig<PublicProductCandidate> = {
+  primary: [{ get: (candidate) => candidate.name }],
+  secondary: [
+    { get: (candidate) => candidate.category?.name ?? null, weight: 1.2 },
+    { get: (candidate) => candidate.category?.slug ?? null, weight: 0.8 },
+    { get: (candidate) => candidate.description, weight: 0.4 },
+  ],
 }
 
 export const getWishlistProductIds = async (productIds: string[], userId?: string): Promise<Set<string>> => {
@@ -23,42 +47,55 @@ export const getWishlistProductIds = async (productIds: string[], userId?: strin
 export async function getProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
   const where: Prisma.ProductWhereInput = {
     isActive: true,
-    category: { isActive: true },
-    ...(query.search
+    ...(query.category
       ? {
-          OR: [
-            { name: { contains: query.search, mode: 'insensitive' } },
-            { description: { contains: query.search, mode: 'insensitive' } },
-            { category: { name: { contains: query.search, mode: 'insensitive' } } },
-            { category: { slug: { contains: query.search, mode: 'insensitive' } } },
-          ],
+          category: {
+            isActive: true,
+            ...(UUID_PATTERN.test(query.category) ? { id: query.category } : { slug: query.category }),
+          },
         }
-      : {}),
+      : { category: { isActive: true } }),
   }
-
-  if (query.category) {
-    where.category = {
-      isActive: true,
-      ...(UUID_PATTERN.test(query.category) ? { id: query.category } : { slug: query.category }),
-    }
-  }
+  const searchWhere = buildSearchWhere<Prisma.ProductWhereInput>(query.search, PUBLIC_PRODUCT_SEARCH_FIELDS)
+  if (searchWhere) Object.assign(where, searchWhere)
 
   const orderBy: Prisma.ProductOrderByWithRelationInput[] = query.sort === 'price_asc'
     ? [{ price: 'asc' }, { createdAt: 'desc' }]
     : query.sort === 'price_desc'
       ? [{ price: 'desc' }, { createdAt: 'desc' }]
-      : [{ createdAt: 'desc' }, { id: 'desc' }]
+      : query.sort === 'relevance' && query.search
+        ? []
+        : [{ createdAt: 'desc' }, { id: 'desc' }]
 
-  const [total, products] = await prisma.$transaction([
-    prisma.product.count({ where }),
-    prisma.product.findMany({
+  let total = 0
+  let products: ProductWithRatings[]
+  if (orderBy.length === 0) {
+    // Relevance sort with an active search: match in the database, then rank
+    // the candidate set so the best matches can surface on any page.
+    const candidates = await prisma.product.findMany({
       where,
-      include: productInclude,
-      orderBy,
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
-    }),
-  ])
+      select: { id: true, name: true, description: true, category: { select: { name: true, slug: true } } },
+      // Deterministic tie-break: equally-relevant matches surface newest first.
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    })
+    const ranked = rankSearchResults(candidates, query.search, PUBLIC_PRODUCT_RANKING)
+    total = ranked.length
+    const pageIds = ranked
+      .slice((query.page - 1) * query.limit, query.page * query.limit)
+      .map((candidate) => candidate.id)
+    products = pageIds.length > 0
+      ? await prisma.product.findMany({ where: { id: { in: pageIds } }, include: productInclude })
+      : []
+    const rankIndex = new Map(pageIds.map((id, index) => [id, index]))
+    products.sort((left, right) => (rankIndex.get(left.id) ?? 0) - (rankIndex.get(right.id) ?? 0))
+  } else {
+    const [countResult, productResult] = await prisma.$transaction([
+      prisma.product.count({ where }),
+      prisma.product.findMany({ where, include: productInclude, orderBy, skip: (query.page - 1) * query.limit, take: query.limit }),
+    ])
+    total = countResult
+    products = productResult
+  }
 
   const wishlistProductIds = await getWishlistProductIds(
     products.map((product) => product.id),

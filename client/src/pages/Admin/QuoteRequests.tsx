@@ -8,6 +8,7 @@ import {
 } from '../../services/quoteService'
 import { QuoteTable } from '../../components/admin/QuoteTable'
 import { AdminPagination } from '../../components/admin/AdminPagination'
+import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
 import { FilterBar } from '../../components/filters/FilterBar'
 import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
 import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
@@ -121,24 +122,32 @@ export function QuoteRequests() {
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      {isLoading ? (
-        <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading quote requests…</div>
-      ) : (
-        <>
-          <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{total} {total === 1 ? 'request' : 'requests'}</span><span>Page {currentPage} of {totalPages}</span></div>
-          <div className="mt-3">
+      <section className="mt-6 rounded-2xl border border-line bg-white shadow-sm" aria-label="Quote requests">
+        {isLoading ? (
+          <AdminTableSkeleton desktopColumns={6} label="Loading quote requests" />
+        ) : result?.quoteRequests.length ? (
+          <>
+            <div className="mb-4 flex items-center justify-between px-5 pt-5 text-sm text-muted">
+              <span>{total} {total === 1 ? 'request' : 'requests'}</span>
+              <span>Page {currentPage} of {totalPages}</span>
+            </div>
             <QuoteTable quoteRequests={result?.quoteRequests ?? []} />
+            {totalPages > 1 && (
+              <AdminPagination
+                className="border-t border-line px-5 py-4"
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
+              />
+            )}
+          </>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
+            <h2 className="text-xl font-bold text-green-dark">No quote requests found</h2>
+            <p className="mt-2 text-sm text-muted">Try a different filter.</p>
           </div>
-          {totalPages > 1 && (
-            <AdminPagination
-              className="mt-5"
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
-            />
-          )}
-        </>
-      )}
+        )}
+      </section>
     </div>
   )
 }

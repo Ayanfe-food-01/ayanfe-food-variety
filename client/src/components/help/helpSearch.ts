@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { FaqItem } from './FaqAccordion'
+import { getSearchTerms } from '../../utils/search'
 
 export interface SearchableCategory {
   id: string
@@ -25,7 +26,7 @@ export const nodeToText = (node: ReactNode): string => {
 }
 
 export const searchTokens = (value: string): string[] =>
-  value.toLocaleLowerCase('en').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
+  getSearchTerms(value).map((token) => token.toLocaleLowerCase('en'))
 
 interface SearchIndexCategory {
   id: string

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import type { ShoppingMode } from '../../services/authService'
+import { ApiError } from '../../services/api'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 
 interface ShoppingModeSwitchProps {
@@ -26,7 +27,10 @@ export function ShoppingModeSwitch({ className = '' }: ShoppingModeSwitchProps) 
     try {
       await switchShoppingMode(mode)
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Shopping mode could not be changed. Please try again.')
+      const isAuthError = caught instanceof ApiError && caught.status === 401
+      if (!isAuthError) {
+        setError(caught instanceof Error ? caught.message : 'Shopping mode could not be changed. Please try again.')
+      }
     } finally {
       setIsBusy(false)
     }

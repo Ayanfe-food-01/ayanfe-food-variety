@@ -1,6 +1,7 @@
 import { Prisma, QuoteRequestStatus } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import { notifyQuoteReady } from './quote.email.js'
 import type { AdminQuoteRequest, AdminQuoteRequestListItem, QuoteRequestPage, QuoteRequestQuery } from './quote.types.js'
 import { quoteDetailInclude, type QuoteRequestWithItems } from './quote.service.js'
@@ -10,18 +11,16 @@ export { toAdminDetail, toAdminListItem } from './admin-quote.mapper.js'
 export type { AdminQuoteRequest, AdminQuoteRequestListItem, QuoteRequestPage, QuoteRequestQuery, PrepareQuotePricingInput } from './quote.types.js'
 export { prepareQuotePricing } from './admin-quote.prepare.service.js'
 
+const ADMIN_QUOTE_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'quoteNumber', primary: true, weight: 2 },
+  { path: 'customerName', primary: true, weight: 2 },
+  { path: 'customerEmail', weight: 0.6 },
+  { path: 'customerPhone', weight: 0.6 },
+]
+
 export async function listAdminQuoteRequests(query: QuoteRequestQuery): Promise<QuoteRequestPage> {
   const where: Prisma.QuoteRequestWhereInput = {
-    ...(query.search
-      ? {
-          OR: [
-            { quoteNumber: { contains: query.search, mode: 'insensitive' as const } },
-            { customerName: { contains: query.search, mode: 'insensitive' as const } },
-            { customerEmail: { contains: query.search, mode: 'insensitive' as const } },
-            { customerPhone: { contains: query.search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}),
+    ...(buildSearchWhere<Prisma.QuoteRequestWhereInput>(query.search, ADMIN_QUOTE_SEARCH_FIELDS) ?? {}),
     ...(query.status ? { status: query.status } : {}),
   }
 

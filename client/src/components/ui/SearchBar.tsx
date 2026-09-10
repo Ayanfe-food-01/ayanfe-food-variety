@@ -1,5 +1,6 @@
 import { useEffect, useRef, type FormEvent, type InputHTMLAttributes, type Ref } from 'react'
 import { CloseIcon, SearchIcon } from '../../assets/icons'
+import { normalizeSearchQuery } from '../../utils/search'
 
 interface SearchBarProps {
   value: string
@@ -65,7 +66,7 @@ export function SearchBar({
     onChange(next)
     lastTypedRef.current = next
     cancelPending()
-    const query = next.trim()
+    const query = normalizeSearchQuery(next)
     if (!query) {
       onSearch?.('')
       return
@@ -80,7 +81,7 @@ export function SearchBar({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     cancelPending()
-    onSearch?.(value.trim())
+    onSearch?.(normalizeSearchQuery(value))
   }
 
   return (

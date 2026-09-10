@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getProducts } from '../services/productService'
+import { normalizeSearchQuery } from '../utils/search'
 import type { Product } from '../types/product'
 
 const MINIMUM_SEARCH_LENGTH = 2
@@ -25,7 +26,7 @@ export function useProductSearchAutocomplete(value: string): ProductSearchAutoco
     hasError: boolean
   } | null>(null)
 
-  const query = value.trim()
+  const query = normalizeSearchQuery(value)
   const isQueryTooShort = query.length < MINIMUM_SEARCH_LENGTH
 
   useEffect(() => {

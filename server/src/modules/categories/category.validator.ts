@@ -1,4 +1,5 @@
 import { HttpError } from '../../utils/http.js'
+import { normalizeSearchQuery } from '../../utils/search.js'
 import type { CategoryInput } from './category.types.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -71,7 +72,7 @@ export function validateAdminCategoriesQuery(query: Record<string, unknown>) {
   return {
     page,
     pageSize,
-    search: typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined,
+    search: normalizeSearchQuery(query.search, 120),
     status,
   } as const
 }

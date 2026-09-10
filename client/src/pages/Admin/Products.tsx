@@ -4,6 +4,7 @@ import { useToast } from '../../components/ui/Toast'
 import { ProductsFilterPanel } from '../../components/admin/ProductsFilterPanel'
 import { ProductsTable } from '../../components/admin/ProductsTable'
 import { AdminPagination } from '../../components/admin/AdminPagination'
+import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -224,18 +225,18 @@ export function Products() {
       </div>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      <section className="admin-products-workspace mt-8 rounded-2xl border border-line bg-white shadow-sm" aria-label="Products">
-        <div className="admin-products-filter-card border-b border-line p-4 sm:p-5">
-          <ProductsFilterPanel
-            categories={categories}
-            query={query}
-            searchInput={searchInput}
-            onSearchInputChange={setSearchInput}
-            onSearch={updateSearch}
-            onApply={applyFilters}
-            onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
-          />
-        </div>
+      <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Product filters">
+        <ProductsFilterPanel
+          categories={categories}
+          query={query}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onSearch={updateSearch}
+          onApply={applyFilters}
+          onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
+        />
+      </section>
+      <section className="admin-products-workspace mt-6 rounded-2xl border border-line bg-white shadow-sm" aria-label="Products">
         {selectedProductIds.length > 0 && (
           <div className="admin-products-selection-toolbar flex items-center justify-between gap-4 border-b border-line bg-sage/20 px-4 py-3 text-sm sm:px-5">
             <span className="font-bold text-green-dark" role="status">
@@ -248,7 +249,7 @@ export function Products() {
         )}
 
         {isLoading ? (
-          <ProductsLoadingSkeleton />
+          <AdminTableSkeleton desktopColumns={9} label="Loading products" />
         ) : result?.products.length ? (
           <>
             <div className="mb-4 flex items-center justify-between px-5 pt-5 text-sm text-muted">
@@ -311,62 +312,6 @@ export function Products() {
           onConfirm={() => void confirmDelete()}
         />
       )}
-    </div>
-  )
-}
-
-function ProductsLoadingSkeleton() {
-  return (
-    <div className="admin-products-loading" role="status" aria-busy="true" aria-label="Loading products">
-      <span className="sr-only">Loading products</span>
-      <div className="admin-products-skeleton-mobile" aria-hidden="true">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div className="admin-products-skeleton-card" key={index}>
-            <div className="admin-products-skeleton-card-header">
-              <span className="admin-products-skeleton-block admin-products-skeleton-checkbox" />
-              <span className="admin-products-skeleton-block admin-products-skeleton-image" />
-              <span className="admin-products-skeleton-copy">
-                <span className="admin-products-skeleton-block admin-products-skeleton-title" />
-                <span className="admin-products-skeleton-block admin-products-skeleton-description" />
-                <span className="admin-products-skeleton-block admin-products-skeleton-category" />
-              </span>
-            </div>
-            <div className="admin-products-skeleton-details">
-              {Array.from({ length: 6 }, (_, detailIndex) => (
-                <span className="admin-products-skeleton-detail" key={detailIndex}>
-                  <span className="admin-products-skeleton-block admin-products-skeleton-label" />
-                  <span className="admin-products-skeleton-block admin-products-skeleton-value" />
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="admin-products-skeleton-desktop" aria-hidden="true">
-        <div className="admin-products-skeleton-table">
-          <div className="admin-products-skeleton-table-row admin-products-skeleton-table-header">
-            {Array.from({ length: 10 }, (_, index) => (
-              <span className="admin-products-skeleton-block" key={index} />
-            ))}
-          </div>
-          {Array.from({ length: 6 }, (_, rowIndex) => (
-            <div className="admin-products-skeleton-table-row" key={rowIndex}>
-              <span className="admin-products-skeleton-block admin-products-skeleton-checkbox" />
-              <span className="admin-products-skeleton-product">
-                <span className="admin-products-skeleton-block admin-products-skeleton-image" />
-                <span className="admin-products-skeleton-copy">
-                  <span className="admin-products-skeleton-block admin-products-skeleton-title" />
-                  <span className="admin-products-skeleton-block admin-products-skeleton-description" />
-                </span>
-              </span>
-              {Array.from({ length: 8 }, (_, cellIndex) => (
-                <span className="admin-products-skeleton-block admin-products-skeleton-cell" key={cellIndex} />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

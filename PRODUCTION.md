@@ -74,8 +74,10 @@ fallback routing.
 Set this Vercel environment variable for Preview and Production:
 
 ```text
-VITE_API_URL=https://your-render-service.onrender.com
+VITE_API_URL=/api/v1
 ```
+
+Configure Vercel rewrites to proxy `/api/v1` to the Render backend. In the Vercel project settings or `client/vercel.json`, replace `RENDER_API_URL_PLACEHOLDER` with your Render service URL, e.g. `https://your-render-service.onrender.com`. This makes API requests first-party, allowing cookies to be sent in iOS Safari Private mode.
 
 Also set the canonical storefront origin in Vercel using the same
 `PUBLIC_APP_URL` value configured on Render:
@@ -182,9 +184,11 @@ production test, enter:
 ### Vercel
 
 ```text
-VITE_API_URL=https://<your-render-service>.onrender.com
+VITE_API_URL=/api/v1
 PUBLIC_APP_URL=https://<your-vercel-project>.vercel.app
 ```
+
+Also update `client/vercel.json` rewrites to proxy `/api/v1` to your Render service URL and redeploy Vercel.
 
 ### Render
 

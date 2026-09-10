@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express'
 import { PaymentMethod, PaymentSubmissionStatus } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
+import { normalizeSearchQuery } from '../../utils/search.js'
 import { reviewPayment } from '../payments/payment.service.js'
 import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../payments/payment.validator.js'
 import { getAdminAnalytics, getDashboardStats } from './admin.service.js'
@@ -110,7 +111,7 @@ const parsePaymentQuery = (query: Record<string, unknown>): AdminPaymentsQuery =
   }
 
   return {
-    search: typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined,
+    search: normalizeSearchQuery(query.search, 120),
     status: parsePaymentStatus(query.status),
     paymentMethod: paymentMethod as PaymentMethod | undefined,
     from,

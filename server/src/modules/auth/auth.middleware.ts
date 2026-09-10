@@ -30,9 +30,9 @@ export const requireAdminRole: RequestHandler = (request, _response, next) => {
 export const requireCustomerAuthentication: RequestHandler = async (request, response, next) => {
   const user = await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (!user) {
-    if (getCustomerSessionToken(request.headers.cookie)) {
-      response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
-    }
+    // Do not aggressively clear the session cookie on a single 401 to avoid
+    // logging out users due to transient issues or third-party cookie blocking.
+    // The client will handle 401 by re-prompting for authentication.
     next(new HttpError(401, 'Customer authentication is required.'))
     return
   }
@@ -63,8 +63,6 @@ export const requireWholesaleMode: RequestHandler = (request, _response, next) =
 export const optionalCustomerAuthentication: RequestHandler = async (request, response, next) => {
   const user = await getAuthenticatedCustomer(getCustomerSessionToken(request.headers.cookie))
   if (user) request.authenticatedUser = user
-  else if (getCustomerSessionToken(request.headers.cookie)) {
-    response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
-  }
+  // Avoid aggressive cookie clearing on transient auth failures
   next()
 }

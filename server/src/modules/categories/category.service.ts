@@ -1,8 +1,15 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import type { AdminCategoryQuery, Category, CategoryInput } from './category.types.js'
 import type { StoredCategoryImage } from './category.storage.js'
+
+const ADMIN_CATEGORY_SEARCH_FIELDS: SearchFieldConfig[] = [
+  { path: 'name', primary: true, weight: 2 },
+  { path: 'slug', weight: 0.8 },
+  { path: 'description', weight: 0.4 },
+]
 
 const toCategory = (category: {
   id: string
@@ -82,15 +89,7 @@ export async function createCategory(input: CategoryInput, image?: StoredCategor
 
 export async function listAdminCategories(query: AdminCategoryQuery) {
   const where: Prisma.CategoryWhereInput = {
-    ...(query.search
-      ? {
-          OR: [
-            { name: { contains: query.search, mode: 'insensitive' } },
-            { description: { contains: query.search, mode: 'insensitive' } },
-            { slug: { contains: query.search, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
+    ...(buildSearchWhere<Prisma.CategoryWhereInput>(query.search, ADMIN_CATEGORY_SEARCH_FIELDS) ?? {}),
     ...(query.status ? { isActive: query.status === 'active' } : {}),
   }
 

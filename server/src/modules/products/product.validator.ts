@@ -1,4 +1,5 @@
 import { HttpError } from '../../utils/http.js'
+import { normalizeSearchQuery } from '../../utils/search.js'
 import type {
   AdminProductQuery,
   ProductInput,
@@ -140,7 +141,7 @@ export function validateAdminProductsQuery(query: Record<string, unknown>): Admi
   return {
     page,
     pageSize,
-    search: typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined,
+    search: normalizeSearchQuery(query.search, 120),
     categoryId,
     categoryIds: categoryIds?.length ? categoryIds : undefined,
     availability,
@@ -169,7 +170,7 @@ export function validatePublicProductsQuery(query: Record<string, unknown>): Pub
       : undefined
   if (!sort) throw new HttpError(400, 'Sort must be one of relevance, price_asc, price_desc, or newest.')
 
-  const search = typeof query.search === 'string' ? query.search.trim().slice(0, 120) || undefined : undefined
+  const search = normalizeSearchQuery(query.search, 120)
   if (query.search !== undefined && typeof query.search !== 'string') throw new HttpError(400, 'Search must be text.')
 
   const category = typeof query.category === 'string' ? query.category.trim() || undefined : undefined

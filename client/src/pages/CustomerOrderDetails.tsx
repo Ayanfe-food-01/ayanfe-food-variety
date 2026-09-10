@@ -198,7 +198,23 @@ export function CustomerOrderDetails() {
         ) : error ? (
           <div className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
         ) : !order ? (
-          <p className="rounded-2xl bg-white p-8 text-center text-sm text-muted">Loading order…</p>
+          <div className="mx-auto max-w-3xl animate-pulse" role="status" aria-label="Loading order">
+            <div className="h-4 w-40 rounded bg-sage/70" />
+            <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
+              <div className="space-y-3">
+                <div className="h-3 w-24 rounded bg-sage" />
+                <div className="h-9 w-52 rounded bg-sage" />
+                <div className="h-3 w-40 rounded bg-sage/70" />
+              </div>
+              <div className="text-right">
+                <div className="ml-auto h-3 w-32 rounded bg-sage/70" />
+                <div className="ml-auto mt-2 h-5 w-24 rounded bg-sage" />
+              </div>
+            </div>
+            <div className="mt-8 h-28 rounded-2xl bg-sage" />
+            <div className="mt-6 h-40 rounded-2xl bg-sage" />
+            <div className="mt-6 h-64 rounded-2xl bg-sage" />
+          </div>
         ) : (
           <div className="mx-auto max-w-3xl">
              <Link className="text-sm font-bold text-green hover:text-orange" to={isGuestOrder ? '/shop' : '/orders'}>← {isGuestOrder ? 'Continue shopping' : 'Back to orders'}</Link>

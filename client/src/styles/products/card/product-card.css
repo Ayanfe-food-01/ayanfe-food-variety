@@ -41,6 +41,24 @@
   color: inherit;
 }
 
+.product-image-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+}
+
+.product-image-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-image-link .product-image-fallback {
+  width: 100%;
+  height: 100%;
+}
+
 .product-image-wrap {
   position: relative;
   aspect-ratio: 1 / 1;
@@ -99,6 +117,10 @@
   align-content: start;
   gap: 3px;
   padding: 10px 11px 12px;
+}
+
+.product-card-quick-add .product-card-body {
+  padding-right: 50px;
 }
 
 .product-name {

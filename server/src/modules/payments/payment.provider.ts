@@ -146,3 +146,38 @@ export const requireOnlinePaymentEnabled = (): PaymentProvider => {
   }
   return provider
 }
+
+/**
+ * Maximum verifies a single logical confirmation will issue to the provider
+ * (1 initial call + rechecks) while a transaction is still "UNCONFIRMED".
+ */
+export const VERIFY_RECHECK_ATTEMPTS = 3
+
+/** Space between UNCONFIRMED rechecks, in milliseconds. */
+export const VERIFY_RECHECK_DELAY_MS = 1500
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Verify a transaction with the provider, re-polling briefly while the
+ * gateway still reports the transaction as not finalized (UNCONFIRMED).
+ *
+ * Both Paystack and other gateways can report a just-paid transaction as still
+ * processing for a couple of seconds after the customer is redirected back,
+ * before the final state is committed. A single UNCONFIRMED reading is
+ * therefore never treated as authoritative: we re-ask the provider a bounded
+ * number of times so a payment that is simply a moment away from finalizing is
+ * still confirmed synchronously (the primary path), instead of being left for
+ * the background webhook backstop.
+ */
+export async function verifyWithRetries(
+  adapter: PaymentProviderAdapter,
+  providerReference: string,
+): Promise<PaymentVerifyResult> {
+  let result = await adapter.verify({ providerReference })
+  for (let attempt = 1; attempt < VERIFY_RECHECK_ATTEMPTS && result.status === 'UNCONFIRMED'; attempt += 1) {
+    await delay(VERIFY_RECHECK_DELAY_MS)
+    result = await adapter.verify({ providerReference })
+  }
+  return result
+}

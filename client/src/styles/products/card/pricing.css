@@ -1,12 +1,16 @@
 .product-price {
   color: var(--color-green-dark);
   font-size: 15px;
+  font-weight: 700;
 }
 
 .product-price-wholesale {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  margin-top: 2px;
+  line-height: 1.25;
 }
 
 .wholesale-price-label {

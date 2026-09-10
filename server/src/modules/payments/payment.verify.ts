@@ -2,7 +2,7 @@ import { PaymentProvider, PaymentRecordStatus, Prisma, type Payment } from '@pri
 import { prisma } from '../../config/prisma.js'
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js'
 import { HttpError } from '../../utils/http.js'
-import { getProviderAdapter, requireOnlinePaymentEnabled } from './payment.provider.js'
+import { getProviderAdapter, requireOnlinePaymentEnabled, verifyWithRetries } from './payment.provider.js'
 import { settleSuccessfulPayment, paystackAmountMatches, expectedCurrencyMatches } from './payment.settle.js'
 import type { PaymentVerifyResponse } from './payment.types.js'
 
@@ -104,9 +104,7 @@ export async function verifyOrderPayment(
   // Provider unreachable / invalid response errors (e.g. HttpError 502) bubble
   // up unchanged: the PENDING attempt stays live so the customer can simply try
   // verifying again later, and nothing is ever marked paid.
-  const result = await adapter.verify({
-    providerReference: payment.providerReference,
-  })
+  const result = await verifyWithRetries(adapter, payment.providerReference)
 
   if (result.status === 'FAILED') {
     let markedFailed = false

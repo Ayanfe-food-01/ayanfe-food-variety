@@ -13,9 +13,26 @@ import {
 } from '../../services/adminService'
 import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
+import { FilterBar } from '../../components/filters/FilterBar'
+import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
 
 const formatDate = (value: string) =>
   formatCompatibleDate(value)
+
+const bannerFields: FilterField[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All' },
+      { value: 'active', label: 'Active' },
+      { value: 'inactive', label: 'Inactive' },
+    ],
+  },
+]
 
 function BannerActions({
   banner,
@@ -53,6 +70,24 @@ export function Banners() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useToast()
+  const [searchInput, setSearchInput] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+
+  const matchesSearch = (banner: AdminBanner) => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return true
+    return (banner.title ?? '').toLowerCase().includes(query)
+      || (banner.promotionalText ?? '').toLowerCase().includes(query)
+  }
+
+  const matchesStatus = (banner: AdminBanner) => {
+    if (statusFilter === 'active') return banner.isActive
+    if (statusFilter === 'inactive') return !banner.isActive
+    return true
+  }
+
+  const visibleBanners = banners.filter(matchesSearch).filter(matchesStatus)
 
   useEffect(() => {
     let current = true
@@ -119,8 +154,23 @@ export function Banners() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Promotional banners</h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">Create the offers and flyers that appear in the homepage promotional section. Only active banners are visible to customers.</p>
         </div>
-        <Link className="inline-flex w-fit rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/banners/new">Add banner</Link>
+        <Link className="inline-flex w-full justify-center rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark sm:w-fit" to="/admin/banners/new">Add banner</Link>
       </div>
+
+      <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Banner filters">
+        <FilterBar
+          fields={bannerFields}
+          committed={{ status: statusFilter }}
+          onApply={(next: FilterValues) => setStatusFilter(next.status ?? '')}
+          search={{
+            label: 'Search banners',
+            value: searchInput,
+            onChange: setSearchInput,
+            onSearch: setSearchQuery,
+            placeholder: 'Title or promotional text',
+          }}
+        />
+      </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
       {isLoading ? (
@@ -131,14 +181,19 @@ export function Banners() {
           <p className="mt-2 text-sm text-muted">Upload your first banner to start promoting offers on the homepage.</p>
           <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/banners/new">Add banner</Link>
         </div>
+      ) : visibleBanners.length === 0 ? (
+        <div className="mt-8 rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
+          <h2 className="text-xl font-bold text-green-dark">No banners match your filters</h2>
+          <p className="mt-2 text-sm text-muted">Try a different search or clear the status filter.</p>
+        </div>
       ) : (
         <div className="mt-8 rounded-2xl border border-line bg-white shadow-sm">
           <div className="flex items-center justify-between px-5 py-5 text-sm text-muted">
-            <span>{banners.length} {banners.length === 1 ? 'banner' : 'banners'}</span>
+            <span>{visibleBanners.length} {visibleBanners.length === 1 ? 'banner' : 'banners'}</span>
             <span>Sorted by display order</span>
           </div>
            <div className="space-y-3 px-4 pb-4 lg:hidden">
-            {banners.map((banner) => (
+            {visibleBanners.map((banner) => (
               <article className="relative rounded-2xl border border-line bg-cream/45 p-4" key={banner.id}>
                 <div className="flex items-start gap-3">
                   <img className="size-20 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" />
@@ -163,7 +218,7 @@ export function Banners() {
                   <tr><th className="px-5 py-4 font-bold">Banner</th><th className="px-5 py-4 font-bold">Status</th><th className="px-5 py-4 font-bold">Order</th><th className="px-5 py-4 font-bold">Created</th><th className="px-5 py-4 font-bold">Actions</th></tr>
               </thead>
                <tbody className="divide-y divide-line">
-                {banners.map((banner) => (
+                {visibleBanners.map((banner) => (
                    <tr key={banner.id} className="group">
                      <td className="w-[420px] max-w-[420px] overflow-hidden px-5 py-4"><div className="flex min-w-[380px] max-w-[388px] items-center gap-3"><img className="h-16 w-28 shrink-0 rounded-xl object-cover" src={banner.imageUrl} alt="" /><div className="min-w-0"><p className="block min-w-0 truncate font-bold text-green-dark">{banner.title}</p><p className="block min-w-0 truncate mt-1 text-xs text-muted">{banner.promotionalText || 'No promotional text'}</p></div></div></td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${banner.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{banner.isActive ? 'Active' : 'Inactive'}</span></td>

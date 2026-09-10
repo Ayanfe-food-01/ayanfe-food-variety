@@ -656,9 +656,9 @@ export function DeliveryZones() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Delivery zones & fees</h1>
           <p className="mt-3 max-w-xl text-sm text-muted">Configure delivery zones and their fees. Customers select a state and city at checkout and the matching zone and fee are applied automatically.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button className="inline-flex w-fit items-center gap-2 rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream" type="button" onClick={() => setAreaManagerOpen(true)}>Manage areas</button>
-          <button className="inline-flex w-fit items-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={openCreate}>Add delivery zone</button>
+        <div className="flex items-center gap-3">
+          <button className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream max-sm:flex-1 max-sm:justify-center" type="button" onClick={() => setAreaManagerOpen(true)}>Manage areas</button>
+          <button className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark max-sm:flex-1 max-sm:justify-center" type="button" onClick={openCreate}>Add delivery zone</button>
         </div>
       </div>
 

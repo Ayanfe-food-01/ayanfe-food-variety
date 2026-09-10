@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, CartIcon } from '../assets/icons'
+import { ArrowRight, CartIcon, ChevronRightIcon, ClipboardListIcon, RefreshCwIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
@@ -539,17 +539,13 @@ export function ProductDetails() {
                       </span>
                     </div>
                   ) : (
-                    <p className="text-sm font-medium text-muted">No reviews yet</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <ReviewStars value={0} size={18} label="No reviews yet" />
+                      <p className="text-sm font-medium text-muted">No reviews yet</p>
+                    </div>
                   )}
                 </div>
               )}
-              {isWholesaleShopper
-                && effectiveWholesalePricingStatus === 'ready'
-                && effectiveWholesalePackages.length === 0 && (
-                  <p className="wholesale-note" role="status">
-                    Wholesale pricing is not available for this product yet.
-                  </p>
-                )}
               <p className="mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">
                 {product.description}
               </p>
@@ -565,6 +561,24 @@ export function ProductDetails() {
                   />
                 </div>
               )}
+
+              {isWholesaleShopper
+                ? (cartLineQuantity >= availableStock && cartLineQuantity > 0 && (
+                    <p className="mb-2 text-xs text-muted">All available packages are already in your cart.</p>))
+                : (!hasOptions && availableStock > 0 && currentCartQuantity >= availableStock && (
+                    <p className="mb-2 text-xs text-muted">All available units are already in your cart.</p>))}
+              <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <p className={`text-sm font-semibold ${availableStock > 0 ? 'text-green-dark' : 'text-orange'}`} role="status" aria-live="polite">
+                  {availableStock > 0
+                    ? `${availableStock} ${availableStock === 1 ? (isWholesaleShopper ? 'package' : 'unit') : (isWholesaleShopper ? 'packages' : 'units')} available`
+                    : isWholesaleShopper
+                      ? 'This package is out of stock'
+                      : 'Out of stock'}
+                </p>
+                <p className="text-xs text-muted">
+                  {selectedQuantity} {selectedQuantity === 1 ? (isWholesaleShopper ? 'package' : 'unit') : (isWholesaleShopper ? 'packages' : 'units')} selected{isWholesaleShopper ? ` · ${selectedQuantity * (selectedPackage?.unitsPerPackage ?? 1)} units total` : ''}
+                </p>
+              </div>
 
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
                 <div>
@@ -608,35 +622,45 @@ export function ProductDetails() {
                        ? 'Out of stock'
                        : canAddToCart
                          ? 'Add to cart'
-                         : 'All available in cart'}
+                         : 'Max in cart'}
                 </Button>
               </div>
-              <Link
-                className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-green/25 px-6 text-sm font-bold text-green transition-colors hover:bg-green hover:text-cream"
-                to={`/request-a-quote?product=${encodeURIComponent(product.id)}${isWholesaleShopper
-                  ? (selectedPackage?.productOptionId ? `&option=${encodeURIComponent(selectedPackage.productOptionId)}` : '')
-                  : (hasOptions && selectedOption ? `&option=${encodeURIComponent(selectedOption.id)}` : '')}&qty=${Math.max(1, selectedQuantity)}`}
-              >
-                Request a quote{isWholesaleShopper ? ' for bulk pricing' : ''}
-              </Link>
-              <p className="mt-2 text-xs text-muted">
-                Need larger quantities or bulk pricing? Request a quote and we&rsquo;ll confirm details.
-              </p>
-               <p className={`mt-4 text-sm font-semibold ${availableStock > 0 ? 'text-green-dark' : 'text-orange'}`} role="status" aria-live="polite">
-                 {availableStock > 0
-                   ? `${availableStock} ${availableStock === 1 ? (isWholesaleShopper ? 'package' : 'unit') : (isWholesaleShopper ? 'packages' : 'units')} available`
-                   : isWholesaleShopper
-                     ? 'This package is out of stock'
-                     : 'Out of stock'}
-               </p>
-               {isWholesaleShopper
-                 ? (cartLineQuantity >= availableStock && cartLineQuantity > 0 && (
-                     <p className="mt-1 text-xs text-muted">All available packages are already in your cart.</p>))
-                 : (!hasOptions && availableStock > 0 && currentCartQuantity >= availableStock && (
-                     <p className="mt-1 text-xs text-muted">All available units are already in your cart.</p>))}
-              <p className="mt-3 text-xs text-muted">
-                 {selectedQuantity} {selectedQuantity === 1 ? (isWholesaleShopper ? 'package' : 'unit') : (isWholesaleShopper ? 'packages' : 'units')} selected{isWholesaleShopper ? ` · ${selectedQuantity * (selectedPackage?.unitsPerPackage ?? 1)} units total` : ''}
-              </p>
+              <div className="mt-6 divide-y divide-line">
+                <Link
+                  className="flex items-center gap-3 py-4 transition-colors hover:bg-sage/30"
+                  to={`/request-a-quote?product=${encodeURIComponent(product.id)}${isWholesaleShopper
+                    ? (selectedPackage?.productOptionId ? `&option=${encodeURIComponent(selectedPackage.productOptionId)}` : '')
+                    : (hasOptions && selectedOption ? `&option=${encodeURIComponent(selectedOption.id)}` : '')}&qty=${Math.max(1, selectedQuantity)}`}
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sage/70 text-green-dark">
+                    <ClipboardListIcon size={17} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-green-dark">
+                      Request a quote{isWholesaleShopper ? ' for bulk pricing' : ''}
+                    </span>
+                    <span className="block text-xs leading-5 text-muted">
+                      Need larger quantities or bulk pricing? We&rsquo;ll confirm details.
+                    </span>
+                  </span>
+                  <ChevronRightIcon className="ml-auto shrink-0 text-muted" size={18} />
+                </Link>
+                <Link
+                  className="flex items-center gap-3 py-4 transition-colors hover:bg-sage/30"
+                  to="/return-refund-policy"
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sage/70 text-green-dark">
+                    <RefreshCwIcon size={17} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-green-dark">Return and refund policy</span>
+                    <span className="block text-xs leading-5 text-muted">
+                      Need to return an item? Learn how returns and refunds work.
+                    </span>
+                  </span>
+                  <ChevronRightIcon className="ml-auto shrink-0 text-muted" size={18} />
+                </Link>
+              </div>
             </article>
           </div>
         </section>

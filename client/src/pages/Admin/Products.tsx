@@ -266,7 +266,6 @@ export function Products() {
               onToggleSelectAll={toggleAllProductSelection}
               onToggleSelect={toggleProductSelection}
               onToggleStatus={requestStatusChange}
-              onChangeStatus={requestStatusChange}
               onToggleFeatured={(product) => void toggleFeatured(product.id, product.isFeatured)}
               onDelete={openDeleteConfirmation}
             />

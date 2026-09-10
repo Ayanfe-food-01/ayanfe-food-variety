@@ -1,6 +1,5 @@
 import type { CreatedOrder, OrderStatus } from '../../services/orderService'
 import { formatDate } from '../../utils/dateFormat'
-import { formatOrderStatus } from '../../utils/orderStatus'
 
 export interface OrderTrackingData {
   orderStatus: OrderStatus
@@ -88,7 +87,6 @@ export function OrderTracker({ order }: { order: OrderTrackingData }) {
           )
         })}
       </div>
-      <p className="mt-5 text-xs leading-5 text-muted">Payment verification and fulfilment progress are tracked separately. The current order status is {formatOrderStatus(order.orderStatus)}.</p>
     </div>
   )
 }

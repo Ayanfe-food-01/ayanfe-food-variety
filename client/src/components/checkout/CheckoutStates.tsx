@@ -35,7 +35,13 @@ export function CheckoutLoading() {
   return (
     <div className="animate-pulse">
       <div className="h-12 w-48 rounded bg-sage" />
-      <div className="mt-10 h-64 rounded-2xl bg-sage" />
+      <div className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
+        <div className="min-w-0 space-y-6">
+          <div className="h-64 rounded-2xl bg-sage" />
+          <div className="h-72 rounded-2xl bg-sage" />
+        </div>
+        <div className="h-96 rounded-2xl bg-sage lg:sticky lg:top-24" />
+      </div>
     </div>
   )
 }

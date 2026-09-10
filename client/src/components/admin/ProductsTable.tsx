@@ -17,7 +17,6 @@ interface ProductsTableProps {
   onToggleSelectAll: () => void
   onToggleSelect: (productId: string) => void
   onToggleStatus: (product: AdminProductsPage['products'][number]) => void
-  onChangeStatus: (product: AdminProductsPage['products'][number]) => void
   onToggleFeatured: (product: AdminProductsPage['products'][number]) => void
   onDelete: (product: AdminProductsPage['products'][number]) => void
 }
@@ -32,7 +31,6 @@ export function ProductsTable({
   onToggleSelectAll,
   onToggleSelect,
   onToggleStatus,
-  onChangeStatus,
   onToggleFeatured,
   onDelete,
 }: ProductsTableProps) {
@@ -74,23 +72,21 @@ export function ProductsTable({
               />
               <img className="size-16 shrink-0 rounded-xl object-cover" src={product.image} alt="" />
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-green-dark">{product.name}</p>
+                <p className="truncate font-bold text-green-dark">{product.name}</p>
                 <p className="admin-products-card-description mt-1 break-words text-xs text-muted">{product.description}</p>
                 <p className="mt-1 text-xs text-muted">{product.category}</p>
               </div>
+              <ProductActions product={product} isBusy={updatingId === product.id || deletingId === product.id} onToggleStatus={() => onToggleStatus(product)} onToggleFeatured={() => onToggleFeatured(product)} onDelete={() => onDelete(product)} />
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
               <div><dt className="uppercase tracking-[0.12em] text-muted">Price / unit</dt><dd className="mt-1 font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /> <span className="font-normal text-muted">/ {product.unit}</span></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Stock</dt><dd className="mt-1 font-bold text-green-dark">{product.stockQuantity ?? 0}</dd></div>
-              <div><dt className="uppercase tracking-[0.12em] text-muted">Status</dt><dd className="mt-1"><ProductStatusSelect product={product} isBusy={updatingId === product.id} onChange={() => onChangeStatus(product)} /></dd></div>
+              <div><dt className="uppercase tracking-[0.12em] text-muted">Status</dt><dd className="mt-1"><ProductStatusPill product={product} /></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Delivery fee</dt><dd className="mt-1 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Availability</dt><dd className="mt-1"><AvailabilityPill product={product} /></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Featured</dt><dd className="mt-1"><FeaturedStatus isFeatured={product.isFeatured} /></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Created</dt><dd className="mt-1 text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</dd></div>
             </dl>
-            <div className="mt-4 flex justify-end border-t border-line pt-3">
-              <ProductActions product={product} isBusy={updatingId === product.id || deletingId === product.id} onToggleStatus={() => onToggleStatus(product)} onToggleFeatured={() => onToggleFeatured(product)} onDelete={() => onDelete(product)} />
-            </div>
           </article>
         ))}
       </div>
@@ -144,7 +140,7 @@ export function ProductsTable({
                   <td className="px-4 py-4"><span className="font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /></span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
                   <td className="px-4 py-4 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</td>
                   <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>
-                  <td className="px-4 py-4"><ProductStatusSelect product={product} isBusy={updatingId === product.id} onChange={() => onChangeStatus(product)} /></td>
+                  <td className="px-4 py-4"><ProductStatusPill product={product} /></td>
                   <td className="px-4 py-4"><AvailabilityPill product={product} /></td>
                   <td className="px-4 py-4"><FeaturedStatus isFeatured={product.isFeatured} /></td>
                   <td className="whitespace-nowrap px-4 py-4 text-xs text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</td>
@@ -167,28 +163,10 @@ function AvailabilityPill({ product }: { product: AdminProductsPage['products'][
   )
 }
 
-function ProductStatusSelect({
-  product,
-  isBusy,
-  onChange,
-}: {
-  product: AdminProductsPage['products'][number]
-  isBusy: boolean
-  onChange: () => void
-}) {
+function ProductStatusPill({ product }: { product: AdminProductsPage['products'][number] }) {
   return (
-    <label className="inline-flex">
-      <span className="sr-only">Status for {product.name}</span>
-      <select
-        className={`admin-products-status-select ${product.isActive ? 'is-active' : 'is-inactive'}`}
-        value={product.isActive ? 'active' : 'inactive'}
-        disabled={isBusy}
-        onChange={onChange}
-        aria-label={`Status for ${product.name}`}
-      >
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-    </label>
+    <span className={`inline-flex rounded-full bg-sage px-2.5 py-1 font-bold ${product.isActive ? 'text-green' : 'bg-line text-muted'}`}>
+      {product.isActive ? 'Active' : 'Inactive'}
+    </span>
   )
 }

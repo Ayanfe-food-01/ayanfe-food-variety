@@ -52,7 +52,7 @@ export function ProductRail({
         ) : products.length ? (
           <div className="horizontal-rail-frame">
             <div className="product-rail x-scrollbar" ref={railRef}>
-              {products.map((product) => <ProductCard key={product.id} product={product} />)}
+              {products.map((product) => <ProductCard key={product.id} product={product} variant="compact" />)}
             </div>
             <HorizontalRailControls railRef={railRef} label={title} />
           </div>
@@ -72,7 +72,6 @@ function ProductSkeleton() {
             <div className="product-skeleton-line" />
             <div className="product-skeleton-line" />
           </div>
-          <div className="product-skeleton-action" />
         </div>
       ))}
     </div>

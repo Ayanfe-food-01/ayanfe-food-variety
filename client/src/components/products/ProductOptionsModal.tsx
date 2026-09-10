@@ -8,25 +8,55 @@ import { useToast } from '../ui/Toast'
 import { formatPrice } from '../../utils/formatPrice'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { optimizedImageUrl } from '../../utils/optimizedImageUrl'
+import { getProductWholesalePricing } from '../../services/productService'
 import { ProductOptionSelector } from './ProductOptionSelector'
-import type { Product } from '../../types/product'
+import { WholesalePricing } from './WholesalePricing'
+import type { Product, WholesalePackage } from '../../types/product'
 
 interface ProductOptionsModalProps {
   product: Product
   onClose: () => void
+  mode?: 'retail' | 'wholesale'
 }
 
-export function ProductOptionsModal({ product, onClose }: ProductOptionsModalProps) {
+export function ProductOptionsModal({ product, onClose, mode = 'retail' }: ProductOptionsModalProps) {
+  const isWholesaleMode = mode === 'wholesale'
   const options = [...(product.options ?? [])]
     .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
   const { addToCart, pendingItemIds } = useCart()
   const { showToast } = useToast()
-
+  const [wholesaleStatus, setWholesaleStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [wholesalePackages, setWholesalePackages] = useState<WholesalePackage[]>([])
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(() => {
     if (options.length === 0) return null
     return (options.find((option) => option.stockQuantity > 0) ?? options[0]).id
   })
   const [quantity, setQuantity] = useState(1)
+
+  useEffect(() => {
+    if (mode !== 'wholesale') return
+    let cancelled = false
+    const controller = new AbortController()
+    getProductWholesalePricing(product.id, controller.signal)
+      .then((pricing) => {
+        if (cancelled) return
+        setWholesalePackages(pricing.packages)
+        setWholesaleStatus('ready')
+        setSelectedPackageId((current) =>
+          current && pricing.packages.some((pkg) => pkg.packageId === current)
+            ? current
+            : pricing.packages[0]?.packageId ?? null,
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setWholesaleStatus('error')
+      })
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [mode, product])
 
   useEffect(() => {
     const releaseBodyScroll = lockBodyScroll()
@@ -42,18 +72,43 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
 
   const hasOptions = options.length > 0
   const selectedOption = hasOptions ? (options.find((option) => option.id === selectedOptionId) ?? null) : null
-  const availableStock = hasOptions ? (selectedOption?.stockQuantity ?? 0) : product.stockQuantity
+  const selectedPackage = isWholesaleMode
+    ? (wholesalePackages.find((pkg) => pkg.packageId === selectedPackageId) ?? null)
+    : null
+  const wholesaleUnitsOnHand = selectedPackage?.productOptionId
+    ? (options.find((option) => option.id === selectedPackage.productOptionId)?.stockQuantity ?? 0)
+    : product.stockQuantity
+  const wholesaleAvailable = selectedPackage && wholesaleUnitsOnHand > 0
+    ? Math.floor(wholesaleUnitsOnHand / selectedPackage.unitsPerPackage)
+    : 0
+  const availableStock = isWholesaleMode
+    ? wholesaleAvailable
+    : (hasOptions ? (selectedOption?.stockQuantity ?? 0) : product.stockQuantity)
   const maxSelectableQuantity = Math.max(1, availableStock)
   const quantityFloor = 1
   const selectedQuantity = Math.max(quantityFloor, Math.min(quantity, maxSelectableQuantity))
-  const isUnavailable = product.isAvailable === false || (hasOptions && (selectedOption === null || selectedOption.stockQuantity <= 0))
+  const isUnavailable = product.isAvailable === false
+    || (isWholesaleMode
+      ? (wholesaleStatus !== 'ready' || wholesalePackages.length === 0 || selectedPackage === null || wholesaleAvailable <= 0)
+      : (hasOptions && (selectedOption === null || selectedOption.stockQuantity <= 0)))
   const canAddToCart = !isUnavailable
-  const isAdding = pendingItemIds.includes(cartItemLineKey(product.id, selectedOption?.id ?? null))
+  const isAdding = pendingItemIds.includes(cartItemLineKey(
+    product.id,
+    isWholesaleMode ? (selectedPackage?.productOptionId ?? null) : (selectedOption?.id ?? null),
+    isWholesaleMode ? (selectedPackage?.packageId ?? null) : null,
+  ))
 
   const handleAddToCart = async () => {
     if (!canAddToCart) return
     try {
-      await addToCart(product, selectedQuantity, selectedOption)
+      if (isWholesaleMode) {
+        const packageOption = selectedPackage?.productOptionId
+          ? (options.find((option) => option.id === selectedPackage.productOptionId) ?? null)
+          : null
+        await addToCart(product, selectedQuantity, packageOption, selectedPackage)
+      } else {
+        await addToCart(product, selectedQuantity, selectedOption)
+      }
       showToast(`${product.name} added to your cart.`, 'success')
       onClose()
     } catch (error) {
@@ -88,8 +143,18 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
             <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-orange">{product.unit}</p>
             <h2 className="truncate text-base font-bold text-green-dark">{product.name}</h2>
             <p className="mt-1 text-sm font-bold text-green-dark">
-              {formatPrice(displayPrice)}
-              <span className="ml-1 font-normal text-muted">per {unitLabel}</span>
+              {isWholesaleMode
+                ? (selectedPackage
+                    ? `${formatPrice(selectedPackage.price)} per package`
+                    : wholesaleStatus === 'error'
+                      ? 'Unavailable'
+                      : 'Loading wholesale…')
+                : (
+                  <>
+                    {formatPrice(displayPrice)}
+                    <span className="ml-1 font-normal text-muted">per {unitLabel}</span>
+                  </>
+                )}
             </p>
           </div>
           <button
@@ -103,7 +168,7 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
         </div>
 
         <div className="space-y-5 p-5">
-          {hasOptions && (
+          {!isWholesaleMode && hasOptions && (
             <ProductOptionSelector
               options={options}
               selectedOptionId={selectedOption?.id ?? null}
@@ -111,9 +176,22 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
             />
           )}
 
+          {isWholesaleMode && (
+            <WholesalePricing
+              status={wholesaleStatus}
+              packages={wholesalePackages}
+              selectedPackageId={selectedPackageId}
+              onSelectPackage={setSelectedPackageId}
+              unit={product.unit}
+              optionLabelById={Object.fromEntries(options.map((option) => [option.id, option.label]))}
+            />
+          )}
+
           <div>
             <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-green-dark" htmlFor="product-options-quantity">
-              Quantity
+              Quantity{isWholesaleMode && selectedPackage
+                ? ` · ${selectedPackage.unitsPerPackage} ${selectedPackage.unitsPerPackage === 1 ? 'unit' : 'units'} per package`
+                : ''}
             </label>
             <div className="flex h-12 items-center justify-between rounded-xl border border-line bg-white px-1">
               <button
@@ -139,9 +217,21 @@ export function ProductOptionsModal({ product, onClose }: ProductOptionsModalPro
               </button>
             </div>
             <p className="mt-2 text-xs text-muted" role="status" aria-live="polite">
-              {isUnavailable
-                ? 'This option is currently out of stock.'
-                : `${availableStock} ${availableStock === 1 ? 'unit' : 'units'} available`}
+              {isWholesaleMode
+                ? (wholesaleStatus === 'loading'
+                    ? 'Loading packages…'
+                    : wholesaleStatus === 'error'
+                      ? 'Wholesale pricing is unavailable right now.'
+                      : wholesalePackages.length === 0
+                        ? 'No wholesale package is available for this product yet.'
+                        : selectedPackage === null
+                          ? 'Choose a package to continue.'
+                          : wholesaleAvailable <= 0
+                            ? 'This package is out of stock.'
+                            : `${wholesaleAvailable} ${wholesaleAvailable === 1 ? 'carton' : 'cartons'} available`)
+                : isUnavailable
+                  ? 'This option is currently out of stock.'
+                  : `${availableStock} ${availableStock === 1 ? 'unit' : 'units'} available`}
             </p>
           </div>
         </div>

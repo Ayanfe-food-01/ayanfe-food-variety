@@ -46,6 +46,16 @@ const gatewayCopy: Record<GatewayStatus['kind'], { title: string; body: string }
   },
 }
 
+// The payment provider can take a few seconds after redirect to finalize a
+// transaction (and the webhook backstop lands in the same window). So a single
+// failed-to-confirm reading is never treated as final: keep asking the
+// server-confirmed verify endpoint a few times before declaring the payment
+// unconfirmed.
+const VERIFY_ATTEMPTS = 4
+const VERIFY_RETRY_DELAY_MS = 2500
+
+const delay = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+
 export function OrderConfirmation() {
   const { orderNumber } = useParams()
   const location = useLocation()
@@ -107,19 +117,55 @@ export function OrderConfirmation() {
     })
   }, [])
 
+  // Verify with the server endpoint, retrying with a short backoff only while
+  // the payment is not confirmed yet. A SUCCESSFUL reading ends immediately;
+  // anything else (still pending, or the webhook backstop settling a moment
+  // later) is re-checked so the page converges on the authoritative result.
+  const runVerification = useCallback(async (): Promise<PaystackPaymentVerification | null> => {
+    let lastVerification: PaystackPaymentVerification | null = null
+    let lastError: unknown = null
+    for (let attempt = 0; attempt < VERIFY_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) await delay(VERIFY_RETRY_DELAY_MS)
+      try {
+        const verification = await fetchVerification()
+        if (verification?.status === 'SUCCESSFUL') return verification
+        lastVerification = verification
+        lastError = null
+      } catch (reason) {
+        lastError = reason
+      }
+    }
+    if (lastError !== null && lastVerification === null) throw lastError
+    return lastVerification
+  }, [fetchVerification])
+
   const retryCheck = () => {
     setGatewayStatus({ kind: 'checking' })
-    void fetchVerification().then(applyVerification).catch(verificationFailed)
+    void runVerification().then(applyVerification).catch(verificationFailed)
   }
 
   // Once the order is loaded, confirm an unfinished Paystack payment with the
   // provider. This runs on return from the provider (or an idempotent re-check
-  // of a previous attempt).
+  // of a previous attempt) and keeps re-checking briefly so a payment that is a
+  // moment away from finalizing — or picked up by the webhook backstop — is
+  // still confirmed here rather than shown as uncompleted.
   useEffect(() => {
     if (!order) return
     if (order.paymentMethod !== 'PAYSTACK') return
-    void fetchVerification().then(applyVerification).catch(verificationFailed)
-  }, [applyVerification, fetchVerification, order, verificationFailed])
+    let cancelled = false
+    void runVerification()
+      .then((verification) => {
+        if (cancelled) return
+        applyVerification(verification)
+      })
+      .catch((reason) => {
+        if (cancelled) return
+        verificationFailed(reason)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [applyVerification, order, runVerification, verificationFailed])
 
   const payAgain = async () => {
     if (!orderNumber || !order || isPayingAgain) return
@@ -201,7 +247,37 @@ export function OrderConfirmation() {
             {error}
           </div>
         ) : !order ? (
-          <div className="mx-auto max-w-xl animate-pulse rounded-3xl border border-line bg-white p-10 text-center text-sm text-muted">Loading your confirmation…</div>
+          <div className="mx-auto max-w-3xl animate-pulse" role="status" aria-label="Loading your order confirmation">
+            <div className="rounded-3xl border border-line bg-white px-6 py-10 text-center sm:px-10">
+              <div className="mx-auto size-16 rounded-full bg-sage" />
+              <div className="mx-auto mt-6 h-3 w-28 rounded bg-sage" />
+              <div className="mx-auto mt-3 h-9 w-72 max-w-full rounded bg-sage" />
+              <div className="mx-auto mt-4 h-3 w-80 max-w-full rounded bg-sage" />
+              <div className="mx-auto mt-2 h-3 w-64 max-w-full rounded bg-sage" />
+              <div className="mx-auto mt-7 h-9 w-44 rounded-full bg-sage" />
+            </div>
+            <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+              <div className="h-7 w-40 rounded bg-sage" />
+              <div className="mt-5 space-y-5">
+                {[0, 1, 2].map((row) => (
+                  <div className="flex items-center gap-3" key={row}>
+                    <div className="size-14 shrink-0 rounded-xl bg-sage" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="h-3 w-48 max-w-full rounded bg-sage" />
+                      <div className="h-3 w-28 rounded bg-sage/70" />
+                    </div>
+                    <div className="h-4 w-16 rounded bg-sage" />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 space-y-3 border-t border-line pt-5">
+                <div className="h-4 w-32 rounded bg-sage/70" />
+                <div className="h-4 w-40 rounded bg-sage/70" />
+                <div className="h-4 w-24 rounded bg-sage/70" />
+                <div className="h-5 w-28 rounded bg-sage" />
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="mx-auto max-w-3xl">
             <div className="rounded-3xl border border-green/20 bg-sage/30 px-6 py-10 text-center sm:px-10">
@@ -211,9 +287,11 @@ export function OrderConfirmation() {
               <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted">
                 {order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'success'
                   ? 'Your order has been created successfully and your payment has been confirmed.'
-                  : order.paymentMethod === 'PAYSTACK'
-                    ? 'Your order has been created successfully. Payment is still pending and will be confirmed once complete.'
-                    : 'Your order has been created successfully. Payment is still pending and will be handled separately.'}
+                  : order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'checking'
+                    ? 'Your order has been created successfully. We are confirming your payment, this only takes a moment.'
+                    : order.paymentMethod === 'PAYSTACK'
+                      ? 'Your order has been created successfully. Payment is still pending and will be confirmed once complete.'
+                      : 'Your order has been created successfully. Payment is still pending and will be handled separately.'}
               </p>
               <div className="mt-7 inline-flex items-center gap-3 rounded-full bg-white px-5 py-3 text-sm">
                 <span className="text-muted">Order number</span>
@@ -252,7 +330,7 @@ export function OrderConfirmation() {
                 <h2 className="text-2xl font-bold text-green-dark">Order summary</h2>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{order.orderType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</span>
-                  <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'success' ? 'Payment confirmed' : 'Payment pending'}</span>
+                  <span className="rounded-full bg-sage px-3 py-1 text-xs font-bold text-green-dark">{order.paymentMethod === 'PAYSTACK' ? (gatewayStatus?.kind === 'success' ? 'Payment confirmed' : gatewayStatus?.kind === 'checking' ? 'Confirming payment' : 'Payment pending') : 'Payment pending'}</span>
                 </div>
               </div>
               <div className="mt-5 divide-y divide-line">
@@ -315,7 +393,9 @@ export function OrderConfirmation() {
                 <p className="mt-3 text-sm leading-6 text-muted">
                   {order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'success'
                     ? 'Your payment has been confirmed. Your order will be prepared and you will be notified when it is ready.'
-                    : 'Payment remains pending until it is confirmed. Keep your order number for future reference.'}
+                    : order.paymentMethod === 'PAYSTACK' && gatewayStatus?.kind === 'checking'
+                      ? 'We are confirming your payment with the provider. This only takes a moment.'
+                      : 'Payment remains pending until it is confirmed. Keep your order number for future reference.'}
                 </p>
                  <p className="mt-4 text-sm font-bold text-green-dark">Order status: {formatOrderStatus(order.orderStatus)}</p>
               </div>

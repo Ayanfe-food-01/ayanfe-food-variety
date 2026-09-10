@@ -1,7 +1,7 @@
 import { PaymentProvider, PaymentRecordStatus } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
-import { getProviderAdapter, requireOnlinePaymentEnabled, type PaymentVerifyResult } from './payment.provider.js'
+import { getProviderAdapter, requireOnlinePaymentEnabled, verifyWithRetries, type PaymentVerifyResult } from './payment.provider.js'
 import { settleSuccessfulPayment, paystackAmountMatches, expectedCurrencyMatches } from './payment.settle.js'
 
 export interface ReconcilePaymentEventInput {
@@ -71,7 +71,10 @@ export async function reconcilePaymentFromWebhook(
   // The webhook payload's status/amount/currency are treated as untrusted.
   let result: PaymentVerifyResult
   try {
-    result = await adapter.verify({ providerReference: payment.providerReference })
+    // Re-poll a few times while Paystack reports the transaction as not yet
+    // finalized, so an event that races the finalization window is still
+    // settled here rather than dropped.
+    result = await verifyWithRetries(adapter, payment.providerReference)
   } catch (error: unknown) {
     console.error('paystack_webhook_verification_failure', {
       orderId: order.id,
@@ -83,6 +86,17 @@ export async function reconcilePaymentFromWebhook(
   }
 
   if (result.status !== 'SUCCESSFUL') {
+    if (result.status === 'UNCONFIRMED') {
+      // The transaction may still be finalizing at the provider (e.g. it was
+      // charged but not yet committed when this event arrived). Acknowledge
+      // nothing: return a retryable 5xx so Paystack re-delivers this event
+      // later and the order is not left stuck in PENDING.
+      console.info('paystack_webhook_unconfirmed', {
+        orderId: order.id,
+        providerReference: payment.providerReference,
+      })
+      throw new HttpError(503, 'The payment is not yet finalised by the provider. Will retry.')
+    }
     console.info('paystack_webhook_not_successful', {
       orderId: order.id,
       providerStatus: result.status,

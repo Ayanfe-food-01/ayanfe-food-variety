@@ -15,9 +15,10 @@ import { ProductOptionsModal } from './ProductOptionsModal'
 
 interface ProductCardProps {
   product: Product
+  variant?: 'full' | 'compact'
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, variant = 'full' }: ProductCardProps) {
   const [imageError, setImageError] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
   const { addToCart, pendingItemIds } = useCart()
@@ -31,6 +32,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const discountPercent = showsWholesale || !product.isAvailable || product.discountedPrice >= product.price || product.discountedPrice <= 0
     ? 0
     : Math.round((1 - product.discountedPrice / product.price) * 100)
+  const productUrl = `/product/${product.slug ?? product.id}`
 
   const handleAddToCart = async () => {
     try {
@@ -41,13 +43,31 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   }
 
+  const handleQuickAdd = () => {
+    if (isWholesaleShopper) {
+      if (!showsWholesale) {
+        showToast('No wholesale package is available for this product yet.', 'error')
+        return
+      }
+      setOptionsOpen(true)
+      return
+    }
+    if (hasOptions) {
+      setOptionsOpen(true)
+      return
+    }
+    void handleAddToCart()
+  }
+
   return (
-    <article className="product-card">
-      <Link className="product-card-link" to={`/product/${product.slug ?? product.id}`} aria-label={`View ${product.name}`}>
-        <div className="product-image-wrap">
+    <article className={`product-card${variant === 'compact' ? ' product-card-quick-add' : ''}`}>
+      <div className="product-image-wrap">
+        <Link className="product-image-link" to={productUrl} aria-label={`View ${product.name}`}>
           {product.image && !imageError ? <img src={optimizedImageUrl(product.image, 480)} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
-          {discountPercent > 0 && <span className="product-discount-badge">-{discountPercent}%</span>}
-        </div>
+        </Link>
+        {discountPercent > 0 && <span className="product-discount-badge">-{discountPercent}%</span>}
+      </div>
+      <Link className="product-card-link" to={productUrl}>
         <div className="product-card-body">
           <span className="product-name">{product.name}</span>
           {showsWholesale ? (
@@ -71,8 +91,31 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
       <WishlistButton product={product} className="product-card-wishlist" />
-      <div className="product-card-actions">
-        {hasOptions && !isWholesaleShopper ? (
+      {variant === 'compact' && (
+        <button
+          className="product-quick-add"
+          type="button"
+          aria-label={hasOptions ? `Select options for ${product.name}` : `Add ${product.name} to cart`}
+          title={hasOptions ? 'Select options' : 'Add to cart'}
+          disabled={isAdding}
+          onClick={handleQuickAdd}
+        >
+          <CartIcon size={15} />
+        </button>
+      )}
+      {variant === 'full' && (
+        <div className="product-card-actions">
+        {isWholesaleShopper ? (
+          <button
+            className="product-card-add"
+            type="button"
+            onClick={() => setOptionsOpen(true)}
+            aria-label={`Choose a wholesale package for ${product.name}`}
+          >
+            <CartIcon size={15} />
+            Choose package
+          </button>
+        ) : hasOptions ? (
           <button
             className="product-card-add"
             type="button"
@@ -82,15 +125,6 @@ export function ProductCard({ product }: ProductCardProps) {
             <CartIcon size={15} />
             Select options
           </button>
-        ) : hasOptions && isWholesaleShopper ? (
-          <Link
-            className="product-card-add"
-            to={`/product/${product.slug ?? product.id}`}
-            aria-label={`Choose a wholesale package for ${product.name}`}
-          >
-            <CartIcon size={15} />
-            Choose package
-          </Link>
         ) : (
           <button
             className="product-card-add"
@@ -104,7 +138,14 @@ export function ProductCard({ product }: ProductCardProps) {
           </button>
         )}
       </div>
-      {optionsOpen && <ProductOptionsModal product={product} onClose={() => setOptionsOpen(false)} />}
+      )}
+      {optionsOpen && (
+        <ProductOptionsModal
+          product={product}
+          mode={isWholesaleShopper ? 'wholesale' : 'retail'}
+          onClose={() => setOptionsOpen(false)}
+        />
+      )}
     </article>
   )
 }

@@ -66,7 +66,7 @@ export function Analytics() {
         </div>
       )}
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Revenue summary">
+      <section className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 xl:grid-cols-5" aria-label="Revenue summary">
         <StatCard label="Today's revenue" value={summary ? formatPrice(summary.todayRevenue) : ''} detail="Paid orders today" isLoading={!analytics && !error} />
         <StatCard label="This week's revenue" value={summary ? formatPrice(summary.weekRevenue) : ''} detail="Paid orders this week" isLoading={!analytics && !error} />
         <StatCard label="This month's revenue" value={summary ? formatPrice(summary.monthRevenue) : ''} detail="Paid orders this month" isLoading={!analytics && !error} />
@@ -105,7 +105,7 @@ export function Analytics() {
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Operations</p>
           <h2 id="sales-metrics-heading" className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Sales information</h2>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
           <StatCard label="Confirmed orders" value={metrics?.confirmedOrders ?? ''} detail="Paid, non-cancelled orders" isLoading={!analytics && !error} />
           <StatCard label="Pending orders" value={metrics?.pendingOrders ?? ''} detail="Payment still pending" accent="orange" isLoading={!analytics && !error} />
           <StatCard label="Cancelled orders" value={metrics?.cancelledOrders ?? ''} detail="Orders marked cancelled" accent="orange" isLoading={!analytics && !error} />

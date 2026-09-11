@@ -43,29 +43,54 @@ export interface DashboardStats {
   topProducts: DashboardTopProduct[]
 }
 
-export type AnalyticsRange = 'today' | 'week' | 'month' | 'year'
+export type AnalyticsRange = 'today' | '7d' | '30d' | 'month' | 'custom'
 
 export interface AdminAnalytics {
   timezone: string
-  range: AnalyticsRange
-  summary: {
-    todayRevenue: string
-    weekRevenue: string
-    monthRevenue: string
-    yearRevenue: string
-    totalOrders: number
+  range: {
+    key: AnalyticsRange
+    from: string
+    to: string
   }
-  metrics: {
-    confirmedOrders: number
-    pendingOrders: number
-    cancelledOrders: number
+  summary: {
+    revenue: string
+    orders: number
     averageOrderValue: string
+    repeatCustomerRate: number | null
+  }
+  trends: {
+    revenue: number | null
+    orders: number | null
+    averageOrderValue: number | null
+    repeatCustomerRate: number | null
   }
   series: Array<{
     label: string
     revenue: string
     orders: number
   }>
+  topProducts: Array<{
+    productId: string
+    productName: string
+    categoryId: string | null
+    categoryName: string
+    unitsSold: number
+    revenue: string
+  }>
+  categories: Array<{
+    categoryId: string | null
+    categoryName: string
+    revenue: string
+    unitsSold: number
+    share: number
+  }>
+  customers: {
+    newCustomers: number
+    returningCustomers: number
+    totalCustomers: number
+    averageOrdersPerCustomer: number
+    repeatCustomerRate: number | null
+  }
 }
 
 export interface PaymentSettings {
@@ -135,8 +160,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return response.data.stats
 }
 
-export async function getAdminAnalytics(range: AnalyticsRange = 'month'): Promise<AdminAnalytics> {
-  const response = await request<AnalyticsResponse>(`/admin/analytics?range=${range}`)
+export async function getAdminAnalytics(options: { range: AnalyticsRange; from?: string; to?: string } = { range: '7d' }): Promise<AdminAnalytics> {
+  const params = new URLSearchParams({ range: options.range })
+  if (options.from) params.set('from', options.from)
+  if (options.to) params.set('to', options.to)
+  const response = await request<AnalyticsResponse>(`/admin/analytics?${params.toString()}`)
   return response.data.analytics
 }
 

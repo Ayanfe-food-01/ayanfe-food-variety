@@ -44,6 +44,8 @@ import { ProductForm } from './pages/Admin/ProductForm'
 import { ProductView } from './pages/Admin/ProductView'
 import { Inventory } from './pages/Admin/Inventory'
 import { ProductStockMovements } from './pages/Admin/ProductStockMovements'
+import { Customers } from './pages/Admin/Customers'
+import { CustomerDetail } from './pages/Admin/CustomerDetail'
 import { Categories } from './pages/Admin/Categories'
 import { CategoryForm } from './pages/Admin/CategoryForm'
 import { DeliveryZones } from './pages/Admin/DeliveryZones'
@@ -173,6 +175,8 @@ function RouteTransition() {
           <Route path="/admin/products/:id/edit" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
           <Route path="/admin/inventory" element={<RequireAdmin><Inventory /></RequireAdmin>} />
           <Route path="/admin/inventory/movements/:productId" element={<RequireAdmin><ProductStockMovements /></RequireAdmin>} />
+          <Route path="/admin/customers" element={<RequireAdmin><Customers /></RequireAdmin>} />
+          <Route path="/admin/customers/:id" element={<RequireAdmin><CustomerDetail /></RequireAdmin>} />
           <Route path="/admin/categories" element={<RequireAdmin><Categories /></RequireAdmin>} />
           <Route path="/admin/categories/new" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
           <Route path="/admin/categories/:id/edit" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />

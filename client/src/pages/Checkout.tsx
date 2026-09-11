@@ -268,9 +268,6 @@ export function Checkout() {
                 {submitError && !needsCartReview && (
                   <p className="mt-3 text-center text-sm font-medium text-orange" role="alert">{submitError}</p>
                 )}
-                <p className="mt-3 text-center text-xs text-muted">
-                  Prices and totals are confirmed by the server when you place the order.
-                </p>
               </div>
             </form>
 

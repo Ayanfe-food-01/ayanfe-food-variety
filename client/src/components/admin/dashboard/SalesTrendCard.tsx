@@ -6,14 +6,14 @@ import { SegmentedControl } from '../../ui/SegmentedControl'
 import { RevenueLineChart } from '../RevenueLineChart'
 
 const trendRanges = [
-  { key: 'week', label: '7 days' },
-  { key: 'month', label: '30 days' },
+  { key: '7d', label: '7 days' },
+  { key: '30d', label: '30 days' },
 ]
 
-type TrendRange = 'week' | 'month'
+type TrendRange = '7d' | '30d'
 
 export function SalesTrendCard() {
-  const [range, setRange] = useState<TrendRange>('week')
+  const [range, setRange] = useState<TrendRange>('7d')
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +26,7 @@ export function SalesTrendCard() {
         setError(null)
       }
     })
-    getAdminAnalytics(range)
+    getAdminAnalytics({ range })
       .then((result) => {
         if (current) setAnalytics(result)
       })

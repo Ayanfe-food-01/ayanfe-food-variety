@@ -4,9 +4,12 @@ interface RevenuePoint {
   orders: number
 }
 
+type ChartMetric = 'revenue' | 'orders'
+
 interface RevenueLineChartProps {
   points: RevenuePoint[]
   isLoading?: boolean
+  metric?: ChartMetric
 }
 
 const chartWidth = 1000
@@ -19,16 +22,29 @@ const formatAxisValue = (value: number) =>
     maximumFractionDigits: 1,
   }).format(value)
 
-export function RevenueLineChart({ points, isLoading = false }: RevenueLineChartProps) {
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value)
+
+const emptyMessage = (metric: ChartMetric) =>
+  metric === 'orders' ? 'No order data for this period.' : 'No revenue data for this period.'
+
+const ariaLabel = (metric: ChartMetric) =>
+  metric === 'orders' ? 'Orders over time line chart' : 'Revenue over time line chart'
+
+export function RevenueLineChart({ points, isLoading = false, metric = 'revenue' }: RevenueLineChartProps) {
   if (isLoading) {
-    return <div className="h-[320px] animate-pulse rounded-xl bg-sage/45" aria-label="Loading revenue chart" />
+    return <div className="h-[320px] animate-pulse rounded-xl bg-sage/45" aria-label="Loading chart" />
   }
 
   if (points.length === 0) {
-    return <div className="flex h-[320px] items-center justify-center rounded-xl bg-cream text-sm text-muted">No revenue data for this period.</div>
+    return (
+      <div className="flex h-[320px] items-center justify-center rounded-xl bg-cream text-sm text-muted">
+        {emptyMessage(metric)}
+      </div>
+    )
   }
 
-  const values = points.map((point) => Number(point.revenue))
+  const values = points.map((point) => (metric === 'orders' ? point.orders : Number(point.revenue)))
   const maxValue = Math.max(...values, 1)
   const plotWidth = chartWidth - chartPadding.left - chartPadding.right
   const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom
@@ -36,7 +52,7 @@ export function RevenueLineChart({ points, isLoading = false }: RevenueLineChart
     const x = points.length === 1
       ? chartPadding.left + plotWidth / 2
       : chartPadding.left + (index / (points.length - 1)) * plotWidth
-    const y = chartPadding.top + (1 - Number(point.revenue) / maxValue) * plotHeight
+    const y = chartPadding.top + (1 - values[index] / maxValue) * plotHeight
     return { ...point, x, y }
   })
   const line = coordinates.map(({ x, y }) => `${x},${y}`).join(' ')
@@ -50,7 +66,7 @@ export function RevenueLineChart({ points, isLoading = false }: RevenueLineChart
         className="h-auto min-w-[620px] w-full"
         viewBox={`0 0 ${chartWidth} ${chartHeight}`}
         role="img"
-        aria-label="Revenue over time line chart"
+        aria-label={ariaLabel(metric)}
       >
         {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
           const y = chartPadding.top + ratio * plotHeight
@@ -75,7 +91,9 @@ export function RevenueLineChart({ points, isLoading = false }: RevenueLineChart
             strokeWidth="3"
             key={`${point.label}-${point.x}`}
           >
-            <title>{`${point.label}: ${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(point.revenue))} · ${point.orders} ${point.orders === 1 ? 'order' : 'orders'}`}</title>
+            <title>
+              {point.label}: {metric === 'orders' ? `${point.orders} ${point.orders === 1 ? 'order' : 'orders'}` : `${formatCurrency(Number(point.revenue))} · ${point.orders} ${point.orders === 1 ? 'order' : 'orders'}`}
+            </title>
           </circle>
         ))}
         {labelIndexes.map((index) => {

@@ -90,25 +90,27 @@ export function StockMovementsPanel({ activeTab, onTabChange }: StockMovementsPa
               />
             </div>
           </div>
-          <div>
-            <label className="text-sm font-bold text-green-dark" htmlFor="movement-from">From</label>
-            <input
-              className="mt-2 w-full rounded-xl border border-line px-4 py-3 text-sm text-green-dark focus:border-green focus:outline-none"
-              id="movement-from"
-              onChange={(event) => applyFrom(event.target.value)}
-              type="date"
-              value={from}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-bold text-green-dark" htmlFor="movement-to">To</label>
-            <input
-              className="mt-2 w-full rounded-xl border border-line px-4 py-3 text-sm text-green-dark focus:border-green focus:outline-none"
-              id="movement-to"
-              onChange={(event) => applyTo(event.target.value)}
-              type="date"
-              value={to}
-            />
+          <div className="grid grid-cols-2 gap-4 sm:col-span-2">
+            <div className="min-w-0">
+              <label className="text-sm font-bold text-green-dark" htmlFor="movement-from">From</label>
+              <input
+                className="mt-2 w-full rounded-xl border border-line px-4 py-3 text-sm text-green-dark focus:border-green focus:outline-none"
+                id="movement-from"
+                onChange={(event) => applyFrom(event.target.value)}
+                type="date"
+                value={from}
+              />
+            </div>
+            <div className="min-w-0">
+              <label className="text-sm font-bold text-green-dark" htmlFor="movement-to">To</label>
+              <input
+                className="mt-2 w-full rounded-xl border border-line px-4 py-3 text-sm text-green-dark focus:border-green focus:outline-none"
+                id="movement-to"
+                onChange={(event) => applyTo(event.target.value)}
+                type="date"
+                value={to}
+              />
+            </div>
           </div>
         </div>
         <div className="mt-4 border-t border-line pt-4">
@@ -133,46 +135,81 @@ export function StockMovementsPanel({ activeTab, onTabChange }: StockMovementsPa
               <span>{result!.pagination.total} {result!.pagination.total === 1 ? 'movement' : 'movements'}</span>
               <span>Page {currentPage} of {totalPages}</span>
             </div>
-            <div className="min-w-0 overflow-hidden">
-              <ResponsiveDataTable label="Stock movements table horizontal scroll">
-                <table className="w-full min-w-[880px] whitespace-nowrap text-left text-sm">
-                  <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
-                    <tr>
-                      <th className="px-4 py-4 font-bold">Product</th>
-                      <th className="px-4 py-4 font-bold">Type</th>
-                      <th className="px-4 py-4 text-right font-bold">Change</th>
-                      <th className="px-4 py-4 text-right font-bold">Stock level</th>
-                      <th className="px-4 py-4 font-bold">Reason</th>
-                      <th className="px-4 py-4 font-bold">By</th>
-                      <th className="px-4 py-4 font-bold">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {movements.map((movement) => (
-                      <tr key={movement.id} className="align-middle">
-                        <td className="max-w-[260px] px-4 py-4">
-                          <span className="block min-w-0 truncate font-bold text-green-dark">{movement.productName}</span>
-                          {movement.productOptionLabel && <span className="block min-w-0 truncate text-xs text-muted">{movement.productOptionLabel}</span>}
-                        </td>
-                        <td className="px-4 py-4">
-                          <MovementTypeBadge type={movement.movementType} />
-                        </td>
-                        <td className={`px-4 py-4 text-right font-bold ${movement.quantityDelta > 0 ? 'text-green' : 'text-orange'}`}>
-                          {movement.quantityDelta > 0 ? `+${movement.quantityDelta}` : movement.quantityDelta}
-                        </td>
-                        <td className="px-4 py-4 text-right text-muted">
-                          {movement.previousQuantity} → {movement.newQuantity}
-                        </td>
-                        <td className="max-w-[220px] px-4 py-4 text-muted">
-                          <span className="block min-w-0 truncate" title={movement.reason}>{movement.reason}</span>
-                        </td>
-                        <td className="px-4 py-4 text-muted">{movement.performedBy ?? (movement.orderNumber ? `Order ${movement.orderNumber}` : 'System')}</td>
-                        <td className="px-4 py-4 text-xs text-muted">{formatDate(movement.createdAt)}</td>
+            <div className="space-y-3 p-4 lg:hidden">
+              {movements.map((movement) => (
+                <article className="rounded-2xl border border-line bg-cream/45 p-4" key={movement.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-green-dark">{movement.productName}</p>
+                      {movement.productOptionLabel && <p className="mt-1 text-xs font-semibold text-muted">{movement.productOptionLabel}</p>}
+                    </div>
+                    <MovementTypeBadge type={movement.movementType} />
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
+                    <div>
+                      <dt className="uppercase tracking-[0.12em] text-muted">Change</dt>
+                      <dd className={`mt-1 font-bold ${movement.quantityDelta > 0 ? 'text-green' : 'text-orange'}`}>
+                        {movement.quantityDelta > 0 ? `+${movement.quantityDelta}` : movement.quantityDelta}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="uppercase tracking-[0.12em] text-muted">Stock level</dt>
+                      <dd className="mt-1 font-bold text-green-dark">{movement.previousQuantity} → {movement.newQuantity}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="uppercase tracking-[0.12em] text-muted">Reason</dt>
+                      <dd className="mt-1 truncate text-muted" title={movement.reason}>{movement.reason}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3 text-xs text-muted">
+                    <span className="truncate">{movement.performedBy ?? (movement.orderNumber ? `Order ${movement.orderNumber}` : 'System')}</span>
+                    <span className="shrink-0">{formatDate(movement.createdAt)}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="hidden lg:block">
+              <div className="min-w-0 overflow-hidden">
+                <ResponsiveDataTable label="Stock movements table horizontal scroll">
+                  <table className="w-full min-w-[880px] whitespace-nowrap text-left text-sm">
+                    <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
+                      <tr>
+                        <th className="px-4 py-4 font-bold">Product</th>
+                        <th className="px-4 py-4 font-bold">Type</th>
+                        <th className="px-4 py-4 text-right font-bold">Change</th>
+                        <th className="px-4 py-4 text-right font-bold">Stock level</th>
+                        <th className="px-4 py-4 font-bold">Reason</th>
+                        <th className="px-4 py-4 font-bold">By</th>
+                        <th className="px-4 py-4 font-bold">Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </ResponsiveDataTable>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {movements.map((movement) => (
+                        <tr key={movement.id} className="align-middle">
+                          <td className="max-w-[260px] px-4 py-4">
+                            <span className="block min-w-0 truncate font-bold text-green-dark">{movement.productName}</span>
+                            {movement.productOptionLabel && <span className="block min-w-0 truncate text-xs text-muted">{movement.productOptionLabel}</span>}
+                          </td>
+                          <td className="px-4 py-4">
+                            <MovementTypeBadge type={movement.movementType} />
+                          </td>
+                          <td className={`px-4 py-4 text-right font-bold ${movement.quantityDelta > 0 ? 'text-green' : 'text-orange'}`}>
+                            {movement.quantityDelta > 0 ? `+${movement.quantityDelta}` : movement.quantityDelta}
+                          </td>
+                          <td className="px-4 py-4 text-right text-muted">
+                            {movement.previousQuantity} → {movement.newQuantity}
+                          </td>
+                          <td className="max-w-[220px] px-4 py-4 text-muted">
+                            <span className="block min-w-0 truncate" title={movement.reason}>{movement.reason}</span>
+                          </td>
+                          <td className="px-4 py-4 text-muted">{movement.performedBy ?? (movement.orderNumber ? `Order ${movement.orderNumber}` : 'System')}</td>
+                          <td className="px-4 py-4 text-xs text-muted">{formatDate(movement.createdAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ResponsiveDataTable>
+              </div>
             </div>
             {totalPages > 1 && (
               <AdminPagination className="border-t border-line px-5 py-4" currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />

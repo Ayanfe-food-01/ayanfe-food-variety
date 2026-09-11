@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../../services/api'
 import { getAdminAnalytics, type AdminAnalytics, type AnalyticsRange } from '../../services/adminService'
 import { StatCard } from '../../components/admin/StatCard'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { RevenueLineChart } from '../../components/admin/RevenueLineChart'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
@@ -49,6 +50,7 @@ export function Analytics() {
     <div>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Sales analytics' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Revenue intelligence</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Sales analytics</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">

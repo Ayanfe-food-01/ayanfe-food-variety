@@ -1,3 +1,5 @@
+import { Breadcrumb } from '../../ui/Breadcrumb'
+
 interface DeliveryZonesHeaderProps {
   onManageAreas: () => void
   onAddZone: () => void
@@ -7,6 +9,7 @@ export function DeliveryZonesHeader({ onManageAreas, onAddZone }: DeliveryZonesH
   return (
     <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
       <div>
+        <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Delivery zones & fees' }]} />
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Delivery</p>
         <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Delivery zones & fees</h1>
         <p className="mt-3 max-w-xl text-sm text-muted">Configure delivery zones and their fees. Customers select a state and city at checkout and the matching zone and fee are applied automatically.</p>

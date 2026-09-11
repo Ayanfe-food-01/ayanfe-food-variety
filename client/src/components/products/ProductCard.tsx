@@ -12,6 +12,7 @@ import { useToast } from '../ui/Toast'
 import { formatPrice } from '../../utils/formatPrice'
 import { optimizedImageUrl } from '../../utils/optimizedImageUrl'
 import { ProductOptionsModal } from './ProductOptionsModal'
+import { StoreStockBadge } from './StoreStockBadge'
 
 interface ProductCardProps {
   product: Product
@@ -66,6 +67,7 @@ export function ProductCard({ product, variant = 'full' }: ProductCardProps) {
           {product.image && !imageError ? <img src={optimizedImageUrl(product.image, 480)} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
         </Link>
         {discountPercent > 0 && <span className="product-discount-badge">-{discountPercent}%</span>}
+        <StoreStockBadge product={product} className="product-card-stock-badge" />
       </div>
       <Link className="product-card-link" to={productUrl}>
         <div className="product-card-body">

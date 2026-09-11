@@ -12,6 +12,7 @@ export interface ProductOption {
   label: string
   price: number
   stockQuantity: number
+  lowStockThreshold?: number | null
   sortOrder: number
   isActive: boolean
   wholesaleMoq?: number | null
@@ -35,6 +36,7 @@ export interface Product {
   categoryId?: string
   categorySlug?: string
   stockQuantity: number
+  lowStockThreshold?: number
   isActive: boolean
   isFeatured: boolean
   isAvailable: boolean

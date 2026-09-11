@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
@@ -77,8 +78,7 @@ export function CategoryForm() {
   return (
     <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit category' : 'Add category'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update category details without changing its product relationships.' : 'Create a category that can be assigned to new products.'}</p></div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/categories">Back to categories</Link>
+        <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Categories', href: '/admin/categories' }, { label: isEditing ? 'Edit category' : 'Add category' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit category' : 'Add category'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update category details without changing its product relationships.' : 'Create a category that can be assigned to new products.'}</p></div>
       </div>
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <p className="text-sm text-muted">Loading category…</p> : <form className="space-y-5" onSubmit={submit}>

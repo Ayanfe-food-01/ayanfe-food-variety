@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { useToast } from '../../components/ui/Toast'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -150,6 +151,7 @@ export function Banners() {
     <>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Promotional banners' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Merchandising</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Promotional banners</h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">Create the offers and flyers that appear in the homepage promotional section. Only active banners are visible to customers.</p>

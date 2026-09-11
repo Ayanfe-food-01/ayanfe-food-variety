@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ContentTypeBadge } from '../../components/admin/ContentTypeBadge'
 import { OrderInput } from '../../components/admin/OrderInput'
 import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { useToast } from '../../components/ui/Toast'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -190,11 +191,9 @@ export function ReviewDetail() {
 
   return (
     <>
-      <Link className="inline-flex items-center gap-1.5 text-sm font-bold text-green-dark hover:text-green" to="/admin/reviews">
-        <span aria-hidden="true">←</span> All reviews
-      </Link>
+      <Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Reviews', href: '/admin/reviews' }, { label: review.customerName ?? 'Review' }]} />
 
-      <div className="mt-4 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+      <div className="mt-6 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Review details</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">

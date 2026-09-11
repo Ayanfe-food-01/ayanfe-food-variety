@@ -5,6 +5,7 @@ export interface ProductOption {
   label: string
   price: string
   stockQuantity: number
+  lowStockThreshold?: number | null
   sortOrder: number
   isActive: boolean
   wholesaleMoq?: number | null
@@ -23,6 +24,7 @@ export interface ProductOptionInput {
   label: string
   price: string
   stockQuantity: number
+  lowStockThreshold?: number | null
   sortOrder: number
   isActive?: boolean
   wholesaleMoq?: number | null
@@ -51,6 +53,7 @@ export interface Product {
   isActive: boolean
   isFeatured: boolean
   stockQuantity: number
+  lowStockThreshold?: number
   availabilityStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   isAvailable: boolean
   isWishlisted: boolean
@@ -122,6 +125,7 @@ export interface ProductInput {
   isActive: boolean
   isFeatured: boolean
   stockQuantity?: number
+  lowStockThreshold?: number
   image?: string
   images?: string[]
   options?: ProductOptionInput[]

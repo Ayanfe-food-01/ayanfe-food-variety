@@ -13,10 +13,12 @@ import {
 import { PaymentReview } from '../../components/admin/PaymentReview'
 import { PaymentTable } from '../../components/admin/PaymentTable'
 import { AdminPagination } from '../../components/admin/AdminPagination'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { FilterBar } from '../../components/filters/FilterBar'
 import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
 import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
 import { useToast } from '../../components/ui/Toast'
+import { DateField } from '../../components/ui/DateField'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 10
@@ -152,6 +154,7 @@ export function Payments() {
     <div>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Payments' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Cash management</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Payments</h1>
           <p className="mt-3 text-sm text-muted">Review transfer receipts manually before confirming payment.</p>
@@ -194,13 +197,19 @@ export function Payments() {
               />
             }
           />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className="min-w-0 text-xs font-bold text-green-dark">From
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
-            </label>
-            <label className="min-w-0 text-xs font-bold text-green-dark">To
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
-            </label>
+          <div className="grid grid-cols-2 gap-3 sm:items-end">
+            <div className="min-w-0">
+              <label className="text-xs font-bold text-green-dark">From</label>
+              <div className="mt-2">
+                <DateField ariaLabel="From date" max={query.to || undefined} onChange={(value) => setQuery((current) => ({ ...current, from: value || undefined, page: 1 }))} placeholder="From date" value={query.from ?? ''} />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <label className="text-xs font-bold text-green-dark">To</label>
+              <div className="mt-2">
+                <DateField ariaLabel="To date" min={query.from || undefined} onChange={(value) => setQuery((current) => ({ ...current, to: value || undefined, page: 1 }))} placeholder="To date" value={query.to ?? ''} />
+              </div>
+            </div>
           </div>
         </div>
       </section>

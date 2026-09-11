@@ -1,7 +1,22 @@
 import { request } from './api'
 import type { Product, ProductOption } from '../types/product'
 import type { Category } from '../types/category'
-import type { PaymentMethod } from './orderService'
+import type { OrderStatus, PaymentMethod, PaymentStatus } from './orderService'
+
+export interface DashboardRecentOrder {
+  orderNumber: string
+  customerName: string
+  total: string
+  orderStatus: OrderStatus
+  paymentStatus: PaymentStatus
+  itemCount: number
+  createdAt: string
+}
+
+export interface DashboardTopProduct {
+  productName: string
+  unitsSold: number
+}
 
 export interface DashboardStats {
   totalOrders: number
@@ -12,6 +27,20 @@ export interface DashboardStats {
   pendingPaymentVerification: number
   verifiedPayments: number
   totalSales: string
+  todayRevenue: string
+  todayOrders: number
+  yesterdayRevenue: string
+  yesterdayOrders: number
+  weekRevenue: string
+  weekOrders: number
+  averageOrderValue: string
+  newCustomersThisWeek: number
+  paymentMethodBreakdown: {
+    paystack: { count: number; revenue: string }
+    bankTransfer: { count: number; revenue: string }
+  }
+  recentOrders: DashboardRecentOrder[]
+  topProducts: DashboardTopProduct[]
 }
 
 export type AnalyticsRange = 'today' | 'week' | 'month' | 'year'

@@ -86,6 +86,9 @@ const optionInput = (value: unknown): ProductOptionInput => {
     label,
     price,
     stockQuantity: value.stockQuantity === undefined ? 0 : integerValue(value.stockQuantity, 'Option stock quantity'),
+    lowStockThreshold: value.lowStockThreshold === undefined || value.lowStockThreshold === null || String(value.lowStockThreshold).trim() === ''
+      ? null
+      : integerValue(value.lowStockThreshold, 'Option low stock threshold'),
     sortOrder: value.sortOrder === undefined ? 0 : integerValue(value.sortOrder, 'Option order'),
     isActive: booleanValue(value.isActive, 'Option availability', true),
     wholesaleMoq: value.wholesaleMoq === undefined ? undefined : wholesaleMoqValue(value.wholesaleMoq),

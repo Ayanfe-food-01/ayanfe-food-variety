@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import {
   archiveAdminOrder,
@@ -11,6 +10,8 @@ import {
   type AdminOrdersQuery,
 } from '../../services/orderService'
 import { OrderTable } from '../../components/admin/OrderTable'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { FilterBar } from '../../components/filters/FilterBar'
 import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
 import { AdminPagination } from '../../components/admin/AdminPagination'
@@ -153,28 +154,23 @@ export function Orders() {
     <div>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Orders' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Operations</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Orders</h1>
           <p className="mt-3 text-sm text-muted">Search, review, and move orders through fulfillment.</p>
         </div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin">Back to dashboard</Link>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-2" aria-label="Order archive view">
-        {([
-          ['active', 'Active orders'],
-          ['archived', 'Archived orders'],
-        ] as const).map(([value, label]) => (
-          <button
-            className={`rounded-xl px-4 py-2.5 text-sm font-bold ${query.archive === value ? 'bg-green text-cream' : 'border border-line bg-white text-green-dark hover:border-green'}`}
-            type="button"
-            key={value}
-            aria-pressed={query.archive === value}
-            onClick={() => updateArchiveView(value)}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="mt-8">
+        <SegmentedControl
+          ariaLabel="Order archive view"
+          options={[
+            { key: 'active', label: 'Active orders' },
+            { key: 'archived', label: 'Archived orders' },
+          ]}
+          value={query.archive ?? 'active'}
+          onChange={(key) => updateArchiveView(key as 'active' | 'archived')}
+        />
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Order filters">

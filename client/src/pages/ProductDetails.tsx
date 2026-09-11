@@ -207,6 +207,10 @@ export function ProductDetails() {
     : hasOptions
       ? (selectedOption?.stockQuantity ?? 0)
       : (product?.stockQuantity ?? 0)
+  const lowStockThreshold = isWholesaleConfigured
+    ? 0
+    : (hasOptions ? selectedOption?.lowStockThreshold : product?.lowStockThreshold) ?? 0
+  const isLowRemainingStock = !isWholesaleConfigured && availableStock > 0 && availableStock <= lowStockThreshold
   const remainingStockForCart = isWholesaleConfigured
     ? Math.max(0, wholesaleAvailableCartons - cartLineQuantity)
     : hasOptions
@@ -568,6 +572,11 @@ export function ProductDetails() {
                 : (!hasOptions && availableStock > 0 && currentCartQuantity >= availableStock && (
                     <p className="mb-2 text-xs text-muted">All available units are already in your cart.</p>))}
               <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                {isLowRemainingStock && (
+                  <p className="w-full text-sm font-bold text-orange" role="status" aria-live="polite">
+                    Only {availableStock} {availableStock === 1 ? 'unit' : 'units'} left in stock
+                  </p>
+                )}
                 <p className={`text-sm font-semibold ${availableStock > 0 ? 'text-green-dark' : 'text-orange'}`} role="status" aria-live="polite">
                   {availableStock > 0
                     ? `${availableStock} ${availableStock === 1 ? (isWholesaleShopper ? 'package' : 'unit') : (isWholesaleShopper ? 'packages' : 'units')} available`

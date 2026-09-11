@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '../../components/ui/Toast'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ProductsFilterPanel } from '../../components/admin/ProductsFilterPanel'
 import { ProductsTable } from '../../components/admin/ProductsTable'
 import { AdminPagination } from '../../components/admin/AdminPagination'
@@ -215,8 +216,9 @@ export function Products() {
     <div className="admin-products-page">
       <div className="admin-products-page-header flex min-w-0 flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Store operations</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Products & inventory</h1>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Products' }]} />
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p>
+          <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Products</h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">Manage your catalog, availability, prices, and stock levels. Deactivate products to preserve history; permanent deletion is only available when no protected records exist.</p>
         </div>
         <Link className="admin-products-add-button inline-flex shrink-0 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/products/new">

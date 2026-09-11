@@ -100,6 +100,34 @@
   line-height: 1;
 }
 
+.store-stock-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  line-height: 1;
+}
+
+.store-stock-badge-low {
+  background: rgba(238, 139, 66, .12);
+  color: var(--color-orange);
+}
+
+.store-stock-badge-out {
+  background: rgba(0, 0, 0, .55);
+  color: white;
+}
+
+.product-card-stock-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+}
+
 .product-price-row {
   display: flex;
   min-width: 0;

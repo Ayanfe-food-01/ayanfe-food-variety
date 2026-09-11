@@ -1,6 +1,6 @@
 import { AdminNotificationType, PaymentMethod, Prisma } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
-import { deductStock } from '../inventory/inventory.service.js'
+import { deductStock, resolveDeductUnits } from '../inventory/inventory.service.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
 import type { OrderWithItems } from './order.mapper.js'
 import type { CheckoutCartItem, CheckoutProduct } from './checkout.cart.js'
@@ -24,13 +24,13 @@ export async function completeCheckoutOrder(
 ): Promise<void> {
   const { order, cartId, cartItems, productsById, paymentMethod } = context
 
-  for (const item of [...cartItems].sort((left, right) => left.productId.localeCompare(right.productId))) {
-    const product = productsById.get(item.productId)
+  for (const orderLine of [...order.orderItems].sort((left, right) => left.productId.localeCompare(right.productId))) {
+    const product = productsById.get(orderLine.productId)
     try {
       await deductStock(transaction, {
-        productId: item.productId,
-        productOptionId: item.productOptionId ?? null,
-        quantity: item.quantity,
+        productId: orderLine.productId,
+        productOptionId: orderLine.productOptionId ?? null,
+        quantity: resolveDeductUnits(orderLine.quantity, orderLine.wholesaleUnitsPerPackage),
         orderId: order.id,
         orderNumber: order.orderNumber,
       })

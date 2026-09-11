@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { getAdminProduct } from '../../services/adminService'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ProductPrice } from '../../components/products/ProductPrice'
 import { formatPrice } from '../../utils/formatPrice'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
@@ -26,8 +27,8 @@ export function ProductView() {
   return (
     <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Product details</h1></div>
-        <div className="flex gap-4 text-sm font-bold text-green"><Link to="/admin/products">Back to products</Link>{product && <Link to={`/admin/products/${product.id}/edit`}>Edit product</Link>}</div>
+        <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Products', href: '/admin/products' }, { label: product?.name ?? 'Product details' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Product details</h1></div>
+        {product && <Link className="text-sm font-bold text-green hover:text-orange" to={`/admin/products/${product.id}/edit`}>Edit product</Link>}
       </div>
       {isLoading && <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading product…</div>}
       {error && <div className="mt-8 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}

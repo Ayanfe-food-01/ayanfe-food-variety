@@ -57,6 +57,9 @@ export function validateProductFields(body: unknown): Omit<ProductInput, 'image'
     isActive: booleanValue(body.isActive, 'Availability', true),
     isFeatured: booleanValue(body.isFeatured, 'Featured', false),
     stockQuantity: hasOptions ? undefined : integerValue(body.stockQuantity, 'Stock quantity'),
+    lowStockThreshold: body.lowStockThreshold === undefined
+      ? undefined
+      : integerValue(body.lowStockThreshold, 'Low stock threshold'),
     options,
   }
 }

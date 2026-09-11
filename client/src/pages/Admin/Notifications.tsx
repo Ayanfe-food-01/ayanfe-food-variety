@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import {
   getAdminNotifications,
@@ -10,6 +10,7 @@ import {
 } from '../../services/notificationService'
 import { AdminNotificationList } from '../../components/admin/AdminNotificationList'
 import { AdminPagination } from '../../components/admin/AdminPagination'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 20
@@ -91,13 +92,13 @@ export function Notifications() {
     <div>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Notifications' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Admin operations</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Notifications</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             Review the complete history of important order, payment, and stock updates.
           </p>
         </div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin">Back to dashboard</Link>
       </div>
 
       <section className="mt-8 overflow-hidden rounded-2xl border border-line bg-white shadow-sm" aria-label="Notification history">

@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { MovementType } from '@prisma/client'
 import { createLowStockNotificationIfNeeded, recordStockAdjustment } from '../inventory/inventory.service.js'
 import { adminProductInclude, toAdminProduct } from './admin-product.mapper.js'
 import { reconcileOptions, syncWholesaleTiers } from './admin-product.options.service.js'
@@ -28,6 +29,7 @@ const optionCreateRows = (options: ProductInput['options'] | undefined) =>
     label: option.label,
     price: option.price,
     stockQuantity: option.stockQuantity,
+    lowStockThreshold: option.lowStockThreshold ?? null,
     sortOrder: option.sortOrder,
     isActive: option.isActive ?? true,
     wholesaleMoq: option.wholesaleMoq ?? null,
@@ -81,6 +83,7 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
           isActive: input.isActive,
           isFeatured: input.isFeatured,
           stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : 0),
+          lowStockThreshold: input.lowStockThreshold ?? 5,
           ...(hasOptions ? { options: { create: optionCreateRows(input.options) } } : {}),
         },
         include: adminProductInclude,
@@ -99,7 +102,9 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
           quantityDelta: created.stockQuantity,
           previousQuantity: 0,
           newQuantity: created.stockQuantity,
+          movementType: MovementType.STOCK_RECEIVED,
           reason: `Initial stock by admin ${adminId}`,
+          performedBy: adminId,
         })
         if (adjustment) {
           await createLowStockNotificationIfNeeded(transaction, {
@@ -159,6 +164,7 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           isActive: input.isActive,
           isFeatured: input.isFeatured,
           stockQuantity: input.stockQuantity ?? (hasOptions ? optionStockSum(input.options) : undefined),
+          lowStockThreshold: input.lowStockThreshold ?? undefined,
         },
         include: adminProductInclude,
       })
@@ -168,7 +174,9 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           quantityDelta: updated.stockQuantity - current.stock_quantity,
           previousQuantity: current.stock_quantity,
           newQuantity: updated.stockQuantity,
+          movementType: MovementType.MANUAL_ADJUSTMENT,
           reason: `Admin ${adminId} set stock to ${updated.stockQuantity}`,
+          performedBy: adminId,
         })
         if (adjustment) {
           await createLowStockNotificationIfNeeded(transaction, {

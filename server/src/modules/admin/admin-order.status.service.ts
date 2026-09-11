@@ -3,7 +3,7 @@ import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { UpdateOrderStatusInput } from './admin.types.js'
 import { notifyOrderStatusChanged } from '../orders/order.email.js'
-import { restoreStock } from '../inventory/inventory.service.js'
+import { restoreStock, resolveDeductUnits } from '../inventory/inventory.service.js'
 import { getAdminOrder } from './admin-order.detail.service.js'
 
 const allowedTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
@@ -25,7 +25,7 @@ export async function updateAdminOrderStatus(orderNumber: string, input: UpdateO
     const existing = await transaction.order.findUnique({
       where: { orderNumber },
       include: {
-        orderItems: { select: { productId: true, productOptionId: true, quantity: true } },
+        orderItems: { select: { productId: true, productOptionId: true, quantity: true, wholesaleUnitsPerPackage: true } },
       },
     })
     if (!existing) throw new HttpError(404, 'Order not found.')
@@ -44,7 +44,7 @@ export async function updateAdminOrderStatus(orderNumber: string, input: UpdateO
           await restoreStock(transaction, {
             productId: item.productId,
             productOptionId: item.productOptionId ?? null,
-            quantity: item.quantity,
+            quantity: resolveDeductUnits(item.quantity, item.wholesaleUnitsPerPackage),
             orderId: existing.id,
             orderNumber: existing.orderNumber,
           })
@@ -95,7 +95,7 @@ export async function updateAdminOrderStatus(orderNumber: string, input: UpdateO
         await restoreStock(transaction, {
           productId: item.productId,
           productOptionId: item.productOptionId ?? null,
-          quantity: item.quantity,
+          quantity: resolveDeductUnits(item.quantity, item.wholesaleUnitsPerPackage),
           orderId: order.id,
           orderNumber: order.orderNumber,
         })

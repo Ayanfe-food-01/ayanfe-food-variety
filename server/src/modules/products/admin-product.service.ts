@@ -3,9 +3,10 @@ import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { adminProductInclude, toAdminProduct } from './admin-product.mapper.js'
 import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
+import { LOW_STOCK_THRESHOLD_DEFAULT } from '../inventory/inventory.threshold.js'
 import type { AdminProductQuery, Product } from './product.types.js'
 
-const LOW_STOCK_THRESHOLD = 5
+const LOW_STOCK_THRESHOLD = LOW_STOCK_THRESHOLD_DEFAULT
 
 const ADMIN_PRODUCT_SEARCH_FIELDS: SearchFieldConfig[] = [
   { path: 'name', primary: true, weight: 2 },

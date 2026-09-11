@@ -1,5 +1,6 @@
 import { Prisma, ReviewStatus } from '@prisma/client'
 import { calculateDiscountedPrice } from './product.pricing.js'
+import { computeStockStatus, resolveLowStockThreshold } from '../inventory/inventory.threshold.js'
 import type { Product, ProductOption } from './product.types.js'
 
 export type ProductWithCategory = Prisma.ProductGetPayload<{
@@ -39,6 +40,7 @@ export const toOption = (option: ProductOptionRow): ProductOption => ({
   label: option.label,
   price: option.price.toString(),
   stockQuantity: option.stockQuantity,
+  lowStockThreshold: option.lowStockThreshold ?? undefined,
   sortOrder: option.sortOrder,
   isActive: option.isActive,
 })
@@ -53,36 +55,36 @@ export const ratingsSummary = (reviews: readonly { rating: number }[]) => {
   return { averageRating: Math.round((total / count) * 10) / 10, reviewCount: count }
 }
 
-export const toProduct = (product: ProductWithRatings, isWishlisted = false, wholesaleFrom?: string | null): Product => ({
-  id: product.id,
-  categoryId: product.categoryId,
-  categoryName: product.category.name,
-  categorySlug: product.category.slug,
-  name: product.name,
-  slug: product.slug,
-  description: product.description,
-  price: product.price.toString(),
-  discountType: product.discountType,
-  discountValue: product.discountValue?.toString() ?? null,
-  discountedPrice: calculateDiscountedPrice(product.price, product.discountType, product.discountValue).toString(),
-  deliveryFee: product.deliveryFee.toString(),
-  unit: product.unit,
-  image: product.image,
-  images: normalizedImages(product),
-  options: normalizedOptions(product.options),
-  isActive: product.isActive,
-  isFeatured: product.isFeatured,
-  stockQuantity: product.stockQuantity,
-  availabilityStatus: product.stockQuantity === 0
-    ? 'OUT_OF_STOCK'
-    : product.stockQuantity <= 5
-      ? 'LOW_STOCK'
-      : 'IN_STOCK',
-  isAvailable: product.isActive && product.stockQuantity > 0,
-  isWishlisted,
-  wholesaleFrom: wholesaleFrom ?? undefined,
-  averageRating: ratingsSummary(product.reviews ?? []).averageRating,
-  reviewCount: ratingsSummary(product.reviews ?? []).reviewCount,
-  createdAt: product.createdAt.toISOString(),
-  updatedAt: product.updatedAt.toISOString(),
-})
+export const toProduct = (product: ProductWithRatings, isWishlisted = false, wholesaleFrom?: string | null): Product => {
+  const threshold = product.lowStockThreshold ?? 5
+  return {
+    id: product.id,
+    categoryId: product.categoryId,
+    categoryName: product.category.name,
+    categorySlug: product.category.slug,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    price: product.price.toString(),
+    discountType: product.discountType,
+    discountValue: product.discountValue?.toString() ?? null,
+    discountedPrice: calculateDiscountedPrice(product.price, product.discountType, product.discountValue).toString(),
+    deliveryFee: product.deliveryFee.toString(),
+    unit: product.unit,
+    image: product.image,
+    images: normalizedImages(product),
+    options: normalizedOptions(product.options),
+    isActive: product.isActive,
+    isFeatured: product.isFeatured,
+    stockQuantity: product.stockQuantity,
+    lowStockThreshold: threshold,
+    availabilityStatus: computeStockStatus(product.stockQuantity, threshold),
+    isAvailable: product.isActive && product.stockQuantity > 0,
+    isWishlisted,
+    wholesaleFrom: wholesaleFrom ?? undefined,
+    averageRating: ratingsSummary(product.reviews ?? []).averageRating,
+    reviewCount: ratingsSummary(product.reviews ?? []).reviewCount,
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+  }
+}

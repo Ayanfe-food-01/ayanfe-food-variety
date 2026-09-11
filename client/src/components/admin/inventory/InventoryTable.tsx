@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../ActionMenu'
 import { InventoryStockBadge } from './InventoryStockBadge'
 import { ResponsiveDataTable } from '../../ui/ResponsiveDataTable'
 import type { InventoryItem } from '../../../types/inventory'
@@ -93,21 +94,19 @@ export function InventoryTable({ items, isRefreshing, onAdjust }: InventoryTable
                     <td className="px-4 py-4 text-right text-muted">{item.lowStockThreshold}</td>
                     <td className="px-4 py-4"><InventoryStockBadge status={item.status} /></td>
                     <td className="px-4 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          className="inline-flex rounded-lg border border-green/25 px-4 py-2 text-xs font-bold text-green hover:bg-green hover:text-cream disabled:opacity-50"
-                          type="button"
-                          disabled={isRefreshing}
-                          onClick={() => onAdjust(item)}
-                        >
-                          Adjust stock
-                        </button>
-                        <Link
-                          className="inline-flex rounded-lg border border-green/25 px-4 py-2 text-xs font-bold text-green hover:bg-green hover:text-cream"
-                          to={`/admin/inventory/movements/${item.productId}`}
-                        >
-                          History
-                        </Link>
+                      <div className="flex items-center justify-center">
+                        <ActionMenu ariaLabel={`Actions for ${item.productName}`} isBusy={isRefreshing} fixedPosition>
+                          {(close) => (
+                            <>
+                              <ActionMenuButton onClick={() => { close(); onAdjust(item) }}>
+                                Adjust stock
+                              </ActionMenuButton>
+                              <ActionMenuLink to={`/admin/inventory/movements/${item.productId}${item.productOptionId ? `?option=${item.productOptionId}` : ''}`} onClick={close}>
+                                History
+                              </ActionMenuLink>
+                            </>
+                          )}
+                        </ActionMenu>
                       </div>
                     </td>
                   </tr>

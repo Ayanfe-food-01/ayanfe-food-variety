@@ -119,7 +119,7 @@ export function Inventory() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+      <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
         <StatCard label="Tracked units" value={totalSkus} detail="Active products and options" isLoading={isInitialLoading} />
         <StatCard label="Low stock" value={lowStock} detail="At or below their low-stock threshold" accent="orange" isLoading={isInitialLoading} to="/admin/inventory?status=low-stock" />
         <StatCard label="Out of stock" value={outOfStock} detail="Units with zero available stock" accent="orange" isLoading={isInitialLoading} to="/admin/inventory?status=out-of-stock" />

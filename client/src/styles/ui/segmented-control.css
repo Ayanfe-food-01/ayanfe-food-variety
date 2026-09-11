@@ -38,7 +38,8 @@
 }
 
 .segmented-control-segment.is-active {
-  color: var(--color-green);
+  background: var(--color-green);
+  color: var(--color-cream);
   font-weight: 600;
 }
 

@@ -8,21 +8,15 @@ import { formatRelativeTime } from './dashboardFormat'
 interface RecentOrdersCardProps {
   orders: DashboardRecentOrder[]
   isLoading?: boolean
-  newCustomersThisWeek?: number
 }
 
-export function RecentOrdersCard({ orders, isLoading = false, newCustomersThisWeek }: RecentOrdersCardProps) {
+export function RecentOrdersCard({ orders, isLoading = false }: RecentOrdersCardProps) {
   return (
-    <section className="h-full rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
+    <section className="h-full min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Latest activity</p>
           <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Recent orders</h2>
-          {newCustomersThisWeek !== undefined && (
-            <p className="mt-1 text-xs text-muted">
-              {newCustomersThisWeek} new {newCustomersThisWeek === 1 ? 'customer' : 'customers'} this week
-            </p>
-          )}
         </div>
         <Link className="flex items-center gap-1 text-sm font-bold text-green hover:text-orange" to="/admin/orders">
           View all orders <ArrowUpRight size={16} />

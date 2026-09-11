@@ -42,7 +42,7 @@ export function SalesTrendCard() {
   }, [range])
 
   return (
-    <section className="h-full rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
+    <section className="h-full min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Sales trend</p>

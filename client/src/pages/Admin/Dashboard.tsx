@@ -74,34 +74,41 @@ export function Dashboard() {
               detail="Across all paid orders"
               to="/admin/analytics"
             />
-            <NeedsAttentionCard
-              total={isLoading ? 0 : needsAttentionTotal}
+            <DashboardMetricCard
+              label="New customers this week"
+              value={stats?.newCustomersThisWeek ?? 0}
               isLoading={isLoading}
-              items={[
-                { label: 'Low stock items', count: lowStock, to: '/admin/inventory?status=low-stock' },
-                { label: 'Pending quote requests', count: pendingQuotes, to: '/admin/quote-requests' },
-                { label: 'Orders awaiting confirmation', count: ordersAwaiting, to: '/admin/orders' },
-              ]}
+              detail="First paid orders this week"
             />
           </div>
 
           <div className="mt-6 grid gap-5 sm:mt-8 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="min-w-0 lg:col-span-2">
               <SalesTrendCard />
             </div>
-            <PaymentMethodsCard
-              paystack={stats?.paymentMethodBreakdown.paystack ?? { count: 0, revenue: '0' }}
-              bankTransfer={stats?.paymentMethodBreakdown.bankTransfer ?? { count: 0, revenue: '0' }}
-              isLoading={isLoading}
-            />
+            <div className="min-w-0 space-y-5">
+              <NeedsAttentionCard
+                total={isLoading ? 0 : needsAttentionTotal}
+                isLoading={isLoading}
+                items={[
+                  { label: 'Low stock items', count: lowStock, to: '/admin/inventory?status=low-stock' },
+                  { label: 'Pending quote requests', count: pendingQuotes, to: '/admin/quote-requests' },
+                  { label: 'Orders awaiting confirmation', count: ordersAwaiting, to: '/admin/orders' },
+                ]}
+              />
+              <PaymentMethodsCard
+                paystack={stats?.paymentMethodBreakdown.paystack ?? { count: 0, revenue: '0' }}
+                bankTransfer={stats?.paymentMethodBreakdown.bankTransfer ?? { count: 0, revenue: '0' }}
+                isLoading={isLoading}
+              />
+            </div>
           </div>
 
           <div className="mt-6 grid gap-5 sm:mt-8 md:grid-cols-2 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="min-w-0 lg:col-span-2">
               <RecentOrdersCard
                 orders={stats?.recentOrders ?? []}
                 isLoading={isLoading}
-                newCustomersThisWeek={stats?.newCustomersThisWeek}
               />
             </div>
             <TopProductsCard products={stats?.topProducts ?? []} isLoading={isLoading} />

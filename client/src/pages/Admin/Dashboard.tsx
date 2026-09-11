@@ -41,11 +41,11 @@ export function Dashboard() {
         <div className="mt-8 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
       ) : (
         <>
-          <section className="mt-8" aria-label="Quick actions">
+          <section className="mt-6 sm:mt-8" aria-label="Quick actions">
             <QuickActions />
           </section>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-5 lg:grid-cols-4">
             <DashboardMetricCard
               label="Revenue today"
               value={stats ? formatPrice(stats.todayRevenue) : ''}
@@ -85,7 +85,7 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+          <div className="mt-6 grid gap-5 sm:mt-8 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <SalesTrendCard />
             </div>
@@ -96,7 +96,7 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+          <div className="mt-6 grid gap-5 sm:mt-8 md:grid-cols-2 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <RecentOrdersCard
                 orders={stats?.recentOrders ?? []}

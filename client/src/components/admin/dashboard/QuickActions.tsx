@@ -24,14 +24,14 @@ const actions = [
 
 export function QuickActions() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
       {actions.map((action) => (
         <Link
-          className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-green/30 hover:bg-sage/20 sm:p-5"
+          className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-green/30 hover:bg-sage/20"
           key={action.to}
           to={action.to}
         >
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-sage/45 text-green-dark transition-colors group-hover:bg-green group-hover:text-cream" aria-hidden="true">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sage/45 text-green-dark transition-colors group-hover:bg-green group-hover:text-cream sm:size-11" aria-hidden="true">
             {action.icon}
           </span>
           <span>

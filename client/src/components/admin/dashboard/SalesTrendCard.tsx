@@ -42,20 +42,22 @@ export function SalesTrendCard() {
   }, [range])
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section className="h-full rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Sales trend</p>
           <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Revenue over time</h2>
         </div>
         <div className="flex items-center gap-3">
-          <SegmentedControl
-            ariaLabel="Sales trend range"
-            options={trendRanges}
-            value={range}
-            onChange={(key) => setRange(key as TrendRange)}
-          />
-          <Link className="flex items-center gap-1 text-sm font-bold text-green hover:text-orange" to="/admin/analytics">
+          <div className="w-[220px] shrink-0">
+            <SegmentedControl
+              ariaLabel="Sales trend range"
+              options={trendRanges}
+              value={range}
+              onChange={(key) => setRange(key as TrendRange)}
+            />
+          </div>
+          <Link className="flex shrink-0 items-center gap-1 text-sm font-bold text-green hover:text-orange" to="/admin/analytics">
             Details <ArrowUpRight size={16} />
           </Link>
         </div>

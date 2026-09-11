@@ -13,7 +13,7 @@ interface RecentOrdersCardProps {
 
 export function RecentOrdersCard({ orders, isLoading = false, newCustomersThisWeek }: RecentOrdersCardProps) {
   return (
-    <section className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+    <section className="h-full rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Latest activity</p>

@@ -30,25 +30,23 @@ interface SummaryCardProps {
 
 function SummaryCard({ label, count, total, icon, iconClassName, footer }: SummaryCardProps) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+    <div className="flex h-full min-h-[9.5rem] flex-col rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <span className={`shrink-0 ${iconClassName}`}>{icon}</span>
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
       </div>
       <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-green-dark">{count}</p>
       <p className="mt-1 text-xs text-muted">{formatPrice(total)} submitted</p>
-      {footer}
+      {footer && <div className="mt-auto pt-3">{footer}</div>}
     </div>
   )
 }
 
 export function PaymentStats({ pending, verified, rejected, methodBreakdown }: PaymentStatsProps) {
   const confirmedFooter = methodBreakdown && (
-    <div className="mt-3">
-      <div className="flex flex-wrap gap-2">
-        <span className="rounded-full bg-orange/10 px-2.5 py-1 text-[11px] font-bold text-orange">Paystack {formatPrice(methodBreakdown.paystack.totalAmount)}</span>
-        <span className="rounded-full bg-line/50 px-2.5 py-1 text-[11px] font-bold text-muted">Bank {formatPrice(methodBreakdown.bankTransfer.totalAmount)}</span>
-      </div>
+    <div className="flex flex-wrap gap-2">
+      <span className="rounded-full bg-orange/10 px-2.5 py-1 text-[11px] font-bold text-orange">Paystack {formatPrice(methodBreakdown.paystack.totalAmount)}</span>
+      <span className="rounded-full bg-line/50 px-2.5 py-1 text-[11px] font-bold text-muted">Bank {formatPrice(methodBreakdown.bankTransfer.totalAmount)}</span>
     </div>
   )
 

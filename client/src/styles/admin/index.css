@@ -1,6 +1,7 @@
 @import "./theme.css";
 @import "./products.css";
 @import "./inventory.css";
+@import "./tabs.css";
 @import "./skeleton.css";
 
 .y-scrollbar {

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '../../components/ui/Toast'
 import { AdminPagination } from '../../components/admin/AdminPagination'
 import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
+import { AdminTabs } from '../../components/admin/AdminTabs'
 import { StatCard } from '../../components/admin/StatCard'
 import { InventoryFilterPanel } from '../../components/admin/inventory/InventoryFilterPanel'
 import { InventoryTable } from '../../components/admin/inventory/InventoryTable'
@@ -17,14 +18,23 @@ import type { InventoryItem } from '../../types/inventory'
 
 const pageSize = 20
 
-type InventoryTab = 'all' | 'low' | 'out' | 'movements'
+type InventoryTab = 'stock' | 'movements'
 
-const TABS: { key: InventoryTab; label: string }[] = [
-  { key: 'all', label: 'All stock' },
-  { key: 'low', label: 'Low stock' },
-  { key: 'out', label: 'Out of stock' },
-  { key: 'movements', label: 'Movements' },
-]
+const STATUS_FROM_PARAM = (param: string | null): InventoryQuery['stockStatus'] | undefined => {
+  switch (param) {
+    case 'in-stock':
+    case 'healthy':
+      return 'in-stock'
+    case 'low-stock':
+    case 'low':
+      return 'low-stock'
+    case 'out-of-stock':
+    case 'out':
+      return 'out-of-stock'
+    default:
+      return undefined
+  }
+}
 
 export function Inventory() {
   const { showToast } = useToast()
@@ -33,22 +43,9 @@ export function Inventory() {
   const [searchInput, setSearchInput] = useState('')
   const [adjustingItem, setAdjustingItem] = useState<InventoryItem | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [stockStatus, setStockStatus] = useState<InventoryQuery['stockStatus'] | undefined>(() => STATUS_FROM_PARAM(searchParams.get('status')))
 
-  const statusParam = searchParams.get('status')
-  const tabParam = searchParams.get('tab')
-  const activeTab: InventoryTab = tabParam === 'movements'
-    ? 'movements'
-    : statusParam === 'low-stock' || statusParam === 'low'
-      ? 'low'
-      : statusParam === 'out-of-stock' || statusParam === 'out'
-        ? 'out'
-        : 'all'
-
-  const controlledStockStatus: InventoryQuery['stockStatus'] | undefined = activeTab === 'low'
-    ? 'low-stock'
-    : activeTab === 'out'
-      ? 'out-of-stock'
-      : undefined
+  const activeTab: InventoryTab = searchParams.get('tab') === 'movements' ? 'movements' : 'stock'
 
   const {
     items,
@@ -59,7 +56,7 @@ export function Inventory() {
     error,
     summary,
     setQuery,
-  } = useInventoryData({ stockStatus: controlledStockStatus, refreshKey: reloadKey })
+  } = useInventoryData({ stockStatus, refreshKey: reloadKey })
 
   useInitialRouteLoad(!isInitialLoading)
 
@@ -78,7 +75,19 @@ export function Inventory() {
   }, [activeTab, setQuery])
 
   const switchTab = (tab: InventoryTab) => {
-    setSearchParams(tab === 'all' ? {} : { tab })
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'movements') next.set('tab', 'movements')
+    else next.delete('tab')
+    setSearchParams(next)
+  }
+
+  const updateStockStatus = (status: InventoryQuery['stockStatus'] | undefined) => {
+    setStockStatus(status)
+    const next = new URLSearchParams(searchParams)
+    if (status) next.set('status', status)
+    else next.delete('status')
+    setSearchParams(next)
+    setQuery({ page: 1 })
   }
 
   const refresh = () => {
@@ -99,7 +108,7 @@ export function Inventory() {
     <div className="admin-inventory-page min-w-0">
       <div className="flex min-w-0 flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Store operations</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Operations</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Inventory</h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">Monitor stock levels across every unit, filter by availability, and record manual adjustments with a clear audit trail.</p>
         </div>
@@ -107,25 +116,20 @@ export function Inventory() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <StatCard label="Tracked units" value={totalSkus} detail="Active products and options" isLoading={isInitialLoading} />
-        <StatCard label="Low stock" value={lowStock} detail="At or below their low-stock threshold" accent="orange" isLoading={isInitialLoading} to="/admin/inventory?tab=low" />
-        <StatCard label="Out of stock" value={outOfStock} detail="Units with zero available stock" accent="orange" isLoading={isInitialLoading} to="/admin/inventory?tab=out" />
+        <StatCard label="Low stock" value={lowStock} detail="At or below their low-stock threshold" accent="orange" isLoading={isInitialLoading} to="/admin/inventory?status=low-stock" />
+        <StatCard label="Out of stock" value={outOfStock} detail="Units with zero available stock" accent="orange" isLoading={isInitialLoading} to="/admin/inventory?status=out-of-stock" />
       </div>
 
-      <div className="mt-8 flex items-center justify-between gap-4">
-        <div className="inventory-tabs" role="tablist" aria-label="Inventory views">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`inventory-tab${activeTab === tab.key ? ' inventory-tab-active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.key}
-              onClick={() => switchTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="mt-8">
+        <AdminTabs
+          ariaLabel="Inventory views"
+          tabs={[
+            { key: 'stock', label: 'Stock overview' },
+            { key: 'movements', label: 'Movements' },
+          ]}
+          activeKey={activeTab}
+          onSelect={(key) => switchTab(key as InventoryTab)}
+        />
       </div>
 
       {activeTab === 'movements' ? (
@@ -139,10 +143,13 @@ export function Inventory() {
           <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Inventory filters">
             <InventoryFilterPanel
               categories={categories}
-              query={{ page: currentPage, pageSize, search: '', categoryId: '' }}
+              query={{ page: currentPage, pageSize, search: '', categoryId: '', stockStatus }}
               searchInput={searchInput}
               onSearchInputChange={setSearchInput}
-              onApply={(next) => setQuery(next)}
+              onApply={(next) => {
+                if (next.stockStatus !== undefined) updateStockStatus(next.stockStatus)
+                setQuery({ categoryId: next.categoryId, search: next.search })
+              }}
             />
           </section>
 
@@ -167,17 +174,15 @@ export function Inventory() {
               </>
             ) : (
               <div className="admin-inventory-empty rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
-                <h2 className="text-xl font-bold text-green-dark">
-                  {activeTab === 'low' ? 'No low-stock units' : activeTab === 'out' ? 'No out-of-stock units' : 'No inventory found'}
-                </h2>
+                <h2 className="text-xl font-bold text-green-dark">No inventory found</h2>
                 <p className="mt-2 text-sm text-muted">
-                  {activeTab === 'low'
+                  {stockStatus === 'low-stock'
                     ? 'Every tracked unit is above its low-stock threshold.'
-                    : activeTab === 'out'
+                    : stockStatus === 'out-of-stock'
                       ? 'Every tracked unit currently has stock available.'
                       : 'No active products or options match the current filters.'}
                 </p>
-                {activeTab === 'all' && <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add a product</Link>}
+                {!stockStatus && <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add a product</Link>}
               </div>
             )}
           </section>

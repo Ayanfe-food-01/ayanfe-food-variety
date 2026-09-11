@@ -21,6 +21,17 @@ const fields = (categories: Category[]) => [
       ...categories.map((category) => ({ value: category.id, label: category.name })),
     ],
   },
+  {
+    key: 'stockStatus',
+    label: 'Stock level',
+    type: 'select' as const,
+    options: [
+      { value: '', label: 'All stock levels' },
+      { value: 'in-stock', label: 'Healthy stock' },
+      { value: 'low-stock', label: 'Low stock' },
+      { value: 'out-of-stock', label: 'Out of stock' },
+    ],
+  },
 ]
 
 export function InventoryFilterPanel({
@@ -34,18 +45,19 @@ export function InventoryFilterPanel({
 
   const committed: Record<string, string> = {
     categoryId: query.categoryId ?? '',
+    stockStatus: query.stockStatus ?? '',
   }
 
   const applyFilters = (next: Record<string, string>) => {
     onApply({
       categoryId: next.categoryId || undefined,
+      stockStatus: (next.stockStatus || undefined) as InventoryQuery['stockStatus'],
     })
   }
 
   return (
     <FilterBar
       fields={filterFields}
-      quickFields={filterFields}
       committed={committed}
       onApply={applyFilters}
       search={{

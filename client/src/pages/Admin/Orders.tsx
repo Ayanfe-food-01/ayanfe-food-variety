@@ -11,6 +11,7 @@ import {
   type AdminOrdersQuery,
 } from '../../services/orderService'
 import { OrderTable } from '../../components/admin/OrderTable'
+import { AdminTabs } from '../../components/admin/AdminTabs'
 import { FilterBar } from '../../components/filters/FilterBar'
 import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
 import { AdminPagination } from '../../components/admin/AdminPagination'
@@ -160,21 +161,16 @@ export function Orders() {
         <Link className="text-sm font-bold text-green hover:text-orange" to="/admin">Back to dashboard</Link>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-2" aria-label="Order archive view">
-        {([
-          ['active', 'Active orders'],
-          ['archived', 'Archived orders'],
-        ] as const).map(([value, label]) => (
-          <button
-            className={`rounded-xl px-4 py-2.5 text-sm font-bold ${query.archive === value ? 'bg-green text-cream' : 'border border-line bg-white text-green-dark hover:border-green'}`}
-            type="button"
-            key={value}
-            aria-pressed={query.archive === value}
-            onClick={() => updateArchiveView(value)}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="mt-8">
+        <AdminTabs
+          ariaLabel="Order archive view"
+          tabs={[
+            { key: 'active', label: 'Active orders' },
+            { key: 'archived', label: 'Archived orders' },
+          ]}
+          activeKey={query.archive ?? 'active'}
+          onSelect={(key) => updateArchiveView(key as 'active' | 'archived')}
+        />
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Order filters">

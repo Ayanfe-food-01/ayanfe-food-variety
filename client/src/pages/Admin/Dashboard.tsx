@@ -61,8 +61,8 @@ export function Dashboard() {
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <StatCard label="Tracked units" value={inventorySummary?.totalTrackedSkus ?? 0} detail="Active products and options" isLoading={!inventorySummary} to="/admin/inventory" />
-          <StatCard label="Low stock" value={inventorySummary?.lowStockCount ?? 0} detail="At or below their low-stock threshold" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?tab=low" />
-          <StatCard label="Out of stock" value={inventorySummary?.outOfStockCount ?? 0} detail="Units with zero available stock" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?tab=out" />
+          <StatCard label="Low stock" value={inventorySummary?.lowStockCount ?? 0} detail="At or below their low-stock threshold" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?status=low-stock" />
+          <StatCard label="Out of stock" value={inventorySummary?.outOfStockCount ?? 0} detail="Units with zero available stock" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?status=out-of-stock" />
         </div>
       </section>
 

@@ -712,6 +712,26 @@ model AdminSession {
   @@map("admin_sessions")
 }
 
+model AdminAuditLog {
+  id          Int      @id @default(autoincrement())
+  adminUserId String?  @map("admin_user_id") @db.Uuid
+  adminEmail  String?  @map("admin_email") @db.VarChar(255)
+  event       String   @db.VarChar(64)
+  resource    String?  @db.VarChar(64)
+  resourceId  String?  @map("resource_id")
+  method      String?  @db.VarChar(12)
+  path        String?
+  statusCode  Int?     @map("status_code")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([adminUserId, createdAt], map: "admin_audit_logs_admin_user_created_idx")
+  @@index([event, createdAt], map: "admin_audit_logs_event_created_idx")
+  @@index([createdAt], map: "admin_audit_logs_created_idx")
+  @@map("admin_audit_logs")
+}
+
 model CustomerSession {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String    @map("user_id") @db.Uuid

@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express'
 import { UserRole } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { ADMIN_AUDIT_EVENTS, recordAdminAudit } from '../audit/audit.service.js'
 
 /**
  * Failed-attempt limiting for the ADMIN login path.
@@ -58,12 +59,14 @@ export const adminLoginAttemptGuard: RequestHandler = async (request, response, 
   }
 
   let isAdminUser = false
+  let adminUserId: string | undefined
   try {
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { role: true },
+      select: { id: true, role: true },
     })
     isAdminUser = user?.role === UserRole.ADMIN
+    adminUserId = user?.id
   } catch {
     // If the lookup fails, fall through to the normal login error path instead
     // of surprising the client with a different failure mode.
@@ -85,12 +88,28 @@ export const adminLoginAttemptGuard: RequestHandler = async (request, response, 
   }
 
   response.once('finish', () => {
+    const sourceIp = request.ip
     if (response.statusCode >= 200 && response.statusCode < 300) {
       clearFailures(email)
+      void recordAdminAudit({
+        adminUserId,
+        adminEmail: email,
+        event: ADMIN_AUDIT_EVENTS.LOGIN_SUCCESS,
+        ipAddress: sourceIp,
+        statusCode: response.statusCode,
+      })
       return
     }
     if (response.statusCode === 401 || response.statusCode === 403) {
       const locked = recordFailure(email)
+      void recordAdminAudit({
+        adminUserId,
+        adminEmail: email,
+        event: ADMIN_AUDIT_EVENTS.LOGIN_FAILED,
+        ipAddress: sourceIp,
+        statusCode: response.statusCode,
+        metadata: { locked: locked ? true : undefined },
+      })
       if (locked) {
         console.info(JSON.stringify({
           event: 'admin_login_attempts_exhausted',

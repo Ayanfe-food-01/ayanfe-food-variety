@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { UserRole } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { ADMIN_AUDIT_EVENTS, recordAdminAudit } from '../audit/audit.service.js'
 import type { AuthenticatedUser, LoginInput } from './auth.types.js'
 import { hashSessionToken, toUser, verifyPassword } from './auth.primitives.js'
 import {
@@ -93,8 +94,14 @@ export async function getAuthenticatedUser(token: string | null): Promise<Authen
   if (!session || session.revokedAt) return null
 
   const now = new Date()
-  if (session.expiresAt <= now) return null
-  if (session.lastActivityAt <= new Date(now.getTime() - ADMIN_INACTIVITY_TTL_MS)) return null
+  if (session.expiresAt <= now || session.lastActivityAt <= new Date(now.getTime() - ADMIN_INACTIVITY_TTL_MS)) {
+    void recordAdminAudit({
+      adminUserId: session.userId,
+      adminEmail: session.user.email,
+      event: ADMIN_AUDIT_EVENTS.SESSION_EXPIRED,
+    })
+    return null
+  }
 
   bumpAdminSessionActivity(session.id, session.lastActivityAt)
   return toUser(session.user)

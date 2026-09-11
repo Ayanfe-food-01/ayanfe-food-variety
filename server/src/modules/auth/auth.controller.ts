@@ -32,6 +32,7 @@ import {
   isGoogleOAuthConfigured,
 } from './auth.google.js'
 import { loginAdminWithGoogle } from './admin-auth.google.service.js'
+import { ADMIN_AUDIT_EVENTS, recordAdminAudit } from '../audit/audit.service.js'
 import { HttpError } from '../../utils/http.js'
 import {
   validateCustomerEmailVerificationInput,
@@ -58,11 +59,22 @@ export const loginController: RequestHandler = async (request, response) => {
 
 export const logoutController: RequestHandler = async (request, response) => {
   response.set('Cache-Control', 'no-store, max-age=0')
-  await revokeSession(getSessionToken(request.headers.cookie))
+  const adminSessionToken = getSessionToken(request.headers.cookie)
+  const adminUser = adminSessionToken ? await getAuthenticatedUser(adminSessionToken) : null
+  await revokeSession(adminSessionToken)
   await revokeCustomerSession(getCustomerSessionToken(request.headers.cookie))
   response.clearCookie(authCookie.name, authCookie.options)
   response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
   response.status(204).send()
+  if (adminUser) {
+    void recordAdminAudit({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      event: ADMIN_AUDIT_EVENTS.LOGOUT,
+      ipAddress: request.ip,
+      statusCode: 204,
+    })
+  }
 }
 
 export const meController: RequestHandler = async (request, response) => {

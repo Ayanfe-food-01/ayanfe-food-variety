@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ApiError } from '../../../services/api'
 import { getAdminAnalytics, type AdminAnalytics, type AnalyticsRange } from '../../../services/adminService'
 
@@ -21,15 +21,21 @@ export function useAdminAnalytics(options: {
   const key = createKey(range, from, to)
   const [results, setResults] = useState<Record<string, AdminAnalytics>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const fetchedRef = useRef(new Set<string>())
 
   useEffect(() => {
-    if (!enabled || fetchedRef.current.has(key)) return
-    fetchedRef.current.add(key)
+    if (!enabled) return
     let current = true
     getAdminAnalytics({ range, from, to })
       .then((result) => {
-        if (current) setResults((prev) => ({ ...prev, [key]: result }))
+        if (current) {
+          setResults((prev) => ({ ...prev, [key]: result }))
+          setErrors((prev) => {
+            if (!prev[key]) return prev
+            const next = { ...prev }
+            delete next[key]
+            return next
+          })
+        }
       })
       .catch((caught: unknown) => {
         if (current) {

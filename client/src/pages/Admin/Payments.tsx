@@ -120,7 +120,7 @@ export function Payments() {
         description="Review transfer receipts manually before confirming payment."
       />
 
-      <PaymentStats pending={summary.pending} verified={summary.verified} rejected={summary.rejected} methodBreakdown={summary.methodBreakdown} />
+      <PaymentStats pending={summary.pending} verified={summary.verified} rejected={summary.rejected} methodBreakdown={summary.methodBreakdown} isLoading={isLoading} />
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Payment filters">
         <FilterBar

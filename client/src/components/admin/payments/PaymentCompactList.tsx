@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom'
+import { BuildingIcon, CreditCardIcon } from '../../../assets/icons'
 import type { AdminPayment } from '../../../services/paymentService'
 import { ResponsiveDataTable } from '../../ui/ResponsiveDataTable'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../ActionMenu'
-import { formatPrice, formatRelativeDate, formatStatus, isActionable, statusClass } from './paymentHelpers'
+import { formatPrice, formatRelativeDate, formatStatus, statusClass } from './paymentHelpers'
 import { PaymentEmptyState } from './PaymentEmptyState'
 
 const methodLabel = (paymentMethod: AdminPayment['paymentMethod']): string =>
   paymentMethod === 'PAYSTACK' ? 'Paystack' : 'Bank transfer'
 
 function MethodBadge({ paymentMethod }: { paymentMethod: AdminPayment['paymentMethod'] }) {
+  const isPaystack = paymentMethod === 'PAYSTACK'
   return (
-    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${paymentMethod === 'PAYSTACK' ? 'bg-sage/60 text-green-dark' : 'bg-line/50 text-muted'}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${isPaystack ? 'bg-sage/60 text-green-dark' : 'bg-line/50 text-muted'}`}>
+      {isPaystack ? <CreditCardIcon size={12} /> : <BuildingIcon size={12} />}
       {methodLabel(paymentMethod)}
     </span>
   )
@@ -26,23 +29,27 @@ function MobileCardRows({ payments, onSelect }: PaymentCompactListProps) {
     <div className="space-y-3 p-4 lg:hidden">
       {payments.map((payment) => (
         <article className="rounded-2xl border border-line bg-cream/45 p-4" key={payment.id}>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Order</p>
               <Link className="mt-1 block truncate font-bold text-green hover:text-orange" to={`/admin/orders/${payment.orderNumber}`}>{payment.orderNumber}</Link>
+              <p className="mt-1 truncate text-xs font-semibold text-green-dark">{payment.customerName}</p>
+              <p className="mt-0.5 truncate text-xs text-muted">{payment.customerEmail ?? payment.customerPhone}</p>
             </div>
-            {formatStatus(payment.status) === 'Pending' && (
-              <button className="shrink-0 font-bold text-green hover:text-orange" type="button" onClick={() => onSelect(payment)}>Review</button>
-            )}
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate font-semibold text-green-dark">{payment.customerName}</p>
-              <p className="mt-1 truncate text-xs text-muted">{payment.customerEmail ?? payment.customerPhone}</p>
-            </div>
-            <div className="shrink-0 text-right">
+            <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+              <span onClick={(event) => event.stopPropagation()}>
+                <ActionMenu ariaLabel={`Actions for payment ${payment.orderNumber}`} fixedPosition>
+                  {(close) => (
+                    <>
+                      <ActionMenuButton onClick={() => { close(); onSelect(payment) }}>View details</ActionMenuButton>
+                      <ActionMenuLink onClick={close} to={`/admin/orders/${payment.orderNumber}`}>Open order details</ActionMenuLink>
+                    </>
+                  )}
+                </ActionMenu>
+              </span>
               <p className="font-bold text-green-dark">{formatPrice(payment.amount)}</p>
-              <p className="mt-1 text-xs text-muted">{formatRelativeDate(payment.createdAt)}</p>
+              <p className="mt-0.5 text-xs text-muted">Expected {formatPrice(payment.expectedAmount)}</p>
+              <p className="mt-1 text-[11px] text-muted">{formatRelativeDate(payment.createdAt)}</p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
@@ -77,7 +84,7 @@ function DesktopTable({ payments, onSelect }: PaymentCompactListProps) {
                   <Link className="block min-w-0 truncate max-w-[180px] font-semibold text-green hover:text-orange" to={`/admin/orders/${payment.orderNumber}`} onClick={(event) => event.stopPropagation()}>{payment.orderNumber}</Link>
                   <p className="mt-1 block min-w-0 truncate max-w-[260px] text-xs text-muted">{payment.customerName} · {payment.customerEmail ?? payment.customerPhone}</p>
                 </td>
-                <td className="whitespace-nowrap px-5 py-4">
+                <td className="whitespace-nowrap px-5 py-4 text-right">
                   <p className="font-semibold text-green-dark">{formatPrice(payment.amount)}</p>
                   <p className="mt-1 text-xs text-muted">Expected {formatPrice(payment.expectedAmount)}</p>
                 </td>
@@ -90,9 +97,6 @@ function DesktopTable({ payments, onSelect }: PaymentCompactListProps) {
                       <ActionMenu ariaLabel={`Actions for payment ${payment.orderNumber}`} fixedPosition>
                         {(close) => (
                           <>
-                            {isActionable(payment.status) && (
-                              <ActionMenuButton tone="accent" onClick={() => { close(); onSelect(payment) }}>Review payment</ActionMenuButton>
-                            )}
                             <ActionMenuButton onClick={() => { close(); onSelect(payment) }}>View details</ActionMenuButton>
                             <ActionMenuLink onClick={close} to={`/admin/orders/${payment.orderNumber}`}>Open order details</ActionMenuLink>
                           </>

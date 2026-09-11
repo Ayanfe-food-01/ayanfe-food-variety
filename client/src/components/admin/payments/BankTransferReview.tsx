@@ -59,22 +59,31 @@ export function BankTransferReview({ payment, isSaving, onVerify, onReject }: Ba
 
   return (
     <>
+      <div className="mt-7 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-line bg-white p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Expected total</p>
+          <p className="mt-3 text-4xl font-bold tracking-[-0.04em] text-green-dark sm:text-5xl">{formatPrice(payment.expectedAmount)}</p>
+          <p className="mt-2 text-xs text-muted">Order total the customer was charged.</p>
+        </div>
+        <div className={`rounded-2xl border p-5 ${amountMatches ? 'border-green/20 bg-sage/45' : 'border-orange/30 bg-orange/10'}`}>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Submitted amount</p>
+          <p className={`mt-3 text-4xl font-bold tracking-[-0.04em] sm:text-5xl ${amountMatches ? 'text-green-dark' : 'text-orange'}`}>{formatPrice(payment.amount)}</p>
+          {amountMatches ? (
+            <p className="mt-2 text-xs font-bold text-green-dark">Matches the expected total.</p>
+          ) : (
+            <p className="mt-2 text-xs font-bold text-orange">Mismatch — verify against your bank records.</p>
+          )}
+        </div>
+      </div>
+
       <div className="mt-7 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <InfoCard label="Customer">
           <p className="font-bold text-green-dark">{payment.customerName}</p>
           <p className="mt-1 break-words text-xs text-muted">{payment.customerEmail ?? payment.customerPhone}</p>
         </InfoCard>
-        <InfoCard label="Expected order total">
-          <p className="text-lg font-bold text-green-dark">{formatPrice(payment.expectedAmount)}</p>
-        </InfoCard>
         <InfoCard label="Payment method">
           <p className="font-bold text-green-dark">Bank transfer</p>
         </InfoCard>
-        <div className={`rounded-2xl p-4 ${amountMatches ? 'bg-sage/45' : 'bg-orange/10'}`}>
-          <p className="text-xs text-muted">Amount entered with proof</p>
-          <p className="mt-1 text-lg font-bold text-green-dark">{formatPrice(payment.amount)}</p>
-          <p className="mt-1 text-xs text-muted">Customer-provided amount; verify against your bank records.</p>
-        </div>
         <InfoCard label="Sender name">
           <p className="font-bold text-green-dark">{payment.senderName}</p>
         </InfoCard>

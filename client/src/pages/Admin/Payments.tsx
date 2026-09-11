@@ -157,7 +157,7 @@ export function Payments() {
         <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading payments…</div>
       ) : (
         <>
-          <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{result?.pagination.total ?? 0} payments</span><span>Page {currentPage} of {totalPages}</span></div>
+          <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{result?.pagination.total ?? 0} payment{result?.pagination.total === 1 ? '' : 's'}</span><span>Page {currentPage} of {totalPages}</span></div>
           <div className="mt-3"><PaymentCompactList payments={result?.payments ?? []} onSelect={(payment) => void openReview(payment)} /></div>
           {totalPages > 1 && <AdminPagination className="mt-5" currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => setQuery((current) => ({ ...current, page }))} />}
         </>

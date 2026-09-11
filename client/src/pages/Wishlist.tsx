@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 import { HeartIcon } from '../assets/icons'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
-import { SectionHeader } from '../components/ui/SectionHeader'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { useWishlist } from '../hooks/useWishlist'
@@ -24,19 +24,27 @@ export function Wishlist() {
         noIndex
       />
       <Navbar />
-      <main className="container py-14 sm:py-20">
-        <SectionHeader
-          as="h1"
-          eyebrow="Saved for later"
-          title="Your wishlist"
-          description="Keep your favourite foodstuff close and return when you are ready to shop."
-          actions={
-            user && products.length > 0 ? (
-              <span className="rounded-full bg-sage px-4 py-2 text-sm font-bold text-green-dark">{products.length} saved</span>
-            ) : undefined
-          }
-        />
+      <main>
+        <section className="border-b border-line/70 bg-sage/35">
+          <div className="container py-8 sm:py-10 lg:py-12">
+            <Breadcrumb className="mb-6" items={[{ label: 'Home', href: '/' }, { label: 'Wishlist' }]} />
+            <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+              <div className="max-w-2xl">
+                <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
+                  <span className="inline-block size-2 rounded-full bg-orange" aria-hidden="true" />
+                  Saved for later
+                </p>
+                <h1 className="m-0 text-4xl font-bold leading-none tracking-[-0.05em] text-green-dark sm:text-5xl">Your wishlist</h1>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-muted sm:text-base">Keep your favourite foodstuff close and return when you are ready to shop.</p>
+              </div>
+              {user && products.length > 0 && (
+                <span className="shrink-0 rounded-full bg-sage px-4 py-2 text-sm font-bold text-green-dark">{products.length} saved</span>
+              )}
+            </div>
+          </div>
+        </section>
 
+        <div className="container py-14 sm:py-20">
         {isAuthLoading || (user && isLoading) ? (
           <div className="product-grid" role="status" aria-label="Loading your wishlist">
             {[0, 1, 2, 3].map((index) => (
@@ -67,6 +75,7 @@ export function Wishlist() {
         ) : (
           <ProductGrid products={products} />
         )}
+        </div>
       </main>
       <Footer />
     </>

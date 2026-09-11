@@ -4,7 +4,7 @@ import { ArrowRight, CloseIcon, EyeIcon, EyeOffIcon } from '../../assets/icons'
 import { Button } from '../ui/Button'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { ApiError } from '../../services/api'
-import { getCurrentUser, getGoogleSignInUrl, login, signupCustomer, type AuthenticatedUser } from '../../services/authService'
+import { getCurrentUser, getAdminGoogleSignInUrl, getGoogleSignInUrl, login, signupCustomer, type AuthenticatedUser } from '../../services/authService'
 import {
   clearAuthReturnPath,
   isCheckoutReturnPath,
@@ -22,21 +22,27 @@ const googleErrorMessages: Record<string, string> = {
   google_cancelled: 'Google sign-in was cancelled.',
   google_unavailable: 'Google sign-in is not available right now. Please use email and password.',
   google_failed: 'Google sign-in could not be completed. Please try again or use email and password.',
+  google_admin_forbidden: 'This Google account is not authorized for administrator access.',
 }
 
 const FOCUSABLE_SELECTOR = 'a, button, input, [tabindex]:not([tabindex="-1"])'
 
+const ADMIN_EXPIRY_NOTICE = 'Your admin session has expired due to inactivity. Please sign in again.'
+
 interface LoginModalProps {
   standalone?: boolean
+  adminMode?: boolean
 }
 
-export function LoginModal({ standalone = false }: LoginModalProps) {
+export function LoginModal({ standalone = false, adminMode = false }: LoginModalProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { completeAuthentication, completeGuestContinuation, closeAuth } = useCustomerAuth()
   const initialReturnPath = readInternalReturnPath(location.state)
   const initialGoogleError = new URLSearchParams(location.search).get('oauth_error')
+  const initialExpiryNotice = adminMode && new URLSearchParams(location.search).get('reason') === 'expired'
   const [view, setView] = useState<LoginView>(() => {
+    if (adminMode) return 'email'
     const state = location.state
     return (state && typeof state === 'object' && 'email' in state) || initialReturnPath.startsWith('/admin')
       ? 'email'
@@ -51,11 +57,12 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(() => (
-    initialGoogleError && googleErrorMessages[initialGoogleError]
+  const [error, setError] = useState<string | null>(() => {
+    if (initialExpiryNotice) return ADMIN_EXPIRY_NOTICE
+    return initialGoogleError && googleErrorMessages[initialGoogleError]
       ? googleErrorMessages[initialGoogleError]
       : null
-  ))
+  })
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -199,6 +206,10 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
         return
       }
       const user = await login(email, password)
+      if (adminMode && user.role !== 'ADMIN') {
+        setError('This account does not have administrator access.')
+        return
+      }
       completeAuthentication(user)
       if (standalone) {
         navigate(getDestination(user), { replace: true })
@@ -220,7 +231,7 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
     setError(null)
     setIsSubmitting(true)
     storeAuthReturnPath(readInternalReturnPath(location.state))
-    window.location.assign(getGoogleSignInUrl())
+    window.location.assign(adminMode ? getAdminGoogleSignInUrl() : getGoogleSignInUrl())
   }
 
   const continueAsGuest = () => {
@@ -300,9 +311,11 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
               </>
             ) : (
               <>
-                <button className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={() => { setView('gateway'); setMode('login'); setError(null) }}>
-                  ← Back
-                </button>
+                {!adminMode && (
+                  <button className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={() => { setView('gateway'); setMode('login'); setError(null) }}>
+                    ← Back
+                  </button>
+                )}
                 <div className="mt-5">
                   <h1 className="text-3xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
                   <p className="mt-3 text-sm leading-6 text-muted">
@@ -347,9 +360,24 @@ export function LoginModal({ standalone = false }: LoginModalProps) {
                     Verify your email
                   </Button>
                 )}
-                <Button className="mt-7 w-full text-center" variant="text" size="sm" type="button" onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}>
-                  {mode === 'login' ? 'Don’t have an account? Sign up' : 'Already have an account? Sign in'}
-                </Button>
+                {adminMode && mode === 'login' && (
+                  <div className="mt-6">
+                    <div className="flex items-center gap-3">
+                      <span className="h-px flex-1 bg-line" aria-hidden="true" />
+                      <span className="text-xs font-bold text-muted">OR</span>
+                      <span className="h-px flex-1 bg-line" aria-hidden="true" />
+                    </div>
+                    <Button className="mt-4 w-full" variant="outline" size="lg" type="button" disabled={isSubmitting} onClick={continueWithGoogle}>
+                      <img className="size-5" src="/branding/google-icon.svg" alt="" aria-hidden="true" />
+                      Continue with Google
+                    </Button>
+                  </div>
+                )}
+                {!adminMode && (
+                  <Button className="mt-7 w-full text-center" variant="text" size="sm" type="button" onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}>
+                    {mode === 'login' ? 'Don’t have an account? Sign up' : 'Already have an account? Sign in'}
+                  </Button>
+                )}
               </>
             )}
             {standalone && (

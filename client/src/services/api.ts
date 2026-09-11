@@ -77,6 +77,29 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Admin-path requests that come back 401 mean the server session is missing,
+ * revoked, idle-expired, or past its absolute lifetime. The UX for that is a
+ * clear redirect to the dedicated admin login page, never a broken dashboard.
+ * The 5 s throttle plus the /admin/login guard prevent redirect loops when
+ * several in-flight requests fail at the same time or the login page itself
+ * performs follow-up calls.
+ */
+let adminAuthRedirectHandledAt = 0
+
+const redirectAdminToLogin = (): void => {
+  const now = Date.now()
+  if (now - adminAuthRedirectHandledAt < 5_000) return
+  const pathname = window.location.pathname
+  if (pathname === '/admin/login') return
+  const target = new URL('/admin/login', window.location.origin)
+  target.searchParams.set('reason', 'expired')
+  adminAuthRedirectHandledAt = now
+  window.location.assign(target.toString())
+}
+
+const isAdminApiPath = (path: string): boolean => path.startsWith('/admin')
+
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!apiBaseUrl) {
     throw new ApiError('The API URL is not configured for this environment.', 0)
@@ -121,6 +144,9 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   }
 
   if (!response.ok) {
+    if (response.status === 401 && isAdminApiPath(path)) {
+      redirectAdminToLogin()
+    }
     const serverMessage =
       body && typeof body === 'object' && 'error' in body
         ? (body.error as { message?: unknown }).message

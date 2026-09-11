@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { About } from './pages/About'
 import { Contact } from './pages/Contact'
@@ -35,6 +35,7 @@ import { PaymentSettings } from './pages/Admin/PaymentSettings'
 import { ContactSettings } from './pages/Admin/ContactSettings'
 import { PasswordSettings } from './pages/Admin/PasswordSettings'
 import { Login } from './pages/Login'
+import { AdminLogin } from './pages/Admin/AdminLogin'
 import { VerifyEmail } from './pages/VerifyEmail'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
@@ -162,7 +163,7 @@ function RouteTransition() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/admin/login" element={<Navigate replace to="/login" />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
           <Route path="/admin/analytics" element={<RequireAdmin><Analytics /></RequireAdmin>} />
           <Route path="/admin/orders" element={<RequireAdmin><Orders /></RequireAdmin>} />

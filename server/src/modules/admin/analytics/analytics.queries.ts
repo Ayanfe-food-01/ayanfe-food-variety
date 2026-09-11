@@ -101,16 +101,15 @@ eligible AS (
   WHERE o.payment_status = 'PAID' AND o.order_status <> 'CANCELLED'
 )
 SELECT
-  to_char(c.period_start, 'YYYY-MM-DD') AS range_from,
-  to_char(c.period_end - interval '1 microsecond', 'YYYY-MM-DD') AS range_to,
-  COALESCE(SUM(e.total) FILTER (WHERE e.local_created_at >= c.period_start AND e.local_created_at < c.period_end), 0)::numeric::text AS revenue,
-  COUNT(*) FILTER (WHERE e.local_created_at >= c.period_start AND e.local_created_at < c.period_end)::int AS orders,
-  COALESCE(AVG(e.total) FILTER (WHERE e.local_created_at >= c.period_start AND e.local_created_at < c.period_end), 0)::numeric::text AS average_order_value,
-  COALESCE(SUM(e.total) FILTER (WHERE e.local_created_at >= c.prev_start AND e.local_created_at < c.prev_end), 0)::numeric::text AS prev_revenue,
-  COUNT(*) FILTER (WHERE e.local_created_at >= c.prev_start AND e.local_created_at < c.prev_end)::int AS prev_orders,
-  COALESCE(AVG(e.total) FILTER (WHERE e.local_created_at >= c.prev_start AND e.local_created_at < c.prev_end), 0)::numeric::text AS prev_average_order_value
+  to_char((SELECT period_start FROM config), 'YYYY-MM-DD') AS range_from,
+  to_char((SELECT period_end FROM config) - interval '1 microsecond', 'YYYY-MM-DD') AS range_to,
+  COALESCE(SUM(e.total) FILTER (WHERE e.local_created_at >= (SELECT period_start FROM config) AND e.local_created_at < (SELECT period_end FROM config)), 0)::numeric::text AS revenue,
+  COUNT(*) FILTER (WHERE e.local_created_at >= (SELECT period_start FROM config) AND e.local_created_at < (SELECT period_end FROM config))::int AS orders,
+  COALESCE(AVG(e.total) FILTER (WHERE e.local_created_at >= (SELECT period_start FROM config) AND e.local_created_at < (SELECT period_end FROM config)), 0)::numeric::text AS average_order_value,
+  COALESCE(SUM(e.total) FILTER (WHERE e.local_created_at >= (SELECT prev_start FROM config) AND e.local_created_at < (SELECT prev_end FROM config)), 0)::numeric::text AS prev_revenue,
+  COUNT(*) FILTER (WHERE e.local_created_at >= (SELECT prev_start FROM config) AND e.local_created_at < (SELECT prev_end FROM config))::int AS prev_orders,
+  COALESCE(AVG(e.total) FILTER (WHERE e.local_created_at >= (SELECT prev_start FROM config) AND e.local_created_at < (SELECT prev_end FROM config)), 0)::numeric::text AS prev_average_order_value
 FROM eligible e
-CROSS JOIN config c
 `
 
 export const analyticsSeriesSql = (range: AnalyticsRange, from: string, to: string): Prisma.Sql =>
@@ -162,11 +161,10 @@ FROM order_items oi
 JOIN orders o ON o.id = oi.order_id
 LEFT JOIN products p ON p.id = oi.product_id
 LEFT JOIN categories c ON c.id = p.category_id
-CROSS JOIN config cfg
 WHERE o.payment_status = 'PAID'
   AND o.order_status <> 'CANCELLED'
-  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) >= cfg.period_start
-  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) < cfg.period_end
+  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) >= (SELECT period_start FROM config)
+  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) < (SELECT period_end FROM config)
 GROUP BY oi.product_id, oi.product_name, p.category_id, c.name
 ORDER BY revenue DESC, units_sold DESC, oi.product_name ASC
 LIMIT 20
@@ -184,11 +182,10 @@ FROM order_items oi
 JOIN orders o ON o.id = oi.order_id
 LEFT JOIN products p ON p.id = oi.product_id
 LEFT JOIN categories c ON c.id = p.category_id
-CROSS JOIN config cfg
 WHERE o.payment_status = 'PAID'
   AND o.order_status <> 'CANCELLED'
-  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) >= cfg.period_start
-  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) < cfg.period_end
+  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) >= (SELECT period_start FROM config)
+  AND (o.created_at AT TIME ZONE ${env.businessTimezone}) < (SELECT period_end FROM config)
 GROUP BY c.id, c.name
 ORDER BY revenue DESC
 LIMIT 10
@@ -214,23 +211,22 @@ first_orders AS (
 )
 SELECT
   COUNT(DISTINCT e.customer_key) FILTER (
-    WHERE e.local_created_at >= c.period_start AND e.local_created_at < c.period_end
+    WHERE e.local_created_at >= (SELECT period_start FROM config) AND e.local_created_at < (SELECT period_end FROM config)
   )::int AS current_customers,
   COUNT(*) FILTER (
-    WHERE e.local_created_at >= c.period_start AND e.local_created_at < c.period_end
+    WHERE e.local_created_at >= (SELECT period_start FROM config) AND e.local_created_at < (SELECT period_end FROM config)
   )::int AS current_orders,
   COUNT(DISTINCT e.customer_key) FILTER (
-    WHERE e.local_created_at >= c.prev_start AND e.local_created_at < c.prev_end
+    WHERE e.local_created_at >= (SELECT prev_start FROM config) AND e.local_created_at < (SELECT prev_end FROM config)
   )::int AS prev_customers,
   COUNT(DISTINCT e.customer_key) FILTER (
-    WHERE e.local_created_at >= c.period_start AND e.local_created_at < c.period_end
-      AND fo.first_local < c.period_start
+    WHERE e.local_created_at >= (SELECT period_start FROM config) AND e.local_created_at < (SELECT period_end FROM config)
+      AND fo.first_local < (SELECT period_start FROM config)
   )::int AS current_returning,
   COUNT(DISTINCT e.customer_key) FILTER (
-    WHERE e.local_created_at >= c.prev_start AND e.local_created_at < c.prev_end
-      AND fo.first_local < c.prev_start
+    WHERE e.local_created_at >= (SELECT prev_start FROM config) AND e.local_created_at < (SELECT prev_end FROM config)
+      AND fo.first_local < (SELECT prev_start FROM config)
   )::int AS prev_returning
 FROM eligible e
 JOIN first_orders fo ON fo.customer_key = e.customer_key
-CROSS JOIN config c
 `

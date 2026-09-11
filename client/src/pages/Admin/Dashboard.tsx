@@ -1,30 +1,31 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { StatCard } from '../../components/admin/StatCard'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
-import { getDashboardStats, type DashboardStats } from '../../services/adminService'
-import { getAdminInventorySummary } from '../../services/inventoryService'
-import type { InventorySummary } from '../../types/inventory'
-
-const formatPrice = (value: string) =>
-  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
+import {
+  DashboardMetricCard,
+  NeedsAttentionCard,
+  PaymentMethodsCard,
+  QuickActions,
+  RecentOrdersCard,
+  SalesTrendCard,
+  TopProductsCard,
+  formatPercentChange,
+  useDashboardData,
+} from '../../components/admin/dashboard'
+import { formatPrice } from '../../components/admin/orderPresentation'
 
 export function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [inventorySummary, setInventorySummary] = useState<InventorySummary | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { stats, inventory, pendingQuotes, isLoading, error } = useDashboardData()
+  useInitialRouteLoad(!isLoading)
 
-  useEffect(() => {
-    getDashboardStats().then(setStats).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'Dashboard data could not be loaded.'))
-  }, [])
+  const ordersAwaiting = stats?.orderPlacedOrders ?? 0
+  const lowStock = inventory?.lowStockCount ?? 0
+  const needsAttentionTotal = lowStock + pendingQuotes + ordersAwaiting
 
-  useEffect(() => {
-    getAdminInventorySummary()
-      .then(setInventorySummary)
-      .catch(() => setInventorySummary(null))
-  }, [])
-
-  useInitialRouteLoad(Boolean(stats || error))
+  const revenueChange = stats
+    ? formatPercentChange(Number(stats.todayRevenue), Number(stats.yesterdayRevenue))
+    : null
+  const orderChange = stats
+    ? formatPercentChange(Number(stats.todayOrders), Number(stats.yesterdayOrders))
+    : null
 
   return (
     <div>
@@ -39,43 +40,74 @@ export function Dashboard() {
       {error ? (
         <div className="mt-8 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Total orders" value={stats?.totalOrders ?? 0} detail="All orders recorded" isLoading={!stats} />
-          <StatCard label="Order placed" value={stats?.orderPlacedOrders ?? 0} detail="Awaiting fulfillment" accent="orange" isLoading={!stats} />
-          <StatCard label="Processing orders" value={stats?.processingOrders ?? 0} detail="Being prepared" isLoading={!stats} />
-          <StatCard label="Delivered orders" value={stats?.deliveredOrders ?? 0} detail="Fulfillment complete" isLoading={!stats} />
-          <StatCard label="Cancelled orders" value={stats?.cancelledOrders ?? 0} detail="Cancelled orders" accent="orange" isLoading={!stats} />
-          <StatCard label="Payment review" value={stats?.pendingPaymentVerification ?? 0} detail="Receipts awaiting review" accent="orange" isLoading={!stats} />
-          <StatCard label="Verified payments" value={stats?.verifiedPayments ?? 0} detail="Approved payment proofs" isLoading={!stats} />
-          <StatCard label="Revenue" value={stats ? formatPrice(stats.totalSales) : ''} detail="Paid, non-cancelled orders" isLoading={!stats} />
-        </div>
+        <>
+          <section className="mt-8" aria-label="Quick actions">
+            <QuickActions />
+          </section>
+
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-4">
+            <DashboardMetricCard
+              label="Revenue today"
+              value={stats ? formatPrice(stats.todayRevenue) : ''}
+              isLoading={isLoading}
+              trend={revenueChange === null ? null : revenueChange === 0 ? null : {
+                direction: revenueChange > 0 ? 'up' : 'down',
+                label: `${Math.abs(revenueChange)}% vs yesterday`,
+              }}
+              to="/admin/analytics"
+            />
+            <DashboardMetricCard
+              label="Orders today"
+              value={stats?.todayOrders ?? 0}
+              isLoading={isLoading}
+              detail={stats ? `${ordersAwaiting} awaiting fulfillment` : undefined}
+              trend={orderChange === null || orderChange === 0 ? null : {
+                direction: orderChange > 0 ? 'up' : 'down',
+                label: `${Math.abs(orderChange)}% vs yesterday`,
+              }}
+              to="/admin/orders"
+            />
+            <DashboardMetricCard
+              label="Average order value"
+              value={stats ? formatPrice(stats.averageOrderValue) : ''}
+              isLoading={isLoading}
+              detail="Across all paid orders"
+              to="/admin/analytics"
+            />
+            <NeedsAttentionCard
+              total={isLoading ? 0 : needsAttentionTotal}
+              isLoading={isLoading}
+              items={[
+                { label: 'Low stock items', count: lowStock, to: '/admin/inventory?status=low-stock' },
+                { label: 'Pending quote requests', count: pendingQuotes, to: '/admin/quote-requests' },
+                { label: 'Orders awaiting confirmation', count: ordersAwaiting, to: '/admin/orders' },
+              ]}
+            />
+          </div>
+
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <SalesTrendCard />
+            </div>
+            <PaymentMethodsCard
+              paystack={stats?.paymentMethodBreakdown.paystack ?? { count: 0, revenue: '0' }}
+              bankTransfer={stats?.paymentMethodBreakdown.bankTransfer ?? { count: 0, revenue: '0' }}
+              isLoading={isLoading}
+            />
+          </div>
+
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <RecentOrdersCard
+                orders={stats?.recentOrders ?? []}
+                isLoading={isLoading}
+                newCustomersThisWeek={stats?.newCustomersThisWeek}
+              />
+            </div>
+            <TopProductsCard products={stats?.topProducts ?? []} isLoading={isLoading} />
+          </div>
+        </>
       )}
-
-      <section className="mt-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Inventory</p>
-            <h2 className="mt-1 text-2xl font-bold tracking-[-0.03em] text-green-dark">What needs restocking?</h2>
-          </div>
-          <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/inventory">View inventory →</Link>
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <StatCard label="Tracked units" value={inventorySummary?.totalTrackedSkus ?? 0} detail="Active products and options" isLoading={!inventorySummary} to="/admin/inventory" />
-          <StatCard label="Low stock" value={inventorySummary?.lowStockCount ?? 0} detail="At or below their low-stock threshold" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?status=low-stock" />
-          <StatCard label="Out of stock" value={inventorySummary?.outOfStockCount ?? 0} detail="Units with zero available stock" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?status=out-of-stock" />
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Quick actions</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Keep operations moving</h2>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <Link className="rounded-xl border border-line p-4 transition-colors hover:border-green/30 hover:bg-sage/20" to="/admin/orders"><p className="font-bold text-green-dark">Manage orders</p><p className="mt-1 text-xs leading-5 text-muted">Open orders and update fulfillment status.</p></Link>
-            <Link className="rounded-xl border border-line p-4 transition-colors hover:border-green/30 hover:bg-sage/20" to="/admin/settings"><p className="font-bold text-green-dark">Payment settings</p><p className="mt-1 text-xs leading-5 text-muted">Keep customer transfer instructions current.</p></Link>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }

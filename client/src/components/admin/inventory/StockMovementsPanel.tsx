@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AdminPagination } from '../AdminPagination'
 import { AdminTableSkeleton } from '../AdminTableSkeleton'
 import { ResponsiveDataTable } from '../../ui/ResponsiveDataTable'
+import { SegmentedControl } from '../../ui/SegmentedControl'
 import { SelectField } from '../../ui/SelectField'
 import { ApiError } from '../../../services/api'
 import { getAdminStockMovements } from '../../../services/inventoryService'
@@ -15,7 +16,12 @@ const movementTypeOptions = [
   ...Object.entries(MOVEMENT_TYPE_LABELS).map(([value, label]) => ({ value, label })),
 ]
 
-export function StockMovementsPanel() {
+interface StockMovementsPanelProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export function StockMovementsPanel({ activeTab, onTabChange }: StockMovementsPanelProps) {
   const [result, setResult] = useState<StockMovementsPage | null>(null)
   const [page, setPage] = useState(1)
   const [movementType, setMovementType] = useState<MovementType | ''>('')
@@ -104,6 +110,17 @@ export function StockMovementsPanel() {
               value={to}
             />
           </div>
+        </div>
+        <div className="mt-4 border-t border-line pt-4">
+          <SegmentedControl
+            ariaLabel="Inventory views"
+            options={[
+              { key: 'stock', label: 'Stock overview' },
+              { key: 'movements', label: 'Movements' },
+            ]}
+            value={activeTab}
+            onChange={(key) => onTabChange(key)}
+          />
         </div>
       </section>
 

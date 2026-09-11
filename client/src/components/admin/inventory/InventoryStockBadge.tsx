@@ -2,7 +2,6 @@ import type { StockStatus } from '../../../types/inventory'
 
 interface InventoryStockBadgeProps {
   status: StockStatus
-  stockQuantity?: number
 }
 
 const statusConfig: Record<StockStatus, { label: string; className: string }> = {
@@ -11,14 +10,11 @@ const statusConfig: Record<StockStatus, { label: string; className: string }> = 
   OUT_OF_STOCK: { label: 'Out of stock', className: 'bg-line text-muted' },
 }
 
-export function InventoryStockBadge({ status, stockQuantity }: InventoryStockBadgeProps) {
+export function InventoryStockBadge({ status }: InventoryStockBadgeProps) {
   const config = statusConfig[status]
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold ${config.className}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-bold leading-none ${config.className}`}>
       {config.label}
-      {stockQuantity != null && status !== 'OUT_OF_STOCK' && (
-        <span className="opacity-70">{stockQuantity}</span>
-      )}
     </span>
   )
 }

@@ -25,7 +25,7 @@ export function InventoryTable({ items, isRefreshing, onAdjust }: InventoryTable
                   {item.optionLabel && <p className="mt-1 text-xs font-semibold text-muted">{item.optionLabel}</p>}
                   <p className="mt-1 truncate text-xs text-muted">{item.categoryName}</p>
                 </div>
-                <InventoryStockBadge status={item.status} stockQuantity={item.stockQuantity} />
+                <InventoryStockBadge status={item.status} />
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-3 text-xs">
                 <div>

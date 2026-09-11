@@ -124,37 +124,35 @@ export function Inventory() {
       </div>
 
       <div className="mt-8">
-        <SegmentedControl
-          ariaLabel="Inventory views"
-          options={[
-            { key: 'stock', label: 'Stock overview' },
-            { key: 'movements', label: 'Movements' },
-          ]}
-          value={activeTab}
-          onChange={(key) => switchTab(key as InventoryTab)}
-        />
-      </div>
+        {activeTab === 'movements' ? (
+          <StockMovementsPanel activeTab={activeTab} onTabChange={(tab) => switchTab(tab as InventoryTab)} />
+        ) : (
+          <>
+            {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
 
-      {activeTab === 'movements' ? (
-        <div className="mt-6">
-          <StockMovementsPanel />
-        </div>
-      ) : (
-        <>
-          {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-
-          <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Inventory filters">
-            <InventoryFilterPanel
-              categories={categories}
-              query={{ page: currentPage, pageSize, search: activeSearch, categoryId: activeCategoryId, stockStatus }}
-              searchInput={searchInput}
-              onSearchInputChange={setSearchInput}
-              onApply={(next) => {
-                if ('stockStatus' in next) updateStockStatus(next.stockStatus)
-                if ('categoryId' in next || 'search' in next) setQuery({ categoryId: next.categoryId ?? undefined, search: next.search ?? undefined })
-              }}
-            />
-          </section>
+            <section className="rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Inventory filters">
+              <InventoryFilterPanel
+                categories={categories}
+                query={{ page: currentPage, pageSize, search: activeSearch, categoryId: activeCategoryId, stockStatus }}
+                searchInput={searchInput}
+                onSearchInputChange={setSearchInput}
+                onApply={(next) => {
+                  if ('stockStatus' in next) updateStockStatus(next.stockStatus)
+                  if ('categoryId' in next || 'search' in next) setQuery({ categoryId: next.categoryId ?? undefined, search: next.search ?? undefined })
+                }}
+              />
+              <div className="mt-4 border-t border-line pt-4">
+                <SegmentedControl
+                  ariaLabel="Inventory views"
+                  options={[
+                    { key: 'stock', label: 'Stock overview' },
+                    { key: 'movements', label: 'Movements' },
+                  ]}
+                  value={activeTab}
+                  onChange={(key) => switchTab(key as InventoryTab)}
+                />
+              </div>
+            </section>
 
           <section className="admin-inventory-workspace mt-6 rounded-2xl border border-line bg-white shadow-sm" aria-label="Inventory table">
             {isInitialLoading ? (
@@ -191,6 +189,7 @@ export function Inventory() {
           </section>
         </>
       )}
+      </div>
 
       {adjustingItem && (
         <StockAdjustModal

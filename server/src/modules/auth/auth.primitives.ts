@@ -7,13 +7,13 @@ import {
 } from 'node:crypto'
 import { ShoppingMode, UserRole } from '@prisma/client'
 import { env } from '../../config/env.js'
+import { ADMIN_SESSION_TTL_MS, CUSTOMER_SESSION_TTL_MS } from './auth.session.constants.js'
 import type { AuthenticatedUser } from './auth.types.js'
 
 const scrypt = promisify(nodeScrypt)
 
 const SESSION_COOKIE_NAME = 'ayanfe_admin_session'
 const CUSTOMER_SESSION_COOKIE_NAME = 'ayanfe_customer_session'
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000
 
 export const toUser = (user: {
   id: string
@@ -33,7 +33,7 @@ export const toUser = (user: {
 
 export const authCookie = {
   name: SESSION_COOKIE_NAME,
-  maxAge: SESSION_TTL_MS,
+  maxAge: ADMIN_SESSION_TTL_MS,
   options: {
     httpOnly: true,
     secure: env.nodeEnv === 'production',
@@ -44,7 +44,7 @@ export const authCookie = {
 
 export const customerAuthCookie = {
   name: CUSTOMER_SESSION_COOKIE_NAME,
-  maxAge: SESSION_TTL_MS,
+  maxAge: CUSTOMER_SESSION_TTL_MS,
   options: {
     httpOnly: true,
     secure: env.nodeEnv === 'production',

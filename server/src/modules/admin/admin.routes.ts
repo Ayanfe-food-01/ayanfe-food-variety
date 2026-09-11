@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { requireAdminAccess } from './admin.middleware.js'
+import { adminNoStore } from './admin.no-store.js'
 import {
   getAdminOrderController,
   getAdminPaymentController,
@@ -128,6 +129,7 @@ import {
 export const adminRoutes = Router()
 
 adminRoutes.use(...requireAdminAccess)
+adminRoutes.use(adminNoStore)
 adminRoutes.get('/customers', listAdminCustomersController)
 adminRoutes.get('/customers/:id', getAdminCustomerController)
 adminRoutes.get('/inventory', listInventoryController)

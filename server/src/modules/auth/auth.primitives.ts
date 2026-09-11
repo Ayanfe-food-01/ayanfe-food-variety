@@ -37,7 +37,7 @@ export const authCookie = {
   options: {
     httpOnly: true,
     secure: env.nodeEnv === 'production',
-    sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+    sameSite: 'lax' as const,
     path: '/',
   },
 }
@@ -48,7 +48,7 @@ export const customerAuthCookie = {
   options: {
     httpOnly: true,
     secure: env.nodeEnv === 'production',
-    sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+    sameSite: 'lax' as const,
     path: '/',
   },
 }

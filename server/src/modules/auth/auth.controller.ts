@@ -54,6 +54,7 @@ export const loginController: RequestHandler = async (request, response) => {
 }
 
 export const logoutController: RequestHandler = async (request, response) => {
+  response.set('Cache-Control', 'no-store, max-age=0')
   await revokeSession(getSessionToken(request.headers.cookie))
   await revokeCustomerSession(getCustomerSessionToken(request.headers.cookie))
   response.clearCookie(authCookie.name, authCookie.options)
@@ -97,6 +98,7 @@ export const customerLoginController: RequestHandler = async (request, response)
 }
 
 export const customerLogoutController: RequestHandler = async (request, response) => {
+  response.set('Cache-Control', 'no-store, max-age=0')
   await revokeCustomerSession(getCustomerSessionToken(request.headers.cookie))
   response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
   response.status(204).send()

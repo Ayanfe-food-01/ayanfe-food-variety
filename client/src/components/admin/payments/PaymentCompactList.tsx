@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { AdminPayment } from '../../../services/paymentService'
 import { ResponsiveDataTable } from '../../ui/ResponsiveDataTable'
-import { formatPrice, formatRelativeDate, formatStatus, statusClass } from './paymentHelpers'
+import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../ActionMenu'
+import { formatPrice, formatRelativeDate, formatStatus, isActionable, statusClass } from './paymentHelpers'
 import { PaymentEmptyState } from './PaymentEmptyState'
 
 const methodLabel = (paymentMethod: AdminPayment['paymentMethod']): string =>
@@ -66,7 +67,7 @@ function DesktopTable({ payments, onSelect }: PaymentCompactListProps) {
               <th className="px-5 py-4 font-bold">Method</th>
               <th className="px-5 py-4 font-bold">Status</th>
               <th className="px-5 py-4 font-bold">Submitted</th>
-              <th className="px-5 py-4" />
+              <th className="px-5 py-4 text-center font-bold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -83,8 +84,22 @@ function DesktopTable({ payments, onSelect }: PaymentCompactListProps) {
                 <td className="whitespace-nowrap px-5 py-4"><MethodBadge paymentMethod={payment.paymentMethod} /></td>
                 <td className="whitespace-nowrap px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(payment.status)}`}>{formatStatus(payment.status)}</span></td>
                 <td className="whitespace-nowrap px-5 py-4 text-muted">{formatRelativeDate(payment.createdAt)}</td>
-                <td className="px-5 py-4 text-right">
-                  {formatStatus(payment.status) === 'Pending' && <span className="font-bold text-green hover:text-orange">Review</span>}
+                <td className="px-5 py-4">
+                  <div className="flex justify-center">
+                    <span onClick={(event) => event.stopPropagation()}>
+                      <ActionMenu ariaLabel={`Actions for payment ${payment.orderNumber}`} fixedPosition>
+                        {(close) => (
+                          <>
+                            {isActionable(payment.status) && (
+                              <ActionMenuButton tone="accent" onClick={() => { close(); onSelect(payment) }}>Review payment</ActionMenuButton>
+                            )}
+                            <ActionMenuButton onClick={() => { close(); onSelect(payment) }}>View details</ActionMenuButton>
+                            <ActionMenuLink onClick={close} to={`/admin/orders/${payment.orderNumber}`}>Open order details</ActionMenuLink>
+                          </>
+                        )}
+                      </ActionMenu>
+                    </span>
+                  </div>
                 </td>
               </tr>
             ))}

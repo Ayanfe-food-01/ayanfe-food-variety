@@ -4,7 +4,7 @@ import { getAdminInventory, getAdminInventorySummary, type InventoryQuery } from
 import type { InventoryItem, InventoryPage, InventorySummary } from '../../../types/inventory'
 
 interface UseInventoryDataOptions {
-  initialQuery?: Partial<Omit<InventoryQuery, 'page' | 'pageSize'>>
+  stockStatus?: InventoryQuery['stockStatus']
   refreshKey?: number
 }
 
@@ -20,15 +20,17 @@ interface UseInventoryDataResult {
 }
 
 export function useInventoryData(options: UseInventoryDataOptions = {}): UseInventoryDataResult {
-  const { initialQuery, refreshKey } = options
+  const { stockStatus: controlledStockStatus, refreshKey } = options
   const [page, setPage] = useState(1)
-  const [search, setSearch] = useState(initialQuery?.search ?? '')
-  const [categoryId, setCategoryId] = useState(initialQuery?.categoryId ?? '')
-  const [stockStatus, setStockStatus] = useState(initialQuery?.stockStatus ?? '')
+  const [search, setSearch] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [stockStatus, setStockStatus] = useState(controlledStockStatus ?? '')
   const [result, setResult] = useState<InventoryPage | null>(null)
   const [summary, setSummary] = useState<InventorySummary | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const effectiveStockStatus = controlledStockStatus ?? stockStatus
 
   useEffect(() => {
     let current = true
@@ -38,7 +40,7 @@ export function useInventoryData(options: UseInventoryDataOptions = {}): UseInve
         pageSize: 20,
         search: search.trim() || undefined,
         categoryId: categoryId || undefined,
-        stockStatus: (stockStatus || undefined) as InventoryQuery['stockStatus'],
+        stockStatus: (effectiveStockStatus || undefined) as InventoryQuery['stockStatus'],
       }
       setError(null)
       getAdminInventory(query)
@@ -57,7 +59,7 @@ export function useInventoryData(options: UseInventoryDataOptions = {}): UseInve
       current = false
       window.clearTimeout(timeoutId)
     }
-  }, [page, search, categoryId, stockStatus, refreshKey])
+  }, [page, search, categoryId, effectiveStockStatus, refreshKey])
 
   useEffect(() => {
     let current = true

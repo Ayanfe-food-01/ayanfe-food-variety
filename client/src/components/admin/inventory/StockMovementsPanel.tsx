@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AdminPagination } from '../../components/admin/AdminPagination'
-import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
-import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
-import { SelectField } from '../../components/ui/SelectField'
-import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
-import { ApiError } from '../../services/api'
-import { getAdminStockMovements } from '../../services/inventoryService'
-import { formatDate } from '../../utils/dateFormat'
-import { MOVEMENT_TYPE_LABELS, type MovementType, type StockMovementsPage } from '../../types/inventory'
+import { AdminPagination } from '../AdminPagination'
+import { AdminTableSkeleton } from '../AdminTableSkeleton'
+import { ResponsiveDataTable } from '../../ui/ResponsiveDataTable'
+import { SelectField } from '../../ui/SelectField'
+import { ApiError } from '../../../services/api'
+import { getAdminStockMovements } from '../../../services/inventoryService'
+import { formatDate } from '../../../utils/dateFormat'
+import { MOVEMENT_TYPE_LABELS, type MovementType, type StockMovementsPage } from '../../../types/inventory'
 
 const pageSize = 20
 
@@ -16,7 +15,7 @@ const movementTypeOptions = [
   ...Object.entries(MOVEMENT_TYPE_LABELS).map(([value, label]) => ({ value, label })),
 ]
 
-export function StockMovements() {
+export function StockMovementsPanel() {
   const [result, setResult] = useState<StockMovementsPage | null>(null)
   const [page, setPage] = useState(1)
   const [movementType, setMovementType] = useState<MovementType | ''>('')
@@ -49,8 +48,6 @@ export function StockMovements() {
     return () => window.clearTimeout(timeoutId)
   }, [load])
 
-  useInitialRouteLoad(!isLoading)
-
   const applyMovementType = (value: string) => {
     setMovementType(value as MovementType | '')
     setPage(1)
@@ -71,16 +68,10 @@ export function StockMovements() {
   const totalPages = result?.pagination.totalPages ?? 1
 
   return (
-    <div className="admin-inventory-page min-w-0">
-      <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Inventory</p>
-        <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Stock movements</h1>
-        <p className="mt-3 max-w-2xl text-sm text-muted">Audit trail of every stock change, including automatic order deductions and manual adjustments.</p>
-      </div>
-
+    <>
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
 
-      <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Stock movement filters">
+      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Stock movement filters">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className="text-sm font-bold text-green-dark" htmlFor="movement-type">Movement type</label>
@@ -177,7 +168,7 @@ export function StockMovements() {
           </div>
         )}
       </section>
-    </div>
+    </>
   )
 }
 

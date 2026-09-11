@@ -20,29 +20,42 @@ const linkGroups: Array<{ label: string; links: Array<{ label: string; to: strin
     ],
   },
   {
-    label: 'Products',
+    label: 'Catalog',
     links: [
-      { label: 'All products', to: '/admin/products' },
+      { label: 'Products', to: '/admin/products' },
       { label: 'Categories', to: '/admin/categories' },
     ],
   },
   {
     label: 'Inventory',
     links: [
-      { label: 'Stock overview', to: '/admin/inventory' },
-      { label: 'Stock movements', to: '/admin/inventory/movements' },
-      { label: 'Low stock', to: '/admin/inventory/low-stock' },
+      { label: 'Inventory', to: '/admin/inventory' },
     ],
   },
   {
-    label: 'Storefront',
+    label: 'Store management',
     links: [
       { label: 'Delivery zones & fees', to: '/admin/delivery-zones' },
       { label: 'Promotional banners', to: '/admin/banners' },
       { label: 'Testimonials', to: '/admin/testimonials' },
       { label: 'Reviews', to: '/admin/reviews' },
+    ],
+  },
+  {
+    label: 'Finance',
+    links: [
       { label: 'Payments', to: '/admin/payments' },
+    ],
+  },
+  {
+    label: 'Communication',
+    links: [
       { label: 'Notifications', to: '/admin/notifications' },
+    ],
+  },
+  {
+    label: 'System',
+    links: [
       { label: 'Settings', to: '/admin/settings' },
     ],
   },

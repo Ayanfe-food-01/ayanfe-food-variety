@@ -69,7 +69,7 @@ function QuickFilter({ field, value, values, onApply }: QuickFilterProps) {
         {() => (
           <div className="filter-quick-menu-content">
             <p className="filter-menu-label">{field.label}</p>
-            <FilterFieldControl field={field} value={value} onChange={handleChange} />
+            <FilterFieldControl field={field} value={value} values={values} onChange={handleChange} />
           </div>
         )}
       </Popover>

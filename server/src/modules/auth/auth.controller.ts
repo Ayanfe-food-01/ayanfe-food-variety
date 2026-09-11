@@ -24,11 +24,14 @@ import {
 } from './customer-auth.service.js'
 import {
   createGoogleOAuthState,
+  getAdminGoogleRedirectUri,
+  getAdminOAuthFrontendUrl,
   getGoogleAuthorizationUrl,
   getOAuthFrontendUrl,
   googleOAuthStateCookie,
   isGoogleOAuthConfigured,
 } from './auth.google.js'
+import { loginAdminWithGoogle } from './admin-auth.google.service.js'
 import { HttpError } from '../../utils/http.js'
 import {
   validateCustomerEmailVerificationInput,
@@ -140,15 +143,7 @@ export const customerGoogleStartController: RequestHandler = (_request, response
       response.redirect(getOAuthFrontendUrl('unavailable').toString())
       return
     }
-    const { state, nonce } = createGoogleOAuthState()
-    response.cookie(googleOAuthStateCookie.name, state, {
-      ...googleOAuthStateCookie.options,
-      maxAge: googleOAuthStateCookie.maxAge,
-    })
-    response.cookie(`${googleOAuthStateCookie.name}_nonce`, nonce, {
-      ...googleOAuthStateCookie.options,
-      maxAge: googleOAuthStateCookie.maxAge,
-    })
+    const { state, nonce } = issueGoogleOAuthState(response)
     response.redirect(getGoogleAuthorizationUrl(state, nonce))
   } catch (error: unknown) {
     next(error)
@@ -201,6 +196,77 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
     }
     if (error instanceof HttpError) {
       response.redirect(getOAuthFrontendUrl('failed').toString())
+      return
+    }
+    next(error)
+  }
+}
+
+const issueGoogleOAuthState = (response: Parameters<RequestHandler>[1]): { state: string; nonce: string } => {
+  const { state, nonce } = createGoogleOAuthState()
+  response.cookie(googleOAuthStateCookie.name, state, {
+    ...googleOAuthStateCookie.options,
+    maxAge: googleOAuthStateCookie.maxAge,
+  })
+  response.cookie(`${googleOAuthStateCookie.name}_nonce`, nonce, {
+    ...googleOAuthStateCookie.options,
+    maxAge: googleOAuthStateCookie.maxAge,
+  })
+  return { state, nonce }
+}
+
+export const adminGoogleStartController: RequestHandler = (_request, response) => {
+  if (!isGoogleOAuthConfigured) {
+    response.redirect(getAdminOAuthFrontendUrl('unavailable').toString())
+    return
+  }
+  const { state, nonce } = issueGoogleOAuthState(response)
+  response.redirect(getGoogleAuthorizationUrl(state, nonce, getAdminGoogleRedirectUri()))
+}
+
+export const adminGoogleCallbackController: RequestHandler = async (request, response, next) => {
+  const stateCookie = readAuthCookie(request.headers.cookie, googleOAuthStateCookie.name)
+  const nonceCookie = readAuthCookie(request.headers.cookie, `${googleOAuthStateCookie.name}_nonce`)
+  const state = typeof request.query.state === 'string' ? request.query.state : null
+  const clearStateCookie = () => {
+    response.clearCookie(googleOAuthStateCookie.name, googleOAuthStateCookie.options)
+    response.clearCookie(`${googleOAuthStateCookie.name}_nonce`, googleOAuthStateCookie.options)
+  }
+
+  if (!stateCookie || !nonceCookie || !state || stateCookie !== state) {
+    clearStateCookie()
+    response.redirect(getAdminOAuthFrontendUrl('failed').toString())
+    return
+  }
+  clearStateCookie()
+
+  if (request.query.error === 'access_denied') {
+    response.redirect(getAdminOAuthFrontendUrl('cancelled').toString())
+    return
+  }
+  const code = typeof request.query.code === 'string' ? request.query.code : null
+  if (!code) {
+    response.redirect(getAdminOAuthFrontendUrl('failed').toString())
+    return
+  }
+
+  try {
+    const result = await loginAdminWithGoogle(code, nonceCookie)
+    response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
+    response.cookie(authCookie.name, result.token, {
+      ...authCookie.options,
+      maxAge: authCookie.maxAge,
+    })
+    response.redirect(getAdminOAuthFrontendUrl('success').toString())
+  } catch (error: unknown) {
+    const isOAuthFailure = error instanceof HttpError
+      && [401, 403, 409].includes(error.statusCode)
+    if (isOAuthFailure) {
+      response.redirect(getAdminOAuthFrontendUrl('failed').toString())
+      return
+    }
+    if (error instanceof HttpError && error.statusCode === 503) {
+      response.redirect(getAdminOAuthFrontendUrl('unavailable').toString())
       return
     }
     next(error)

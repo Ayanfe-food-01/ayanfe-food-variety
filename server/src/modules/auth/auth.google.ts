@@ -38,12 +38,16 @@ const requireGoogleOAuthConfiguration = (): {
   return { clientId, clientSecret, redirectUri }
 }
 
-export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
-  const frontendOrigin = env.nodeEnv === 'production'
+const frontendOrigin = (): string => {
+  const origin = env.nodeEnv === 'production'
     ? env.publicAppUrl ?? env.corsOrigins[0]
     : env.corsOrigins[0] ?? env.publicAppUrl
-  if (!frontendOrigin) throw new HttpError(503, 'The authentication redirect is not configured.')
-  const url = new URL('/login', frontendOrigin)
+  if (!origin) throw new HttpError(503, 'The authentication redirect is not configured.')
+  return origin
+}
+
+export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
+  const url = new URL('/login', frontendOrigin())
   if (status !== 'success') {
     url.searchParams.set('oauth_error', `google_${status}`)
   } else {
@@ -52,13 +56,41 @@ export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailab
   return url
 }
 
+export const getAdminOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
+  const url = new URL('/admin/login', frontendOrigin())
+  if (status !== 'success') {
+    url.searchParams.set('oauth_error', `google_${status}`)
+  } else {
+    url.searchParams.set('oauth', 'google_admin')
+  }
+  return url
+}
+
+/**
+ * Admin OAuth needs a redirect URI registered for the admin callback. Prefer
+ * the explicit GOOGLE_ADMIN_REDIRECT_URI; otherwise derive it from the customer
+ * redirect URI so a single proxy origin keeps working (e.g.
+ * .../auth/customer/google/callback -> .../auth/admin/google/callback).
+ */
+const customerToAdminCallbackPath = '/customer/google/callback'
+
+export const getAdminGoogleRedirectUri = (): string => {
+  const explicit = env.googleOAuth.adminRedirectUri?.trim()
+  if (explicit) return explicit
+  const customerRedirect = env.googleOAuth.redirectUri?.trim() ?? ''
+  if (customerRedirect.includes(customerToAdminCallbackPath)) {
+    return customerRedirect.replace(customerToAdminCallbackPath, '/admin/google/callback')
+  }
+  return customerRedirect
+}
+
 export const createGoogleOAuthState = (): { state: string; nonce: string } => ({
   state: randomBytes(32).toString('base64url'),
   nonce: randomBytes(32).toString('base64url'),
 })
 
-export const getGoogleAuthorizationUrl = (state: string, nonce: string): string => {
-  const { clientId, redirectUri } = requireGoogleOAuthConfiguration()
+export const getGoogleAuthorizationUrl = (state: string, nonce: string, redirectUri = getCustomerGoogleRedirectUri()): string => {
+  const { clientId } = requireGoogleOAuthConfiguration()
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('redirect_uri', redirectUri)
@@ -70,8 +102,13 @@ export const getGoogleAuthorizationUrl = (state: string, nonce: string): string 
   return url.toString()
 }
 
-export async function verifyGoogleAuthorizationCode(code: string, expectedNonce: string): Promise<GoogleIdentity> {
-  const { clientId, clientSecret, redirectUri } = requireGoogleOAuthConfiguration()
+export const getCustomerGoogleRedirectUri = (): string => {
+  const { redirectUri } = requireGoogleOAuthConfiguration()
+  return redirectUri
+}
+
+export async function verifyGoogleAuthorizationCode(code: string, expectedNonce: string, redirectUri = getCustomerGoogleRedirectUri()): Promise<GoogleIdentity> {
+  const { clientId, clientSecret } = requireGoogleOAuthConfiguration()
   const client = new OAuth2Client(clientId, clientSecret, redirectUri)
 
   let idToken: string | undefined

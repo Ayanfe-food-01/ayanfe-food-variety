@@ -25,7 +25,7 @@ export function DashboardMetricCard({
   to,
 }: DashboardMetricCardProps) {
   const card = (
-    <article className="flex h-[112px] min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-white p-4 shadow-sm sm:h-[132px] sm:p-5">
+    <article className="flex h-[132px] min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-white p-4 shadow-sm sm:h-[152px] sm:p-5">
       <div className={`mb-auto size-2.5 rounded-full ${accent === 'orange' ? 'bg-orange' : 'bg-green'}`} />
       <p className="m-0 truncate text-xs font-bold uppercase tracking-[0.14em] text-muted" title={label}>{label}</p>
       <p className="mt-2 truncate text-xl leading-7 font-bold tracking-[-0.03em] text-green-dark sm:text-[22px]" title={isLoading ? undefined : String(value)}>

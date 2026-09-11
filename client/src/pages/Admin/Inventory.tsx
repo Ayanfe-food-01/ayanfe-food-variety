@@ -84,9 +84,10 @@ export function Inventory() {
   }
 
   const updateStockStatus = (status: InventoryQuery['stockStatus'] | undefined) => {
-    setStockStatus(status)
+    const normalized = status || undefined
+    setStockStatus(normalized)
     const next = new URLSearchParams(searchParams)
-    if (status) next.set('status', status)
+    if (normalized) next.set('status', normalized)
     else next.delete('status')
     setSearchParams(next)
     setQuery({ page: 1 })
@@ -149,8 +150,8 @@ export function Inventory() {
               searchInput={searchInput}
               onSearchInputChange={setSearchInput}
               onApply={(next) => {
-                if (next.stockStatus !== undefined) updateStockStatus(next.stockStatus)
-                setQuery({ categoryId: next.categoryId, search: next.search })
+                if ('stockStatus' in next) updateStockStatus(next.stockStatus)
+                if ('categoryId' in next || 'search' in next) setQuery({ categoryId: next.categoryId ?? undefined, search: next.search ?? undefined })
               }}
             />
           </section>

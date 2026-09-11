@@ -50,8 +50,8 @@ export function InventoryFilterPanel({
 
   const applyFilters = (next: Record<string, string>) => {
     onApply({
-      categoryId: next.categoryId || undefined,
-      stockStatus: (next.stockStatus || undefined) as InventoryQuery['stockStatus'],
+      categoryId: next.categoryId,
+      stockStatus: next.stockStatus as InventoryQuery['stockStatus'],
     })
   }
 

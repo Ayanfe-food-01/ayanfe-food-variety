@@ -96,7 +96,7 @@ export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
                   <NavLink
                     className={({ isActive }) =>
                       `flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
-                        isActive ? 'bg-cream text-green-dark' : 'text-cream/70 hover:bg-cream/10 hover:text-cream'
+                        isActive ? 'bg-cream text-green-dark' : 'text-cream/70 xl:hover:bg-cream/10 hover:text-cream'
                       }`
                     }
                     key={link.to}

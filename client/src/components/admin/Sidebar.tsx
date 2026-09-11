@@ -185,7 +185,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   const expandedLink = (link: NavLinkItem, nested = false) => (
     <NavLink
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-xl py-2.5 text-sm font-bold transition-colors ${nested ? 'pl-11 pr-3' : 'px-3'} ${isActive ? activeNavClasses : inactiveNavClasses}`
+        `flex items-center gap-3 rounded-xl py-2.5 text-sm font-bold transition-colors ${nested ? 'ml-9 px-3 pr-3' : 'px-3'} ${isActive ? activeNavClasses : inactiveNavClasses}`
       }
       end={link.end}
       key={link.to}

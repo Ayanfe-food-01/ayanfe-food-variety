@@ -25,13 +25,12 @@ interface SummaryCardProps {
   total: string
   icon: ReactNode
   iconClassName: string
-  emphasis?: boolean
   footer?: ReactNode
 }
 
-function SummaryCard({ label, count, total, icon, iconClassName, emphasis, footer }: SummaryCardProps) {
+function SummaryCard({ label, count, total, icon, iconClassName, footer }: SummaryCardProps) {
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${emphasis ? 'border-orange/30 bg-orange/5' : 'border-line bg-white'}`}>
+    <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <span className={`shrink-0 ${iconClassName}`}>{icon}</span>
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
@@ -45,7 +44,7 @@ function SummaryCard({ label, count, total, icon, iconClassName, emphasis, foote
 
 export function PaymentStats({ pending, verified, rejected, methodBreakdown }: PaymentStatsProps) {
   const confirmedFooter = methodBreakdown && (
-    <div className="mt-3 border-t border-line pt-3">
+    <div className="mt-3">
       <div className="flex flex-wrap gap-2">
         <span className="rounded-full bg-orange/10 px-2.5 py-1 text-[11px] font-bold text-orange">Paystack {formatPrice(methodBreakdown.paystack.totalAmount)}</span>
         <span className="rounded-full bg-line/50 px-2.5 py-1 text-[11px] font-bold text-muted">Bank {formatPrice(methodBreakdown.bankTransfer.totalAmount)}</span>
@@ -56,7 +55,7 @@ export function PaymentStats({ pending, verified, rejected, methodBreakdown }: P
   return (
     <section className="mt-8" aria-label="Payment verification overview">
       <div className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard label="Pending verification" count={pending.count} total={pending.totalAmount} icon={<ClockIcon size={15} />} iconClassName="text-orange" emphasis />
+        <SummaryCard label="Pending verification" count={pending.count} total={pending.totalAmount} icon={<ClockIcon size={15} />} iconClassName="text-orange" />
         <SummaryCard label="Confirmed" count={verified.count} total={verified.totalAmount} icon={<CheckCircleIcon size={15} />} iconClassName="text-green" footer={confirmedFooter} />
         <SummaryCard label="Rejected" count={rejected.count} total={rejected.totalAmount} icon={<XCircleIcon size={15} />} iconClassName="text-orange" />
       </div>

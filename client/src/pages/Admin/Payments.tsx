@@ -163,9 +163,10 @@ export function Payments() {
         </>
       )}
 
-      {selected && !isDetailLoading && (
+      {selected && (
         <PaymentDetailModal
           payment={selected}
+          isLoading={isDetailLoading}
           isSaving={isSaving}
           onClose={() => setSelected(null)}
           onVerify={(note) => review('verify', note)}

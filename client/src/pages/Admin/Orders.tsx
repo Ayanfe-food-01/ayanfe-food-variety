@@ -11,7 +11,7 @@ import {
   type AdminOrdersQuery,
 } from '../../services/orderService'
 import { OrderTable } from '../../components/admin/OrderTable'
-import { AdminTabs } from '../../components/admin/AdminTabs'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { FilterBar } from '../../components/filters/FilterBar'
 import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
 import { AdminPagination } from '../../components/admin/AdminPagination'
@@ -162,14 +162,14 @@ export function Orders() {
       </div>
 
       <div className="mt-8">
-        <AdminTabs
+        <SegmentedControl
           ariaLabel="Order archive view"
-          tabs={[
+          options={[
             { key: 'active', label: 'Active orders' },
             { key: 'archived', label: 'Archived orders' },
           ]}
-          activeKey={query.archive ?? 'active'}
-          onSelect={(key) => updateArchiveView(key as 'active' | 'archived')}
+          value={query.archive ?? 'active'}
+          onChange={(key) => updateArchiveView(key as 'active' | 'archived')}
         />
       </div>
 

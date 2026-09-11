@@ -49,7 +49,7 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
     }
 
     const next = { ...committed }
-    delete next[key]
+    next[key] = ''
     onApply(next)
   }
 

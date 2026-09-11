@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '../../components/ui/Toast'
 import { AdminPagination } from '../../components/admin/AdminPagination'
 import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
-import { AdminTabs } from '../../components/admin/AdminTabs'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { StatCard } from '../../components/admin/StatCard'
 import { InventoryFilterPanel } from '../../components/admin/inventory/InventoryFilterPanel'
 import { InventoryTable } from '../../components/admin/inventory/InventoryTable'
@@ -55,6 +55,8 @@ export function Inventory() {
     isInitialLoading,
     error,
     summary,
+    activeSearch,
+    activeCategoryId,
     setQuery,
   } = useInventoryData({ stockStatus, refreshKey: reloadKey })
 
@@ -121,14 +123,14 @@ export function Inventory() {
       </div>
 
       <div className="mt-8">
-        <AdminTabs
+        <SegmentedControl
           ariaLabel="Inventory views"
-          tabs={[
+          options={[
             { key: 'stock', label: 'Stock overview' },
             { key: 'movements', label: 'Movements' },
           ]}
-          activeKey={activeTab}
-          onSelect={(key) => switchTab(key as InventoryTab)}
+          value={activeTab}
+          onChange={(key) => switchTab(key as InventoryTab)}
         />
       </div>
 
@@ -143,7 +145,7 @@ export function Inventory() {
           <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Inventory filters">
             <InventoryFilterPanel
               categories={categories}
-              query={{ page: currentPage, pageSize, search: '', categoryId: '', stockStatus }}
+              query={{ page: currentPage, pageSize, search: activeSearch, categoryId: activeCategoryId, stockStatus }}
               searchInput={searchInput}
               onSearchInputChange={setSearchInput}
               onApply={(next) => {

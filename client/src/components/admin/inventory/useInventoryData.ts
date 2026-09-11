@@ -16,6 +16,8 @@ interface UseInventoryDataResult {
   isInitialLoading: boolean
   error: string | null
   summary: InventorySummary | null
+  activeSearch: string
+  activeCategoryId: string
   setQuery: (update: Partial<InventoryQuery>) => void
 }
 
@@ -99,6 +101,8 @@ export function useInventoryData(options: UseInventoryDataOptions = {}): UseInve
     isInitialLoading,
     error,
     summary,
+    activeSearch: search,
+    activeCategoryId: categoryId,
     setQuery,
   }
 }

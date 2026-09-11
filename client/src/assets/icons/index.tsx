@@ -1,5 +1,6 @@
 export { ArrowUpRight } from './ArrowUpRight'
 export { ArrowRight } from './ArrowRight'
+export { DownloadIcon } from './DownloadIcon'
 export { CartIcon } from './CartIcon'
 export { UserIcon } from './UserIcon'
 export { MenuIcon } from './MenuIcon'

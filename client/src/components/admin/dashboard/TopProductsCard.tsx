@@ -15,8 +15,8 @@ export function TopProductsCard({ products, isLoading = false }: TopProductsCard
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Performance</p>
           <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Top products this week</h2>
         </div>
-        <Link className="flex items-center gap-1 text-sm font-bold text-green hover:text-orange" to="/admin/products">
-          View all products <ArrowUpRight size={16} />
+        <Link className="flex items-center gap-1 text-sm font-bold text-green hover:text-orange" to="/admin/analytics">
+          Full report <ArrowUpRight size={16} />
         </Link>
       </div>
       <div className="mt-5 border-t border-line">

@@ -64,7 +64,12 @@ export function Accordion({
               <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
               <ChevronDownIcon className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} size={16} aria-hidden="true" />
             </button>
-            {isOpen && item.content}
+            {isOpen && (
+              <div className="relative">
+                <span aria-hidden className="absolute bottom-0 left-[21px] top-0 w-px bg-cream/20" />
+                {item.content}
+              </div>
+            )}
           </section>
         )
       })}

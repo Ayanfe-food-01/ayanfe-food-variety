@@ -3,6 +3,7 @@ import { HeartIcon } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductGrid } from '../components/products/ProductGrid'
+import { SectionHeader } from '../components/ui/SectionHeader'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { useWishlist } from '../hooks/useWishlist'
@@ -24,16 +25,17 @@ export function Wishlist() {
       />
       <Navbar />
       <main className="container py-14 sm:py-20">
-        <div className="mb-10 flex items-end justify-between gap-6 border-b border-line pb-8">
-          <div>
-            <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">
-              <HeartIcon size={15} /> Saved for later
-            </p>
-            <h1 className="m-0 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Your wishlist</h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-muted">Keep your favourite foodstuff close and return when you are ready to shop.</p>
-          </div>
-          {user && products.length > 0 && <span className="rounded-full bg-sage px-4 py-2 text-sm font-bold text-green-dark">{products.length} saved</span>}
-        </div>
+        <SectionHeader
+          as="h1"
+          eyebrow="Saved for later"
+          title="Your wishlist"
+          description="Keep your favourite foodstuff close and return when you are ready to shop."
+          actions={
+            user && products.length > 0 ? (
+              <span className="rounded-full bg-sage px-4 py-2 text-sm font-bold text-green-dark">{products.length} saved</span>
+            ) : undefined
+          }
+        />
 
         {isAuthLoading || (user && isLoading) ? (
           <div className="product-grid" role="status" aria-label="Loading your wishlist">

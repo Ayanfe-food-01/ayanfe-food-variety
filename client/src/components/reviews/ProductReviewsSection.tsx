@@ -3,6 +3,7 @@ import type { UseProductReviewsResult } from '../../hooks/useProductReviews'
 import type { ProductRatingDistribution, ProductReviewItem } from '../../services/reviewService'
 import { formatReviewDate } from '../../utils/dateFormat'
 import { ReviewStars } from './ReviewStars'
+import { SectionHeader } from '../ui/SectionHeader'
 
 interface ProductReviewsSectionProps {
   reviews: UseProductReviewsResult
@@ -92,22 +93,21 @@ export function ProductReviewsSection({ reviews }: ProductReviewsSectionProps) {
   return (
     <section className="border-t border-line bg-white py-14 sm:py-18 lg:py-24" aria-labelledby="customer-reviews-heading">
       <div className="container">
-        <div className="mb-10 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Customer reviews</p>
-            <h2 id="customer-reviews-heading" className="m-0 text-3xl font-bold tracking-[-0.04em] text-green-dark sm:text-4xl">
-              Reviews &amp; ratings
-            </h2>
-          </div>
-          {status === 'ready' && reviewAction && (
-            <Link
-              className="inline-flex h-11 items-center justify-center rounded-full bg-green px-6 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all hover:-translate-y-0.5 hover:bg-green-dark"
-              to={`/orders/${encodeURIComponent(reviewAction.orderNumber)}/review/${encodeURIComponent(reviewAction.orderItemId)}`}
-            >
-              Write a Review
-            </Link>
-          )}
-        </div>
+        <SectionHeader
+          headingId="customer-reviews-heading"
+          eyebrow="Customer reviews"
+          title="Reviews &amp; ratings"
+          actions={
+            status === 'ready' && reviewAction ? (
+              <Link
+                className="inline-flex h-11 items-center justify-center rounded-full bg-green px-6 text-sm font-bold text-cream shadow-lg shadow-green/15 transition-all hover:-translate-y-0.5 hover:bg-green-dark"
+                to={`/orders/${encodeURIComponent(reviewAction.orderNumber)}/review/${encodeURIComponent(reviewAction.orderItemId)}`}
+              >
+                Write a Review
+              </Link>
+            ) : undefined
+          }
+        />
 
         {status === 'loading' && (
           <div className="animate-pulse" aria-busy="true" aria-label="Loading customer reviews">

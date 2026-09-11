@@ -82,7 +82,7 @@ export function Dashboard() {
             <div className="min-w-0 lg:col-span-2">
               <SalesTrendCard />
             </div>
-            <div className="min-w-0 space-y-5 sm:space-y-6">
+            <div className="flex min-w-0 flex-col gap-5">
               <NeedsAttentionCard
                 total={isLoading ? 0 : needsAttentionTotal}
                 isLoading={isLoading}

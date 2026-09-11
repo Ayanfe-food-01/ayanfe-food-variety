@@ -22,7 +22,7 @@ export function PaymentMethodsCard({ paystack, bankTransfer, isLoading = false }
   ]
 
   return (
-    <section className="h-full min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm">
+    <section className="min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <p className="truncate text-xs font-bold uppercase tracking-[0.14em] text-orange">Payments this week</p>
         <Link className="flex shrink-0 items-center gap-1 text-xs font-bold text-green hover:text-orange" to="/admin/payments">

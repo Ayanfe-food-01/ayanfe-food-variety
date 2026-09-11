@@ -15,7 +15,7 @@ interface NeedsAttentionCardProps {
 
 export function NeedsAttentionCard({ total, items, isLoading = false }: NeedsAttentionCardProps) {
   return (
-    <article className="min-w-0 rounded-2xl border border-orange/25 bg-orange/5 p-4 shadow-sm sm:p-5">
+    <article className="min-w-0 flex-1 rounded-2xl border border-orange/25 bg-orange/5 p-4 shadow-sm sm:p-5">
       <div className="mb-4 size-2.5 rounded-full bg-orange sm:mb-6" />
       <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-muted">Needs attention</p>
       <p className="mt-2 text-xl leading-7 font-bold tracking-[-0.03em] text-green-dark sm:text-[22px]">

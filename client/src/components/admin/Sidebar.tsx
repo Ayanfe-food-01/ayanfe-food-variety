@@ -297,11 +297,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
 
         <div className="mt-4 shrink-0 border-t border-cream/10 pt-4">
           {isCollapsed ? (
-            <div className="hidden xl:flex xl:justify-center">
+            <div className="flex justify-center">
               <button
-                aria-label="Expand sidebar"
-                className="grid size-10 place-items-center rounded-xl text-cream/70 transition-colors xl:hover:bg-cream/10 hover:text-cream"
-                onClick={onToggleCollapse}
+                aria-label={isOpen ? 'Close sidebar' : 'Expand sidebar'}
+                className="grid size-10 place-items-center rounded-xl text-cream/70 transition-colors hover:bg-cream/10 hover:text-cream"
+                onClick={isOpen ? onClose : onToggleCollapse}
                 type="button"
               >
                 <PanelRightCloseIcon size={18} aria-hidden="true" />
@@ -309,12 +309,12 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
             </div>
           ) : (
             <button
-              className="hidden w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-cream/45 transition-colors hover:text-cream/80 xl:flex"
-              onClick={onToggleCollapse}
+              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-cream/45 transition-colors hover:text-cream/80"
+              onClick={isOpen ? onClose : onToggleCollapse}
               type="button"
             >
-              Collapse
-              <PanelLeftCloseIcon size={16} aria-hidden="true" />
+              {isOpen ? 'Close' : 'Collapse'}
+              {isOpen ? <PanelRightCloseIcon size={16} aria-hidden="true" /> : <PanelLeftCloseIcon size={16} aria-hidden="true" />}
             </button>
           )}
         </div>

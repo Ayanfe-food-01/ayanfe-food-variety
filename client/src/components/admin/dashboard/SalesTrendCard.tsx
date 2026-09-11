@@ -49,9 +49,10 @@ export function SalesTrendCard() {
           <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">Revenue over time</h2>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-[220px] shrink-0">
+          <div className="w-[170px] shrink-0 sm:w-[200px]">
             <SegmentedControl
               ariaLabel="Sales trend range"
+              className="h-9 sm:h-11"
               options={trendRanges}
               value={range}
               onChange={(key) => setRange(key as TrendRange)}

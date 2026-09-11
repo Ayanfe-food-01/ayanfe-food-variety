@@ -6,6 +6,10 @@ import { resolveLowStockThreshold } from './inventory.threshold.js'
 import type { InventoryAdjustInput, InventoryItem } from './inventory.types.js'
 
 const INVENTORY_SELECT = {
+  id: true,
+  label: true,
+  stockQuantity: true,
+  lowStockThreshold: true,
   product: {
     select: {
       id: true,
@@ -18,17 +22,13 @@ const INVENTORY_SELECT = {
       category: { select: { id: true, name: true, isActive: true } },
     },
   },
-  productOption: {
-    select: {
-      id: true,
-      label: true,
-      stockQuantity: true,
-      lowStockThreshold: true,
-    },
-  },
 } as const
 
 type InventoryRow = {
+  id: string
+  label: string
+  stockQuantity: number
+  lowStockThreshold: number | null
   product: {
     id: string
     name: string
@@ -39,21 +39,13 @@ type InventoryRow = {
     isActive: boolean
     category: { id: string; name: string; isActive: boolean }
   }
-  productOption: {
-    id: string
-    label: string
-    stockQuantity: number
-    lowStockThreshold: number | null
-  } | null
 }
 
 function toInventoryItem(row: InventoryRow): InventoryItem {
-  const stockQuantity = row.productOption
-    ? row.productOption.stockQuantity
-    : row.product.stockQuantity
+  const stockQuantity = row.stockQuantity
   const threshold = resolveLowStockThreshold(
     row.product.lowStockThreshold,
-    row.productOption?.lowStockThreshold,
+    row.lowStockThreshold,
   )
   const status = stockQuantity === 0
     ? 'OUT_OF_STOCK'
@@ -68,8 +60,8 @@ function toInventoryItem(row: InventoryRow): InventoryItem {
     productImage: row.product.image,
     categoryId: row.product.category.id,
     categoryName: row.product.category.name,
-    productOptionId: row.productOption?.id ?? null,
-    optionLabel: row.productOption?.label ?? null,
+    productOptionId: row.id,
+    optionLabel: row.label,
     stockQuantity,
     lowStockThreshold: threshold,
     status,
@@ -266,7 +258,7 @@ export async function listInventory(options: {
   const [optionRows, simpleRows] = await Promise.all([
     prisma.productOption.findMany({
       where: optionWhere,
-      include: INVENTORY_SELECT,
+      select: INVENTORY_SELECT,
       orderBy: { product: { name: 'asc' } },
     }),
     prisma.product.findMany({

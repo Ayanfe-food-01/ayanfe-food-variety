@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { createRateLimit } from '../../middlewares/rateLimit.js'
 import { requireCustomerAuthentication, requireCustomerRole } from './auth.middleware.js'
+import { adminLoginAttemptGuard } from './admin.login.guard.js'
 import {
   adminGoogleCallbackController,
   adminGoogleStartController,
@@ -26,7 +27,7 @@ export const authRoutes = Router()
 const googleOAuthStartRateLimit = createRateLimit(20, 15 * 60 * 1000)
 const googleOAuthCallbackRateLimit = createRateLimit(30, 15 * 60 * 1000)
 
-authRoutes.post('/login', createRateLimit(10, 15 * 60 * 1000), loginController)
+authRoutes.post('/login', createRateLimit(10, 15 * 60 * 1000), adminLoginAttemptGuard, loginController)
 authRoutes.post('/logout', logoutController)
 authRoutes.get('/me', meController)
 authRoutes.get('/customer/providers', customerProvidersController)

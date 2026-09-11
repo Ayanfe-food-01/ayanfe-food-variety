@@ -30,7 +30,7 @@ const pageSize = 10
 
 export function Payments() {
   const [searchInput, setSearchInput] = useState('')
-  const [query, setQuery] = useState<AdminPaymentsQuery>({ status: 'PENDING', page: 1, pageSize, sort: 'newest' })
+  const [query, setQuery] = useState<AdminPaymentsQuery>({ page: 1, pageSize, sort: 'newest' })
   const [selected, setSelected] = useState<AdminPayment | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)

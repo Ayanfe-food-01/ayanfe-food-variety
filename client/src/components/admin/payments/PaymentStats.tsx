@@ -64,9 +64,9 @@ export function PaymentStats({ pending, verified, rejected, methodBreakdown, isL
   return (
     <section className="mt-8" aria-label="Payment verification overview">
       <div className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard label="Pending verification" count={pending.count} total={pending.totalAmount} icon={<ClockIcon size={15} />} iconClassName="text-orange" isLoading={isLoading} />
+        <SummaryCard label="Pending verification" count={pending.count} total={pending.totalAmount} icon={<ClockIcon size={15} />} iconClassName="text-orange" footer={isLoading ? undefined : <span className="inline-flex rounded-full bg-orange/10 px-2.5 py-1 text-[11px] font-bold text-orange">Awaiting manual review</span>} isLoading={isLoading} />
         <SummaryCard label="Confirmed" count={verified.count} total={verified.totalAmount} icon={<CheckCircleIcon size={15} />} iconClassName="text-green" footer={isLoading ? undefined : confirmedFooter} isLoading={isLoading} />
-        <SummaryCard label="Rejected" count={rejected.count} total={rejected.totalAmount} icon={<XCircleIcon size={15} />} iconClassName="text-orange" isLoading={isLoading} />
+        <SummaryCard label="Rejected" count={rejected.count} total={rejected.totalAmount} icon={<XCircleIcon size={15} />} iconClassName="text-orange" footer={isLoading ? undefined : <span className="inline-flex rounded-full bg-line/50 px-2.5 py-1 text-[11px] font-bold text-muted">Awaiting customer re-submission</span>} isLoading={isLoading} />
       </div>
     </section>
   )

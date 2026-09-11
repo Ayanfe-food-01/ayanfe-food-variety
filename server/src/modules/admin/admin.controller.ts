@@ -4,7 +4,8 @@ import { HttpError } from '../../utils/http.js'
 import { normalizeSearchQuery } from '../../utils/search.js'
 import { reviewPayment } from '../payments/payment.service.js'
 import { validateReviewPaymentInput, validatePaymentSubmissionId } from '../payments/payment.validator.js'
-import { getAdminAnalytics, getDashboardStats } from './admin.service.js'
+import { getDashboardStats } from './admin.service.js'
+import { getAdminAnalytics } from './analytics/analytics.service.js'
 import {
   archiveAdminOrder,
   deleteAdminOrder,
@@ -19,20 +20,40 @@ import {
   validateOrderNumber,
   validateOrderStatusInput,
 } from './admin.validator.js'
-import type { AdminPaymentsQuery, AnalyticsRange } from './admin.types.js'
+import type { AdminPaymentsQuery } from './admin.types.js'
+import type { AnalyticsRange } from './analytics/analytics.types.js'
 
 export const getDashboardController: RequestHandler = async (_request, response) => {
   response.json({ success: true, data: { stats: await getDashboardStats() } })
 }
 
+const ANALYTICS_RANGES = ['today', '7d', '30d', 'month', 'custom'] as const
+
+const parseDateParam = (value: unknown, label: string): string => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new HttpError(400, `${label} is invalid.`)
+  }
+  const date = new Date(`${value}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) throw new HttpError(400, `${label} is invalid.`)
+  return value
+}
+
 export const getAnalyticsController: RequestHandler = async (request, response) => {
-  const range = request.query.range
-  if (range !== undefined && range !== 'today' && range !== 'week' && range !== 'month' && range !== 'year') {
+  const range = request.query.range ?? '7d'
+  if (typeof range !== 'string' || !ANALYTICS_RANGES.includes(range as AnalyticsRange)) {
     throw new HttpError(400, 'Analytics range is invalid.')
+  }
+  const resolved = range as AnalyticsRange
+  let from: string | undefined
+  let to: string | undefined
+  if (resolved === 'custom') {
+    from = parseDateParam(request.query.from, 'Start date')
+    to = parseDateParam(request.query.to, 'End date')
+    if (from > to) throw new HttpError(400, 'Start date cannot be after end date.')
   }
   response.json({
     success: true,
-    data: { analytics: await getAdminAnalytics((range ?? 'month') as AnalyticsRange) },
+    data: { analytics: await getAdminAnalytics({ range: resolved, from, to }) },
   })
 }
 

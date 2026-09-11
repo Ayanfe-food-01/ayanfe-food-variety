@@ -1,19 +1,24 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, NavLink } from 'react-router-dom'
 import {
-  ChevronDownIcon,
+  BellIcon,
+  CheckIcon,
   ClipboardListIcon,
   CreditCardIcon,
   GlobeIcon,
+  HeartIcon,
   LayersIcon,
+  LayoutDashboardIcon,
   MailIcon,
   PanelLeftCloseIcon,
   PanelRightCloseIcon,
   ShieldIcon,
   SparkIcon,
   TruckIcon,
+  UserIcon,
 } from '../../assets/icons'
 import { createPortal } from 'react-dom'
+import { Accordion, type AccordionSection } from '../ui/Accordion'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { DEFAULT_LOGO_PATH } from '../../seo/config'
 
@@ -37,56 +42,56 @@ interface SidebarProps {
   onToggleCollapse: () => void
 }
 
-const dashboard: NavLinkItem = { label: 'Dashboard', to: '/admin', end: true, icon: <SparkIcon size={18} strokeWidth={2.2} /> }
+const dashboard: NavLinkItem = { label: 'Dashboard', to: '/admin', end: true, icon: <LayoutDashboardIcon size={18} strokeWidth={2.2} /> }
 
 const navGroups: NavGroup[] = [
   {
     label: 'Sales',
     icon: <ClipboardListIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Orders', to: '/admin/orders' },
-      { label: 'Quote Requests', to: '/admin/quote-requests' },
-      { label: 'Analytics', to: '/admin/analytics' },
-      { label: 'Customers', to: '/admin/customers' },
+      { label: 'Orders', to: '/admin/orders', icon: <ClipboardListIcon size={18} strokeWidth={2} /> },
+      { label: 'Quote Requests', to: '/admin/quote-requests', icon: <MailIcon size={18} strokeWidth={2} /> },
+      { label: 'Analytics', to: '/admin/analytics', icon: <SparkIcon size={18} strokeWidth={2} /> },
+      { label: 'Customers', to: '/admin/customers', icon: <UserIcon size={18} strokeWidth={2} /> },
     ],
   },
   {
     label: 'Products',
     icon: <LayersIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Products', to: '/admin/products' },
-      { label: 'Categories', to: '/admin/categories' },
+      { label: 'Products', to: '/admin/products', icon: <LayersIcon size={18} strokeWidth={2} /> },
+      { label: 'Categories', to: '/admin/categories', icon: <LayersIcon size={18} strokeWidth={2} /> },
     ],
   },
   {
     label: 'Inventory',
     icon: <TruckIcon size={18} strokeWidth={2.2} />,
-    links: [{ label: 'Inventory', to: '/admin/inventory' }],
+    links: [{ label: 'Inventory', to: '/admin/inventory', icon: <TruckIcon size={18} strokeWidth={2} /> }],
   },
   {
     label: 'Store',
     icon: <GlobeIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Delivery Zones & Fees', to: '/admin/delivery-zones' },
-      { label: 'Promotional Banners', to: '/admin/banners' },
-      { label: 'Testimonials', to: '/admin/testimonials' },
-      { label: 'Reviews', to: '/admin/reviews' },
+      { label: 'Delivery Zones & Fees', to: '/admin/delivery-zones', icon: <TruckIcon size={18} strokeWidth={2} /> },
+      { label: 'Promotional Banners', to: '/admin/banners', icon: <SparkIcon size={18} strokeWidth={2} /> },
+      { label: 'Testimonials', to: '/admin/testimonials', icon: <HeartIcon size={18} strokeWidth={2} /> },
+      { label: 'Reviews', to: '/admin/reviews', icon: <CheckIcon size={18} strokeWidth={2} /> },
     ],
   },
   {
     label: 'Finance',
     icon: <CreditCardIcon size={18} strokeWidth={2.2} />,
-    links: [{ label: 'Payments', to: '/admin/payments' }],
+    links: [{ label: 'Payments', to: '/admin/payments', icon: <CreditCardIcon size={18} strokeWidth={2} /> }],
   },
   {
     label: 'Communication',
     icon: <MailIcon size={18} strokeWidth={2.2} />,
-    links: [{ label: 'Notifications', to: '/admin/notifications' }],
+    links: [{ label: 'Notifications', to: '/admin/notifications', icon: <BellIcon size={18} strokeWidth={2} /> }],
   },
   {
     label: 'System',
     icon: <ShieldIcon size={18} strokeWidth={2.2} />,
-    links: [{ label: 'Settings', to: '/admin/settings' }],
+    links: [{ label: 'Settings', to: '/admin/settings', icon: <ShieldIcon size={18} strokeWidth={2} /> }],
   },
 ]
 
@@ -103,28 +108,19 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   const { settings } = useStoreSettings()
   const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
   const { pathname } = useLocation()
-  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => {
+  const [openGroups, setOpenGroups] = useState<string[]>(() => {
     const activeGroup = groupForPath(pathname)
-    return new Set(activeGroup ? [activeGroup] : [])
+    return activeGroup ? [activeGroup] : []
   })
   const [flyout, setFlyout] = useState<{ label: string; left: number; top: number } | null>(null)
   const flyoutRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
 
-  const toggleGroup = useCallback((label: string) => {
-    setOpenGroups((current) => {
-      const next = new Set(current)
-      if (next.has(label)) next.delete(label)
-      else next.add(label)
-      return next
-    })
-  }, [])
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const activeGroup = groupForPath(pathname)
       if (activeGroup) {
-        setOpenGroups((current) => (current.has(activeGroup) ? current : new Set([...current, activeGroup])))
+        setOpenGroups((current) => (current.includes(activeGroup) ? current : [activeGroup]))
       }
     }, 0)
     return () => window.clearTimeout(timeoutId)
@@ -135,7 +131,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
     const timeoutId = window.setTimeout(() => {
       const activeGroup = groupForPath(pathname)
       if (activeGroup) {
-        setOpenGroups((current) => (current.has(activeGroup) ? current : new Set([...current, activeGroup])))
+        setOpenGroups((current) => (current.includes(activeGroup) ? current : [activeGroup]))
       }
     }, 0)
     return () => window.clearTimeout(timeoutId)
@@ -177,10 +173,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
     setFlyout({ label: group.label, left, top })
   }
 
-  const expandedLink = (link: NavLinkItem) => (
+  const expandedLink = (link: NavLinkItem, nested = false) => (
     <NavLink
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
+        `flex items-center gap-3 rounded-xl py-2.5 text-sm font-bold transition-colors ${nested ? 'pl-11 pr-3' : 'px-3'} ${isActive ? activeNavClasses : inactiveNavClasses}`
       }
       end={link.end}
       key={link.to}
@@ -188,35 +184,23 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
       onClick={onClose}
     >
       {link.icon && <span className="shrink-0">{link.icon}</span>}
-      <span className={`min-w-0 flex-1 truncate ${link.icon ? '' : 'pl-7'}`}>{link.label}</span>
+      <span className="min-w-0 flex-1 truncate">{link.label}</span>
     </NavLink>
   )
 
-  const expandedGroup = (group: NavGroup) => {
-    const isGroupActive = group.links.some((link) => isActivePath(link, pathname))
-    const isGroupOpen = openGroups.has(group.label)
-    return (
-      <section key={group.label} aria-label={group.label}>
-        <button
-          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-colors ${
-            isGroupActive ? 'text-cream' : 'text-cream/45 hover:text-cream/80'
-          }`}
-          aria-expanded={isGroupOpen}
-          onClick={() => toggleGroup(group.label)}
-          type="button"
-        >
-          <span className="shrink-0">{group.icon}</span>
-          <span className="min-w-0 flex-1 truncate text-left">{group.label}</span>
-          <ChevronDownIcon className={`shrink-0 transition-transform ${isGroupOpen ? 'rotate-180' : ''}`} size={16} aria-hidden="true" />
-        </button>
-        {isGroupOpen && (
-          <div className="mt-1 space-y-1">
-            {group.links.map(expandedLink)}
-          </div>
-        )}
-      </section>
-    )
-  }
+  const accordionItems: AccordionSection[] = navGroups.map((group) => ({
+    id: group.label,
+    icon: group.icon,
+    label: group.label,
+    headingClassName: group.links.some((link) => isActivePath(link, pathname))
+      ? 'text-cream'
+      : 'text-cream/45 hover:text-cream/80',
+    content: (
+      <div className="mt-1 space-y-1">
+        {group.links.map((link) => expandedLink(link, true))}
+      </div>
+    ),
+  }))
 
   const railIcon = (link: NavLinkItem) => (
     <NavLink
@@ -268,7 +252,13 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
             <div className="space-y-1">
               {expandedLink(dashboard)}
             </div>
-            {navGroups.map(expandedGroup)}
+            <Accordion
+              ariaLabel="Admin navigation groups"
+              className="space-y-6"
+              items={accordionItems}
+              onChange={setOpenGroups}
+              open={openGroups}
+            />
           </div>
 
           {isCollapsed && (
@@ -335,7 +325,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
               .links.map((link) => (
                 <NavLink
                   className={({ isActive }) =>
-                    `flex items-center rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
                   }
                   end={link.end}
                   key={link.to}
@@ -344,7 +334,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                   onClick={() => setFlyout(null)}
                 >
                   {link.icon && <span className="shrink-0">{link.icon}</span>}
-                  <span className={`min-w-0 flex-1 truncate ${link.icon ? '' : 'pl-7'}`}>{link.label}</span>
+                  <span className="min-w-0 flex-1 truncate">{link.label}</span>
                 </NavLink>
               ))}
           </div>

@@ -3,16 +3,25 @@ import { Link } from 'react-router-dom'
 import { StatCard } from '../../components/admin/StatCard'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { getDashboardStats, type DashboardStats } from '../../services/adminService'
+import { getAdminInventorySummary } from '../../services/inventoryService'
+import type { InventorySummary } from '../../types/inventory'
 
 const formatPrice = (value: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
 
 export function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [inventorySummary, setInventorySummary] = useState<InventorySummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     getDashboardStats().then(setStats).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'Dashboard data could not be loaded.'))
+  }, [])
+
+  useEffect(() => {
+    getAdminInventorySummary()
+      .then(setInventorySummary)
+      .catch(() => setInventorySummary(null))
   }, [])
 
   useInitialRouteLoad(Boolean(stats || error))
@@ -41,6 +50,21 @@ export function Dashboard() {
           <StatCard label="Revenue" value={stats ? formatPrice(stats.totalSales) : ''} detail="Paid, non-cancelled orders" isLoading={!stats} />
         </div>
       )}
+
+      <section className="mt-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Inventory</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-[-0.03em] text-green-dark">What needs restocking?</h2>
+          </div>
+          <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/inventory">View inventory →</Link>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <StatCard label="Tracked units" value={inventorySummary?.totalTrackedSkus ?? 0} detail="Active products and options" isLoading={!inventorySummary} to="/admin/inventory" />
+          <StatCard label="Low stock" value={inventorySummary?.lowStockCount ?? 0} detail="At or below their low-stock threshold" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?tab=low" />
+          <StatCard label="Out of stock" value={inventorySummary?.outOfStockCount ?? 0} detail="Units with zero available stock" accent="orange" isLoading={!inventorySummary} to="/admin/inventory?tab=out" />
+        </div>
+      </section>
 
       <section className="mt-8">
         <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">

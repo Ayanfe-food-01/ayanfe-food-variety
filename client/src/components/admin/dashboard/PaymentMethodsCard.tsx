@@ -15,7 +15,6 @@ interface PaymentMethodsCardProps {
 
 export function PaymentMethodsCard({ paystack, bankTransfer, isLoading = false }: PaymentMethodsCardProps) {
   const totalCount = paystack.count + bankTransfer.count
-  const paystackShare = totalCount === 0 ? 0 : Math.round((paystack.count / totalCount) * 100)
 
   const rows = [
     { label: 'Paystack', to: '/admin/payments', stat: paystack },
@@ -23,49 +22,40 @@ export function PaymentMethodsCard({ paystack, bankTransfer, isLoading = false }
   ]
 
   return (
-    <section className="h-full min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Payments</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-green-dark">This week by method</h2>
-        </div>
-        <Link className="flex items-center gap-1 text-sm font-bold text-green hover:text-orange" to="/admin/payments">
-          View payments <ArrowUpRight size={16} />
+    <section className="h-full min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <p className="truncate text-xs font-bold uppercase tracking-[0.14em] text-orange">Payments this week</p>
+        <Link className="flex shrink-0 items-center gap-1 text-xs font-bold text-green hover:text-orange" to="/admin/payments">
+          View all <ArrowUpRight size={14} />
         </Link>
       </div>
       {isLoading ? (
-        <div className="space-y-3 pt-5" aria-label="Loading payment methods">
+        <div className="mt-4 space-y-3" aria-label="Loading payment methods">
           {Array.from({ length: 2 }).map((_, index) => (
-            <div className="animate-pulse rounded-xl bg-sage/45 p-4" key={index} />
+            <div className="h-10 animate-pulse rounded-lg bg-sage/45" key={index} />
           ))}
         </div>
       ) : (
-        <div className="mt-5 border-t border-line">
+        <ul className="mt-2 divide-y divide-line">
           {totalCount === 0 ? (
-            <p className="pt-6 text-sm text-muted">No paid orders this week.</p>
+            <li>
+              <p className="py-3 text-sm text-muted">No paid orders this week.</p>
+            </li>
           ) : (
-            <>
-              <div className="mt-5 flex h-2 overflow-hidden rounded-full bg-sage/45">
-                <div className="h-full bg-green" style={{ width: `${paystackShare}%` }} />
-                <div className="h-full bg-orange/60" style={{ width: `${100 - paystackShare}%` }} />
-              </div>
-              <ul className="mt-4 divide-y divide-line">
-                {rows.map((row) => (
-                  <li key={row.label}>
-                    <Link className="group flex items-center justify-between gap-4 py-3 transition-colors hover:bg-sage/20" to={row.to}>
-                      <div className="flex items-center gap-2.5">
-                        <span className={`size-2.5 rounded-full ${row.label === 'Paystack' ? 'bg-green' : 'bg-orange/60'}`} />
-                        <p className="font-semibold text-green-dark group-hover:text-orange">{row.label}</p>
-                        <p className="text-xs text-muted">{row.stat.count} {row.stat.count === 1 ? 'order' : 'orders'}</p>
-                      </div>
-                      <p className="shrink-0 font-bold text-green-dark">{formatPrice(row.stat.revenue)}</p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </>
+            rows.map((row) => (
+              <li key={row.label}>
+                <Link className="group flex items-center justify-between gap-3 py-2.5 transition-colors hover:bg-sage/20" to={row.to}>
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className={`size-2.5 shrink-0 rounded-full ${row.label === 'Paystack' ? 'bg-green' : 'bg-orange/60'}`} />
+                    <span className="truncate text-sm font-semibold text-green-dark group-hover:text-orange">{row.label}</span>
+                    <span className="shrink-0 text-xs text-muted">{row.stat.count} {row.stat.count === 1 ? 'order' : 'orders'}</span>
+                  </span>
+                  <span className="shrink-0 text-sm font-bold text-green-dark">{formatPrice(row.stat.revenue)}</span>
+                </Link>
+              </li>
+            ))
           )}
-        </div>
+        </ul>
       )}
     </section>
   )

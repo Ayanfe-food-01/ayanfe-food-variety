@@ -24,7 +24,10 @@ const actions = [
 
 export function QuickActions() {
   return (
-    <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+    <div>
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange">Quick links</p>
+      <p className="mt-1 text-sm text-muted">Shortcuts to common tasks.</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3 sm:gap-4">
       {actions.map((action) => (
         <Link
           className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-green/30 hover:bg-sage/20"
@@ -40,6 +43,7 @@ export function QuickActions() {
           </span>
         </Link>
       ))}
+      </div>
     </div>
   )
 }

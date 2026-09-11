@@ -41,10 +41,6 @@ export function Dashboard() {
         <div className="mt-8 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
       ) : (
         <>
-          <section className="mt-6 sm:mt-8" aria-label="Quick actions">
-            <QuickActions />
-          </section>
-
           <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-5 lg:grid-cols-4">
             <DashboardMetricCard
               label="Revenue today"
@@ -82,11 +78,11 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="mt-6 grid gap-5 sm:mt-8 lg:grid-cols-3">
+          <div className="mt-8 grid gap-5 sm:mt-8 lg:grid-cols-3">
             <div className="min-w-0 lg:col-span-2">
               <SalesTrendCard />
             </div>
-            <div className="min-w-0 space-y-5">
+            <div className="min-w-0 space-y-5 sm:space-y-6">
               <NeedsAttentionCard
                 total={isLoading ? 0 : needsAttentionTotal}
                 isLoading={isLoading}
@@ -104,7 +100,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-5 sm:mt-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-5 sm:mt-8 md:grid-cols-2 lg:grid-cols-3">
             <div className="min-w-0 lg:col-span-2">
               <RecentOrdersCard
                 orders={stats?.recentOrders ?? []}
@@ -113,6 +109,10 @@ export function Dashboard() {
             </div>
             <TopProductsCard products={stats?.topProducts ?? []} isLoading={isLoading} />
           </div>
+
+          <section className="mt-8 sm:mt-10" aria-label="Quick links">
+            <QuickActions />
+          </section>
         </>
       )}
     </div>

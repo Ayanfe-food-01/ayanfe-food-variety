@@ -27,17 +27,17 @@ export function DashboardMetricCard({
   const card = (
     <article className="min-w-0 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5">
       <div className={`mb-4 size-2.5 rounded-full sm:mb-6 ${accent === 'orange' ? 'bg-orange' : 'bg-green'}`} />
-      <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-muted">{label}</p>
-      <p className="mt-2 text-xl leading-7 font-bold tracking-[-0.03em] text-green-dark sm:text-[22px]">
+      <p className="m-0 truncate text-xs font-bold uppercase tracking-[0.14em] text-muted" title={label}>{label}</p>
+      <p className="mt-2 truncate text-xl leading-7 font-bold tracking-[-0.03em] text-green-dark sm:text-[22px]" title={isLoading ? undefined : String(value)}>
         {isLoading ? <span className="inline-block h-6 w-20 animate-pulse rounded-md bg-sage/70 align-middle" aria-label={`Loading ${label}`} /> : value}
       </p>
       {trend && (
-        <p className={`mt-2 flex items-center gap-1 text-xs font-bold ${trend.direction === 'up' ? 'text-green' : 'text-orange'}`}>
+        <p className={`mt-2 truncate text-xs font-bold ${trend.direction === 'up' ? 'text-green' : 'text-orange'}`} title={trend.label}>
           <span aria-hidden="true">{trend.direction === 'up' ? '↑' : '↓'}</span>
           {trend.label}
         </p>
       )}
-      {detail && !trend && <p className="mt-2 text-xs text-muted">{detail}</p>}
+      {detail && !trend && <p className="mt-2 truncate text-xs text-muted" title={detail}>{detail}</p>}
     </article>
   )
 

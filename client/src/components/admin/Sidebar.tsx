@@ -185,7 +185,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   const expandedLink = (link: NavLinkItem, nested = false) => (
     <NavLink
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-xl py-2.5 text-sm font-bold transition-colors ${nested ? 'ml-9 px-3 pr-3' : 'px-3'} ${isActive ? activeNavClasses : inactiveNavClasses}`
+        `flex items-center gap-3 rounded-xl py-2.5 transition-colors ${nested ? 'ml-9 px-3 pr-3 text-xs font-semibold' : 'px-3 text-sm font-bold'} ${isActive ? activeNavClasses : inactiveNavClasses}`
       }
       end={link.end}
       key={link.to}
@@ -254,7 +254,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
         </div>
 
         <nav
-          className="mt-8 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 y-scrollbar"
+          className="mt-8 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-3 y-scrollbar"
           aria-label="Admin navigation"
         >
           <div className={`space-y-6 ${isCollapsed ? 'xl:hidden' : ''}`}>
@@ -334,7 +334,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
               .links.map((link) => (
                 <NavLink
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
                   }
                   end={link.end}
                   key={link.to}

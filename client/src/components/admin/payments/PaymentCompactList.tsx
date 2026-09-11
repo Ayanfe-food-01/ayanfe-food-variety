@@ -97,7 +97,7 @@ function DesktopTable({ payments, onSelect }: PaymentCompactListProps) {
 
 export function PaymentCompactList({ payments, onSelect }: PaymentCompactListProps) {
   if (payments.length === 0) {
-    return <PaymentEmptyState message="No payment submissions match these filters." />
+    return <PaymentEmptyState message="No payments match these filters." />
   }
 
   return (

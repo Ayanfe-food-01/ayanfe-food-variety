@@ -103,6 +103,10 @@ export function Payments() {
     pending: { count: 0, totalAmount: '0' },
     verified: { count: 0, totalAmount: '0' },
     rejected: { count: 0, totalAmount: '0' },
+    methodBreakdown: {
+      paystack: { count: 0, totalAmount: '0' },
+      bankTransfer: { count: 0, totalAmount: '0' },
+    },
   }
   const currentPage = result?.pagination.page ?? 1
   const totalPages = result?.pagination.totalPages ?? 1
@@ -116,7 +120,7 @@ export function Payments() {
         description="Review transfer receipts manually before confirming payment."
       />
 
-      <PaymentStats pending={summary.pending} verified={summary.verified} rejected={summary.rejected} />
+      <PaymentStats pending={summary.pending} verified={summary.verified} rejected={summary.rejected} methodBreakdown={summary.methodBreakdown} />
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Payment filters">
         <FilterBar
@@ -150,10 +154,10 @@ export function Payments() {
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
       {isLoading ? (
-        <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading payment submissions…</div>
+        <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading payments…</div>
       ) : (
         <>
-          <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{result?.pagination.total ?? 0} submissions</span><span>Page {currentPage} of {totalPages}</span></div>
+          <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{result?.pagination.total ?? 0} payments</span><span>Page {currentPage} of {totalPages}</span></div>
           <div className="mt-3"><PaymentCompactList payments={result?.payments ?? []} onSelect={(payment) => void openReview(payment)} /></div>
           {totalPages > 1 && <AdminPagination className="mt-5" currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => setQuery((current) => ({ ...current, page }))} />}
         </>

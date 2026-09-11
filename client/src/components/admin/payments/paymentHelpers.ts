@@ -41,7 +41,7 @@ export const paymentFilterFields: FilterField[] = [
     options: [
       { value: '', label: 'All statuses' },
       { value: 'PENDING', label: 'Pending' },
-      { value: 'VERIFIED', label: 'Confirmed' },
+      { value: 'CONFIRMED', label: 'Confirmed' },
       { value: 'REJECTED', label: 'Rejected' },
     ],
   },
@@ -53,6 +53,7 @@ export const paymentFilterFields: FilterField[] = [
     options: [
       { value: '', label: 'All methods' },
       { value: 'BANK_TRANSFER', label: 'Bank transfer' },
+      { value: 'PAYSTACK', label: 'Paystack' },
     ],
   },
   {

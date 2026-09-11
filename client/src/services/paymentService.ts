@@ -224,7 +224,7 @@ export async function verifyGuestPaystackPayment(input: {
 
 export interface AdminPaymentsQuery {
   search?: string
-  status?: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUCCESSFUL'
+  status?: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUCCESSFUL' | 'CONFIRMED'
   paymentMethod?: 'BANK_TRANSFER' | 'PAYSTACK'
   from?: string
   to?: string
@@ -240,6 +240,10 @@ export interface AdminPaymentsPage {
     pending: { count: number; totalAmount: string }
     verified: { count: number; totalAmount: string }
     rejected: { count: number; totalAmount: string }
+    methodBreakdown?: {
+      paystack: { count: number; totalAmount: string }
+      bankTransfer: { count: number; totalAmount: string }
+    }
   }
 }
 

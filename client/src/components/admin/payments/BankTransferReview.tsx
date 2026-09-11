@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { AdminPayment, PaymentRejectionReason } from '../../../services/paymentService'
 import { ImagePreview } from '../../ui/ImagePreview'
 import { formatDate } from '../../../utils/dateFormat'
-import { formatPrice, formatStatus, isConfirmed, statusClass } from './paymentHelpers'
+import { formatPrice, formatStatus, isActionable, statusClass } from './paymentHelpers'
 
 const rejectionReasons: Array<{ value: PaymentRejectionReason; label: string }> = [
   { value: 'AMOUNT_MISMATCH', label: 'Amount does not match' },
@@ -45,7 +45,7 @@ export function BankTransferReview({ payment, isSaving, onVerify, onReject }: Ba
   const [note, setNote] = useState(payment.reviewNote ?? '')
   const [rejectionReason, setRejectionReason] = useState<PaymentRejectionReason | ''>(payment.rejectionReason ?? '')
   const [error, setError] = useState<string | null>(null)
-  const isPending = !isConfirmed(payment.status)
+  const isPending = isActionable(payment.status)
   const amountMatches = payment.amount === payment.expectedAmount
 
   const reject = async () => {

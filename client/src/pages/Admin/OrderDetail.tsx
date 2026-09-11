@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import {
   archiveAdminOrder,
@@ -12,6 +12,7 @@ import {
 } from '../../services/orderService'
 import { formatOrderStatus, getOrderStatusOptions } from '../../utils/orderStatus'
 import { useToast } from '../../components/ui/Toast'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ImagePreview } from '../../components/ui/ImagePreview'
 import { SelectField } from '../../components/ui/SelectField'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -111,12 +112,12 @@ export function OrderDetail() {
   }
 
   if (isLoading) return <div className="rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading order…</div>
-  if (!order) return <div><div className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error ?? 'Order not found.'}</div><Link className="mt-5 inline-block font-bold text-green" to="/admin/orders">Back to orders</Link></div>
+  if (!order) return <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Orders', href: '/admin/orders' }, { label: 'Order' }]} /><div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error ?? 'Order not found.'}</div></div>
 
   return (
     <div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><Link className="text-sm font-bold text-green hover:text-orange" to="/admin/orders">← Back to orders</Link><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Order detail</p><h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{order.orderNumber}</h1><p className="mt-3 text-sm text-muted">Placed {formatDate(order.createdAt)}</p><p className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]"><span className={order.shoppingMode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} /><span className={order.shoppingMode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>{order.shoppingMode === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}</span></p>{order.quoteNumber && (<p className="mt-2 inline-flex items-center gap-2"><span className="rounded-full bg-orange/10 px-3 py-1 text-xs font-bold text-orange">From quotation {order.quoteNumber}</span></p>)}</div>
+        <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Orders', href: '/admin/orders' }, { label: order.orderNumber }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Order detail</p><h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{order.orderNumber}</h1><p className="mt-3 text-sm text-muted">Placed {formatDate(order.createdAt)}</p><p className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]"><span className={order.shoppingMode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} /><span className={order.shoppingMode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>{order.shoppingMode === 'WHOLESALE' ? 'Wholesale Order' : 'Retail Order'}</span></p>{order.quoteNumber && (<p className="mt-2 inline-flex items-center gap-2"><span className="rounded-full bg-orange/10 px-3 py-1 text-xs font-bold text-orange">From quotation {order.quoteNumber}</span></p>)}</div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.paymentStatus)}`}>Payment: {order.paymentStatus}</span>
             <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(order.orderStatus)}`}>{formatOrderStatus(order.orderStatus)}</span>

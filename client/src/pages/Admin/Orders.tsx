@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import {
   archiveAdminOrder,
@@ -12,6 +11,7 @@ import {
 } from '../../services/orderService'
 import { OrderTable } from '../../components/admin/OrderTable'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { FilterBar } from '../../components/filters/FilterBar'
 import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
 import { AdminPagination } from '../../components/admin/AdminPagination'
@@ -154,11 +154,11 @@ export function Orders() {
     <div>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Orders' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Operations</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Orders</h1>
           <p className="mt-3 text-sm text-muted">Search, review, and move orders through fulfillment.</p>
         </div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin">Back to dashboard</Link>
       </div>
 
       <div className="mt-8">

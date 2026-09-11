@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from '../../assets/icons'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 
 const settingsSections = [
   {
@@ -31,6 +32,7 @@ const settingsSections = [
 export function Settings() {
   return (
     <div>
+      <Breadcrumb className="mb-6" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Settings' }]} />
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Configuration</p>
       <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Settings</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">

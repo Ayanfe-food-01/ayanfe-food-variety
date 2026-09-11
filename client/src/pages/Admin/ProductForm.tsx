@@ -8,6 +8,7 @@ import { OptionInputField, type OptionRowErrors } from '../../components/admin/O
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
 import { SelectField } from '../../components/ui/SelectField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { formatPrice } from '../../utils/formatPrice'
 import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
@@ -368,8 +369,7 @@ export function ProductForm() {
   return (
     <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit product' : 'Add product'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the product details and inventory level.' : 'Add a product customers can discover and purchase.'}</p></div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/products">Back to products</Link>
+        <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Products', href: '/admin/products' }, { label: isEditing ? 'Edit product' : 'Add product' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit product' : 'Add product'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the product details and inventory level.' : 'Add a product customers can discover and purchase.'}</p></div>
       </div>
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <p className="text-sm font-normal text-muted">Loading product…</p> : (

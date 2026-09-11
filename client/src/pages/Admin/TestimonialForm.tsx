@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { SubmitButton } from '../../components/ui/SubmitButton'
@@ -106,8 +107,7 @@ export function TestimonialForm() {
   return (
     <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Social proof</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit testimonial' : 'Add testimonial'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the quote, rating, or placement of this testimonial.' : 'Capture a customer quote to showcase on your storefront.'}</p></div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/testimonials">Back to testimonials</Link>
+        <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Testimonials', href: '/admin/testimonials' }, { label: isEditing ? 'Edit testimonial' : 'Add testimonial' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Social proof</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit testimonial' : 'Add testimonial'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the quote, rating, or placement of this testimonial.' : 'Capture a customer quote to showcase on your storefront.'}</p></div>
       </div>
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <p className="text-sm text-muted">Loading testimonial…</p> : <form className="space-y-5" onSubmit={submit}>

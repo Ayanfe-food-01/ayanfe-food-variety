@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { AdminPagination } from '../../components/admin/AdminPagination'
 import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
 import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
 import { SelectField } from '../../components/ui/SelectField'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
 import { getAdminProduct } from '../../services/adminService'
@@ -82,10 +83,8 @@ export function ProductStockMovements() {
   return (
     <div className="admin-inventory-page min-w-0">
       <div className="min-w-0">
-        <Link className="inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" to="/admin/inventory?tab=movements">
-          ← Back to inventory
-        </Link>
-        <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-orange">Inventory</p>
+        <Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Inventory', href: '/admin/inventory' }, { label: productName || 'Movements' }]} />
+        <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Inventory</p>
         <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{productName || 'Product movements'}</h1>
         <p className="mt-3 max-w-2xl text-sm text-muted">Complete stock change history for this product, including automatic order deductions and manual adjustments.</p>
       </div>

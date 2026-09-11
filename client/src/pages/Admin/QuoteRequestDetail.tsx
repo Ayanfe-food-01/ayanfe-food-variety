@@ -11,6 +11,7 @@ import {
 } from '../../services/quoteService'
 import { formatQuoteStatus, getQuoteStatusOptions } from '../../utils/quoteStatus'
 import { formatDate } from '../../utils/dateFormat'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { formatPrice } from '../../utils/formatPrice'
 import { useToast } from '../../components/ui/Toast'
 import { SelectField } from '../../components/ui/SelectField'
@@ -144,7 +145,7 @@ export function QuoteRequestDetail() {
   }
 
   if (isLoading) return <div className="rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading quote request…</div>
-  if (!quote) return <div><div className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error ?? 'Quote request not found.'}</div><Link className="mt-5 inline-block font-bold text-green" to="/admin/quote-requests">Back to quote requests</Link></div>
+  if (!quote) return <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Quote requests', href: '/admin/quote-requests' }, { label: 'Quote request' }]} /><div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error ?? 'Quote request not found.'}</div></div>
 
   const statusOptions = getQuoteStatusOptions(status)
   const canPrepareQuotation = status === 'PENDING' || status === 'CONTACTED'
@@ -159,7 +160,7 @@ export function QuoteRequestDetail() {
     <div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/quote-requests">← Back to quote requests</Link>
+          <Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Quote requests', href: '/admin/quote-requests' }, { label: quote.quoteNumber }]} />
           <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Quote request detail</p>
           <h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{quote.quoteNumber}</h1>
           <p className="mt-3 text-sm text-muted">Received {formatDate(quote.createdAt, true)}</p>

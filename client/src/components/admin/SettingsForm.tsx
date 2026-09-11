@@ -1,6 +1,5 @@
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight } from '../../assets/icons'
+import { Breadcrumb } from '../ui/Breadcrumb'
 import { SubmitButton } from '../ui/SubmitButton'
 
 interface SettingsPageHeaderProps {
@@ -12,11 +11,8 @@ interface SettingsPageHeaderProps {
 export function SettingsPageHeader({ eyebrow, title, description }: SettingsPageHeaderProps) {
   return (
     <div>
-      <Link className="inline-flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-green-dark" to="/admin/settings">
-        <ArrowRight className="rotate-180" size={16} />
-        Back to settings
-      </Link>
-      <p className="mt-8 text-xs font-bold uppercase tracking-[0.16em] text-orange">{eyebrow}</p>
+      <Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Settings', href: '/admin/settings' }, { label: title }]} />
+      <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">{eyebrow}</p>
       <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{description}</p>
     </div>

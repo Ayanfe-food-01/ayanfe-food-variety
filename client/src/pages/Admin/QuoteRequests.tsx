@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import {
   getAdminQuoteRequests,
@@ -7,6 +6,7 @@ import {
   type AdminQuoteRequestsQuery,
 } from '../../services/quoteService'
 import { QuoteTable } from '../../components/admin/QuoteTable'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { AdminPagination } from '../../components/admin/AdminPagination'
 import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
 import { FilterBar } from '../../components/filters/FilterBar'
@@ -87,11 +87,11 @@ export function QuoteRequests() {
     <div>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
+          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Quote requests' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Customer enquiries</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Quote requests</h1>
           <p className="mt-3 text-sm text-muted">Review, contact, and manage pricing requests from customers.</p>
         </div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin">Back to dashboard</Link>
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Quote request filters">

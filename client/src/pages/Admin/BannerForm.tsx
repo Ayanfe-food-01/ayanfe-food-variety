@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ImageUploadField } from '../../components/admin/ImageUploadField'
 import { SubmitButton } from '../../components/ui/SubmitButton'
 import { getSaveProgressLabel } from '../../components/admin/saveProgress'
@@ -94,8 +95,7 @@ export function BannerForm() {
   return (
     <>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Merchandising</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit banner' : 'Add banner'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the artwork or message without changing the banner position.' : 'Create a homepage promotion with artwork, messaging, and an optional internal destination.'}</p></div>
-        <Link className="text-sm font-bold text-green hover:text-orange" to="/admin/banners">Back to banners</Link>
+        <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Promotional banners', href: '/admin/banners' }, { label: isEditing ? 'Edit banner' : 'Add banner' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Merchandising</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit banner' : 'Add banner'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the artwork or message without changing the banner position.' : 'Create a homepage promotion with artwork, messaging, and an optional internal destination.'}</p></div>
       </div>
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <p className="text-sm text-muted">Loading banner…</p> : <form className="space-y-5" onSubmit={submit}>

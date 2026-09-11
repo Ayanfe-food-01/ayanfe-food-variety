@@ -243,3 +243,17 @@ For simple products (no options), Inventory belongs directly to the Product.
 4. **Cancellation restoration**: restore exact base-unit quantity
 5. **Reserved stock**: Pending orders should reserve stock until confirmed/cancelled
 6. **Validation**: Server-side checks must never rely on client-provided quantities
+
+## Implementation Status (all seven phases)
+
+1. **Audit** — this report; commit `c8c1b6d`.
+2. **Inventory data model + services** (`5103860`): `MovementType` enum; `Product.lowStockThreshold` (default 5); `ProductOption.lowStockThreshold`; `ProductStockAdjustment.movementType`/`performedBy`/`notes`; `inventory` server module (types, threshold checks, deduct/restore services with `FOR UPDATE`, adjust, history, validator, controller, routes).
+3. **Admin inventory UI** (`4e0295e`): stock overview, movement log, low-stock views with badges, filters, and stock-adjust modal; inventory routes in admin sidebar.
+4. **Stock movement history** (`8b0bef9`): per-product movement history page; wholesale deduction fix (cartons × `unitsPerPackage`) also landed here.
+5. **Order integration**: `checkout.completion.ts`, `customer-order.service.ts`, `admin-order.status.service.ts` deduct/restore through inventory services using resolved base-units.
+6. **Storefront availability**: product cards show low/out-of-stock badges (client `StoreStockBadge`); detail page shows "Only N left" and stock-aware add-to-cart; option selectors/cart already limit to available stock.
+7. **Dashboard + report + QA**: dashboard inventory restock cards deep-link into inventory tabs (`3d1eea0`).
+
+**Refactor after review**: inventory consolidated to a single `/admin/inventory` page with `All stock / Low stock / Out of stock / Movements` tabs (query params `?tab=`/`?status=`); separate `low-stock` page and standalone movements route removed; sidebar reorganized into Operations / Catalog / Inventory / Store management / Finance / Communication / System.
+
+**Pending**: migration SQL (`server/prisma/migrations/20260915000000_enhance_inventory_model/migration.sql`) is authored but **not applied** (no `DATABASE_URL` in local env). Smoke tests require a database. Only pre-existing lint issue: `client/src/context/CustomerAuthContext.tsx:84` (unrelated).

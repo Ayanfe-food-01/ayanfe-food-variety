@@ -2,20 +2,29 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, NavLink } from 'react-router-dom'
 import {
   BellIcon,
+  BoxesIcon,
   CheckIcon,
   ClipboardListIcon,
   CreditCardIcon,
+  FileTextIcon,
   GlobeIcon,
   HeartIcon,
   LayersIcon,
   LayoutDashboardIcon,
   MailIcon,
+  MapPinIcon,
+  MegaphoneIcon,
+  PackageIcon,
   PanelLeftCloseIcon,
   PanelRightCloseIcon,
+  SettingsIcon,
   ShieldIcon,
+  ShoppingCartIcon,
   SparkIcon,
+  TagsIcon,
   TruckIcon,
   UserIcon,
+  WalletIcon,
 } from '../../assets/icons'
 import { createPortal } from 'react-dom'
 import { Accordion, type AccordionSection } from '../ui/Accordion'
@@ -49,8 +58,8 @@ const navGroups: NavGroup[] = [
     label: 'Sales',
     icon: <ClipboardListIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Orders', to: '/admin/orders', icon: <ClipboardListIcon size={18} strokeWidth={2} /> },
-      { label: 'Quote Requests', to: '/admin/quote-requests', icon: <MailIcon size={18} strokeWidth={2} /> },
+      { label: 'Orders', to: '/admin/orders', icon: <ShoppingCartIcon size={18} strokeWidth={2} /> },
+      { label: 'Quote Requests', to: '/admin/quote-requests', icon: <FileTextIcon size={18} strokeWidth={2} /> },
       { label: 'Analytics', to: '/admin/analytics', icon: <SparkIcon size={18} strokeWidth={2} /> },
       { label: 'Customers', to: '/admin/customers', icon: <UserIcon size={18} strokeWidth={2} /> },
     ],
@@ -59,21 +68,21 @@ const navGroups: NavGroup[] = [
     label: 'Products',
     icon: <LayersIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Products', to: '/admin/products', icon: <LayersIcon size={18} strokeWidth={2} /> },
-      { label: 'Categories', to: '/admin/categories', icon: <LayersIcon size={18} strokeWidth={2} /> },
+      { label: 'Products', to: '/admin/products', icon: <PackageIcon size={18} strokeWidth={2} /> },
+      { label: 'Categories', to: '/admin/categories', icon: <TagsIcon size={18} strokeWidth={2} /> },
     ],
   },
   {
     label: 'Inventory',
     icon: <TruckIcon size={18} strokeWidth={2.2} />,
-    links: [{ label: 'Inventory', to: '/admin/inventory', icon: <TruckIcon size={18} strokeWidth={2} /> }],
+    links: [{ label: 'Inventory', to: '/admin/inventory', icon: <BoxesIcon size={18} strokeWidth={2} /> }],
   },
   {
     label: 'Store',
     icon: <GlobeIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Delivery Zones & Fees', to: '/admin/delivery-zones', icon: <TruckIcon size={18} strokeWidth={2} /> },
-      { label: 'Promotional Banners', to: '/admin/banners', icon: <SparkIcon size={18} strokeWidth={2} /> },
+      { label: 'Delivery Zones & Fees', to: '/admin/delivery-zones', icon: <MapPinIcon size={18} strokeWidth={2} /> },
+      { label: 'Promotional Banners', to: '/admin/banners', icon: <MegaphoneIcon size={18} strokeWidth={2} /> },
       { label: 'Testimonials', to: '/admin/testimonials', icon: <HeartIcon size={18} strokeWidth={2} /> },
       { label: 'Reviews', to: '/admin/reviews', icon: <CheckIcon size={18} strokeWidth={2} /> },
     ],
@@ -81,7 +90,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Finance',
     icon: <CreditCardIcon size={18} strokeWidth={2.2} />,
-    links: [{ label: 'Payments', to: '/admin/payments', icon: <CreditCardIcon size={18} strokeWidth={2} /> }],
+    links: [{ label: 'Payments', to: '/admin/payments', icon: <WalletIcon size={18} strokeWidth={2} /> }],
   },
   {
     label: 'Communication',
@@ -91,7 +100,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'System',
     icon: <ShieldIcon size={18} strokeWidth={2.2} />,
-    links: [{ label: 'Settings', to: '/admin/settings', icon: <ShieldIcon size={18} strokeWidth={2} /> }],
+    links: [{ label: 'Settings', to: '/admin/settings', icon: <SettingsIcon size={18} strokeWidth={2} /> }],
   },
 ]
 

@@ -63,7 +63,7 @@ export interface StockMovementsPage {
 }
 
 export interface InventorySummary {
-  totalProductsWithOptions: number
+  totalTrackedSkus: number
   lowStockCount: number
   outOfStockCount: number
   recentMovements: Array<{

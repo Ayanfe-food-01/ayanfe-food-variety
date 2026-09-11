@@ -9,20 +9,43 @@ interface SidebarProps {
   onLogout: () => void
 }
 
-const links = [
-  { label: 'Dashboard', to: '/admin' },
-  { label: 'Sales analytics', to: '/admin/analytics' },
-  { label: 'Orders', to: '/admin/orders' },
-  { label: 'Quote requests', to: '/admin/quote-requests' },
-  { label: 'Products & inventory', to: '/admin/products' },
-  { label: 'Categories', to: '/admin/categories' },
-  { label: 'Delivery zones & fees', to: '/admin/delivery-zones' },
-  { label: 'Promotional banners', to: '/admin/banners' },
-  { label: 'Testimonials', to: '/admin/testimonials' },
-  { label: 'Reviews', to: '/admin/reviews' },
-  { label: 'Payments', to: '/admin/payments' },
-  { label: 'Notifications', to: '/admin/notifications' },
-  { label: 'Settings', to: '/admin/settings' },
+const linkGroups: Array<{ label: string; links: Array<{ label: string; to: string }> }> = [
+  {
+    label: 'Operations',
+    links: [
+      { label: 'Dashboard', to: '/admin' },
+      { label: 'Sales analytics', to: '/admin/analytics' },
+      { label: 'Orders', to: '/admin/orders' },
+      { label: 'Quote requests', to: '/admin/quote-requests' },
+    ],
+  },
+  {
+    label: 'Products',
+    links: [
+      { label: 'All products', to: '/admin/products' },
+      { label: 'Categories', to: '/admin/categories' },
+    ],
+  },
+  {
+    label: 'Inventory',
+    links: [
+      { label: 'Stock overview', to: '/admin/inventory' },
+      { label: 'Stock movements', to: '/admin/inventory/movements' },
+      { label: 'Low stock', to: '/admin/inventory/low-stock' },
+    ],
+  },
+  {
+    label: 'Storefront',
+    links: [
+      { label: 'Delivery zones & fees', to: '/admin/delivery-zones' },
+      { label: 'Promotional banners', to: '/admin/banners' },
+      { label: 'Testimonials', to: '/admin/testimonials' },
+      { label: 'Reviews', to: '/admin/reviews' },
+      { label: 'Payments', to: '/admin/payments' },
+      { label: 'Notifications', to: '/admin/notifications' },
+      { label: 'Settings', to: '/admin/settings' },
+    ],
+  },
 ]
 
 export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
@@ -51,22 +74,28 @@ export function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
           </div>
         </div>
 
-        <nav className="y-scrollbar mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1" aria-label="Admin navigation">
-          {links.map((link) => (
-            <NavLink
-              className={({ isActive }) =>
-                `flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
-                  isActive ? 'bg-cream text-green-dark' : 'text-cream/70 hover:bg-cream/10 hover:text-cream'
-                }`
-              }
-              end={link.to === '/admin'}
-              key={link.to}
-              to={link.to}
-              onClick={onClose}
-            >
-              {link.label}
-              <ArrowRight size={16} />
-            </NavLink>
+        <nav className="y-scrollbar mt-8 min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pr-1" aria-label="Admin navigation">
+          {linkGroups.map((group) => (
+            <section key={group.label} aria-label={group.label}>
+              <p className="mb-2 px-3 text-[0.65rem] font-black uppercase tracking-[0.18em] text-cream/40">{group.label}</p>
+              <div className="space-y-1">
+                {group.links.map((link) => (
+                  <NavLink
+                    className={({ isActive }) =>
+                      `flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                        isActive ? 'bg-cream text-green-dark' : 'text-cream/70 hover:bg-cream/10 hover:text-cream'
+                      }`
+                    }
+                    key={link.to}
+                    to={link.to}
+                    onClick={onClose}
+                  >
+                    {link.label}
+                    <ArrowRight size={16} />
+                  </NavLink>
+                ))}
+              </div>
+            </section>
           ))}
         </nav>
 

@@ -9,7 +9,6 @@ import type {
   MovementType,
   StockMovementsPage,
 } from '../types/inventory'
-import type { Category } from '../types/category'
 
 interface InventoryResponse {
   success: true
@@ -99,11 +98,6 @@ export async function getProductStockMovements(
   const response = await request<StockMovementsResponse>(
     `/admin/inventory/movements/${encodeURIComponent(productId)}?${params.toString()}`,
   )
-  return response.data
-}
-
-export async function getAdminCategoriesForInventory(): Promise<Category[]> {
-  const response = await request<{ data: Category[] }>('/admin/categories')
   return response.data
 }
 

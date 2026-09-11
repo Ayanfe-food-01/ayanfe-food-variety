@@ -198,6 +198,48 @@ export async function adjustStock(input: InventoryAdjustInput, adminId: string) 
   }, { timeout: 15000 })
 }
 
+const SIMPLE_INVENTORY_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  image: true,
+  stockQuantity: true,
+  lowStockThreshold: true,
+  category: { select: { id: true, name: true, isActive: true } },
+} as const
+
+type SimpleInventoryRow = {
+  id: string
+  name: string
+  slug: string
+  image: string
+  stockQuantity: number
+  lowStockThreshold: number
+  category: { id: string; name: string; isActive: boolean }
+}
+
+function toSimpleInventoryItem(row: SimpleInventoryRow): InventoryItem {
+  const status = row.stockQuantity === 0
+    ? 'OUT_OF_STOCK'
+    : row.stockQuantity <= row.lowStockThreshold
+      ? 'LOW_STOCK'
+      : 'IN_STOCK'
+
+  return {
+    productId: row.id,
+    productName: row.name,
+    productSlug: row.slug,
+    productImage: row.image,
+    categoryId: row.category.id,
+    categoryName: row.category.name,
+    productOptionId: null,
+    optionLabel: null,
+    stockQuantity: row.stockQuantity,
+    lowStockThreshold: row.lowStockThreshold,
+    status,
+  }
+}
+
 export async function listInventory(options: {
   search?: string
   categoryId?: string
@@ -207,35 +249,51 @@ export async function listInventory(options: {
 }) {
   const productWhere: Prisma.ProductWhereInput = { isActive: true }
   if (options.categoryId) productWhere.categoryId = options.categoryId
-
-  const where: Prisma.ProductOptionWhereInput = { product: productWhere }
-
   if (options.search) {
-    where.OR = [
+    productWhere.OR = [{ name: { contains: options.search, mode: 'insensitive' } }]
+  }
+
+  const optionWhere: Prisma.ProductOptionWhereInput = { product: productWhere }
+  if (options.search) {
+    optionWhere.OR = [
       { label: { contains: options.search, mode: 'insensitive' } },
       { product: { name: { contains: options.search, mode: 'insensitive' } } },
     ]
   }
 
-  const [total, rows] = await prisma.$transaction([
-    prisma.productOption.count({ where }),
+  const simpleProductWhere: Prisma.ProductWhereInput = { ...productWhere, options: { none: {} } }
+
+  const [optionRows, simpleRows] = await Promise.all([
     prisma.productOption.findMany({
-      where,
+      where: optionWhere,
       include: INVENTORY_SELECT,
       orderBy: { product: { name: 'asc' } },
-      skip: (options.page - 1) * options.pageSize,
-      take: options.pageSize,
+    }),
+    prisma.product.findMany({
+      where: simpleProductWhere,
+      select: SIMPLE_INVENTORY_SELECT,
+      orderBy: { name: 'asc' },
     }),
   ])
 
-  let items = rows.map(toInventoryItem)
+  let items = [
+    ...optionRows.map(toInventoryItem),
+    ...simpleRows.map(toSimpleInventoryItem),
+  ]
 
   if (options.stockStatus) {
-    items = items.filter((item) => item.status === options.stockStatus!.toUpperCase().replace('-', '_'))
+    const status = options.stockStatus.toUpperCase().replace('-', '_')
+    items = items.filter((item) => item.status === status)
   }
 
+  items.sort((a, b) => a.productName.localeCompare(b.productName))
+
+  const total = items.length
+  const start = (Math.max(options.page, 1) - 1) * options.pageSize
+  const pagedItems = items.slice(start, start + options.pageSize)
+
   return {
-    items,
+    items: pagedItems,
     pagination: {
       page: options.page,
       pageSize: options.pageSize,
@@ -246,38 +304,49 @@ export async function listInventory(options: {
 }
 
 export async function getInventorySummary() {
-  const [totalProductsWithOptions, lowStockCount, outOfStockCount] = await Promise.all([
-    prisma.productOption.count({ where: { product: { isActive: true } } }),
-    prisma.productOption.count({
-      where: {
-        product: { isActive: true },
-        stockQuantity: { gt: 0, lte: 5 },
+  const [optionRows, simpleProductRows, recentMovements] = await Promise.all([
+    prisma.productOption.findMany({
+      where: { product: { isActive: true } },
+      select: {
+        stockQuantity: true,
+        lowStockThreshold: true,
+        product: { select: { lowStockThreshold: true } },
       },
     }),
-    prisma.productOption.count({
-      where: {
-        product: { isActive: true },
-        stockQuantity: 0,
+    prisma.product.findMany({
+      where: { isActive: true, options: { none: {} } },
+      select: { stockQuantity: true, lowStockThreshold: true },
+    }),
+    prisma.productStockAdjustment.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        quantityDelta: true,
+        movementType: true,
+        reason: true,
+        createdAt: true,
+        product: { select: { name: true } },
+        productOption: { select: { label: true } },
       },
     }),
   ])
 
-  const recentMovements = await prisma.productStockAdjustment.findMany({
-    take: 10,
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      quantityDelta: true,
-      movementType: true,
-      reason: true,
-      createdAt: true,
-      product: { select: { name: true } },
-      productOption: { select: { label: true } },
-    },
-  })
+  let lowStockCount = 0
+  let outOfStockCount = 0
+
+  for (const option of optionRows) {
+    const threshold = resolveLowStockThreshold(option.product.lowStockThreshold, option.lowStockThreshold)
+    if (option.stockQuantity === 0) outOfStockCount += 1
+    else if (option.stockQuantity <= threshold) lowStockCount += 1
+  }
+  for (const product of simpleProductRows) {
+    if (product.stockQuantity === 0) outOfStockCount += 1
+    else if (product.stockQuantity <= product.lowStockThreshold) lowStockCount += 1
+  }
 
   return {
-    totalProductsWithOptions,
+    totalTrackedSkus: optionRows.length + simpleProductRows.length,
     lowStockCount,
     outOfStockCount,
     recentMovements: recentMovements.map((m) => ({

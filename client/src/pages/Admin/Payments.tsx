@@ -17,6 +17,7 @@ import { FilterBar } from '../../components/filters/FilterBar'
 import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
 import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
 import { useToast } from '../../components/ui/Toast'
+import { DateField } from '../../components/ui/DateField'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 10
@@ -195,12 +196,18 @@ export function Payments() {
             }
           />
           <div className="grid grid-cols-2 gap-3 sm:items-end">
-            <label className="min-w-0 text-xs font-bold text-green-dark">From
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
-            </label>
-            <label className="min-w-0 text-xs font-bold text-green-dark">To
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
-            </label>
+            <div className="min-w-0">
+              <label className="text-xs font-bold text-green-dark">From</label>
+              <div className="mt-2">
+                <DateField ariaLabel="From date" max={query.to || undefined} onChange={(value) => setQuery((current) => ({ ...current, from: value || undefined, page: 1 }))} placeholder="From date" value={query.from ?? ''} />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <label className="text-xs font-bold text-green-dark">To</label>
+              <div className="mt-2">
+                <DateField ariaLabel="To date" min={query.from || undefined} onChange={(value) => setQuery((current) => ({ ...current, to: value || undefined, page: 1 }))} placeholder="To date" value={query.to ?? ''} />
+              </div>
+            </div>
           </div>
         </div>
       </section>

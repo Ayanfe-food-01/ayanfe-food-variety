@@ -4,6 +4,7 @@ import { AdminTableSkeleton } from '../AdminTableSkeleton'
 import { ResponsiveDataTable } from '../../ui/ResponsiveDataTable'
 import { SegmentedControl } from '../../ui/SegmentedControl'
 import { SelectField } from '../../ui/SelectField'
+import { DateField } from '../../ui/DateField'
 import { ApiError } from '../../../services/api'
 import { getAdminStockMovements } from '../../../services/inventoryService'
 import { formatDate } from '../../../utils/dateFormat'
@@ -93,23 +94,29 @@ export function StockMovementsPanel({ activeTab, onTabChange }: StockMovementsPa
           <div className="grid grid-cols-2 gap-4 sm:col-span-2">
             <div className="min-w-0">
               <label className="text-sm font-bold text-green-dark" htmlFor="movement-from">From</label>
-              <input
-                className="mt-2 w-full rounded-xl border border-line px-4 py-3 text-sm text-green-dark focus:border-green focus:outline-none"
-                id="movement-from"
-                onChange={(event) => applyFrom(event.target.value)}
-                type="date"
-                value={from}
-              />
+              <div className="mt-2">
+                <DateField
+                  ariaLabel="From date"
+                  id="movement-from"
+                  max={to || undefined}
+                  onChange={(value) => applyFrom(value)}
+                  placeholder="From date"
+                  value={from}
+                />
+              </div>
             </div>
             <div className="min-w-0">
               <label className="text-sm font-bold text-green-dark" htmlFor="movement-to">To</label>
-              <input
-                className="mt-2 w-full rounded-xl border border-line px-4 py-3 text-sm text-green-dark focus:border-green focus:outline-none"
-                id="movement-to"
-                onChange={(event) => applyTo(event.target.value)}
-                type="date"
-                value={to}
-              />
+              <div className="mt-2">
+                <DateField
+                  ariaLabel="To date"
+                  id="movement-to"
+                  min={from || undefined}
+                  onChange={(value) => applyTo(value)}
+                  placeholder="To date"
+                  value={to}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -120,10 +120,16 @@ import {
   listStockMovementsController,
   getProductMovementsController,
 } from '../inventory/inventory.controller.js'
+import {
+  getAdminCustomerController,
+  listAdminCustomersController,
+} from '../customers/customer.controller.js'
 
 export const adminRoutes = Router()
 
 adminRoutes.use(...requireAdminAccess)
+adminRoutes.get('/customers', listAdminCustomersController)
+adminRoutes.get('/customers/:id', getAdminCustomerController)
 adminRoutes.get('/inventory', listInventoryController)
 adminRoutes.get('/inventory/summary', getInventorySummaryController)
 adminRoutes.get('/inventory/movements', listStockMovementsController)
@@ -169,6 +175,8 @@ adminRoutes.patch('/wholesale-packages/:packageId/status', updateAdminWholesaleP
 adminRoutes.delete('/wholesale-packages/:packageId', deleteAdminWholesalePackageController)
 adminRoutes.get('/dashboard', getDashboardController)
 adminRoutes.get('/analytics', getAnalyticsController)
+adminRoutes.get('/customers', listAdminCustomersController)
+adminRoutes.get('/customers/:id', getAdminCustomerController)
 adminRoutes.get('/orders', listAdminOrdersController)
 adminRoutes.get('/orders/:orderNumber', getAdminOrderController)
 adminRoutes.patch('/orders/:orderNumber/status', updateAdminOrderStatusController)

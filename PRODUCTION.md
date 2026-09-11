@@ -54,6 +54,16 @@ Required Render values:
   project domains must remain usable)
 - `PUBLIC_APP_URL` set to the canonical Vercel origin
 - Cloudinary values above
+- Google OAuth (leave empty to keep sign-in disabled):
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `GOOGLE_REDIRECT_URI` (customer callback, e.g. `https://<store>/api/v1/auth/customer/google/callback`)
+  - `GOOGLE_ADMIN_REDIRECT_URI` (admin callback, e.g. `https://<store>/api/v1/auth/admin/google/callback`)
+
+Both Google callbacks travel through the first-party Vercel `/api/v1` proxy,
+so they are reachable from the browser on the storefront origin. Register them
+as authorized redirect URIs in the Google Cloud Console "Authorized redirect
+URIs" list for the OAuth client.
 
 Render supplies `PORT`; the committed blueprint includes `10000` as its
 default service value.
@@ -77,7 +87,12 @@ Set this Vercel environment variable for Preview and Production:
 VITE_API_URL=/api/v1
 ```
 
-Configure Vercel rewrites to proxy `/api/v1` to the Render backend. In the Vercel project settings or `client/vercel.json`, replace `RENDER_API_URL_PLACEHOLDER` with your Render service URL, e.g. `https://your-render-service.onrender.com`. This makes API requests first-party, allowing cookies to be sent in iOS Safari Private mode.
+Configure Vercel rewrites to proxy `/api/v1` to the Render backend. The
+committed `client/vercel.json` already targets the live Render origin
+(`https://ayanfe-food-variety.onrender.com`). If the Render service URL ever
+changes, update the two `/api/v1` rewrite `destination` values and redeploy
+Vercel. This makes API requests first-party, allowing cookies to be sent in
+iOS Safari Private mode.
 
 Also set the canonical storefront origin in Vercel using the same
 `PUBLIC_APP_URL` value configured on Render:
@@ -102,9 +117,41 @@ Vercel origin including `https://` and excluding a trailing slash. Do not
 commit a real deployment URL to source; set these values in Render and
 Vercel's environment settings.
 
-## 5. Production smoke test
+## Admin authentication and session security
 
-After both services are deployed and the two public URLs have been entered:
+The server enforces the admin session policy on the backend; the frontend only
+handles redirects and messaging.
+
+- Sessions are stored server-side in PostgreSQL (`admin_sessions`) with a
+  random 256-bit bearer token stored hashed (HMAC-SHA256 with
+  `SESSION_SECRET`). Nothing sensitive is kept in `localStorage`.
+- The session cookie is `HttpOnly`, `Secure` in production, `SameSite=Lax`,
+  `Path=/`, with a 12-hour absolute lifetime. `SameSite=Lax` is safe because
+  every browser API call goes through the first-party `/api/v1` proxy.
+- Idle admin sessions are expired after 30 minutes of inactivity (tracked by a
+  throttled `last_activity_at` touch). Expired sessions send the browser to
+  `/admin/login` with an explanatory message.
+- Admin login failures are throttled per account: 5 failed attempts lock the
+  account for 15 minutes; all `/auth/login` traffic also shares an IP-based
+  limiter. Customer login behavior is unchanged.
+- Every mutating `/admin` request and the auth lifecycle (login success,
+  login failure, logout, session expiry) is written to an immutable
+  `admin_audit_logs` table with WHO/WHAT/WHEN and source IP. Passwords, tokens,
+  and request bodies are never logged.
+- Admin Google sign-in (`/auth/admin/google`) only binds to an account that
+  already has an `ADMIN` role (by linked Google subject, then by verified
+  email). It never creates new admin accounts.
+- Admin pages and logout responses send `Cache-Control: no-store` so browser
+  history/back-forward caches cannot replay authenticated screens.
+
+Required environment variables:
+
+```text
+SESSION_SECRET          # already-required; reused for token hashing
+GOOGLE_ADMIN_REDIRECT_URI  # optional: falls back to deriving from GOOGLE_REDIRECT_URI
+```
+
+## 5. Production smoke test
 
 1. Open `https://your-render-service.onrender.com/health` and confirm
    `{ "data": { "status": "ok" } }`.
@@ -195,7 +242,13 @@ Also update `client/vercel.json` rewrites to proxy `/api/v1` to your Render serv
 ```text
 CORS_ORIGINS=https://<your-vercel-project>.vercel.app
 PUBLIC_APP_URL=https://<your-vercel-project>.vercel.app
+GOOGLE_CLIENT_ID=<oauth-client-id>
+GOOGLE_CLIENT_SECRET=<oauth-client-secret>
+GOOGLE_REDIRECT_URI=https://<your-vercel-project>.vercel.app/api/v1/auth/customer/google/callback
+GOOGLE_ADMIN_REDIRECT_URI=https://<your-vercel-project>.vercel.app/api/v1/auth/admin/google/callback
 ```
 
-If a custom domain is added later, replace these values with the exact custom
-frontend origin and redeploy the API. Do not include a trailing slash.
+Add both callback URLs to the Google Cloud Console OAuth client before testing
+Google sign-in. `GOOGLE_ADMIN_REDIRECT_URI` may be omitted; the server then
+derives it from `GOOGLE_REDIRECT_URI`. If a custom domain is added later,
+replace these values with the exact custom frontend origin and redeploy the API. Do not include a trailing slash.

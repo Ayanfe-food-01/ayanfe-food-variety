@@ -12,6 +12,22 @@ import type {
 
 export { LOW_STOCK_THRESHOLD_DEFAULT as LOW_STOCK_THRESHOLD } from './inventory.threshold.js'
 
+/**
+ * Resolves the physical stock unit count an order line should deduct or
+ * restore. Wholesale lines store quantity as the number of packages/cartons,
+ * so they must be multiplied by the snapshotted units-per-package to consume
+ * the correct amount of base unit stock.
+ */
+export function resolveDeductUnits(
+  quantity: number,
+  wholesaleUnitsPerPackage: number | null,
+): number {
+  if (wholesaleUnitsPerPackage && wholesaleUnitsPerPackage > 0) {
+    return quantity * wholesaleUnitsPerPackage
+  }
+  return quantity
+}
+
 export async function recordStockAdjustment(
   transaction: InventoryTransaction,
   input: StockAdjustmentInput,

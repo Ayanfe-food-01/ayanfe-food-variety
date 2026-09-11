@@ -4,7 +4,7 @@ import { HttpError } from '../../utils/http.js'
 import { hashGuestOrderAccessToken } from '../../utils/guestOrderAccess.js'
 import type { GuestOrderResponse, OrderResponse } from './order.types.js'
 import { notifyOrderStatusChanged } from './order.email.js'
-import { restoreStock } from '../inventory/inventory.service.js'
+import { restoreStock, resolveDeductUnits } from '../inventory/inventory.service.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
 import {
   normalizeGuestContact,
@@ -83,7 +83,7 @@ export async function cancelCustomerOrder(
     const existing = await transaction.order.findFirst({
       where: { orderNumber, userId },
       include: {
-        orderItems: { select: { productId: true, productOptionId: true, quantity: true } },
+        orderItems: { select: { productId: true, productOptionId: true, quantity: true, wholesaleUnitsPerPackage: true } },
       },
     })
 
@@ -133,7 +133,7 @@ export async function cancelCustomerOrder(
         await restoreStock(transaction, {
           productId: item.productId,
           productOptionId: item.productOptionId ?? null,
-          quantity: item.quantity,
+          quantity: resolveDeductUnits(item.quantity, item.wholesaleUnitsPerPackage),
           orderId: order.id,
           orderNumber: order.orderNumber,
         })

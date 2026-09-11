@@ -194,12 +194,12 @@ export function Payments() {
               />
             }
           />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="grid grid-cols-2 gap-3 sm:items-end">
             <label className="min-w-0 text-xs font-bold text-green-dark">From
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
+              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.from ?? ''} onChange={(event) => setQuery((current) => ({ ...current, from: event.target.value || undefined, page: 1 }))} />
             </label>
             <label className="min-w-0 text-xs font-bold text-green-dark">To
-              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green sm:w-44" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
+              <input className="mt-2 w-full min-w-0 rounded-xl border border-line bg-cream px-3 py-3 text-sm font-normal outline-none focus:border-green" type="date" value={query.to ?? ''} onChange={(event) => setQuery((current) => ({ ...current, to: event.target.value || undefined, page: 1 }))} />
             </label>
           </div>
         </div>

@@ -1,22 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, NavLink } from 'react-router-dom'
 import {
-  ArrowRight,
-  BellIcon,
-  CheckIcon,
   ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   ClipboardListIcon,
   CreditCardIcon,
   GlobeIcon,
-  HeartIcon,
   LayersIcon,
   MailIcon,
+  PanelLeftCloseIcon,
+  PanelRightCloseIcon,
   ShieldIcon,
   SparkIcon,
   TruckIcon,
-  UserIcon,
 } from '../../assets/icons'
 import { createPortal } from 'react-dom'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
@@ -25,7 +20,7 @@ import { DEFAULT_LOGO_PATH } from '../../seo/config'
 interface NavLinkItem {
   label: string
   to: string
-  icon: ReactNode
+  icon?: ReactNode
   end?: boolean
 }
 
@@ -38,61 +33,60 @@ interface NavGroup {
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
-  onLogout: () => void
   isCollapsed: boolean
   onToggleCollapse: () => void
 }
 
-const dashboard: NavLinkItem = { label: 'Dashboard', to: '/admin', end: true, icon: <SparkIcon size={18} /> }
+const dashboard: NavLinkItem = { label: 'Dashboard', to: '/admin', end: true, icon: <SparkIcon size={18} strokeWidth={2.2} /> }
 
 const navGroups: NavGroup[] = [
   {
     label: 'Sales',
-    icon: <ClipboardListIcon size={18} />,
+    icon: <ClipboardListIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Orders', to: '/admin/orders', icon: <ClipboardListIcon size={18} /> },
-      { label: 'Quote Requests', to: '/admin/quote-requests', icon: <MailIcon size={18} /> },
-      { label: 'Analytics', to: '/admin/analytics', icon: <SparkIcon size={18} /> },
-      { label: 'Customers', to: '/admin/customers', icon: <UserIcon size={18} /> },
+      { label: 'Orders', to: '/admin/orders' },
+      { label: 'Quote Requests', to: '/admin/quote-requests' },
+      { label: 'Analytics', to: '/admin/analytics' },
+      { label: 'Customers', to: '/admin/customers' },
     ],
   },
   {
     label: 'Products',
-    icon: <LayersIcon size={18} />,
+    icon: <LayersIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Products', to: '/admin/products', icon: <LayersIcon size={18} /> },
-      { label: 'Categories', to: '/admin/categories', icon: <LayersIcon size={18} /> },
+      { label: 'Products', to: '/admin/products' },
+      { label: 'Categories', to: '/admin/categories' },
     ],
   },
   {
     label: 'Inventory',
-    icon: <TruckIcon size={18} />,
-    links: [{ label: 'Inventory', to: '/admin/inventory', icon: <TruckIcon size={18} /> }],
+    icon: <TruckIcon size={18} strokeWidth={2.2} />,
+    links: [{ label: 'Inventory', to: '/admin/inventory' }],
   },
   {
     label: 'Store',
-    icon: <GlobeIcon size={18} />,
+    icon: <GlobeIcon size={18} strokeWidth={2.2} />,
     links: [
-      { label: 'Delivery Zones & Fees', to: '/admin/delivery-zones', icon: <TruckIcon size={18} /> },
-      { label: 'Promotional Banners', to: '/admin/banners', icon: <SparkIcon size={18} /> },
-      { label: 'Testimonials', to: '/admin/testimonials', icon: <HeartIcon size={18} /> },
-      { label: 'Reviews', to: '/admin/reviews', icon: <CheckIcon size={18} /> },
+      { label: 'Delivery Zones & Fees', to: '/admin/delivery-zones' },
+      { label: 'Promotional Banners', to: '/admin/banners' },
+      { label: 'Testimonials', to: '/admin/testimonials' },
+      { label: 'Reviews', to: '/admin/reviews' },
     ],
   },
   {
     label: 'Finance',
-    icon: <CreditCardIcon size={18} />,
-    links: [{ label: 'Payments', to: '/admin/payments', icon: <CreditCardIcon size={18} /> }],
+    icon: <CreditCardIcon size={18} strokeWidth={2.2} />,
+    links: [{ label: 'Payments', to: '/admin/payments' }],
   },
   {
     label: 'Communication',
-    icon: <MailIcon size={18} />,
-    links: [{ label: 'Notifications', to: '/admin/notifications', icon: <BellIcon size={18} /> }],
+    icon: <MailIcon size={18} strokeWidth={2.2} />,
+    links: [{ label: 'Notifications', to: '/admin/notifications' }],
   },
   {
     label: 'System',
-    icon: <ShieldIcon size={18} />,
-    links: [{ label: 'Settings', to: '/admin/settings', icon: <ShieldIcon size={18} /> }],
+    icon: <ShieldIcon size={18} strokeWidth={2.2} />,
+    links: [{ label: 'Settings', to: '/admin/settings' }],
   },
 ]
 
@@ -103,9 +97,9 @@ const groupForPath = (pathname: string): string | undefined =>
   navGroups.find((group) => group.links.some((link) => isActivePath(link, pathname)))?.label
 
 const activeNavClasses = 'bg-cream text-green-dark'
-const inactiveNavClasses = 'text-cream/70 xl:hover:bg-cream/10 hover:text-cream'
+const inactiveNavClasses = 'text-cream/80 xl:hover:bg-cream/10 hover:text-cream'
 
-export function Sidebar({ isOpen, onClose, onLogout, isCollapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const { settings } = useStoreSettings()
   const logoUrl = settings?.logoUrl || DEFAULT_LOGO_PATH
   const { pathname } = useLocation()
@@ -186,15 +180,15 @@ export function Sidebar({ isOpen, onClose, onLogout, isCollapsed, onToggleCollap
   const expandedLink = (link: NavLinkItem) => (
     <NavLink
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
+        `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
       }
       end={link.end}
       key={link.to}
       to={link.to}
       onClick={onClose}
     >
-      <span className="shrink-0">{link.icon}</span>
-      <span className="min-w-0 flex-1 truncate">{link.label}</span>
+      {link.icon && <span className="shrink-0">{link.icon}</span>}
+      <span className={`min-w-0 flex-1 truncate ${link.icon ? '' : 'pl-7'}`}>{link.label}</span>
     </NavLink>
   )
 
@@ -303,36 +297,27 @@ export function Sidebar({ isOpen, onClose, onLogout, isCollapsed, onToggleCollap
         </nav>
 
         <div className="mt-4 shrink-0 border-t border-cream/10 pt-4">
-          <div className={`mb-3 ${isCollapsed ? 'hidden xl:flex xl:justify-center' : 'hidden'}`}>
+          {isCollapsed ? (
+            <div className="hidden xl:flex xl:justify-center">
+              <button
+                aria-label="Expand sidebar"
+                className="grid size-10 place-items-center rounded-xl text-cream/70 transition-colors xl:hover:bg-cream/10 hover:text-cream"
+                onClick={onToggleCollapse}
+                type="button"
+              >
+                <PanelRightCloseIcon size={18} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
             <button
-              aria-label="Expand sidebar"
-              className="grid size-9 place-items-center rounded-full text-cream/55 transition-colors hover:bg-cream/10 hover:text-cream"
-              onClick={onToggleCollapse}
-              type="button"
-            >
-              <ChevronRightIcon size={16} aria-hidden="true" />
-            </button>
-          </div>
-          <div className={`hidden items-center xl:flex ${isCollapsed ? 'xl:hidden' : ''}`}>
-            <button
-              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-cream/45 transition-colors hover:text-cream/80"
+              className="hidden w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-cream/45 transition-colors hover:text-cream/80 xl:flex"
               onClick={onToggleCollapse}
               type="button"
             >
               Collapse
-              <ChevronLeftIcon size={16} aria-hidden="true" />
+              <PanelLeftCloseIcon size={16} aria-hidden="true" />
             </button>
-          </div>
-          <button
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-cream px-4 py-3 text-sm font-bold text-green-dark transition-colors hover:bg-white"
-            type="button"
-            onClick={onLogout}
-          >
-            <span className={`${isCollapsed ? 'xl:hidden' : ''}`}>Logout</span>
-            <span className={isCollapsed ? 'hidden xl:grid place-items-center' : 'hidden'}>
-              <ArrowRight className="rotate-180" size={16} aria-hidden="true" />
-            </span>
-          </button>
+          )}
         </div>
       </aside>
 
@@ -350,7 +335,7 @@ export function Sidebar({ isOpen, onClose, onLogout, isCollapsed, onToggleCollap
               .links.map((link) => (
                 <NavLink
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
+                    `flex items-center rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
                   }
                   end={link.end}
                   key={link.to}
@@ -358,8 +343,8 @@ export function Sidebar({ isOpen, onClose, onLogout, isCollapsed, onToggleCollap
                   to={link.to}
                   onClick={() => setFlyout(null)}
                 >
-                  <span className="shrink-0">{link.icon}</span>
-                  <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                  {link.icon && <span className="shrink-0">{link.icon}</span>}
+                  <span className={`min-w-0 flex-1 truncate ${link.icon ? '' : 'pl-7'}`}>{link.label}</span>
                 </NavLink>
               ))}
           </div>

@@ -47,7 +47,6 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
         isOpen={isSidebarOpen}
         isCollapsed={isSidebarCollapsed}
         onClose={() => setIsSidebarOpen(false)}
-        onLogout={() => void logout()}
         onToggleCollapse={toggleCollapse}
       />
       <div className={`admin-main min-w-0 ${isSidebarCollapsed ? 'xl:pl-[84px]' : 'xl:pl-72'}`}>

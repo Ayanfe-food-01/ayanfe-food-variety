@@ -14,7 +14,7 @@ verification remains and is listed at the end.
 | Storage | PostgreSQL `admin_sessions`, token stored as HMAC-SHA256 hash of a 256-bit random value |
 | Login throttling (account) | 5 failures per 15 min per admin email; `Retry-After` returned |
 | Login throttling (IP) | existing `createRateLimit(10, 15min)` guard on `/auth/login` |
-| Google admin sign-in | binds only to an existing `role=ADMIN` account; never auto-creates admins |
+| Google admin sign-in | one shared Google flow; binds only to an existing `role=ADMIN` account; never auto-creates admins |
 | Audit trail | `admin_audit_logs` (WHO/WHAT/WHEN/source IP, no secrets) |
 | Response caching | `Cache-Control: no-store` on admin routes and logout |
 
@@ -80,12 +80,13 @@ call goes through the first-party Vercel `/api/v1` rewrite to Render. No
 1. **Deploy the migration** — Render runs `prisma migrate deploy` on start;
    the new `admin_audit_logs` table and `last_activity_at` column are applied
    automatically. Confirm in Render logs.
-2. **Set env vars on Render** — add `GOOGLE_ADMIN_REDIRECT_URI` (and the
-   existing customer Google vars if sign-in must work). For production use
-   `https://<store>/api/v1/auth/admin/google/callback` through the proxy.
-3. **Google Cloud Console** — register both callback URLs in Authorized
-   redirect URIs. For local dev, register the derived
-   `http://localhost:5000/api/v1/auth/admin/google/callback`.
+2. **Set env vars on Render** — the three Google OAuth values (`GOOGLE_CLIENT_ID`,
+   `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`). Only the single
+   `GOOGLE_REDIRECT_URI` callback is used; it serves both customer and admin
+   Google sign-in.
+3. **Google Cloud Console** — register that one callback URL in Authorized
+   redirect URIs. For local dev, register
+   `http://localhost:5000/api/v1/auth/customer/google/callback`.
 4. **iPhone/Safari Private-mode test** — open /admin/login in Safari Private,
    sign in with email/password and with Google, navigate, idle >30 min and
    confirm the expiry message, then sign back in. Repeat on Android Chrome.

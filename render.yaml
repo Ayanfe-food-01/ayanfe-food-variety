@@ -37,5 +37,3 @@ services:
         sync: false
       - key: GOOGLE_REDIRECT_URI
         sync: false
-      - key: GOOGLE_ADMIN_REDIRECT_URI
-        sync: false

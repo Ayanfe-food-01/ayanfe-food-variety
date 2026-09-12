@@ -4,7 +4,7 @@ import { ArrowRight, CloseIcon, EyeIcon, EyeOffIcon } from '../../assets/icons'
 import { Button } from '../ui/Button'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { ApiError } from '../../services/api'
-import { getCurrentUser, getAdminGoogleSignInUrl, getGoogleSignInUrl, login, signupCustomer, type AuthenticatedUser } from '../../services/authService'
+import { getCurrentUser, getGoogleSignInUrl, login, signupCustomer, type AuthenticatedUser } from '../../services/authService'
 import {
   clearAuthReturnPath,
   isCheckoutReturnPath,
@@ -231,7 +231,7 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
     setError(null)
     setIsSubmitting(true)
     storeAuthReturnPath(readInternalReturnPath(location.state))
-    window.location.assign(adminMode ? getAdminGoogleSignInUrl() : getGoogleSignInUrl())
+    window.location.assign(getGoogleSignInUrl())
   }
 
   const continueAsGuest = () => {

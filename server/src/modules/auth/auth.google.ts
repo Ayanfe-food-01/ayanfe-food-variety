@@ -70,24 +70,6 @@ export const getAdminOAuthFrontendUrl = (
   return url
 }
 
-/**
- * Admin OAuth needs a redirect URI registered for the admin callback. Prefer
- * the explicit GOOGLE_ADMIN_REDIRECT_URI; otherwise derive it from the customer
- * redirect URI so a single proxy origin keeps working (e.g.
- * .../auth/customer/google/callback -> .../auth/admin/google/callback).
- */
-const customerToAdminCallbackPath = '/customer/google/callback'
-
-export const getAdminGoogleRedirectUri = (): string => {
-  const explicit = env.googleOAuth.adminRedirectUri?.trim()
-  if (explicit) return explicit
-  const customerRedirect = env.googleOAuth.redirectUri?.trim() ?? ''
-  if (customerRedirect.includes(customerToAdminCallbackPath)) {
-    return customerRedirect.replace(customerToAdminCallbackPath, '/admin/google/callback')
-  }
-  return customerRedirect
-}
-
 export const createGoogleOAuthState = (): { state: string; nonce: string } => ({
   state: randomBytes(32).toString('base64url'),
   nonce: randomBytes(32).toString('base64url'),

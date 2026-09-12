@@ -15,7 +15,6 @@ import {
 import {
   getAuthenticatedCustomer,
   loginCustomer,
-  loginWithGoogle,
   resendCustomerVerificationEmail,
   revokeCustomerSession,
   setCustomerShoppingMode,
@@ -24,17 +23,15 @@ import {
 } from './customer-auth.service.js'
 import {
   createGoogleOAuthState,
-  getAdminGoogleRedirectUri,
   getAdminOAuthFrontendUrl,
   getGoogleAuthorizationUrl,
   getOAuthFrontendUrl,
   googleOAuthStateCookie,
   isGoogleOAuthConfigured,
 } from './auth.google.js'
-import { loginAdminWithGoogle } from './admin-auth.google.service.js'
+import { resolveGoogleLogin } from './google-login.service.js'
 import { ADMIN_AUDIT_EVENTS, recordAdminAudit } from '../audit/audit.service.js'
 import { HttpError } from '../../utils/http.js'
-import { GoogleAdminForbiddenError } from './customer-auth.login.service.js'
 import {
   validateCustomerEmailVerificationInput,
   validateCustomerSignupInput,
@@ -190,15 +187,23 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
   }
 
   try {
-    const result = await loginWithGoogle(code, nonceCookie)
-    response.clearCookie(authCookie.name, authCookie.options)
-    setCustomerCookie(response, result.token)
-    response.redirect(getOAuthFrontendUrl('success').toString())
-  } catch (error: unknown) {
-    if (error instanceof GoogleAdminForbiddenError) {
-      response.redirect(getAdminOAuthFrontendUrl('admin_forbidden').toString())
+    const result = await resolveGoogleLogin(code, nonceCookie)
+    if (result.sessionType === 'admin') {
+      response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
+      response.cookie(authCookie.name, result.token, {
+        ...authCookie.options,
+        maxAge: authCookie.maxAge,
+      })
+      response.redirect(getAdminOAuthFrontendUrl('success').toString())
       return
     }
+    response.clearCookie(authCookie.name, authCookie.options)
+    response.cookie(customerAuthCookie.name, result.token, {
+      ...customerAuthCookie.options,
+      maxAge: customerAuthCookie.maxAge,
+    })
+    response.redirect(getOAuthFrontendUrl('success').toString())
+  } catch (error: unknown) {
     if (error instanceof HttpError && [403, 409].includes(error.statusCode)) {
       response.redirect(getOAuthFrontendUrl('failed').toString())
       return
@@ -230,64 +235,6 @@ const issueGoogleOAuthState = (response: Parameters<RequestHandler>[1]): { state
     maxAge: googleOAuthStateCookie.maxAge,
   })
   return { state, nonce }
-}
-
-export const adminGoogleStartController: RequestHandler = (_request, response) => {
-  if (!isGoogleOAuthConfigured) {
-    response.redirect(getAdminOAuthFrontendUrl('unavailable').toString())
-    return
-  }
-  const { state, nonce } = issueGoogleOAuthState(response)
-  response.redirect(getGoogleAuthorizationUrl(state, nonce, getAdminGoogleRedirectUri()))
-}
-
-export const adminGoogleCallbackController: RequestHandler = async (request, response, next) => {
-  const stateCookie = readAuthCookie(request.headers.cookie, googleOAuthStateCookie.name)
-  const nonceCookie = readAuthCookie(request.headers.cookie, `${googleOAuthStateCookie.name}_nonce`)
-  const state = typeof request.query.state === 'string' ? request.query.state : null
-  const clearStateCookie = () => {
-    response.clearCookie(googleOAuthStateCookie.name, googleOAuthStateCookie.options)
-    response.clearCookie(`${googleOAuthStateCookie.name}_nonce`, googleOAuthStateCookie.options)
-  }
-
-  if (!stateCookie || !nonceCookie || !state || stateCookie !== state) {
-    clearStateCookie()
-    response.redirect(getAdminOAuthFrontendUrl('failed').toString())
-    return
-  }
-  clearStateCookie()
-
-  if (request.query.error === 'access_denied') {
-    response.redirect(getAdminOAuthFrontendUrl('cancelled').toString())
-    return
-  }
-  const code = typeof request.query.code === 'string' ? request.query.code : null
-  if (!code) {
-    response.redirect(getAdminOAuthFrontendUrl('failed').toString())
-    return
-  }
-
-  try {
-    const result = await loginAdminWithGoogle(code, nonceCookie)
-    response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
-    response.cookie(authCookie.name, result.token, {
-      ...authCookie.options,
-      maxAge: authCookie.maxAge,
-    })
-    response.redirect(getAdminOAuthFrontendUrl('success').toString())
-  } catch (error: unknown) {
-    const isOAuthFailure = error instanceof HttpError
-      && [401, 403, 409].includes(error.statusCode)
-    if (isOAuthFailure) {
-      response.redirect(getAdminOAuthFrontendUrl(error.statusCode === 403 ? 'admin_forbidden' : 'failed').toString())
-      return
-    }
-    if (error instanceof HttpError && error.statusCode === 503) {
-      response.redirect(getAdminOAuthFrontendUrl('unavailable').toString())
-      return
-    }
-    next(error)
-  }
 }
 
 export const customerVerifyEmailController: RequestHandler = async (request, response) => {

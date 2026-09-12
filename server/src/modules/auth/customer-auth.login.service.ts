@@ -2,21 +2,8 @@ import { ShoppingMode, UserRole } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { createSession, hashSessionToken, toUser, verifyPassword } from './auth.service.js'
-import { verifyGoogleAuthorizationCode } from './auth.google.js'
 import type { GoogleIdentity } from './auth.google.js'
 import type { AuthenticatedUser, LoginInput } from './auth.types.js'
-
-/**
- * Signaled when a Google identity maps to an existing non-customer (i.e. an
- * administrator). The customer callback recognizes it and routes the browser to
- * the admin sign-in instead of showing a generic failure.
- */
-export class GoogleAdminForbiddenError extends HttpError {
-  constructor(message = 'Google sign-in is for customer accounts only. Use the admin sign-in for administrators.') {
-    super(403, message)
-    this.name = 'GoogleAdminForbiddenError'
-  }
-}
 
 export async function loginCustomer(input: LoginInput): Promise<{ user: AuthenticatedUser; token: string }> {
   const user = await prisma.user.findUnique({ where: { email: input.email } })
@@ -66,7 +53,7 @@ type GoogleCustomerResult = {
   }
 }
 
-async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<GoogleCustomerResult> {
+export async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<GoogleCustomerResult> {
   try {
     return await prisma.$transaction(async (transaction) => {
       const userBySubject = await transaction.user.findUnique({
@@ -95,7 +82,7 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<Goo
       })
       if (userByEmail) {
         if (userByEmail.role !== UserRole.CUSTOMER) {
-          throw new GoogleAdminForbiddenError()
+          throw new HttpError(403, 'Google sign-in is available for customer accounts only.')
         }
         if (userByEmail.googleSubject && userByEmail.googleSubject !== identity.subject) {
           throw new HttpError(409, 'This email is already linked to another Google account.')
@@ -135,21 +122,5 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<Goo
       errorName: error instanceof Error ? error.name : 'UnknownError',
     }))
     throw new HttpError(409, 'This Google account could not be linked safely.')
-  }
-}
-
-export async function loginWithGoogle(
-  code: string,
-  nonce: string,
-): Promise<{ user: AuthenticatedUser; token: string }> {
-  const identity = await verifyGoogleAuthorizationCode(code, nonce)
-  return loginWithGoogleIdentity(identity)
-}
-
-export async function loginWithGoogleIdentity(identity: GoogleIdentity): Promise<{ user: AuthenticatedUser; token: string }> {
-  const result = await findOrCreateGoogleCustomer(identity)
-  return {
-    user: toUser(result.user),
-    token: (await createSession(result.user, 'customer')).token,
   }
 }

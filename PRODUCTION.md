@@ -54,15 +54,15 @@ Required Render values:
   project domains must remain usable)
 - `PUBLIC_APP_URL` set to the canonical Vercel origin
 - Cloudinary values above
-- Google OAuth (leave empty to keep sign-in disabled):
+- Google OAuth (leave empty to keep sign-in disabled). One OAuth client serves
+  both customer and admin sign-in through a single registered callback:
   - `GOOGLE_CLIENT_ID`
   - `GOOGLE_CLIENT_SECRET`
-  - `GOOGLE_REDIRECT_URI` (customer callback, e.g. `https://<store>/api/v1/auth/customer/google/callback`)
-  - `GOOGLE_ADMIN_REDIRECT_URI` (admin callback, e.g. `https://<store>/api/v1/auth/admin/google/callback`)
+  - `GOOGLE_REDIRECT_URI` (e.g. `https://<store>/api/v1/auth/customer/google/callback`)
 
-Both Google callbacks travel through the first-party Vercel `/api/v1` proxy,
-so they are reachable from the browser on the storefront origin. Register them
-as authorized redirect URIs in the Google Cloud Console "Authorized redirect
+The callback travels through the first-party Vercel `/api/v1` proxy, so it is
+reachable from the browser on the storefront origin. Register this one URL as
+an authorized redirect URI in the Google Cloud Console "Authorized redirect
 URIs" list for the OAuth client.
 
 Render supplies `PORT`; the committed blueprint includes `10000` as its
@@ -138,9 +138,12 @@ handles redirects and messaging.
   login failure, logout, session expiry) is written to an immutable
   `admin_audit_logs` table with WHO/WHAT/WHEN and source IP. Passwords, tokens,
   and request bodies are never logged.
-- Admin Google sign-in (`/auth/admin/google`) only binds to an account that
-  already has an `ADMIN` role (by linked Google subject, then by verified
-  email). It never creates new admin accounts.
+- One Google sign-in serves both roles through the single `GOOGLE_REDIRECT_URI`
+  callback. After Google verifies the identity, the API binds to an account
+  that already has an `ADMIN` role (by linked Google subject, then by verified
+  email) and issues the admin session. It never creates new admin accounts;
+  any other identity follows the normal customer flow. Email/password already
+  shares one form for both roles.
 - Admin pages and logout responses send `Cache-Control: no-store` so browser
   history/back-forward caches cannot replay authenticated screens.
 
@@ -148,7 +151,7 @@ Required environment variables:
 
 ```text
 SESSION_SECRET          # already-required; reused for token hashing
-GOOGLE_ADMIN_REDIRECT_URI  # optional: falls back to deriving from GOOGLE_REDIRECT_URI
+GOOGLE_REDIRECT_URI     # single callback used for both customer and admin Google sign-in
 ```
 
 ## 5. Production smoke test
@@ -245,10 +248,9 @@ PUBLIC_APP_URL=https://<your-vercel-project>.vercel.app
 GOOGLE_CLIENT_ID=<oauth-client-id>
 GOOGLE_CLIENT_SECRET=<oauth-client-secret>
 GOOGLE_REDIRECT_URI=https://<your-vercel-project>.vercel.app/api/v1/auth/customer/google/callback
-GOOGLE_ADMIN_REDIRECT_URI=https://<your-vercel-project>.vercel.app/api/v1/auth/admin/google/callback
 ```
 
-Add both callback URLs to the Google Cloud Console OAuth client before testing
-Google sign-in. `GOOGLE_ADMIN_REDIRECT_URI` may be omitted; the server then
-derives it from `GOOGLE_REDIRECT_URI`. If a custom domain is added later,
-replace these values with the exact custom frontend origin and redeploy the API. Do not include a trailing slash.
+Add this one callback URL to the Google Cloud Console OAuth client before
+testing Google sign-in (it serves customer and admin sign-in alike). If a
+custom domain is added later, replace it with the exact custom frontend origin
+and redeploy the API. Do not include a trailing slash.

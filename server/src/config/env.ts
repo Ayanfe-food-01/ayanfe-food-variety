@@ -103,7 +103,6 @@ export const env = {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     redirectUri: process.env.GOOGLE_REDIRECT_URI,
-    adminRedirectUri: process.env.GOOGLE_ADMIN_REDIRECT_URI,
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,

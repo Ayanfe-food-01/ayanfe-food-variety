@@ -3,8 +3,6 @@ import { createRateLimit } from '../../middlewares/rateLimit.js'
 import { requireCustomerAuthentication, requireCustomerRole } from './auth.middleware.js'
 import { adminLoginAttemptGuard } from './admin.login.guard.js'
 import {
-  adminGoogleCallbackController,
-  adminGoogleStartController,
   loginController,
   logoutController,
   meController,
@@ -33,8 +31,6 @@ authRoutes.get('/me', meController)
 authRoutes.get('/customer/providers', customerProvidersController)
 authRoutes.get('/customer/google', googleOAuthStartRateLimit, customerGoogleStartController)
 authRoutes.get('/customer/google/callback', googleOAuthCallbackRateLimit, customerGoogleCallbackController)
-authRoutes.get('/admin/google', googleOAuthStartRateLimit, adminGoogleStartController)
-authRoutes.get('/admin/google/callback', googleOAuthCallbackRateLimit, adminGoogleCallbackController)
 authRoutes.post('/customer/signup', createRateLimit(10, 15 * 60 * 1000), customerSignupController)
 authRoutes.post('/customer/login', createRateLimit(10, 15 * 60 * 1000), customerLoginController)
 authRoutes.post('/customer/verify-email', createRateLimit(20, 15 * 60 * 1000), customerVerifyEmailController)

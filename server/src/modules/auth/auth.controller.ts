@@ -34,6 +34,7 @@ import {
 import { loginAdminWithGoogle } from './admin-auth.google.service.js'
 import { ADMIN_AUDIT_EVENTS, recordAdminAudit } from '../audit/audit.service.js'
 import { HttpError } from '../../utils/http.js'
+import { GoogleAdminForbiddenError } from './customer-auth.login.service.js'
 import {
   validateCustomerEmailVerificationInput,
   validateCustomerSignupInput,
@@ -194,6 +195,10 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
     setCustomerCookie(response, result.token)
     response.redirect(getOAuthFrontendUrl('success').toString())
   } catch (error: unknown) {
+    if (error instanceof GoogleAdminForbiddenError) {
+      response.redirect(getAdminOAuthFrontendUrl('admin_forbidden').toString())
+      return
+    }
     if (error instanceof HttpError && [403, 409].includes(error.statusCode)) {
       response.redirect(getOAuthFrontendUrl('failed').toString())
       return
@@ -274,7 +279,7 @@ export const adminGoogleCallbackController: RequestHandler = async (request, res
     const isOAuthFailure = error instanceof HttpError
       && [401, 403, 409].includes(error.statusCode)
     if (isOAuthFailure) {
-      response.redirect(getAdminOAuthFrontendUrl('failed').toString())
+      response.redirect(getAdminOAuthFrontendUrl(error.statusCode === 403 ? 'admin_forbidden' : 'failed').toString())
       return
     }
     if (error instanceof HttpError && error.statusCode === 503) {

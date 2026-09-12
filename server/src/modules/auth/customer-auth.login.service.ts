@@ -6,6 +6,18 @@ import { verifyGoogleAuthorizationCode } from './auth.google.js'
 import type { GoogleIdentity } from './auth.google.js'
 import type { AuthenticatedUser, LoginInput } from './auth.types.js'
 
+/**
+ * Signaled when a Google identity maps to an existing non-customer (i.e. an
+ * administrator). The customer callback recognizes it and routes the browser to
+ * the admin sign-in instead of showing a generic failure.
+ */
+export class GoogleAdminForbiddenError extends HttpError {
+  constructor(message = 'Google sign-in is for customer accounts only. Use the admin sign-in for administrators.') {
+    super(403, message)
+    this.name = 'GoogleAdminForbiddenError'
+  }
+}
+
 export async function loginCustomer(input: LoginInput): Promise<{ user: AuthenticatedUser; token: string }> {
   const user = await prisma.user.findUnique({ where: { email: input.email } })
   if (!user || user.role !== UserRole.CUSTOMER || !user.passwordHash || !(await verifyPassword(input.password, user.passwordHash))) {
@@ -83,7 +95,7 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<Goo
       })
       if (userByEmail) {
         if (userByEmail.role !== UserRole.CUSTOMER) {
-          throw new HttpError(403, 'Google sign-in is available for customer accounts only.')
+          throw new GoogleAdminForbiddenError()
         }
         if (userByEmail.googleSubject && userByEmail.googleSubject !== identity.subject) {
           throw new HttpError(409, 'This email is already linked to another Google account.')

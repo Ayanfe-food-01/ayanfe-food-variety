@@ -56,12 +56,16 @@ export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailab
   return url
 }
 
-export const getAdminOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
+export const getAdminOAuthFrontendUrl = (
+  status: 'success' | 'cancelled' | 'unavailable' | 'failed' | 'admin_forbidden',
+): URL => {
   const url = new URL('/admin/login', frontendOrigin())
-  if (status !== 'success') {
-    url.searchParams.set('oauth_error', `google_${status}`)
-  } else {
+  if (status === 'success') {
     url.searchParams.set('oauth', 'google_admin')
+  } else if (status === 'admin_forbidden') {
+    url.searchParams.set('oauth_error', 'google_admin_forbidden')
+  } else {
+    url.searchParams.set('oauth_error', `google_${status}`)
   }
   return url
 }

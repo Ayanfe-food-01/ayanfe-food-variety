@@ -32,13 +32,15 @@ export function DashboardMetricCard({
         {isLoading ? <span className="inline-block h-6 w-20 animate-pulse rounded-md bg-sage/70 align-middle" aria-label={`Loading ${label}`} /> : value}
       </p>
       {trend ? (
-        <p className={`mt-2 truncate text-xs font-bold ${trend.direction === 'up' ? 'text-green' : 'text-orange'}`} title={trend.label}>
+        <p className={`mt-2 truncate text-xs leading-normal font-bold ${trend.direction === 'up' ? 'text-green' : 'text-orange'}`} title={trend.label}>
           <span aria-hidden="true">{trend.direction === 'up' ? '↑' : '↓'}</span>
           {trend.label}
         </p>
       ) : detail ? (
-        <p className="mt-2 truncate text-xs text-muted" title={detail}>{detail}</p>
-      ) : null}
+        <p className="mt-2 truncate text-xs leading-normal text-muted" title={detail}>{detail}</p>
+      ) : (
+        <p className="mt-2 truncate text-xs leading-normal text-muted" aria-hidden="true">{'\u00A0'}</p>
+      )}
     </article>
   )
 

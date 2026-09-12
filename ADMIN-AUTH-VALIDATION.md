@@ -86,7 +86,7 @@ call goes through the first-party Vercel `/api/v1` rewrite to Render. No
    Google sign-in.
 3. **Google Cloud Console** — register that one callback URL in Authorized
    redirect URIs. For local dev, register
-   `http://localhost:5000/api/v1/auth/customer/google/callback`.
+   `http://localhost:5000/api/v1/auth/user/google/callback`.
 4. **iPhone/Safari Private-mode test** — open /admin/login in Safari Private,
    sign in with email/password and with Google, navigate, idle >30 min and
    confirm the expiry message, then sign back in. Repeat on Android Chrome.

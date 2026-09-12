@@ -58,7 +58,7 @@ Required Render values:
   both customer and admin sign-in through a single registered callback:
   - `GOOGLE_CLIENT_ID`
   - `GOOGLE_CLIENT_SECRET`
-  - `GOOGLE_REDIRECT_URI` (e.g. `https://<store>/api/v1/auth/customer/google/callback`)
+  - `GOOGLE_REDIRECT_URI` (e.g. `https://<store>/api/v1/auth/user/google/callback`)
 
 The callback travels through the first-party Vercel `/api/v1` proxy, so it is
 reachable from the browser on the storefront origin. Register this one URL as
@@ -247,7 +247,7 @@ CORS_ORIGINS=https://<your-vercel-project>.vercel.app
 PUBLIC_APP_URL=https://<your-vercel-project>.vercel.app
 GOOGLE_CLIENT_ID=<oauth-client-id>
 GOOGLE_CLIENT_SECRET=<oauth-client-secret>
-GOOGLE_REDIRECT_URI=https://<your-vercel-project>.vercel.app/api/v1/auth/customer/google/callback
+GOOGLE_REDIRECT_URI=https://<your-vercel-project>.vercel.app/api/v1/auth/user/google/callback
 ```
 
 Add this one callback URL to the Google Cloud Console OAuth client before

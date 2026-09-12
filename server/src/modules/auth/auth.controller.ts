@@ -147,7 +147,7 @@ export const customerProvidersController: RequestHandler = (_request, response) 
   })
 }
 
-export const customerGoogleStartController: RequestHandler = (_request, response, next) => {
+export const googleStartController: RequestHandler = (_request, response, next) => {
   try {
     if (!isGoogleOAuthConfigured) {
       response.redirect(getOAuthFrontendUrl('unavailable').toString())
@@ -160,7 +160,7 @@ export const customerGoogleStartController: RequestHandler = (_request, response
   }
 }
 
-export const customerGoogleCallbackController: RequestHandler = async (request, response, next) => {
+export const googleCallbackController: RequestHandler = async (request, response, next) => {
   const stateCookie = readAuthCookie(request.headers.cookie, googleOAuthStateCookie.name)
   const nonceCookie = readAuthCookie(request.headers.cookie, `${googleOAuthStateCookie.name}_nonce`)
   const state = typeof request.query.state === 'string' ? request.query.state : null

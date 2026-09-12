@@ -105,7 +105,7 @@ export async function getCustomerProviders(): Promise<{ google: boolean; message
   return response.data
 }
 
-export const getGoogleSignInUrl = (): string => getApiUrl('/auth/customer/google')
+export const getGoogleSignInUrl = (): string => getApiUrl('/auth/user/google')
 
 export async function verifyCustomerEmail(email: string, otp: string): Promise<void> {
   await request<{ success: true; data: { verified: true; email: string } }>('/auth/customer/verify-email', {

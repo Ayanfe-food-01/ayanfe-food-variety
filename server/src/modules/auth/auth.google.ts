@@ -75,7 +75,7 @@ export const createGoogleOAuthState = (): { state: string; nonce: string } => ({
   nonce: randomBytes(32).toString('base64url'),
 })
 
-export const getGoogleAuthorizationUrl = (state: string, nonce: string, redirectUri = getCustomerGoogleRedirectUri()): string => {
+export const getGoogleAuthorizationUrl = (state: string, nonce: string, redirectUri = getGoogleRedirectUri()): string => {
   const { clientId } = requireGoogleOAuthConfiguration()
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   url.searchParams.set('client_id', clientId)
@@ -88,12 +88,12 @@ export const getGoogleAuthorizationUrl = (state: string, nonce: string, redirect
   return url.toString()
 }
 
-export const getCustomerGoogleRedirectUri = (): string => {
+export const getGoogleRedirectUri = (): string => {
   const { redirectUri } = requireGoogleOAuthConfiguration()
   return redirectUri
 }
 
-export async function verifyGoogleAuthorizationCode(code: string, expectedNonce: string, redirectUri = getCustomerGoogleRedirectUri()): Promise<GoogleIdentity> {
+export async function verifyGoogleAuthorizationCode(code: string, expectedNonce: string, redirectUri = getGoogleRedirectUri()): Promise<GoogleIdentity> {
   const { clientId, clientSecret } = requireGoogleOAuthConfiguration()
   const client = new OAuth2Client(clientId, clientSecret, redirectUri)
 

@@ -10,8 +10,8 @@ import {
   customerLogoutController,
   customerMeController,
   customerProvidersController,
-  customerGoogleStartController,
-  customerGoogleCallbackController,
+  googleStartController,
+  googleCallbackController,
   customerSignupController,
   customerVerifyEmailController,
   customerResendVerificationController,
@@ -29,8 +29,8 @@ authRoutes.post('/login', createRateLimit(10, 15 * 60 * 1000), adminLoginAttempt
 authRoutes.post('/logout', logoutController)
 authRoutes.get('/me', meController)
 authRoutes.get('/customer/providers', customerProvidersController)
-authRoutes.get('/customer/google', googleOAuthStartRateLimit, customerGoogleStartController)
-authRoutes.get('/customer/google/callback', googleOAuthCallbackRateLimit, customerGoogleCallbackController)
+authRoutes.get('/user/google', googleOAuthStartRateLimit, googleStartController)
+authRoutes.get('/user/google/callback', googleOAuthCallbackRateLimit, googleCallbackController)
 authRoutes.post('/customer/signup', createRateLimit(10, 15 * 60 * 1000), customerSignupController)
 authRoutes.post('/customer/login', createRateLimit(10, 15 * 60 * 1000), customerLoginController)
 authRoutes.post('/customer/verify-email', createRateLimit(20, 15 * 60 * 1000), customerVerifyEmailController)

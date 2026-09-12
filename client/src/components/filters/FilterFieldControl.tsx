@@ -1,14 +1,24 @@
 import { CheckIcon } from '../../assets/icons'
 import { useMemo, useState } from 'react'
-import type { FilterField } from './filterTypes'
+import type { FilterField, FilterValues } from './filterTypes'
+import { DateField } from '../ui/DateField'
 
 interface FilterFieldControlProps {
   field: FilterField
   value: string
   onChange: (value: string) => void
+  values?: FilterValues
 }
 
-export function FilterFieldControl({ field, value, onChange }: FilterFieldControlProps) {
+const fromToConstraint = (field: FilterField, values?: FilterValues): { min?: string; max?: string } => {
+  const isPairBound = Boolean(values?.from !== undefined && values?.to !== undefined)
+  if (!isPairBound) return {}
+  if (field.key === 'from') return { max: values?.to || undefined }
+  if (field.key === 'to') return { min: values?.from || undefined }
+  return {}
+}
+
+export function FilterFieldControl({ field, value, onChange, values }: FilterFieldControlProps) {
   if (field.type === 'toggle') {
     const isOn = value === 'true'
     return (
@@ -26,6 +36,21 @@ export function FilterFieldControl({ field, value, onChange }: FilterFieldContro
 
   if (field.type === 'multi-select') {
     return <MultiSelectControl field={field} value={value} onChange={onChange} />
+  }
+
+  if (field.type === 'date') {
+    const { min, max } = fromToConstraint(field, values)
+    return (
+      <DateField
+        className="w-full"
+        ariaLabel={field.label}
+        placeholder={field.placeholder ?? 'Select a date'}
+        value={value}
+        min={min}
+        max={max}
+        onChange={onChange}
+      />
+    )
   }
 
   const handleSelect = (optionValue: string) => {

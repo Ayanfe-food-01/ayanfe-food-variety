@@ -10,7 +10,6 @@ import type {
 import {
   UUID_PATTERN,
   booleanValue,
-  deliveryFeeValue,
   discountFields,
   integerValue,
   isRecord,
@@ -51,7 +50,6 @@ export function validateProductFields(body: unknown): Omit<ProductInput, 'image'
     categoryId,
     price,
     ...(hasOptions ? { discountType: null, discountValue: null } : discountFields(body.discountType, body.discountValue, price!)),
-    deliveryFee: deliveryFeeValue(body.deliveryFee),
     unit: requiredText(body.unit, 'Unit', 1, 80),
     description: requiredText(body.description, 'Description', 10, 4000),
     isActive: booleanValue(body.isActive, 'Availability', true),

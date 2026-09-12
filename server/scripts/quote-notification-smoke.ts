@@ -65,7 +65,6 @@ async function main() {
         slug: `smoke-notification-product-${slug}`,
         description: 'Smoke fixture',
         price: 1000,
-        deliveryFee: 0,
         stockQuantity: 50,
         unit: 'bag',
         image: '',

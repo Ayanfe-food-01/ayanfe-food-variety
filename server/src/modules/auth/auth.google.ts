@@ -38,16 +38,34 @@ const requireGoogleOAuthConfiguration = (): {
   return { clientId, clientSecret, redirectUri }
 }
 
-export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
-  const frontendOrigin = env.nodeEnv === 'production'
+const frontendOrigin = (): string => {
+  const origin = env.nodeEnv === 'production'
     ? env.publicAppUrl ?? env.corsOrigins[0]
     : env.corsOrigins[0] ?? env.publicAppUrl
-  if (!frontendOrigin) throw new HttpError(503, 'The authentication redirect is not configured.')
-  const url = new URL('/login', frontendOrigin)
+  if (!origin) throw new HttpError(503, 'The authentication redirect is not configured.')
+  return origin
+}
+
+export const getOAuthFrontendUrl = (status: 'success' | 'cancelled' | 'unavailable' | 'failed'): URL => {
+  const url = new URL('/login', frontendOrigin())
   if (status !== 'success') {
     url.searchParams.set('oauth_error', `google_${status}`)
   } else {
     url.searchParams.set('oauth', 'google')
+  }
+  return url
+}
+
+export const getAdminOAuthFrontendUrl = (
+  status: 'success' | 'cancelled' | 'unavailable' | 'failed' | 'admin_forbidden',
+): URL => {
+  const url = new URL('/admin/login', frontendOrigin())
+  if (status === 'success') {
+    url.searchParams.set('oauth', 'google_admin')
+  } else if (status === 'admin_forbidden') {
+    url.searchParams.set('oauth_error', 'google_admin_forbidden')
+  } else {
+    url.searchParams.set('oauth_error', `google_${status}`)
   }
   return url
 }
@@ -57,8 +75,8 @@ export const createGoogleOAuthState = (): { state: string; nonce: string } => ({
   nonce: randomBytes(32).toString('base64url'),
 })
 
-export const getGoogleAuthorizationUrl = (state: string, nonce: string): string => {
-  const { clientId, redirectUri } = requireGoogleOAuthConfiguration()
+export const getGoogleAuthorizationUrl = (state: string, nonce: string, redirectUri = getGoogleRedirectUri()): string => {
+  const { clientId } = requireGoogleOAuthConfiguration()
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('redirect_uri', redirectUri)
@@ -70,8 +88,13 @@ export const getGoogleAuthorizationUrl = (state: string, nonce: string): string 
   return url.toString()
 }
 
-export async function verifyGoogleAuthorizationCode(code: string, expectedNonce: string): Promise<GoogleIdentity> {
-  const { clientId, clientSecret, redirectUri } = requireGoogleOAuthConfiguration()
+export const getGoogleRedirectUri = (): string => {
+  const { redirectUri } = requireGoogleOAuthConfiguration()
+  return redirectUri
+}
+
+export async function verifyGoogleAuthorizationCode(code: string, expectedNonce: string, redirectUri = getGoogleRedirectUri()): Promise<GoogleIdentity> {
+  const { clientId, clientSecret } = requireGoogleOAuthConfiguration()
   const client = new OAuth2Client(clientId, clientSecret, redirectUri)
 
   let idToken: string | undefined

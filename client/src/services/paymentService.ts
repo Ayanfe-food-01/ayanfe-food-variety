@@ -8,6 +8,8 @@ export interface BankDetails {
   instructions: string
 }
 
+export type PaymentSubmissionStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUCCESSFUL'
+
 export interface PaymentSubmission {
   id: string
   orderId: string
@@ -16,7 +18,7 @@ export interface PaymentSubmission {
   amount: string
   transferredAt: string
   proofUrl: string
-  status: 'PENDING' | 'VERIFIED' | 'REJECTED'
+  status: PaymentSubmissionStatus
   rejectionReason: PaymentRejectionReason | null
   reviewNote: string | null
   reviewedAt: string | null
@@ -57,12 +59,20 @@ export interface AdminPayment extends PaymentSubmission {
   customerEmail: string | null
   customerPhone: string
   expectedAmount: string
-  paymentMethod: 'BANK_TRANSFER'
+  paymentMethod: 'BANK_TRANSFER' | 'PAYSTACK'
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUCCESSFUL'
   orderPaymentStatus: 'PENDING' | 'PAID' | 'FAILED'
   orderStatus: 'ORDER_PLACED' | 'PROCESSING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
   proofAvailable: boolean
   auditHistory?: AdminPaymentAudit[]
+  /** Present when the order was paid via a gateway (e.g. Paystack). */
+  providerReference?: string
+  channel?: string | null
+  paidAt?: string | null
+  currency?: string
 }
+
+export type AdminPaymentStatus = AdminPayment['status']
 
 export async function getBankDetails(): Promise<BankDetails> {
   const response = await request<BankDetailsResponse>('/store/settings')
@@ -214,8 +224,8 @@ export async function verifyGuestPaystackPayment(input: {
 
 export interface AdminPaymentsQuery {
   search?: string
-  status?: 'PENDING' | 'VERIFIED' | 'REJECTED'
-  paymentMethod?: 'BANK_TRANSFER'
+  status?: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUCCESSFUL' | 'CONFIRMED'
+  paymentMethod?: 'BANK_TRANSFER' | 'PAYSTACK'
   from?: string
   to?: string
   sort?: 'newest' | 'oldest'
@@ -230,6 +240,10 @@ export interface AdminPaymentsPage {
     pending: { count: number; totalAmount: string }
     verified: { count: number; totalAmount: string }
     rejected: { count: number; totalAmount: string }
+    methodBreakdown?: {
+      paystack: { count: number; totalAmount: string }
+      bankTransfer: { count: number; totalAmount: string }
+    }
   }
 }
 

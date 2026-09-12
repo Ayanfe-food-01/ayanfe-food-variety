@@ -15,7 +15,6 @@ import {
 import {
   getAuthenticatedCustomer,
   loginCustomer,
-  loginWithGoogle,
   resendCustomerVerificationEmail,
   revokeCustomerSession,
   setCustomerShoppingMode,
@@ -24,11 +23,14 @@ import {
 } from './customer-auth.service.js'
 import {
   createGoogleOAuthState,
+  getAdminOAuthFrontendUrl,
   getGoogleAuthorizationUrl,
   getOAuthFrontendUrl,
   googleOAuthStateCookie,
   isGoogleOAuthConfigured,
 } from './auth.google.js'
+import { resolveGoogleLogin } from './google-login.service.js'
+import { ADMIN_AUDIT_EVENTS, recordAdminAudit } from '../audit/audit.service.js'
 import { HttpError } from '../../utils/http.js'
 import {
   validateCustomerEmailVerificationInput,
@@ -54,11 +56,23 @@ export const loginController: RequestHandler = async (request, response) => {
 }
 
 export const logoutController: RequestHandler = async (request, response) => {
-  await revokeSession(getSessionToken(request.headers.cookie))
+  response.set('Cache-Control', 'no-store, max-age=0')
+  const adminSessionToken = getSessionToken(request.headers.cookie)
+  const adminUser = adminSessionToken ? await getAuthenticatedUser(adminSessionToken) : null
+  await revokeSession(adminSessionToken)
   await revokeCustomerSession(getCustomerSessionToken(request.headers.cookie))
   response.clearCookie(authCookie.name, authCookie.options)
   response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
   response.status(204).send()
+  if (adminUser) {
+    void recordAdminAudit({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      event: ADMIN_AUDIT_EVENTS.LOGOUT,
+      ipAddress: request.ip,
+      statusCode: 204,
+    })
+  }
 }
 
 export const meController: RequestHandler = async (request, response) => {
@@ -97,6 +111,7 @@ export const customerLoginController: RequestHandler = async (request, response)
 }
 
 export const customerLogoutController: RequestHandler = async (request, response) => {
+  response.set('Cache-Control', 'no-store, max-age=0')
   await revokeCustomerSession(getCustomerSessionToken(request.headers.cookie))
   response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
   response.status(204).send()
@@ -132,28 +147,20 @@ export const customerProvidersController: RequestHandler = (_request, response) 
   })
 }
 
-export const customerGoogleStartController: RequestHandler = (_request, response, next) => {
+export const googleStartController: RequestHandler = (_request, response, next) => {
   try {
     if (!isGoogleOAuthConfigured) {
       response.redirect(getOAuthFrontendUrl('unavailable').toString())
       return
     }
-    const { state, nonce } = createGoogleOAuthState()
-    response.cookie(googleOAuthStateCookie.name, state, {
-      ...googleOAuthStateCookie.options,
-      maxAge: googleOAuthStateCookie.maxAge,
-    })
-    response.cookie(`${googleOAuthStateCookie.name}_nonce`, nonce, {
-      ...googleOAuthStateCookie.options,
-      maxAge: googleOAuthStateCookie.maxAge,
-    })
+    const { state, nonce } = issueGoogleOAuthState(response)
     response.redirect(getGoogleAuthorizationUrl(state, nonce))
   } catch (error: unknown) {
     next(error)
   }
 }
 
-export const customerGoogleCallbackController: RequestHandler = async (request, response, next) => {
+export const googleCallbackController: RequestHandler = async (request, response, next) => {
   const stateCookie = readAuthCookie(request.headers.cookie, googleOAuthStateCookie.name)
   const nonceCookie = readAuthCookie(request.headers.cookie, `${googleOAuthStateCookie.name}_nonce`)
   const state = typeof request.query.state === 'string' ? request.query.state : null
@@ -180,9 +187,21 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
   }
 
   try {
-    const result = await loginWithGoogle(code, nonceCookie)
+    const result = await resolveGoogleLogin(code, nonceCookie)
+    if (result.sessionType === 'admin') {
+      response.clearCookie(customerAuthCookie.name, customerAuthCookie.options)
+      response.cookie(authCookie.name, result.token, {
+        ...authCookie.options,
+        maxAge: authCookie.maxAge,
+      })
+      response.redirect(getAdminOAuthFrontendUrl('success').toString())
+      return
+    }
     response.clearCookie(authCookie.name, authCookie.options)
-    setCustomerCookie(response, result.token)
+    response.cookie(customerAuthCookie.name, result.token, {
+      ...customerAuthCookie.options,
+      maxAge: customerAuthCookie.maxAge,
+    })
     response.redirect(getOAuthFrontendUrl('success').toString())
   } catch (error: unknown) {
     if (error instanceof HttpError && [403, 409].includes(error.statusCode)) {
@@ -203,6 +222,19 @@ export const customerGoogleCallbackController: RequestHandler = async (request, 
     }
     next(error)
   }
+}
+
+const issueGoogleOAuthState = (response: Parameters<RequestHandler>[1]): { state: string; nonce: string } => {
+  const { state, nonce } = createGoogleOAuthState()
+  response.cookie(googleOAuthStateCookie.name, state, {
+    ...googleOAuthStateCookie.options,
+    maxAge: googleOAuthStateCookie.maxAge,
+  })
+  response.cookie(`${googleOAuthStateCookie.name}_nonce`, nonce, {
+    ...googleOAuthStateCookie.options,
+    maxAge: googleOAuthStateCookie.maxAge,
+  })
+  return { state, nonce }
 }
 
 export const customerVerifyEmailController: RequestHandler = async (request, response) => {

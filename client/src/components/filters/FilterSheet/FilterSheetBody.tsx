@@ -56,6 +56,7 @@ export function FilterSheetBody({ fields, draft, onFieldChange }: FilterSheetBod
                   <FilterFieldControl
                     field={field}
                     value={draft[field.key] ?? ''}
+                    values={draft}
                     onChange={(value) => onFieldChange(field.key, value)}
                   />
                 </div>

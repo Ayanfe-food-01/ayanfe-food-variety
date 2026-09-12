@@ -95,7 +95,6 @@ async function main() {
         slug: `smoke-product-${slug}`,
         description: 'Smoke fixture',
         price: 2500,
-        deliveryFee: 800,
         unit: 'bag',
         image: '',
       },
@@ -288,7 +287,7 @@ async function main() {
       deliveryFee: '1000.00',
       fulfillmentMethod: DELIVERY,
     })
-    await prisma.product.update({ where: { id: productId }, data: { price: 99, deliveryFee: 0 } })
+    await prisma.product.update({ where: { id: productId }, data: { price: 99 } })
     const afterCatalogChange = await getAdminQuoteRequest(referenceB)
     if (!moneyEquals(afterCatalogChange.quotedSubtotal, 4_800)) throw new Error('Snapshot subtotal changed after catalog edit.')
     if (!moneyEquals(afterCatalogChange.quotedTotal, 5_800)) throw new Error('Snapshot total changed after catalog edit.')

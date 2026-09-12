@@ -55,7 +55,6 @@ async function main() {
         slug: `${slug}-${name.toLowerCase().replace(/\s+/g, '-')}`,
         description,
         price: '1500.00',
-        deliveryFee: '800.00',
         unit: 'kg',
         image: '',
         stockQuantity: 100,

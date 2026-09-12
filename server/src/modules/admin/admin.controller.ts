@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express'
-import { PaymentMethod, PaymentSubmissionStatus } from '@prisma/client'
+import { PaymentMethod } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
 import { normalizeSearchQuery } from '../../utils/search.js'
 import { reviewPayment } from '../payments/payment.service.js'
@@ -20,7 +20,7 @@ import {
   validateOrderNumber,
   validateOrderStatusInput,
 } from './admin.validator.js'
-import type { AdminPaymentsQuery } from './admin.types.js'
+import type { AdminPaymentListStatus, AdminPaymentsQuery } from './admin.types.js'
 import type { AnalyticsRange } from './analytics/analytics.types.js'
 
 export const getDashboardController: RequestHandler = async (_request, response) => {
@@ -99,12 +99,14 @@ export const deleteAdminOrderController: RequestHandler = async (request, respon
   response.json({ success: true, message: 'Order permanently deleted.' })
 }
 
-const parsePaymentStatus = (value: unknown): PaymentSubmissionStatus | undefined => {
+const PAYMENT_LIST_STATUSES = ['PENDING', 'VERIFIED', 'REJECTED', 'SUCCESSFUL', 'CONFIRMED'] as const
+
+const parsePaymentStatus = (value: unknown): AdminPaymentListStatus | undefined => {
   if (value === undefined || value === '' || value === 'ALL') return undefined
-  if (typeof value !== 'string' || !Object.values(PaymentSubmissionStatus).includes(value as PaymentSubmissionStatus)) {
+  if (typeof value !== 'string' || !PAYMENT_LIST_STATUSES.includes(value as AdminPaymentListStatus)) {
     throw new HttpError(400, 'Payment status is invalid.')
   }
-  return value as PaymentSubmissionStatus
+  return value as AdminPaymentListStatus
 }
 
 const parsePaymentQuery = (query: Record<string, unknown>): AdminPaymentsQuery => {

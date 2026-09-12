@@ -44,19 +44,11 @@
 .admin-product-form-steps {
   min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: none;
-  white-space: nowrap;
-}
-
-.admin-product-form-steps::-webkit-scrollbar {
-  display: none;
 }
 
 .admin-product-form-steps > li {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 @media (max-width: 639px) {

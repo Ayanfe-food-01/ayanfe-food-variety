@@ -95,6 +95,10 @@ export interface AdminOrderStatusHistory {
   createdAt: string
 }
 
+export type AdminPaymentStatus = PaymentSubmissionStatus | 'SUCCESSFUL'
+
+export type AdminPaymentListStatus = AdminPaymentStatus | 'CONFIRMED'
+
 export interface AdminPaymentListItem {
   id: string
   orderId: string
@@ -107,17 +111,23 @@ export interface AdminPaymentListItem {
   paymentMethod: PaymentMethod
   orderStatus: OrderStatus
   orderPaymentStatus: PaymentStatus
-  senderName: string
-  transactionReference: string | null
-  transferredAt: string
+  status: AdminPaymentStatus
   createdAt: string
-  status: PaymentSubmissionStatus
-  proofUrl: string
-  proofAvailable: boolean
-  rejectionReason: PaymentRejectionReason | null
-  reviewNote: string | null
-  reviewedAt: string | null
+  /** Bank-transfer submission fields (absent/empty for gateway payments). */
+  senderName?: string | null
+  transactionReference?: string | null
+  transferredAt?: string | null
+  proofUrl?: string
+  proofAvailable?: boolean
+  rejectionReason?: PaymentRejectionReason | null
+  reviewNote?: string | null
+  reviewedAt?: string | null
   auditHistory?: AdminPaymentAuditItem[]
+  /** Gateway payment fields (present for e.g. Paystack). */
+  providerReference?: string
+  channel?: string | null
+  paidAt?: string | null
+  currency?: string
 }
 
 export interface AdminPaymentAuditItem {
@@ -130,7 +140,7 @@ export interface AdminPaymentAuditItem {
 
 export interface AdminPaymentsQuery {
   search?: string
-  status?: PaymentSubmissionStatus
+  status?: AdminPaymentListStatus
   paymentMethod?: PaymentMethod
   from?: Date
   to?: Date
@@ -144,10 +154,16 @@ export interface AdminPaymentSummaryItem {
   totalAmount: string
 }
 
+export interface AdminPaymentMethodBreakdown {
+  paystack: AdminPaymentSummaryItem
+  bankTransfer: AdminPaymentSummaryItem
+}
+
 export interface AdminPaymentSummary {
   pending: AdminPaymentSummaryItem
   verified: AdminPaymentSummaryItem
   rejected: AdminPaymentSummaryItem
+  methodBreakdown: AdminPaymentMethodBreakdown
 }
 
 export interface AdminPaymentsPage {

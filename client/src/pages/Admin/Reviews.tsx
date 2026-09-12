@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Breadcrumb } from '../../components/ui/Breadcrumb'
+import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
 import { AdminPagination } from '../../components/admin/AdminPagination'
 import { OrderInput } from '../../components/admin/OrderInput'
@@ -253,14 +253,12 @@ export function Reviews() {
 
   return (
     <>
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Reviews' }]} />
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Moderation</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Reviews</h1>
-          <p className="mt-3 text-sm text-muted">Approve, reject, and feature the customer reviews shown to your storefront.</p>
-        </div>
-      </div>
+      <AdminPageHeader
+        breadcrumbs={[{ label: 'Dashboard', href: '/admin' }, { label: 'Reviews' }]}
+        eyebrow="Moderation"
+        title="Reviews"
+        description="Approve, reject, and feature the customer reviews shown to your storefront."
+      />
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Review filters">
         <FilterBar

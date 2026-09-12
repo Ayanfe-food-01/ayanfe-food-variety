@@ -33,7 +33,6 @@ const toCartItem = (item: CustomerCartItem): CartItem => ({
   originalPrice: Number(item.originalPrice),
   discountType: item.discountType,
   discountValue: item.discountValue === null ? null : Number(item.discountValue),
-  deliveryFee: Number(item.deliveryFee),
   image: item.image,
   quantity: item.quantity,
   itemSubtotal: Number(item.itemSubtotal),
@@ -58,8 +57,6 @@ const isCartItem = (value: unknown): value is CartItem => {
     typeof price === 'number' &&
     Number.isFinite(price) &&
     price > 0 &&
-    typeof item.deliveryFee === 'number' &&
-    Number.isFinite(item.deliveryFee) &&
     typeof item.image === 'string' &&
     typeof quantity === 'number' &&
     Number.isInteger(quantity) &&
@@ -91,7 +88,6 @@ const readStoredCart = (): CartItem[] => {
       discountType: item.discountType === 'PERCENTAGE' || item.discountType === 'FIXED' ? item.discountType : null,
       discountValue: typeof item.discountValue === 'number' && Number.isFinite(item.discountValue) ? item.discountValue : null,
       itemSubtotal: typeof item.itemSubtotal === 'number' ? item.itemSubtotal : item.price * item.quantity,
-      deliveryFee: typeof item.deliveryFee === 'number' ? item.deliveryFee : 0,
       isAvailable: item.isAvailable !== false,
       availableQuantity: item.availableQuantity,
       canUpdateQuantity: item.canUpdateQuantity !== false,
@@ -147,7 +143,6 @@ const createCartItem = (
     originalPrice,
     discountType: isWholesale || isOptioned ? null : product.discountType,
     discountValue: isWholesale || isOptioned ? null : product.discountValue,
-    deliveryFee: product.deliveryFee * quantity,
     image: product.image,
     quantity,
     itemSubtotal: unitPrice * quantity,
@@ -328,7 +323,6 @@ export function CartProvider({ children }: CartProviderProps) {
                 ...item,
                 quantity: item.quantity + safeQuantity,
                 itemSubtotal: item.price * (item.quantity + safeQuantity),
-                deliveryFee: item.deliveryFee / item.quantity * (item.quantity + safeQuantity),
               }
             : item,
         )
@@ -359,7 +353,6 @@ export function CartProvider({ children }: CartProviderProps) {
             ...candidate,
             quantity: candidate.quantity + 1,
             itemSubtotal: candidate.price * (candidate.quantity + 1),
-            deliveryFee: candidate.deliveryFee / candidate.quantity * (candidate.quantity + 1),
           }
         : candidate,
     ))
@@ -388,7 +381,6 @@ export function CartProvider({ children }: CartProviderProps) {
             ...candidate,
             quantity: candidate.quantity - 1,
             itemSubtotal: candidate.price * (candidate.quantity - 1),
-            deliveryFee: candidate.deliveryFee / candidate.quantity * (candidate.quantity - 1),
           }
         : candidate,
     ))

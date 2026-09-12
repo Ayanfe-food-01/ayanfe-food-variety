@@ -516,7 +516,6 @@ interface AdminProductApiResponse {
   discountedPrice: string
   discountType: 'PERCENTAGE' | 'FIXED' | null
   discountValue: string | null
-  deliveryFee: string
   unit: string
   image: string
   images?: string[]
@@ -538,6 +537,9 @@ export interface ProductOptionDraft {
   stockQuantity: string
   wholesaleMoq?: string
   wholesalePrices?: WholesaleTierDraft[]
+  // Wholesale packages configured for an option that has not been persisted
+  // yet (no id). They are created once the product is saved.
+  pendingPackages?: PendingWholesalePackage[]
 }
 
 export interface WholesaleTierDraft {
@@ -568,6 +570,8 @@ export interface WholesalePackageDraft {
   isActive: boolean
 }
 
+export type PendingWholesalePackage = Omit<WholesalePackageDraft, 'productOptionId'>
+
 export const isFilledProductOption = (option: ProductOptionDraft): boolean =>
   option.label.trim() !== '' || option.price.trim() !== '' || option.stockQuantity.trim() !== ''
 
@@ -577,7 +581,6 @@ export interface ProductFormInput {
   price: string
   discountType: '' | 'PERCENTAGE' | 'FIXED'
   discountValue: string
-  deliveryFee: string
   unit: string
   description: string
   stockQuantity: string
@@ -618,7 +621,6 @@ const formDataFor = (input: ProductFormInput): FormData => {
   formData.set('price', hasOptions ? '' : input.price)
   formData.set('discountType', hasOptions ? '' : input.discountType)
   formData.set('discountValue', hasOptions ? '' : input.discountValue)
-  formData.set('deliveryFee', input.deliveryFee)
   formData.set('unit', input.unit)
   formData.set('description', input.description)
   formData.set('stockQuantity', hasOptions ? '' : input.stockQuantity)
@@ -663,7 +665,6 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   discountedPrice: Number(product.discountedPrice),
   discountType: product.discountType,
   discountValue: product.discountValue === null ? null : Number(product.discountValue),
-  deliveryFee: Number(product.deliveryFee),
   image: product.image,
   images: product.images?.filter(Boolean).length
     ? product.images.filter(Boolean)

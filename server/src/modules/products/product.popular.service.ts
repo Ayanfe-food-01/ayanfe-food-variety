@@ -18,7 +18,6 @@ interface PopularProductRow {
   discountType: Product['discountType']
   discountValue: Prisma.Decimal | null
   discountedPrice: Prisma.Decimal
-  deliveryFee: Prisma.Decimal
   unit: string
   image: string
   isActive: boolean
@@ -48,7 +47,6 @@ const toPopularProduct = (product: PopularProductRow, images: string[], options:
     product.discountType,
     product.discountValue,
   ).toString(),
-  deliveryFee: product.deliveryFee.toString(),
   unit: product.unit,
   image: product.image,
   images,
@@ -83,7 +81,6 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
       p.price,
       p.discount_type AS "discountType",
       p.discount_value AS "discountValue",
-      p.delivery_fee AS "deliveryFee",
       p.unit,
       p.image,
       p.is_active AS "isActive",
@@ -122,7 +119,6 @@ export async function getPopularProducts(query: PublicProductQuery, wishlistUser
       p.price,
       p.discount_type,
       p.discount_value,
-      p.delivery_fee,
       p.unit,
       p.image,
       p.is_active,

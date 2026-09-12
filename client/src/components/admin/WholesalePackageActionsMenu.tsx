@@ -1,8 +1,7 @@
 import { ActionMenu, ActionMenuButton } from './ActionMenu'
-import type { WholesalePackageClient } from '../../services/adminService'
 
 interface WholesalePackageActionsMenuProps {
-  pkg: WholesalePackageClient
+  pkg: { name: string; isActive: boolean }
   canMoveUp: boolean
   canMoveDown: boolean
   onMoveUp: () => void

@@ -10,66 +10,27 @@ import {
   type AdminPaymentsQuery,
   type PaymentRejectionReason,
 } from '../../services/paymentService'
-import { PaymentReview } from '../../components/admin/PaymentReview'
-import { PaymentTable } from '../../components/admin/PaymentTable'
 import { AdminPagination } from '../../components/admin/AdminPagination'
-import { Breadcrumb } from '../../components/ui/Breadcrumb'
+import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { FilterBar } from '../../components/filters/FilterBar'
-import { FilterSort, type FilterSortOption } from '../../components/admin/FilterSort'
-import type { FilterField, FilterValues } from '../../components/filters/filterTypes'
+import { FilterSort } from '../../components/admin/FilterSort'
+import {
+  PaymentStats,
+  PaymentCompactList,
+  PaymentDetailModal,
+  paymentFilterFields,
+  paymentSortOptions,
+  applyPaymentFilter,
+} from '../../components/admin/payments'
+import type { FilterValues } from '../../components/filters/filterTypes'
 import { useToast } from '../../components/ui/Toast'
-import { DateField } from '../../components/ui/DateField'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 
 const pageSize = 10
-const formatPrice = (value: string) =>
-  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(value))
-
-const paymentFields: FilterField[] = [
-  {
-    key: 'status',
-    label: 'Status',
-    type: 'select',
-    quick: true,
-    group: 'Status',
-    options: [
-      { value: '', label: 'All statuses' },
-      { value: 'PENDING', label: 'Pending' },
-      { value: 'VERIFIED', label: 'Confirmed' },
-      { value: 'REJECTED', label: 'Rejected' },
-    ],
-  },
-  {
-    key: 'paymentMethod',
-    label: 'Method',
-    type: 'select',
-    quick: true,
-    group: 'Status',
-    options: [
-      { value: '', label: 'All methods' },
-      { value: 'BANK_TRANSFER', label: 'Bank transfer' },
-    ],
-  },
-]
-
-const paymentSortOptions: FilterSortOption[] = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-]
-
-function SummaryCard({ label, count, total, emphasis }: { label: string; count: number; total: string; emphasis?: boolean }) {
-  return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${emphasis ? 'border-orange/30 bg-orange/5' : 'border-line bg-white'}`}>
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-green-dark">{count}</p>
-      <p className="mt-1 text-xs text-muted">{formatPrice(total)} submitted</p>
-    </div>
-  )
-}
 
 export function Payments() {
   const [searchInput, setSearchInput] = useState('')
-  const [query, setQuery] = useState<AdminPaymentsQuery>({ status: 'PENDING', page: 1, pageSize, sort: 'newest' })
+  const [query, setQuery] = useState<AdminPaymentsQuery>({ page: 1, pageSize, sort: 'newest' })
   const [selected, setSelected] = useState<AdminPayment | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -109,10 +70,6 @@ export function Payments() {
     setQuery((current) => ({ ...current, search: value.trim() || undefined, page: 1 }))
   }
 
-  const updateFilter = (key: 'status' | 'paymentMethod' | 'sort', value: string) => {
-    setQuery((current) => ({ ...current, [key]: value || undefined, page: 1 }))
-  }
-
   const openReview = async (payment: AdminPayment) => {
     setSelected(payment)
     setIsDetailLoading(true)
@@ -146,86 +103,76 @@ export function Payments() {
     pending: { count: 0, totalAmount: '0' },
     verified: { count: 0, totalAmount: '0' },
     rejected: { count: 0, totalAmount: '0' },
+    methodBreakdown: {
+      paystack: { count: 0, totalAmount: '0' },
+      bankTransfer: { count: 0, totalAmount: '0' },
+    },
   }
   const currentPage = result?.pagination.page ?? 1
   const totalPages = result?.pagination.totalPages ?? 1
 
   return (
     <div>
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Payments' }]} />
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Cash management</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Payments</h1>
-          <p className="mt-3 text-sm text-muted">Review transfer receipts manually before confirming payment.</p>
-        </div>
-      </div>
+      <AdminPageHeader
+        breadcrumbs={[{ label: 'Dashboard', href: '/admin' }, { label: 'Payments' }]}
+        eyebrow="Cash management"
+        title="Payments"
+        description="Review transfer receipts manually before confirming payment."
+      />
 
-      <section className="mt-8 grid gap-3 sm:grid-cols-3" aria-label="Payment verification overview">
-        <SummaryCard label="Pending verification" count={summary.pending.count} total={summary.pending.totalAmount} emphasis />
-        <SummaryCard label="Confirmed" count={summary.verified.count} total={summary.verified.totalAmount} />
-        <SummaryCard label="Rejected" count={summary.rejected.count} total={summary.rejected.totalAmount} />
-      </section>
+      <PaymentStats pending={summary.pending} verified={summary.verified} rejected={summary.rejected} methodBreakdown={summary.methodBreakdown} isLoading={isLoading} />
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Payment filters">
-        <div className="space-y-4">
-          <FilterBar
-            fields={paymentFields}
-            committed={{
-              status: query.status ?? '',
-              paymentMethod: query.paymentMethod ?? '',
-            }}
-            onApply={(next: FilterValues) => setQuery((current) => ({
-              ...current,
-              status: (next.status || undefined) as AdminPaymentsQuery['status'],
-              paymentMethod: next.paymentMethod as AdminPaymentsQuery['paymentMethod'],
-              page: 1,
-            }))}
-            search={{
-              label: 'Search payments',
-              value: searchInput,
-              onChange: setSearchInput,
-              onSearch: updateSearch,
-              placeholder: 'Order, customer, email, or reference',
-            }}
-            headerActions={
-              <FilterSort
-                ariaLabel="Sort payments"
-                value={query.sort ?? 'newest'}
-                options={paymentSortOptions}
-                onChange={(value) => updateFilter('sort', value)}
-              />
-            }
-          />
-          <div className="grid grid-cols-2 gap-3 sm:items-end">
-            <div className="min-w-0">
-              <label className="text-xs font-bold text-green-dark">From</label>
-              <div className="mt-2">
-                <DateField ariaLabel="From date" max={query.to || undefined} onChange={(value) => setQuery((current) => ({ ...current, from: value || undefined, page: 1 }))} placeholder="From date" value={query.from ?? ''} />
-              </div>
-            </div>
-            <div className="min-w-0">
-              <label className="text-xs font-bold text-green-dark">To</label>
-              <div className="mt-2">
-                <DateField ariaLabel="To date" min={query.from || undefined} onChange={(value) => setQuery((current) => ({ ...current, to: value || undefined, page: 1 }))} placeholder="To date" value={query.to ?? ''} />
-              </div>
-            </div>
-          </div>
-        </div>
+        <FilterBar
+          fields={paymentFilterFields}
+          committed={{
+            status: query.status ?? '',
+            paymentMethod: query.paymentMethod ?? '',
+            from: query.from ?? '',
+            to: query.to ?? '',
+          }}
+          onApply={(next: FilterValues) => {
+            setQuery((current) => ({ ...current, ...applyPaymentFilter(next), page: 1 }))
+          }}
+          search={{
+            label: 'Search payments',
+            value: searchInput,
+            onChange: setSearchInput,
+            onSearch: updateSearch,
+            placeholder: 'Order, customer, email, or reference',
+          }}
+          headerActions={
+            <FilterSort
+              ariaLabel="Sort payments"
+              value={query.sort ?? 'newest'}
+              options={paymentSortOptions}
+              onChange={(value) => setQuery((current) => ({ ...current, sort: value as AdminPaymentsQuery['sort'], page: 1 }))}
+            />
+          }
+        />
       </section>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
       {isLoading ? (
-        <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading payment submissions…</div>
+        <div className="mt-8 rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading payments…</div>
       ) : (
         <>
-          <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{result?.pagination.total ?? 0} submissions</span><span>Page {currentPage} of {totalPages}</span></div>
-          <div className="mt-3"><PaymentTable payments={result?.payments ?? []} onSelect={(payment) => void openReview(payment)} /></div>
+          <div className="mt-5 flex items-center justify-between text-sm text-muted"><span>{result?.pagination.total ?? 0} payment{result?.pagination.total === 1 ? '' : 's'}</span><span>Page {currentPage} of {totalPages}</span></div>
+          <div className="mt-3"><PaymentCompactList payments={result?.payments ?? []} onSelect={(payment) => void openReview(payment)} /></div>
           {totalPages > 1 && <AdminPagination className="mt-5" currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => setQuery((current) => ({ ...current, page }))} />}
         </>
       )}
 
-      {selected && !isDetailLoading && <PaymentReview payment={selected} isSaving={isSaving} onClose={() => setSelected(null)} onVerify={(note) => review('verify', note)} onReject={(reason, note) => review('reject', note ?? '', reason)} />}
+      {selected && (
+        <PaymentDetailModal
+          payment={selected}
+          isLoading={isDetailLoading}
+          isSaving={isSaving}
+          onClose={() => setSelected(null)}
+          onVerify={(note) => review('verify', note)}
+          onReject={(reason, note) => review('reject', note ?? '', reason)}
+        />
+      )}
     </div>
   )
 }

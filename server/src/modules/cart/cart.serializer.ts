@@ -77,7 +77,6 @@ export const lineMinQuantity = (item: CartLinePayload, mode: ShoppingMode): numb
 export function toCartResponse(cart: CartPayload): CustomerCartResponse {
   let subtotal = new Prisma.Decimal(0)
   let totalQuantity = 0
-  const deliveryFee = 0
 
   const items = cart.items.map((item) => {
     const option = item.productOption
@@ -141,7 +140,6 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
       originalPrice: unitPrice.toString(),
       discountType: option ? null : item.product.discountType,
       discountValue: option ? null : (item.product.discountValue?.toString() ?? null),
-      deliveryFee: '0',
       image: item.product.image,
       quantity: item.quantity,
       minQuantity,
@@ -157,7 +155,6 @@ export function toCartResponse(cart: CartPayload): CustomerCartResponse {
     mode: cart.mode,
     items,
     subtotal: subtotal.toString(),
-    deliveryFee: '0',
     totalQuantity,
     canCheckout: items.length > 0 && items.every((item) =>
       item.isAvailable

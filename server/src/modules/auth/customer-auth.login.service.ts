@@ -2,7 +2,6 @@ import { ShoppingMode, UserRole } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { createSession, hashSessionToken, toUser, verifyPassword } from './auth.service.js'
-import { verifyGoogleAuthorizationCode } from './auth.google.js'
 import type { GoogleIdentity } from './auth.google.js'
 import type { AuthenticatedUser, LoginInput } from './auth.types.js'
 
@@ -54,7 +53,7 @@ type GoogleCustomerResult = {
   }
 }
 
-async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<GoogleCustomerResult> {
+export async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<GoogleCustomerResult> {
   try {
     return await prisma.$transaction(async (transaction) => {
       const userBySubject = await transaction.user.findUnique({
@@ -123,21 +122,5 @@ async function findOrCreateGoogleCustomer(identity: GoogleIdentity): Promise<Goo
       errorName: error instanceof Error ? error.name : 'UnknownError',
     }))
     throw new HttpError(409, 'This Google account could not be linked safely.')
-  }
-}
-
-export async function loginWithGoogle(
-  code: string,
-  nonce: string,
-): Promise<{ user: AuthenticatedUser; token: string }> {
-  const identity = await verifyGoogleAuthorizationCode(code, nonce)
-  return loginWithGoogleIdentity(identity)
-}
-
-export async function loginWithGoogleIdentity(identity: GoogleIdentity): Promise<{ user: AuthenticatedUser; token: string }> {
-  const result = await findOrCreateGoogleCustomer(identity)
-  return {
-    user: toUser(result.user),
-    token: (await createSession(result.user, 'customer')).token,
   }
 }

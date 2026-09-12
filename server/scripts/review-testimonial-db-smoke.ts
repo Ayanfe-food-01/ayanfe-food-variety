@@ -44,7 +44,6 @@ async function main() {
         slug: `smoke-review-product-${slug}`,
         description: 'Smoke fixture',
         price: 1200,
-        deliveryFee: 0,
         stockQuantity: 20,
         unit: 'bag',
         image: '',

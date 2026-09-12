@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckIcon, ChevronDownIcon, CloseIcon } from '../../assets/icons'
-import type { ProductOptionDraft, WholesalePackageClient, WholesalePackageDraft } from '../../services/adminService'
+import type { PendingWholesalePackage, ProductOptionDraft, WholesalePackageClient, WholesalePackageDraft } from '../../services/adminService'
 import {
   createAdminWholesalePackage,
   deleteAdminWholesalePackage,
@@ -50,14 +50,6 @@ interface PackageDraftErrors {
 
 const emptyPackageDraft = (): PackageDraft => ({ name: '', unitsPerPackage: '', price: '', isActive: true })
 
-const buildProductOptionsMap = (options: ProductOptionDraft[]): Map<string, string> => {
-  const map = new Map<string, string>()
-  options.forEach((option, index) => {
-    if (option.id) map.set(option.id, option.label.trim() || `Option ${index + 1}`)
-  })
-  return map
-}
-
 export function OptionInputField({ options, errors = [], onChange, maxOptions = MAX_OPTIONS, productId }: OptionInputFieldProps) {
   const [openOptionIndex, setOpenOptionIndex] = useState<number | null>(null)
   const openIndex = openOptionIndex !== null && openOptionIndex < options.length ? openOptionIndex : null
@@ -72,8 +64,16 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
   const [packagesLoading, setPackagesLoading] = useState(Boolean(productId))
   const [packagesError, setPackagesError] = useState<string | null>(null)
 
-  // Editor modal state: which option's packages are being edited.
-  const [editor, setEditor] = useState<{ optionId: string; pkg?: WholesalePackageClient } | null>(null)
+  // Editor modal state: which option's packages are being edited. Packages for
+  // a persisted unit/size are managed through the API; packages for a new,
+  // unsaved size are held as pending drafts on the option and created once the
+  // product is saved.
+  const [editor, setEditor] = useState<{
+    optionIndex: number
+    kind: 'pending' | 'persisted'
+    pkg?: { id?: string; name: string; isActive: boolean }
+    pendingIndex?: number
+  } | null>(null)
   const [draft, setDraft] = useState<PackageDraft>(emptyPackageDraft())
   const [draftErrors, setDraftErrors] = useState<PackageDraftErrors>({})
   const [isSaving, setIsSaving] = useState(false)
@@ -119,7 +119,6 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
     }
   }, [editor])
 
-  const optionLabels = useMemo(() => buildProductOptionsMap(options), [options])
   const packagesByOption = useMemo(() => {
     const map = new Map<string, WholesalePackageClient[]>()
     for (const pkg of packages) {
@@ -135,25 +134,55 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
     onChange(options.map((option, currentIndex) => currentIndex === index ? { ...option, [field]: value } : option))
   }
 
-  const openCreate = (optionId: string) => {
+  const updateOptionPackages = (index: number, nextPackages: PendingWholesalePackage[]) => {
+    onChange(options.map((option, currentIndex) => currentIndex === index ? { ...option, pendingPackages: nextPackages } : option))
+  }
+
+  const openCreatePending = (optionIndex: number) => {
     setDraft(emptyPackageDraft())
     setDraftErrors({})
     setSaveError(null)
-    setEditor({ optionId })
+    setEditor({ optionIndex, kind: 'pending' })
   }
 
-  const openEdit = (optionId: string, pkg: WholesalePackageClient) => {
+  const openCreatePersisted = (optionIndex: number) => {
+    setDraft(emptyPackageDraft())
+    setDraftErrors({})
+    setSaveError(null)
+    setEditor({ optionIndex, kind: 'persisted' })
+  }
+
+  const openEditPersisted = (optionIndex: number, pkg: WholesalePackageClient) => {
     setDraft({ name: pkg.name, unitsPerPackage: String(pkg.unitsPerPackage), price: pkg.price, isActive: pkg.isActive })
     setDraftErrors({})
     setSaveError(null)
-    setEditor({ optionId, pkg })
+    setEditor({ optionIndex, kind: 'persisted', pkg })
   }
 
-  const openDuplicate = (optionId: string, pkg: WholesalePackageClient) => {
+  const openEditPending = (optionIndex: number, pendingIndex: number) => {
+    const pkg = options[optionIndex]?.pendingPackages?.[pendingIndex]
+    if (!pkg) return
+    setDraft({ name: pkg.name, unitsPerPackage: pkg.unitsPerPackage, price: pkg.price, isActive: pkg.isActive })
+    setDraftErrors({})
+    setSaveError(null)
+    setEditor({ optionIndex, kind: 'pending', pendingIndex, pkg: { name: pkg.name, isActive: pkg.isActive } })
+  }
+
+  const openDuplicatePending = (optionIndex: number, pendingIndex: number) => {
+    const pkg = options[optionIndex]?.pendingPackages?.[pendingIndex]
+    if (!pkg) return
+    setDraft({ name: `${pkg.name} (copy)`, unitsPerPackage: pkg.unitsPerPackage, price: pkg.price, isActive: pkg.isActive })
+    setDraftErrors({})
+    setSaveError(null)
+    setEditor({ optionIndex, kind: 'pending', pkg: { name: `${pkg.name} (copy)`, isActive: pkg.isActive } })
+  }
+
+  const duplicatePersisted = (optionIndex: number, pkg: WholesalePackageClient) => {
+    if (!productId || !options[optionIndex]?.id) return
     setDraft({ name: `${pkg.name} (copy)`, unitsPerPackage: String(pkg.unitsPerPackage), price: pkg.price, isActive: pkg.isActive })
     setDraftErrors({})
     setSaveError(null)
-    setEditor({ optionId })
+    setEditor({ optionIndex, kind: 'persisted' })
   }
 
   const updateDraft = (field: keyof PackageDraft, value: string | boolean) => {
@@ -178,19 +207,41 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
     const nextErrors = validateDraft(draft)
     setDraftErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
-    setIsSaving(true)
-    setSaveError(null)
-    try {
-      const payload: WholesalePackageDraft = {
-        productOptionId: editor.optionId,
+    const targetOption = options[editor.optionIndex]
+    if (!targetOption) return
+
+    if (editor.kind === 'pending') {
+      const current = targetOption.pendingPackages ?? []
+      const pkg: PendingWholesalePackage = {
         name: draft.name,
         unitsPerPackage: draft.unitsPerPackage,
         price: draft.price,
         isActive: draft.isActive,
       }
-      if (editor.pkg) {
+      if (editor.pendingIndex === undefined) {
+        updateOptionPackages(editor.optionIndex, [...current, pkg])
+      } else {
+        const next = [...current]
+        if (editor.pendingIndex < next.length) next[editor.pendingIndex] = pkg
+        updateOptionPackages(editor.optionIndex, next)
+      }
+      setEditor(null)
+      return
+    }
+
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      const payload: WholesalePackageDraft = {
+        productOptionId: targetOption.id ?? null,
+        name: draft.name,
+        unitsPerPackage: draft.unitsPerPackage,
+        price: draft.price,
+        isActive: draft.isActive,
+      }
+      if (editor.pkg?.id) {
         await updateAdminWholesalePackage(editor.pkg.id, payload)
-      } else if (productId) {
+      } else if (productId && targetOption.id) {
         await createAdminWholesalePackage(productId, payload)
       }
       if (productId) await loadPackages(productId)
@@ -200,6 +251,37 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const togglePending = (optionIndex: number, pendingIndex: number) => {
+    const option = options[optionIndex]
+    const list = option?.pendingPackages ?? []
+    const next = [...list]
+    if (!next[pendingIndex]) return
+    next[pendingIndex] = { ...next[pendingIndex], isActive: !next[pendingIndex].isActive }
+    updateOptionPackages(optionIndex, next)
+  }
+
+  const removePending = (optionIndex: number, pendingIndex: number) => {
+    const option = options[optionIndex]
+    const list = option?.pendingPackages ?? []
+    const pkg = list[pendingIndex]
+    if (!pkg) return
+    if (!window.confirm(`Remove the "${pkg.name}" package? This cannot be undone.`)) return
+    const next = [...list]
+    next.splice(pendingIndex, 1)
+    updateOptionPackages(optionIndex, next)
+  }
+
+  const movePending = (optionIndex: number, pendingIndex: number, direction: -1 | 1) => {
+    const option = options[optionIndex]
+    const list = [...(option?.pendingPackages ?? [])]
+    const neighbor = pendingIndex + direction
+    if (neighbor < 0 || neighbor >= list.length) return
+    const swap = list[pendingIndex]
+    list[pendingIndex] = list[neighbor]
+    list[neighbor] = swap
+    updateOptionPackages(optionIndex, list)
   }
 
   const toggleActive = async (pkg: WholesalePackageClient) => {
@@ -247,7 +329,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
     }
   }
 
-  const editorOptionLabel = editor ? (optionLabels.get(editor.optionId) ?? 'this size') : ''
+  const editorOptionLabel = editor ? (options[editor.optionIndex]?.label.trim() || 'this size') : ''
 
   return (
     <div className="rounded-2xl border border-line bg-cream/40 p-4">
@@ -256,7 +338,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
           <p className="m-0 text-sm font-bold text-green-dark">Quantity / size options (optional)</p>
           <p className="mt-1 text-xs font-normal text-muted">Add sizes or quantities with their own price and stock. Each size can have its own wholesale packaging (cartons/cases) below. The product price becomes the lowest option price and total stock is the sum of all options. Stock left blank defaults to 0.</p>
         </div>
-        <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={options.length >= maxOptions} onClick={() => { onChange([...options, { label: '', price: '', stockQuantity: '' }]); setOpenOptionIndex(options.length) }}>Add option</button>
+        <button className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-bold text-green-dark hover:border-green disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled={options.length >= maxOptions} onClick={() => { onChange([...options, { label: '', price: '', stockQuantity: '', pendingPackages: [] }]); setOpenOptionIndex(options.length) }}>Add option</button>
       </div>
       {options.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-green/25 bg-sage/25 px-4 py-6 text-center text-xs font-normal text-muted">No options yet. Use this when a product is sold in different sizes or quantities.</p>
@@ -266,14 +348,17 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
             const isOpen = openIndex === index
             const packagesOpen = packagesOpenIndex === index
             const rowErrors = errors[index]
-            const optionPackages = option.id ? (packagesByOption.get(option.id) ?? []) : []
-            const canManagePackages = Boolean(productId && option.id)
+            const persistedPackages = option.id ? (packagesByOption.get(option.id) ?? []) : []
+            const pendingPackages = option.pendingPackages ?? []
+            const isPersisted = Boolean(productId && option.id)
+            const canManagePersisted = isPersisted
             const label = option.label.trim()
             const parsedPrice = Number(option.price)
             const price = Number.isFinite(parsedPrice) && parsedPrice > 0 ? formatPrice(parsedPrice) : 'Price not set'
             const stock = option.stockQuantity.trim() === '' ? '0' : option.stockQuantity.trim()
-            const activePackageCount = optionPackages.filter((pkg) => pkg.isActive).length
-            const summaryDetail = `${price} · ${stock} in stock${optionPackages.length > 0 ? ` · ${activePackageCount} active wholesale package${activePackageCount === 1 ? '' : 's'}` : ''}`
+            const packageCount = persistedPackages.length + pendingPackages.length
+            const activePackageCount = persistedPackages.filter((pkg) => pkg.isActive).length + pendingPackages.filter((pkg) => pkg.isActive).length
+            const summaryDetail = `${price} · ${stock} in stock${packageCount > 0 ? ` · ${activePackageCount} active wholesale package${activePackageCount === 1 ? '' : 's'}` : ''}`
             const parsedRetailPrice = Number(option.price)
             return (
               <li className="overflow-hidden rounded-xl border border-line bg-white" key={option.id ?? `option-${index}`}>
@@ -285,9 +370,9 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                       <span className="mt-0.5 block truncate text-xs font-normal text-muted">{summaryDetail}</span>
                     </span>
                   </button>
-                  {optionPackages.length > 0 && (
+                  {packageCount > 0 && (
                     <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${rowHasErrors(rowErrors) ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>
-                      {rowHasErrors(rowErrors) ? 'Fix required' : `${optionPackages.length} package${optionPackages.length === 1 ? '' : 's'}`}
+                      {rowHasErrors(rowErrors) ? 'Fix required' : `${packageCount} package${packageCount === 1 ? '' : 's'}`}
                     </span>
                   )}
                   <button className="grid size-8 shrink-0 place-items-center rounded-full text-orange transition-colors hover:bg-orange/10 hover:text-green-dark" type="button" aria-label={`Remove option ${index + 1}`} onClick={() => onChange(options.filter((_, currentIndex) => currentIndex !== index))}><CloseIcon size={15} /></button>
@@ -305,40 +390,33 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                         <button
                           className="flex min-w-0 flex-1 items-center gap-2 text-left"
                           type="button"
-                          disabled={!canManagePackages}
-                          aria-expanded={canManagePackages ? packagesOpen : undefined}
+                          aria-expanded={packagesOpen}
                           onClick={() => setPackagesOpenIndex(packagesOpen ? null : index)}
                         >
-                          {canManagePackages && (
-                            <ChevronDownIcon size={15} className={`shrink-0 text-muted transition-transform ${packagesOpen ? 'rotate-180' : ''}`} />
-                          )}
+                          <ChevronDownIcon size={15} className={`shrink-0 text-muted transition-transform ${packagesOpen ? 'rotate-180' : ''}`} />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-bold text-green-dark">Wholesale packaging for {label.trim() || 'this size'}</span>
-                            {canManagePackages && optionPackages.length > 0 && (
-                              <span className="mt-0.5 block truncate text-xs font-normal text-muted">{optionPackages.length} package{optionPackages.length === 1 ? '' : 's'} · {activePackageCount} active</span>
+                            <span className="block truncate text-sm font-bold text-green-dark">Wholesale packaging for {label || 'this size'}</span>
+                            {packageCount > 0 && (
+                              <span className="mt-0.5 block truncate text-xs font-normal text-muted">{packageCount} package{packageCount === 1 ? '' : 's'} · {activePackageCount} active{pendingPackages.length > 0 ? ` · ${pendingPackages.length} pending save` : ''}</span>
                             )}
                           </span>
-                          {canManagePackages && optionPackages.length > 0 && (
+                          {packageCount > 0 && (
                             <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${activePackageCount > 0 ? 'bg-sage text-green-dark' : 'bg-orange/10 text-orange'}`}>
                               {activePackageCount > 0 ? `${activePackageCount} active` : 'All inactive'}
                             </span>
                           )}
                         </button>
-                        {canManagePackages && (
-                          <button className="shrink-0 rounded-xl bg-green px-4 py-2 text-xs font-bold text-cream transition-colors hover:bg-green-dark" type="button" onClick={() => openCreate(option.id as string)}>Add package</button>
-                        )}
+                        <button className="shrink-0 rounded-xl bg-green px-4 py-2 text-xs font-bold text-cream transition-colors hover:bg-green-dark" type="button" onClick={() => isPersisted ? openCreatePersisted(index) : openCreatePending(index)}>Add package</button>
                       </div>
-                      {!canManagePackages ? (
-                        <p className="mt-2 text-xs font-normal leading-5 text-muted">Save the product first, then add wholesale packages (e.g. a carton of 20) to this size and set its price per carton.</p>
-                      ) : packagesOpen ? (
+                      {packagesOpen ? (
                         <>
-                          {packagesLoading ? (
+                          {canManagePersisted && packagesLoading ? (
                             <p className="mt-2 text-xs font-normal text-muted">Loading wholesale packaging…</p>
-                          ) : optionPackages.length === 0 ? (
-                            <p className="mt-2 text-xs font-normal leading-5 text-muted">No wholesale packages yet. Add one, for example a “Carton of 20” at ₦40,000 per carton.</p>
+                          ) : packageCount === 0 ? (
+                            <p className="mt-2 text-xs font-normal leading-5 text-muted">No wholesale packages yet. Add one, for example a “Carton of 20” at ₦40,000 per carton. It will be created when the product is saved.</p>
                           ) : (
                             <ul className="mt-2 space-y-2">
-                              {optionPackages.map((pkg) => {
+                              {persistedPackages.map((pkg) => {
                                 const globalIndex = packages.findIndex((candidate) => candidate.id === pkg.id)
                                 let canMoveUp = false
                                 let canMoveDown = false
@@ -371,11 +449,45 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                                         canMoveDown={canMoveDown}
                                         onMoveUp={() => movePackage(pkg, -1)}
                                         onMoveDown={() => movePackage(pkg, 1)}
-                                        onEdit={() => openEdit(option.id as string, pkg)}
-                                        onDuplicate={() => openDuplicate(option.id as string, pkg)}
+                                        onEdit={() => openEditPersisted(index, pkg)}
+                                        onDuplicate={() => duplicatePersisted(index, pkg)}
                                         onToggleActive={() => toggleActive(pkg)}
                                         onRemove={() => removePackage(pkg)}
                                       />
+                                    </div>
+                                  </li>
+                                )
+                              })}
+                              {pendingPackages.map((pkg, pendingIndex) => {
+                                const perUnit = Number(pkg.unitsPerPackage) >= 1 ? Number(pkg.price) / Number(pkg.unitsPerPackage) : NaN
+                                const notCheaperThanRetail = Number.isFinite(perUnit) && Number.isFinite(parsedRetailPrice) && parsedRetailPrice > 0 && perUnit >= parsedRetailPrice
+                                return (
+                                  <li className="rounded-xl border border-dashed border-orange/40 bg-orange/5 px-3 py-2.5" key={`pending-${index}-${pendingIndex}`}>
+                                    <div className="flex items-start gap-3">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <p className="text-sm font-bold text-green-dark">{pkg.name}</p>
+                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${pkg.isActive ? 'bg-sage text-green-dark' : 'bg-orange/10 text-orange'}`}>{pkg.isActive ? 'Active' : 'Inactive'}</span>
+                                          <span className="rounded-full border border-dashed border-orange/50 px-2 py-0.5 text-[10px] font-bold text-orange">Not saved yet</span>
+                                        </div>
+                                        <p className="mt-0.5 text-xs font-normal text-muted">{pkg.unitsPerPackage} unit{pkg.unitsPerPackage === '1' ? '' : 's'} per carton · {formatPrice(Number(pkg.price))}/carton{Number(pkg.unitsPerPackage) >= 1 ? ` · ${formatPrice(perUnit)}/unit` : ''}</p>
+                                        {notCheaperThanRetail && (
+                                          <p className="mt-0.5 text-[11px] font-semibold text-orange">Per-unit ({formatPrice(perUnit)}) is not under the retail price ({formatPrice(parsedRetailPrice)}).</p>
+                                        )}
+                                      </div>
+                                      <div className="flex shrink-0 items-center">
+                                        <WholesalePackageActionsMenu
+                                          pkg={{ name: pkg.name, isActive: pkg.isActive }}
+                                          canMoveUp={pendingIndex > 0}
+                                          canMoveDown={pendingIndex < pendingPackages.length - 1}
+                                          onMoveUp={() => movePending(index, pendingIndex, -1)}
+                                          onMoveDown={() => movePending(index, pendingIndex, 1)}
+                                          onEdit={() => openEditPending(index, pendingIndex)}
+                                          onDuplicate={() => openDuplicatePending(index, pendingIndex)}
+                                          onToggleActive={() => togglePending(index, pendingIndex)}
+                                          onRemove={() => removePending(index, pendingIndex)}
+                                        />
+                                      </div>
                                     </div>
                                   </li>
                                 )
@@ -423,6 +535,7 @@ export function OptionInputField({ options, errors = [], onChange, maxOptions = 
                 </div>
                 <label className="flex items-center gap-3 text-sm font-bold text-green-dark"><input className="size-4 accent-green" type="checkbox" checked={draft.isActive} onChange={(event) => updateDraft('isActive', event.target.checked)} />Active / available for wholesale purchase</label>
               </div>
+              {editor.kind === 'pending' && <p className="mt-3 rounded-xl border border-dashed border-orange/40 bg-orange/5 px-4 py-3 text-xs font-normal leading-5 text-muted">This package is held on this size and will be created automatically when the product is saved.</p>}
               {saveError && <p className="mt-3 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm font-medium text-orange" role="alert">{saveError}</p>}
             </div>
 

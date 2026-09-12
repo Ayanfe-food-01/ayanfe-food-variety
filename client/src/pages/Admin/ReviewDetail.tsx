@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { ContentTypeBadge } from '../../components/admin/ContentTypeBadge'
 import { OrderInput } from '../../components/admin/OrderInput'
 import { StoryPreviewModal } from '../../components/admin/StoryPreviewModal'
 import { useToast } from '../../components/ui/Toast'
-import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -191,35 +191,34 @@ export function ReviewDetail() {
 
   return (
     <>
-      <Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Reviews', href: '/admin/reviews' }, { label: review.customerName ?? 'Review' }]} />
-
-      <div className="mt-6 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Review details</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">
-            {review.customerName ?? 'Verified Customer'}
-          </h1>
-          <p className="mt-3 flex items-center gap-3 text-sm text-muted">
+      <AdminPageHeader
+        breadcrumbs={[{ label: 'Dashboard', href: '/admin' }, { label: 'Reviews', href: '/admin/reviews' }, { label: review.customerName ?? 'Review' }]}
+        eyebrow="Review details"
+        title={review.customerName ?? 'Verified Customer'}
+        description={
+          <span className="inline-flex items-center gap-3">
             <ReviewStars value={review.rating} size={16} />
             <span className="font-semibold text-orange">{review.rating}/5</span>
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button className="rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setPreviewStory(toPreviewStory(review))}>Preview homepage card</button>
-          {(review.status === 'PENDING' || review.status === 'REJECTED') && (
-            <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction('approve')}>Approve</button>
-          )}
-          {review.status !== 'REJECTED' && (
-            <button className="rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction('reject')}>Reject</button>
-          )}
-          {review.status === 'APPROVED' && (
-            <button className="rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction(review.isFeatured ? 'unfeature' : 'feature')}>
-              {review.isFeatured ? 'Remove from featured' : 'Mark as featured'}
-            </button>
-          )}
-          <button className="rounded-xl border border-orange/25 bg-orange/5 px-5 py-3 text-sm font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction('delete')}>Delete</button>
-        </div>
-      </div>
+          </span>
+        }
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <button className="rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setPreviewStory(toPreviewStory(review))}>Preview homepage card</button>
+            {(review.status === 'PENDING' || review.status === 'REJECTED') && (
+              <button className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction('approve')}>Approve</button>
+            )}
+            {review.status !== 'REJECTED' && (
+              <button className="rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction('reject')}>Reject</button>
+            )}
+            {review.status === 'APPROVED' && (
+              <button className="rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction(review.isFeatured ? 'unfeature' : 'feature')}>
+                {review.isFeatured ? 'Remove from featured' : 'Mark as featured'}
+              </button>
+            )}
+            <button className="rounded-xl border border-orange/25 bg-orange/5 px-5 py-3 text-sm font-bold text-orange hover:bg-orange/10 disabled:cursor-wait disabled:opacity-50" type="button" disabled={busyAction !== null} onClick={() => setConfirmAction('delete')}>Delete</button>
+          </div>
+        }
+      />
 
       {review.status === 'REJECTED' && (
         <p className="mt-5 rounded-xl border border-line bg-cream/60 px-4 py-3 text-xs text-muted">This review is rejected and hidden from customers. You can re-approve it if needed.</p>

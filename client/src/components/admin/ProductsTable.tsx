@@ -4,7 +4,6 @@ import { ProductActions } from './ProductActions'
 import type { AdminProductsPage } from '../../services/adminService'
 import { ProductPrice } from '../products/ProductPrice'
 import { ResponsiveDataTable } from '../ui/ResponsiveDataTable'
-import { formatPrice } from '../../utils/formatPrice'
 import { formatDate } from '../../utils/dateFormat'
 
 interface ProductsTableProps {
@@ -82,7 +81,6 @@ export function ProductsTable({
               <div><dt className="uppercase tracking-[0.12em] text-muted">Price / unit</dt><dd className="mt-1 font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /> <span className="font-normal text-muted">/ {product.unit}</span></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Stock</dt><dd className="mt-1 font-bold text-green-dark">{product.stockQuantity ?? 0}</dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Status</dt><dd className="mt-1"><ProductStatusPill product={product} /></dd></div>
-              <div><dt className="uppercase tracking-[0.12em] text-muted">Delivery fee</dt><dd className="mt-1 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Availability</dt><dd className="mt-1"><AvailabilityPill product={product} /></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Featured</dt><dd className="mt-1"><FeaturedStatus isFeatured={product.isFeatured} /></dd></div>
               <div><dt className="uppercase tracking-[0.12em] text-muted">Created</dt><dd className="mt-1 text-muted">{product.createdAt ? formatDate(product.createdAt) : '—'}</dd></div>
@@ -109,7 +107,6 @@ export function ProductsTable({
                 <th className="px-4 py-4 font-bold">Product</th>
                 <th className="px-4 py-4 font-bold">Category</th>
                 <th className="px-4 py-4 font-bold">Price / unit</th>
-                <th className="px-4 py-4 font-bold">Delivery fee</th>
                 <th className="px-4 py-4 font-bold">Stock</th>
                 <th className="px-4 py-4 font-bold">Status</th>
                 <th className="px-4 py-4 font-bold">Availability</th>
@@ -138,7 +135,6 @@ export function ProductsTable({
                   </td>
                   <td className="max-w-[190px] px-4 py-4 text-muted"><span className="block max-w-[150px] min-w-0 truncate">{product.category}</span></td>
                   <td className="px-4 py-4"><span className="font-bold text-green-dark"><ProductPrice originalPrice={product.price} discountedPrice={product.discountedPrice} discountedClassName="text-green-dark" originalClassName="ml-1 font-normal text-muted" /></span><span className="mt-1 block text-xs text-muted">{product.unit}</span></td>
-                  <td className="px-4 py-4 font-bold text-green-dark">{product.deliveryFee === 0 ? 'Free' : formatPrice(product.deliveryFee)}</td>
                   <td className="px-4 py-4 font-bold text-green-dark">{product.stockQuantity ?? 0}</td>
                   <td className="px-4 py-4"><ProductStatusPill product={product} /></td>
                   <td className="px-4 py-4"><AvailabilityPill product={product} /></td>

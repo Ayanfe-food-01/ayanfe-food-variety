@@ -29,7 +29,7 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
     } catch {
       // Always leave the protected portal, even if the API is temporarily unavailable.
     } finally {
-      navigate('/login', { replace: true })
+      navigate('/admin/login', { replace: true })
     }
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import { CheckIcon, CloseIcon } from '../../assets/icons'
@@ -11,7 +11,7 @@ import { SubmitButton } from '../../components/ui/SubmitButton'
 import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { formatPrice } from '../../utils/formatPrice'
-import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
+import { createAdminProduct, createAdminWholesalePackage, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
 const MAX_PRODUCT_OPTIONS = 50
@@ -29,7 +29,6 @@ const initialForm: ProductFormInput = {
   price: '',
   discountType: '',
   discountValue: '',
-  deliveryFee: '0',
   unit: '',
   description: '',
   stockQuantity: '0',
@@ -44,9 +43,46 @@ const initialForm: ProductFormInput = {
 const FORM_STEPS = [
   { label: 'Basics', title: 'Basic information', hint: 'Name, category, unit and description.' },
   { label: 'Images', title: 'Product images', hint: 'Upload photos and set the display order.' },
-  { label: 'Pricing & options', title: 'Pricing and sizes', hint: 'Price, stock, delivery and size options.' },
+  { label: 'Pricing & options', title: 'Pricing and sizes', hint: 'Price, stock and size options.' },
   { label: 'Review', title: 'Review and save', hint: 'Check the summary before publishing.' },
 ]
+
+function ProductFormSkeleton({ isEditing }: { isEditing: boolean }) {
+  const label = isEditing ? 'Loading product details' : 'Loading product form'
+  return (
+    <div className="space-y-6" role="status" aria-busy="true" aria-label={label}>
+      <span className="sr-only">{label}</span>
+      <ol className="admin-product-form-steps flex items-center gap-2 sm:gap-3" aria-hidden="true">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Fragment key={index}>
+            <li className="flex min-w-0 flex-1 items-center justify-center">
+              <span className="flex min-w-0 max-w-full items-center gap-2 rounded-full p-1.5 sm:py-1.5 sm:pl-1.5 sm:pr-3">
+                <span className="size-7 shrink-0 rounded-full border-2 border-line bg-white" />
+                <span className="admin-list-skeleton-block hidden h-3 w-16 sm:block" />
+              </span>
+            </li>
+            {index < 3 && <span className="h-px w-3 shrink-0 bg-line sm:w-4" />}
+          </Fragment>
+        ))}
+      </ol>
+      <div className="space-y-3" aria-hidden="true">
+        <span className="admin-list-skeleton-block h-6 w-48" />
+        <span className="admin-list-skeleton-block h-3 max-w-sm" />
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2" aria-hidden="true">
+        <span className="admin-list-skeleton-block h-12 w-full sm:col-span-2" />
+        <span className="admin-list-skeleton-block h-12 w-full" />
+        <span className="admin-list-skeleton-block h-12 w-full" />
+        <span className="admin-list-skeleton-block h-16 w-full sm:col-span-2" />
+      </div>
+      <div className="flex items-center gap-3 border-t border-line pt-5" aria-hidden="true">
+        <span className="admin-list-skeleton-block h-11 w-24" />
+        <div className="flex-1" />
+        <span className="admin-list-skeleton-block h-11 w-32" />
+      </div>
+    </div>
+  )
+}
 
 interface ProductImageDraft {
   id: string
@@ -54,7 +90,7 @@ interface ProductImageDraft {
   file?: File
 }
 
-type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'discountType' | 'discountValue' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
+type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'discountType' | 'discountValue' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
 
 export function ProductForm() {
   const { id } = useParams<{ id: string }>()
@@ -96,7 +132,6 @@ export function ProductForm() {
         price: String(product.price),
         discountType: loadedHasFilledOptions ? '' : product.discountType ?? '',
         discountValue: loadedHasFilledOptions ? '' : product.discountValue === null ? '' : String(product.discountValue),
-        deliveryFee: String(product.deliveryFee),
         unit: product.unit,
         description: product.description,
         stockQuantity: String(product.stockQuantity ?? 0),
@@ -232,7 +267,6 @@ export function ProductForm() {
     const description = form.description.trim()
     const price = form.price.trim()
     const discountValue = form.discountValue.trim()
-    const deliveryFee = form.deliveryFee.trim()
     const stock = Number(form.stockQuantity)
     const filledIndexes = form.options.map(isFilledProductOption)
     const hasFilledOptions = filledIndexes.length > 0 && filledIndexes.some(Boolean)
@@ -255,7 +289,6 @@ export function ProductForm() {
       if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
     }
 
-    if (!/^\d+(?:\.\d{1,2})?$/.test(deliveryFee) || !Number.isFinite(Number(deliveryFee)) || Number(deliveryFee) < 0) nextErrors.deliveryFee = 'Enter a delivery fee of zero or more with up to 2 decimals.'
     if (!unit || unit.length > 80) nextErrors.unit = 'Enter a unit using up to 80 characters.'
     if (description.length < 10 || description.length > 4000) nextErrors.description = 'Use 10 to 4,000 characters.'
     if (imageDrafts.length === 0) nextErrors.image = 'Select at least one product image.'
@@ -286,16 +319,47 @@ export function ProductForm() {
   const errorsOnStep = (index: number, validation: { fieldErrors: FormErrors; optionErrors: OptionRowErrors[] }): boolean => {
     if (index === 0) return Boolean(validation.fieldErrors.name || validation.fieldErrors.categoryId || validation.fieldErrors.unit || validation.fieldErrors.description)
     if (index === 1) return Boolean(validation.fieldErrors.image)
-    if (index === 2) return Boolean(validation.fieldErrors.price || validation.fieldErrors.discountType || validation.fieldErrors.discountValue || validation.fieldErrors.deliveryFee || validation.fieldErrors.stockQuantity || validation.optionErrors.some((errors) => Object.keys(errors).length > 0))
+    if (index === 2) return Boolean(validation.fieldErrors.price || validation.fieldErrors.discountType || validation.fieldErrors.discountValue || validation.fieldErrors.stockQuantity || validation.optionErrors.some((errors) => Object.keys(errors).length > 0))
     return false
+  }
+
+  // Wholesale packages configured on options that did not exist yet (pending
+  // drafts) are created once the product/options are persisted. The saved
+  // options come back ordered by sortOrder, which matches the order of the
+  // filled options sent to the API, so we map each pending option to the id of
+  // the option that was just created for it.
+  const persistPendingWholesalePackages = async (
+    savedProductId: string,
+    savedOptions: Array<{ id: string; sortOrder: number }>,
+  ) => {
+    const ordered = [...savedOptions].sort((a, b) => a.sortOrder - b.sortOrder)
+    let filledPosition = 0
+    for (const option of form.options) {
+      if (!isFilledProductOption(option)) continue
+      const savedOption = ordered[filledPosition]
+      filledPosition += 1
+      const pending = option.pendingPackages ?? []
+      if (option.id || pending.length === 0 || !savedOption) continue
+      await Promise.all(pending.map((pkg) => createAdminWholesalePackage(savedProductId, {
+        productOptionId: savedOption.id,
+        name: pkg.name,
+        unitsPerPackage: pkg.unitsPerPackage,
+        price: pkg.price,
+        isActive: pkg.isActive,
+      })))
+    }
   }
 
   const save = async () => {
     setIsSaving(true)
     try {
       // The API performs the Cloudinary upload as part of this request.
-      if (id) await updateAdminProduct(id, form)
-      else await createAdminProduct(form)
+      const saved = id ? await updateAdminProduct(id, form) : await createAdminProduct(form)
+      try {
+        await persistPendingWholesalePackages(saved.id, saved.options ?? [])
+      } catch (caught: unknown) {
+        console.error('Pending wholesale packages could not be created', caught)
+      }
       navigate('/admin/products', {
         replace: true,
         state: { toast: { message: `Product ${isEditing ? 'updated' : 'created'} successfully.`, type: 'success' } },
@@ -360,7 +424,6 @@ export function ProductForm() {
   const displayPrice = hasFilledOptions
     ? (validOptionPrices.length > 0 ? formatPrice(Math.min(...validOptionPrices)) : '—')
     : (form.price.trim() === '' ? '—' : Number.isFinite(Number(form.price)) && Number(form.price) > 0 ? formatPrice(Number(form.price)) : form.price.trim())
-  const displayDeliveryFee = Number.isFinite(Number(form.deliveryFee)) ? formatPrice(Number(form.deliveryFee)) : form.deliveryFee.trim()
   const displayStock = hasFilledOptions ? String(derivedStock) : (form.stockQuantity.trim() === '' ? '0' : form.stockQuantity.trim())
   const displayDiscount = hasFilledOptions
     ? 'Not available with options'
@@ -372,7 +435,7 @@ export function ProductForm() {
         <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Products', href: '/admin/products' }, { label: isEditing ? 'Edit product' : 'Add product' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit product' : 'Add product'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the product details and inventory level.' : 'Add a product customers can discover and purchase.'}</p></div>
       </div>
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
-        {isLoading ? <p className="text-sm font-normal text-muted">Loading product…</p> : (
+        {isLoading ? <ProductFormSkeleton isEditing={isEditing} /> : (
           <form className="space-y-6" noValidate onSubmit={submit}>
             <ol className="admin-product-form-steps flex items-center gap-2 sm:gap-3" aria-label="Product form steps">
               {FORM_STEPS.map((stepConfig, index) => {
@@ -380,24 +443,26 @@ export function ProductForm() {
                 const isDone = index < step
                 const isReached = index <= step
                 return (
-                  <li key={stepConfig.label} className="flex items-center gap-2 sm:gap-3">
-                    <button
-                      className={`flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 transition-colors ${isCurrent ? 'bg-sage/40' : isReached ? 'hover:bg-sage/25' : 'cursor-not-allowed opacity-50'}`}
-                      type="button"
-                      disabled={!isReached}
-                      aria-current={isCurrent ? 'step' : undefined}
-                      onClick={() => goToStep(index)}
-                    >
-                      <span
-                        className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold transition-colors ${isDone || isCurrent ? 'bg-green text-cream' : 'border-2 border-line bg-white text-muted'}`}
-                        aria-hidden
+                  <Fragment key={stepConfig.label}>
+                    <li className="flex min-w-0 flex-1 items-center justify-center">
+                      <button
+                        className={`flex min-w-0 max-w-full items-center gap-2 rounded-full p-1.5 transition-colors sm:py-1.5 sm:pl-1.5 sm:pr-3 ${isCurrent ? 'bg-sage/40' : isReached ? 'hover:bg-sage/25' : 'cursor-not-allowed opacity-50'}`}
+                        type="button"
+                        disabled={!isReached}
+                        aria-current={isCurrent ? 'step' : undefined}
+                        onClick={() => goToStep(index)}
                       >
-                        {isDone ? <CheckIcon size={14} /> : index + 1}
-                      </span>
-                      <span className={`text-xs font-bold ${isCurrent || isDone ? 'text-green-dark' : 'text-muted'}`}>{stepConfig.label}</span>
-                    </button>
-                    {index < FORM_STEPS.length - 1 && <span className="h-px w-3 bg-line sm:w-4" aria-hidden />}
-                  </li>
+                        <span
+                          className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold transition-colors ${isDone || isCurrent ? 'bg-green text-cream' : 'border-2 border-line bg-white text-muted'}`}
+                          aria-hidden
+                        >
+                          {isDone ? <CheckIcon size={14} /> : index + 1}
+                        </span>
+                        <span className={`hidden min-w-0 truncate text-xs font-bold sm:inline ${isCurrent || isDone ? 'text-green-dark' : 'text-muted'}`}>{stepConfig.label}</span>
+                      </button>
+                    </li>
+                    {index < FORM_STEPS.length - 1 && <span className="h-px w-3 shrink-0 bg-line sm:w-4" aria-hidden />}
+                  </Fragment>
                 )
               })}
             </ol>
@@ -471,7 +536,6 @@ export function ProductForm() {
                 <div className="grid gap-5 sm:grid-cols-2">
                   <label className="text-sm font-bold text-green-dark">Price (NGN){hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('price')} type="text" inputMode="decimal" value={hasFilledOptions ? derivedPrice : form.price} disabled={hasFilledOptions} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Set to the lowest option price.</span> : fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
                   <label className="text-sm font-bold text-green-dark">Stock quantity{hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={hasFilledOptions ? String(derivedStock) : form.stockQuantity} disabled={hasFilledOptions} onChange={(event) => update('stockQuantity', event.target.value)} required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Total stock is the sum of all option stock.</span> : fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
-                  <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
                   {hasFilledOptions ? (
                     <div>
                       <p className="rounded-xl border border-dashed border-green/25 bg-sage/25 px-4 py-3 text-xs font-normal text-muted">Discounts are not available for products with quantity/size options.</p>
@@ -490,7 +554,7 @@ export function ProductForm() {
                         value={form.discountType}
                       />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
                       {form.discountType && <label className="mt-3 block text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
-                      <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>
+                      <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only.</p>
                     </div>
                   )}
                 </div>
@@ -549,10 +613,6 @@ export function ProductForm() {
                       <dd className="mt-1 text-sm font-bold text-green-dark">{form.unit.trim() || '—'}</dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Delivery fee</dt>
-                      <dd className="mt-1 text-sm font-bold text-green-dark">{displayDeliveryFee}</dd>
-                    </div>
-                    <div>
                       <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Price</dt>
                       <dd className="mt-1 text-sm font-bold text-green-dark">{displayPrice}</dd>
                       {hasFilledOptions && <dd className="mt-0.5 text-xs font-normal text-muted">Lowest of {filledOptions.length} option{filledOptions.length === 1 ? '' : 's'}.</dd>}
@@ -584,17 +644,18 @@ export function ProductForm() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
-              {step > 0 && (
-                <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark transition-colors hover:border-green" type="button" onClick={previousStep}>Back</button>
-              )}
-              <div className="flex-1" />
-              {step < FORM_STEPS.length - 1 ? (
-                <button className="rounded-xl bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark" type="submit">Continue</button>
+            <div className="flex items-center gap-2 border-t border-line pt-5 sm:gap-3">
+              {step > 0 ? (
+                <button className="min-w-0 flex-1 rounded-xl border border-line px-3 py-3 text-xs font-bold text-green-dark transition-colors hover:border-green sm:px-5 sm:text-sm" type="button" onClick={previousStep}>Back</button>
               ) : (
-                <SubmitButton busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton>
+                <div className="flex-1" />
               )}
-              <Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark transition-colors hover:border-green" to="/admin/products">Cancel</Link>
+              {step < FORM_STEPS.length - 1 ? (
+                <button className="min-w-0 flex-1 rounded-xl bg-green px-3 py-3 text-xs font-bold text-cream transition-colors hover:bg-green-dark sm:px-6 sm:text-sm" type="submit">Continue</button>
+              ) : (
+                <SubmitButton className="min-w-0 flex-1 px-3! py-3! text-xs! sm:px-6! sm:text-sm!" busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton>
+              )}
+              <Link className="min-w-0 flex-1 rounded-xl border border-line px-3 py-3 text-center text-xs font-bold text-green-dark transition-colors hover:border-green sm:px-5 sm:text-sm" to="/admin/products">Cancel</Link>
             </div>
           </form>
         )}

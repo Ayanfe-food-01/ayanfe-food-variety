@@ -1,8 +1,6 @@
 export {
   getAuthenticatedCustomer,
   loginCustomer,
-  loginWithGoogle,
-  loginWithGoogleIdentity,
   revokeCustomerSession,
   setCustomerShoppingMode,
 } from './customer-auth.login.service.js'

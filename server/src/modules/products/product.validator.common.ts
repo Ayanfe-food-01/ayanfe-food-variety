@@ -52,7 +52,6 @@ export const moneyValue = (value: unknown, field: string, allowZero: boolean): s
 }
 
 export const priceValue = (value: unknown): string => moneyValue(value, 'Price', false)
-export const deliveryFeeValue = (value: unknown): string => moneyValue(value, 'Delivery fee', true)
 
 export const discountTypeValue = (value: unknown): ProductDiscountType | null => {
   if (value === undefined || value === null || value === '') return null

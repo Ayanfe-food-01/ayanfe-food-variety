@@ -43,7 +43,6 @@ export interface Product {
   discountType: ProductDiscountType | null
   discountValue: string | null
   discountedPrice: string
-  deliveryFee: string
   unit: string
   image: string
   images: string[]
@@ -119,7 +118,6 @@ export interface ProductInput {
   price?: string
   discountType: ProductDiscountType | null
   discountValue: string | null
-  deliveryFee: string
   unit: string
   description: string
   isActive: boolean

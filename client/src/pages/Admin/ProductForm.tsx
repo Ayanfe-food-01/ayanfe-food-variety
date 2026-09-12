@@ -29,7 +29,6 @@ const initialForm: ProductFormInput = {
   price: '',
   discountType: '',
   discountValue: '',
-  deliveryFee: '0',
   unit: '',
   description: '',
   stockQuantity: '0',
@@ -44,7 +43,7 @@ const initialForm: ProductFormInput = {
 const FORM_STEPS = [
   { label: 'Basics', title: 'Basic information', hint: 'Name, category, unit and description.' },
   { label: 'Images', title: 'Product images', hint: 'Upload photos and set the display order.' },
-  { label: 'Pricing & options', title: 'Pricing and sizes', hint: 'Price, stock, delivery and size options.' },
+  { label: 'Pricing & options', title: 'Pricing and sizes', hint: 'Price, stock and size options.' },
   { label: 'Review', title: 'Review and save', hint: 'Check the summary before publishing.' },
 ]
 
@@ -91,7 +90,7 @@ interface ProductImageDraft {
   file?: File
 }
 
-type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'discountType' | 'discountValue' | 'deliveryFee' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
+type FormErrors = Partial<Record<'name' | 'categoryId' | 'price' | 'discountType' | 'discountValue' | 'unit' | 'description' | 'stockQuantity' | 'image', string>>
 
 export function ProductForm() {
   const { id } = useParams<{ id: string }>()
@@ -133,7 +132,6 @@ export function ProductForm() {
         price: String(product.price),
         discountType: loadedHasFilledOptions ? '' : product.discountType ?? '',
         discountValue: loadedHasFilledOptions ? '' : product.discountValue === null ? '' : String(product.discountValue),
-        deliveryFee: String(product.deliveryFee),
         unit: product.unit,
         description: product.description,
         stockQuantity: String(product.stockQuantity ?? 0),
@@ -269,7 +267,6 @@ export function ProductForm() {
     const description = form.description.trim()
     const price = form.price.trim()
     const discountValue = form.discountValue.trim()
-    const deliveryFee = form.deliveryFee.trim()
     const stock = Number(form.stockQuantity)
     const filledIndexes = form.options.map(isFilledProductOption)
     const hasFilledOptions = filledIndexes.length > 0 && filledIndexes.some(Boolean)
@@ -292,7 +289,6 @@ export function ProductForm() {
       if (!Number.isInteger(stock) || stock < 0) nextErrors.stockQuantity = 'Enter a non-negative whole number.'
     }
 
-    if (!/^\d+(?:\.\d{1,2})?$/.test(deliveryFee) || !Number.isFinite(Number(deliveryFee)) || Number(deliveryFee) < 0) nextErrors.deliveryFee = 'Enter a delivery fee of zero or more with up to 2 decimals.'
     if (!unit || unit.length > 80) nextErrors.unit = 'Enter a unit using up to 80 characters.'
     if (description.length < 10 || description.length > 4000) nextErrors.description = 'Use 10 to 4,000 characters.'
     if (imageDrafts.length === 0) nextErrors.image = 'Select at least one product image.'
@@ -323,7 +319,7 @@ export function ProductForm() {
   const errorsOnStep = (index: number, validation: { fieldErrors: FormErrors; optionErrors: OptionRowErrors[] }): boolean => {
     if (index === 0) return Boolean(validation.fieldErrors.name || validation.fieldErrors.categoryId || validation.fieldErrors.unit || validation.fieldErrors.description)
     if (index === 1) return Boolean(validation.fieldErrors.image)
-    if (index === 2) return Boolean(validation.fieldErrors.price || validation.fieldErrors.discountType || validation.fieldErrors.discountValue || validation.fieldErrors.deliveryFee || validation.fieldErrors.stockQuantity || validation.optionErrors.some((errors) => Object.keys(errors).length > 0))
+    if (index === 2) return Boolean(validation.fieldErrors.price || validation.fieldErrors.discountType || validation.fieldErrors.discountValue || validation.fieldErrors.stockQuantity || validation.optionErrors.some((errors) => Object.keys(errors).length > 0))
     return false
   }
 
@@ -428,7 +424,6 @@ export function ProductForm() {
   const displayPrice = hasFilledOptions
     ? (validOptionPrices.length > 0 ? formatPrice(Math.min(...validOptionPrices)) : '—')
     : (form.price.trim() === '' ? '—' : Number.isFinite(Number(form.price)) && Number(form.price) > 0 ? formatPrice(Number(form.price)) : form.price.trim())
-  const displayDeliveryFee = Number.isFinite(Number(form.deliveryFee)) ? formatPrice(Number(form.deliveryFee)) : form.deliveryFee.trim()
   const displayStock = hasFilledOptions ? String(derivedStock) : (form.stockQuantity.trim() === '' ? '0' : form.stockQuantity.trim())
   const displayDiscount = hasFilledOptions
     ? 'Not available with options'
@@ -541,7 +536,6 @@ export function ProductForm() {
                 <div className="grid gap-5 sm:grid-cols-2">
                   <label className="text-sm font-bold text-green-dark">Price (NGN){hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('price')} type="text" inputMode="decimal" value={hasFilledOptions ? derivedPrice : form.price} disabled={hasFilledOptions} onChange={(event) => update('price', event.target.value)} placeholder="0.00" required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Set to the lowest option price.</span> : fieldErrors.price && <span className="mt-1 block text-xs font-normal text-orange" id="price-error">{fieldErrors.price}</span>}</label>
                   <label className="text-sm font-bold text-green-dark">Stock quantity{hasFilledOptions ? ' — from options' : ''}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green disabled:cursor-not-allowed disabled:bg-cream" {...fieldProps('stockQuantity')} type="number" min="0" step="1" value={hasFilledOptions ? String(derivedStock) : form.stockQuantity} disabled={hasFilledOptions} onChange={(event) => update('stockQuantity', event.target.value)} required={!hasFilledOptions} />{hasFilledOptions ? <span className="mt-1 block text-xs font-normal text-muted">Total stock is the sum of all option stock.</span> : fieldErrors.stockQuantity && <span className="mt-1 block text-xs font-normal text-orange" id="stockQuantity-error">{fieldErrors.stockQuantity}</span>}</label>
-                  <label className="text-sm font-bold text-green-dark">Delivery fee (NGN)<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('deliveryFee')} type="text" inputMode="decimal" value={form.deliveryFee} onChange={(event) => update('deliveryFee', event.target.value)} placeholder="0.00" required />{fieldErrors.deliveryFee && <span className="mt-1 block text-xs font-normal text-orange" id="deliveryFee-error">{fieldErrors.deliveryFee}</span>}<span className="mt-1 block text-xs font-normal text-muted">Enter 0 for free delivery. The fee is charged per unit.</span></label>
                   {hasFilledOptions ? (
                     <div>
                       <p className="rounded-xl border border-dashed border-green/25 bg-sage/25 px-4 py-3 text-xs font-normal text-muted">Discounts are not available for products with quantity/size options.</p>
@@ -560,7 +554,7 @@ export function ProductForm() {
                         value={form.discountType}
                       />{fieldErrors.discountType && <span className="mt-1 block text-xs font-normal text-orange" id="discountType-error">{fieldErrors.discountType}</span>}</label>
                       {form.discountType && <label className="mt-3 block text-sm font-bold text-green-dark">Discount value{form.discountType === 'PERCENTAGE' ? ' (%)' : ' (NGN)'}<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-green" {...fieldProps('discountValue')} type="text" inputMode="decimal" value={form.discountValue} onChange={(event) => update('discountValue', event.target.value)} placeholder={form.discountType === 'PERCENTAGE' ? '10' : '1000'} />{fieldErrors.discountValue && <span className="mt-1 block text-xs font-normal text-orange" id="discountValue-error">{fieldErrors.discountValue}</span>}</label>}
-                      <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only. Delivery fees remain unchanged.</p>
+                      <p className="mt-2 text-xs font-normal text-muted">Discounts apply to the product price only.</p>
                     </div>
                   )}
                 </div>
@@ -617,10 +611,6 @@ export function ProductForm() {
                     <div>
                       <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Unit / quantity</dt>
                       <dd className="mt-1 text-sm font-bold text-green-dark">{form.unit.trim() || '—'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Delivery fee</dt>
-                      <dd className="mt-1 text-sm font-bold text-green-dark">{displayDeliveryFee}</dd>
                     </div>
                     <div>
                       <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Price</dt>

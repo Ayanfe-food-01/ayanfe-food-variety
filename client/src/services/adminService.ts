@@ -516,7 +516,6 @@ interface AdminProductApiResponse {
   discountedPrice: string
   discountType: 'PERCENTAGE' | 'FIXED' | null
   discountValue: string | null
-  deliveryFee: string
   unit: string
   image: string
   images?: string[]
@@ -582,7 +581,6 @@ export interface ProductFormInput {
   price: string
   discountType: '' | 'PERCENTAGE' | 'FIXED'
   discountValue: string
-  deliveryFee: string
   unit: string
   description: string
   stockQuantity: string
@@ -623,7 +621,6 @@ const formDataFor = (input: ProductFormInput): FormData => {
   formData.set('price', hasOptions ? '' : input.price)
   formData.set('discountType', hasOptions ? '' : input.discountType)
   formData.set('discountValue', hasOptions ? '' : input.discountValue)
-  formData.set('deliveryFee', input.deliveryFee)
   formData.set('unit', input.unit)
   formData.set('description', input.description)
   formData.set('stockQuantity', hasOptions ? '' : input.stockQuantity)
@@ -668,7 +665,6 @@ const toProduct = (product: AdminProductApiResponse): Product => ({
   discountedPrice: Number(product.discountedPrice),
   discountType: product.discountType,
   discountValue: product.discountValue === null ? null : Number(product.discountValue),
-  deliveryFee: Number(product.deliveryFee),
   image: product.image,
   images: product.images?.filter(Boolean).length
     ? product.images.filter(Boolean)

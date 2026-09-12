@@ -49,7 +49,6 @@ async function main() {
         slug,
         description: 'Wholesale option-linked package fixture',
         price: '1500.00',
-        deliveryFee: '800.00',
         unit: 'kg',
         image: '',
         stockQuantity: 1000,

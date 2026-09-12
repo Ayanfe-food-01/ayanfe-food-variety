@@ -16,7 +16,6 @@ export interface CustomerCartItem {
   originalPrice: string
   discountType: ProductDiscountType | null
   discountValue: string | null
-  deliveryFee: string
   image: string
   quantity: number
   minQuantity: number
@@ -31,7 +30,6 @@ export interface CustomerCartSnapshot {
   items: CustomerCartItem[]
   mode: ShoppingMode
   subtotal: string
-  deliveryFee: string
   totalQuantity: number
   canCheckout: boolean
 }

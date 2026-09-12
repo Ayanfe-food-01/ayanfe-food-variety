@@ -69,7 +69,6 @@ export const toProduct = (product: ProductWithRatings, isWishlisted = false, who
     discountType: product.discountType,
     discountValue: product.discountValue?.toString() ?? null,
     discountedPrice: calculateDiscountedPrice(product.price, product.discountType, product.discountValue).toString(),
-    deliveryFee: product.deliveryFee.toString(),
     unit: product.unit,
     image: product.image,
     images: normalizedImages(product),

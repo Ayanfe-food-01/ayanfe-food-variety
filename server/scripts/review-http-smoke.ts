@@ -83,7 +83,6 @@ async function main() {
           slug: slugName,
           description: 'Smoke fixture',
           price: 1000,
-          deliveryFee: 0,
           stockQuantity: 20,
           unit: 'bag',
           image: '',

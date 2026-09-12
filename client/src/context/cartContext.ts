@@ -23,7 +23,6 @@ export interface CartItem {
   originalPrice: number
   discountType: ProductDiscountType | null
   discountValue: number | null
-  deliveryFee: Product['deliveryFee']
   image: Product['image']
   quantity: number
   minQuantity: number

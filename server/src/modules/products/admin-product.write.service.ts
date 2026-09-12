@@ -76,7 +76,6 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
           price: input.price ?? optionPriceFloor(input.options),
           discountType: input.discountType,
           discountValue: input.discountValue,
-          deliveryFee: input.deliveryFee,
           unit: input.unit,
           image: images[0]!,
           images: { create: images.map((url, sortOrder) => ({ url, sortOrder })) },
@@ -154,7 +153,6 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
           price: input.price ?? (hasOptions ? optionPriceFloor(input.options) : undefined),
           discountType: input.discountType,
           discountValue: input.discountValue,
-          deliveryFee: input.deliveryFee,
           unit: input.unit,
           image: images[0]!,
           images: {

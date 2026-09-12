@@ -16,7 +16,6 @@ interface ProductApiResponse {
   discountedPrice: string
   discountType: 'PERCENTAGE' | 'FIXED' | null
   discountValue: string | null
-  deliveryFee: string
   unit: string
   image: string
   images?: string[]
@@ -95,7 +94,6 @@ const toProduct = (product: ProductApiResponse): Product => {
   const price = Number(product.price)
   const discountedPrice = Number(product.discountedPrice)
   const discountValue = product.discountValue === null ? null : Number(product.discountValue)
-  const deliveryFee = Number(product.deliveryFee)
   const stockQuantity = Number(product.stockQuantity)
   const wholesaleFrom = product.wholesaleFrom === undefined || product.wholesaleFrom === null
     ? null
@@ -107,8 +105,6 @@ const toProduct = (product: ProductApiResponse): Product => {
     || discountedPrice < 0
     || discountedPrice > price
     || (discountValue !== null && (!Number.isFinite(discountValue) || discountValue <= 0))
-    || !Number.isFinite(deliveryFee)
-    || deliveryFee < 0
     || !Number.isInteger(stockQuantity)
     || stockQuantity < 0
     || (wholesaleFrom !== null && (!Number.isFinite(wholesaleFrom) || wholesaleFrom <= 0))
@@ -156,7 +152,6 @@ const toProduct = (product: ProductApiResponse): Product => {
     discountedPrice,
     discountType: product.discountType,
     discountValue,
-    deliveryFee,
     image: product.image,
     images: product.images?.filter(Boolean).length
       ? product.images.filter(Boolean)

@@ -29,7 +29,6 @@ export interface Product {
   discountedPrice: number
   discountType: ProductDiscountType | null
   discountValue: number | null
-  deliveryFee: number
   image: string
   images: string[]
   description: string

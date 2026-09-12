@@ -538,6 +538,9 @@ export interface ProductOptionDraft {
   stockQuantity: string
   wholesaleMoq?: string
   wholesalePrices?: WholesaleTierDraft[]
+  // Wholesale packages configured for an option that has not been persisted
+  // yet (no id). They are created once the product is saved.
+  pendingPackages?: PendingWholesalePackage[]
 }
 
 export interface WholesaleTierDraft {
@@ -567,6 +570,8 @@ export interface WholesalePackageDraft {
   price: string
   isActive: boolean
 }
+
+export type PendingWholesalePackage = Omit<WholesalePackageDraft, 'productOptionId'>
 
 export const isFilledProductOption = (option: ProductOptionDraft): boolean =>
   option.label.trim() !== '' || option.price.trim() !== '' || option.stockQuantity.trim() !== ''

@@ -11,7 +11,7 @@ import { SubmitButton } from '../../components/ui/SubmitButton'
 import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { formatPrice } from '../../utils/formatPrice'
-import { createAdminProduct, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
+import { createAdminProduct, createAdminWholesalePackage, getAdminCategories, getAdminProduct, isFilledProductOption, updateAdminProduct, type ProductFormInput, type ProductOptionDraft } from '../../services/adminService'
 import type { Category } from '../../types/category'
 
 const MAX_PRODUCT_OPTIONS = 50
@@ -47,6 +47,43 @@ const FORM_STEPS = [
   { label: 'Pricing & options', title: 'Pricing and sizes', hint: 'Price, stock, delivery and size options.' },
   { label: 'Review', title: 'Review and save', hint: 'Check the summary before publishing.' },
 ]
+
+function ProductFormSkeleton({ isEditing }: { isEditing: boolean }) {
+  const label = isEditing ? 'Loading product details' : 'Loading product form'
+  return (
+    <div className="space-y-6" role="status" aria-busy="true" aria-label={label}>
+      <span className="sr-only">{label}</span>
+      <ol className="admin-product-form-steps flex items-center gap-2 sm:gap-3" aria-hidden="true">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Fragment key={index}>
+            <li className="flex min-w-0 flex-1 items-center justify-center">
+              <span className="flex min-w-0 max-w-full items-center gap-2 rounded-full p-1.5 sm:py-1.5 sm:pl-1.5 sm:pr-3">
+                <span className="size-7 shrink-0 rounded-full border-2 border-line bg-white" />
+                <span className="admin-list-skeleton-block hidden h-3 w-16 sm:block" />
+              </span>
+            </li>
+            {index < 3 && <span className="h-px w-3 shrink-0 bg-line sm:w-4" />}
+          </Fragment>
+        ))}
+      </ol>
+      <div className="space-y-3" aria-hidden="true">
+        <span className="admin-list-skeleton-block h-6 w-48" />
+        <span className="admin-list-skeleton-block h-3 max-w-sm" />
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2" aria-hidden="true">
+        <span className="admin-list-skeleton-block h-12 w-full sm:col-span-2" />
+        <span className="admin-list-skeleton-block h-12 w-full" />
+        <span className="admin-list-skeleton-block h-12 w-full" />
+        <span className="admin-list-skeleton-block h-16 w-full sm:col-span-2" />
+      </div>
+      <div className="flex items-center gap-3 border-t border-line pt-5" aria-hidden="true">
+        <span className="admin-list-skeleton-block h-11 w-24" />
+        <div className="flex-1" />
+        <span className="admin-list-skeleton-block h-11 w-32" />
+      </div>
+    </div>
+  )
+}
 
 interface ProductImageDraft {
   id: string
@@ -290,12 +327,43 @@ export function ProductForm() {
     return false
   }
 
+  // Wholesale packages configured on options that did not exist yet (pending
+  // drafts) are created once the product/options are persisted. The saved
+  // options come back ordered by sortOrder, which matches the order of the
+  // filled options sent to the API, so we map each pending option to the id of
+  // the option that was just created for it.
+  const persistPendingWholesalePackages = async (
+    savedProductId: string,
+    savedOptions: Array<{ id: string; sortOrder: number }>,
+  ) => {
+    const ordered = [...savedOptions].sort((a, b) => a.sortOrder - b.sortOrder)
+    let filledPosition = 0
+    for (const option of form.options) {
+      if (!isFilledProductOption(option)) continue
+      const savedOption = ordered[filledPosition]
+      filledPosition += 1
+      const pending = option.pendingPackages ?? []
+      if (option.id || pending.length === 0 || !savedOption) continue
+      await Promise.all(pending.map((pkg) => createAdminWholesalePackage(savedProductId, {
+        productOptionId: savedOption.id,
+        name: pkg.name,
+        unitsPerPackage: pkg.unitsPerPackage,
+        price: pkg.price,
+        isActive: pkg.isActive,
+      })))
+    }
+  }
+
   const save = async () => {
     setIsSaving(true)
     try {
       // The API performs the Cloudinary upload as part of this request.
-      if (id) await updateAdminProduct(id, form)
-      else await createAdminProduct(form)
+      const saved = id ? await updateAdminProduct(id, form) : await createAdminProduct(form)
+      try {
+        await persistPendingWholesalePackages(saved.id, saved.options ?? [])
+      } catch (caught: unknown) {
+        console.error('Pending wholesale packages could not be created', caught)
+      }
       navigate('/admin/products', {
         replace: true,
         state: { toast: { message: `Product ${isEditing ? 'updated' : 'created'} successfully.`, type: 'success' } },
@@ -372,7 +440,7 @@ export function ProductForm() {
         <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Products', href: '/admin/products' }, { label: isEditing ? 'Edit product' : 'Add product' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit product' : 'Add product'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the product details and inventory level.' : 'Add a product customers can discover and purchase.'}</p></div>
       </div>
       <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
-        {isLoading ? <p className="text-sm font-normal text-muted">Loading product…</p> : (
+        {isLoading ? <ProductFormSkeleton isEditing={isEditing} /> : (
           <form className="space-y-6" noValidate onSubmit={submit}>
             <ol className="admin-product-form-steps flex items-center gap-2 sm:gap-3" aria-label="Product form steps">
               {FORM_STEPS.map((stepConfig, index) => {
@@ -398,7 +466,7 @@ export function ProductForm() {
                         <span className={`hidden min-w-0 truncate text-xs font-bold sm:inline ${isCurrent || isDone ? 'text-green-dark' : 'text-muted'}`}>{stepConfig.label}</span>
                       </button>
                     </li>
-                    {index < FORM_STEPS.length - 1 && <span className="hidden h-px w-3 shrink-0 bg-line sm:block sm:w-4" aria-hidden />}
+                    {index < FORM_STEPS.length - 1 && <span className="h-px w-3 shrink-0 bg-line sm:w-4" aria-hidden />}
                   </Fragment>
                 )
               })}
@@ -586,17 +654,18 @@ export function ProductForm() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
-              {step > 0 && (
-                <button className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark transition-colors hover:border-green" type="button" onClick={previousStep}>Back</button>
-              )}
-              <div className="flex-1" />
-              {step < FORM_STEPS.length - 1 ? (
-                <button className="rounded-xl bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark" type="submit">Continue</button>
+            <div className="flex items-center gap-2 border-t border-line pt-5 sm:gap-3">
+              {step > 0 ? (
+                <button className="min-w-0 flex-1 rounded-xl border border-line px-3 py-3 text-xs font-bold text-green-dark transition-colors hover:border-green sm:px-5 sm:text-sm" type="button" onClick={previousStep}>Back</button>
               ) : (
-                <SubmitButton busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton>
+                <div className="flex-1" />
               )}
-              <Link className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark transition-colors hover:border-green" to="/admin/products">Cancel</Link>
+              {step < FORM_STEPS.length - 1 ? (
+                <button className="min-w-0 flex-1 rounded-xl bg-green px-3 py-3 text-xs font-bold text-cream transition-colors hover:bg-green-dark sm:px-6 sm:text-sm" type="submit">Continue</button>
+              ) : (
+                <SubmitButton className="min-w-0 flex-1 px-3! py-3! text-xs! sm:px-6! sm:text-sm!" busy={isSaving} busyLabel={progressLabel} disabled={isCategoriesLoading}>{isEditing ? 'Save changes' : 'Create product'}</SubmitButton>
+              )}
+              <Link className="min-w-0 flex-1 rounded-xl border border-line px-3 py-3 text-center text-xs font-bold text-green-dark transition-colors hover:border-green sm:px-5 sm:text-sm" to="/admin/products">Cancel</Link>
             </div>
           </form>
         )}

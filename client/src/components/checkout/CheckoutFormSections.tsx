@@ -2,6 +2,7 @@ import type { PaymentSettings } from '../../services/storeSettingsService'
 import type { PaymentMethod } from '../../services/orderService'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from './types'
 import { PhoneInputField } from '../ui/PhoneInput'
+import { PaystackLogo } from './PaystackLogo'
 import {
   checkoutDescriptionClassName,
   checkoutFieldGridClassName,
@@ -170,7 +171,7 @@ export function PaymentMethodSection({
                   />
                   <span>
                     <span className="block text-sm font-bold text-green-dark">
-                      {method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod === 'PAYSTACK' ? 'Paystack' : method.paymentMethod}
+                      {method.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : method.paymentMethod === 'PAYSTACK' ? <PaystackLogo /> : method.paymentMethod}
                     </span>
                     <span className="mt-1 block text-xs leading-5 text-muted">
                       {method.paymentMethod === 'BANK_TRANSFER'

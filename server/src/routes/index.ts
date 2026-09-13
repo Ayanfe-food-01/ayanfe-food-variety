@@ -4,6 +4,7 @@ import { authRoutes } from '../modules/auth/auth.routes.js'
 import { bannerRoutes } from '../modules/banners/banner.routes.js'
 import { cartRoutes } from '../modules/cart/cart.routes.js'
 import { customerCartRoutes } from '../modules/cart/cart.customer.routes.js'
+import { customerAccountRoutes } from '../modules/customers/customer-account.routes.js'
 import { categoryRoutes } from '../modules/categories/category.routes.js'
 import { customerStoriesRoutes } from '../modules/customer-stories/customer-stories.routes.js'
 import { deliveryZoneRoutes } from '../modules/delivery-zones/delivery-zone.routes.js'
@@ -22,6 +23,7 @@ apiRoutes.use('/orders', orderRoutes)
 apiRoutes.use('/payments', paymentRoutes)
 apiRoutes.use('/admin', adminRoutes)
 apiRoutes.use('/auth', authRoutes)
+apiRoutes.use('/customer/account', customerAccountRoutes)
 apiRoutes.use('/customer', customerCartRoutes)
 apiRoutes.use('/cart', cartRoutes)
 apiRoutes.use('/store/settings', settingsRoutes)

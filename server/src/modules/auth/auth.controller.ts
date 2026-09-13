@@ -20,6 +20,7 @@ import {
   setCustomerShoppingMode,
   signupCustomer,
   verifyCustomerEmail,
+  changeCustomerPassword,
 } from './customer-auth.service.js'
 import {
   createGoogleOAuthState,
@@ -41,6 +42,7 @@ import {
   validatePasswordResetInput,
   validatePasswordResetRequestInput,
   validateShoppingModeInput,
+  validateCustomerPasswordChangeInput,
 } from './auth.validator.js'
 
 export const loginController: RequestHandler = async (request, response) => {
@@ -278,5 +280,17 @@ export const changeAdminPasswordController: RequestHandler = async (request, res
   response.json({
     success: true,
     data: { message: 'Admin password changed successfully.' },
+  })
+}
+
+export const customerChangePasswordController: RequestHandler = async (request, response) => {
+  await changeCustomerPassword(
+    request.authenticatedUser!.id,
+    getCustomerSessionToken(request.headers.cookie),
+    validateCustomerPasswordChangeInput(request.body),
+  )
+  response.json({
+    success: true,
+    data: { message: 'Your password has been changed.' },
   })
 }

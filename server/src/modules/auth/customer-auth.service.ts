@@ -9,3 +9,4 @@ export {
   signupCustomer,
   verifyCustomerEmail,
 } from './customer-auth.verification.service.js'
+export { changeCustomerPassword } from './customer-auth.password.service.js'

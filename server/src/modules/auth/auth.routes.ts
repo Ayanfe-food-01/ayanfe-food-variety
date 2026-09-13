@@ -7,6 +7,7 @@ import {
   logoutController,
   meController,
   customerLoginController,
+  customerChangePasswordController,
   customerLogoutController,
   customerMeController,
   customerProvidersController,
@@ -42,6 +43,13 @@ authRoutes.patch(
   requireCustomerAuthentication,
   requireCustomerRole,
   customerShoppingModeController,
+)
+authRoutes.patch(
+  '/customer/password',
+  createRateLimit(8, 15 * 60 * 1000),
+  requireCustomerAuthentication,
+  requireCustomerRole,
+  customerChangePasswordController,
 )
 authRoutes.post('/forgot-password', createRateLimit(5, 15 * 60 * 1000), passwordResetRequestController)
 authRoutes.post('/reset-password', createRateLimit(10, 15 * 60 * 1000), passwordResetController)

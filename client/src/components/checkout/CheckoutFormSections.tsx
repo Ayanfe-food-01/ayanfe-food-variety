@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { PaymentSettings } from '../../services/storeSettingsService'
 import type { PaymentMethod } from '../../services/orderService'
 import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from './types'
@@ -22,6 +23,7 @@ interface FieldSectionProps {
   errors: CheckoutFormErrors
   isAuthenticated: boolean
   onChange: (field: CheckoutField, value: string) => void
+  footer?: ReactNode
 }
 
 interface PaymentMethodSectionProps {
@@ -50,7 +52,7 @@ export function CheckoutFieldError({ id, message }: FieldErrorProps) {
   ) : null
 }
 
-export function ContactDetailsSection({ form, errors, isAuthenticated, onChange }: FieldSectionProps) {
+export function ContactDetailsSection({ form, errors, isAuthenticated, onChange, footer }: FieldSectionProps) {
   return (
     <fieldset className={checkoutFieldsetClassName}>
       <CheckoutSectionHeader
@@ -117,6 +119,8 @@ export function ContactDetailsSection({ form, errors, isAuthenticated, onChange 
           </p>
         </div>
       </div>
+
+      {footer}
     </fieldset>
   )
 }

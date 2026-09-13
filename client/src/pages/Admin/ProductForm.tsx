@@ -434,7 +434,7 @@ export function ProductForm() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Products', href: '/admin/products' }, { label: isEditing ? 'Edit product' : 'Add product' }]} /><p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{isEditing ? 'Edit product' : 'Add product'}</h1><p className="mt-3 text-sm text-muted">{isEditing ? 'Update the product details and inventory level.' : 'Add a product customers can discover and purchase.'}</p></div>
       </div>
-      <div className="mt-8 max-w-3xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+      <div className="mt-8 w-full max-w-5xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         {isLoading ? <ProductFormSkeleton isEditing={isEditing} /> : (
           <form className="space-y-6" noValidate onSubmit={submit}>
             <ol className="admin-product-form-steps flex items-center gap-2 sm:gap-3" aria-label="Product form steps">

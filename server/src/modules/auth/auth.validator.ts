@@ -119,3 +119,7 @@ export function validateAdminPasswordChangeInput(body: unknown): AdminPasswordCh
     confirmPassword: body.confirmPassword,
   }
 }
+
+// Customers changing their password pass the same shape (current + new +
+// confirm). Reusing the admin shape keeps validation consistent.
+export const validateCustomerPasswordChangeInput = validateAdminPasswordChangeInput

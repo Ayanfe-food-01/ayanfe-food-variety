@@ -33,12 +33,12 @@ const promises = [
   {
     icon: ShieldIcon,
     title: 'Manufactured by us',
-    text: 'We produce our gluten-free foodstuff ourselves, so quality is controlled from production to your door.',
+    text: 'We produce our gluten-free products ourselves, so quality is controlled from production to your door.',
   },
   {
     icon: CheckIcon,
     title: 'Gluten-free, clearly labelled',
-    text: 'We highlight gluten-free foodstuff so you can choose with confidence for everyday meals.',
+    text: 'We highlight gluten-free products so you can choose with confidence for everyday meals.',
   },
   {
     icon: HeartIcon,
@@ -72,10 +72,10 @@ export function About() {
                 About Ayanfe
               </p>
               <h1 className="m-0 text-4xl font-bold leading-[0.98] tracking-[-0.05em] text-green-dark sm:text-5xl">
-                Quality gluten-free foodstuff, delivered with care.
+                Premium Gluten-Free Food Products, Delivered to Your Door.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-                Ayanfe Food Variety manufactures and delivers quality gluten-free food. We produce our foodstuff ourselves, pack it with care, and offer food packages for homes and businesses — delivered to your door.
+                Ayanfe Food Variety is a premier producer and distributor of high-quality, gluten-free food products. We craft our products in-house with standard manufacturing practices, packaging every order with precision to bring premium, healthy options directly to homes, events, and corporate clients.
               </p>
             </div>
           </div>
@@ -85,14 +85,14 @@ export function About() {
           <div className="max-w-3xl sm:mx-0 mx-auto">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Our story</p>
             <h2 id="story-heading" className="m-0 text-3xl font-bold leading-tight tracking-[-0.04em] text-green-dark sm:text-4xl">
-              A team that cares about your kitchen.
+              Excellence in Every Kitchen
             </h2>
             <div className="mt-8 space-y-5 text-base leading-8 text-muted">
               <p>
-                Ayanfe was born from a simple belief: everybody deserves easy access to good, dependable food. We started by producing gluten-free foodstuff ourselves — the pantry staples families rely on — and making them simple to order online.
+                Ayanfe was founded on a simple commitment: providing reliable access to superior, healthy food options. What began as a mission to create exceptional gluten-free pantry essentials has grown into an established food manufacturing brand trusted by families and businesses alike.
               </p>
               <p>
-                Today, we manufacture, check and pack our food in-house, so the quality you expect is the quality you receive. From production through to delivery, every order is handled with care — and we also make up food packages for homes, events and businesses.
+                From raw material processing to final delivery, we maintain full oversight of our production line to guarantee uncompromised quality. Whether you are ordering daily essentials or custom catering packages for events and corporate needs, Ayanfe delivers excellence you can trust.
               </p>
               <div className="flex flex-wrap gap-4 pt-2">
                 <Link className="inline-flex items-center gap-2 rounded-full bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark" to="/shop">
@@ -158,7 +158,7 @@ export function About() {
               Ready to fill your kitchen with good food?
             </h2>
             <p className="mx-auto mt-5 max-w-[460px] text-base leading-7 text-muted">
-              Browse our range of gluten-free food we produce ourselves, and order your own custom food package.
+              Browse our range of gluten-free products we produce ourselves, and order your own custom food package.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link className="inline-flex items-center gap-2 rounded-full bg-orange px-7 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105" to="/shop">

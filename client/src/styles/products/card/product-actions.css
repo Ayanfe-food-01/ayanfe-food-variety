@@ -30,8 +30,11 @@
   top: 9px;
   right: 9px;
   z-index: 2;
-  width: 34px;
-  min-height: 34px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
   border: 1px solid var(--color-line);
   background: white;
   color: var(--color-green-dark);

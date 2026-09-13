@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { FulfillmentMethod, ResolvedDeliveryZone } from '../../services/orderService'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
 import { whatsAppChatUrl } from '../../utils/whatsApp'
@@ -22,6 +23,10 @@ interface DeliveryOptionsSectionProps {
   zoneError: string | null
   deliveryFee: number | null
   onChange: (field: CheckoutField, value: string) => void
+  // Optional saved-address picker rendered above the manual address fields,
+  // and an optional save-to-account opt-in rendered after the delivery form.
+  savedAddressSection?: ReactNode
+  saveAddressSlot?: ReactNode
 }
 
 const deliveryOptions = [
@@ -38,6 +43,8 @@ export function DeliveryOptionsSection({
   zoneError,
   deliveryFee,
   onChange,
+  savedAddressSection,
+  saveAddressSlot,
 }: DeliveryOptionsSectionProps) {
   const isDelivery = fulfillmentMethod === 'DELIVERY'
   const { settings } = useStoreSettings()
@@ -84,6 +91,8 @@ export function DeliveryOptionsSection({
 
         {isDelivery && (
           <div className="mt-8 grid gap-6">
+            {savedAddressSection}
+
             <div>
               <label className="text-sm font-bold text-green-dark" htmlFor="address">
                 Delivery address <span className="text-orange" aria-hidden="true">*</span>
@@ -128,6 +137,8 @@ export function DeliveryOptionsSection({
                 onChange={(event) => onChange('deliveryInstructions', event.target.value)}
               />
             </div>
+
+            {saveAddressSlot}
           </div>
         )}
       </fieldset>

@@ -1,74 +1,128 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, ClipboardListIcon, HeartIcon, LayersIcon } from '../assets/icons'
+import { useEffect, useRef, useState } from 'react'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
+import { useRouteToast } from '../hooks/useRouteToast'
+import { ApiError } from '../services/api'
+import {
+  getCustomerAccountProfileService,
+  type CustomerAccountProfile,
+} from '../services/customerAccountService'
 import { Seo } from '../seo/Seo'
 import { ACCOUNT_TITLE } from '../seo/config'
+import { AddressesSection } from '../components/account/AddressesSection'
+import { IdentityHeader } from '../components/account/IdentityHeader'
+import { MoreSection } from '../components/account/more/MoreSection'
+import { ProfileSection } from '../components/account/profile/ProfileSection'
 
-const quickLinks = [
-  { label: 'My orders', description: 'Order history, payment status and tracking', href: '/orders', icon: ClipboardListIcon },
-  { label: 'My quotes', description: 'Requested wholesale quotes and their status', href: '/quotes', icon: LayersIcon },
-  { label: 'Wishlist', description: 'Products you have saved for later', href: '/wishlist', icon: HeartIcon },
-]
+interface AccountProfileState {
+  userId: string
+  status: 'ready' | 'error'
+  profile?: CustomerAccountProfile
+  error?: string
+}
 
 export function Account() {
-  const { user, isLoading: isAuthLoading, openAuth, shoppingMode, logout } = useCustomerAuth()
+  const { user, isLoading: isAuthLoading, openAuth, setUser } = useCustomerAuth()
+  useRouteToast()
+  const [profileState, setProfileState] = useState<AccountProfileState | null>(null)
+  const [reloadNonce, setReloadNonce] = useState(0)
+  const userId = user?.id
+  const userRef = useRef(user)
+  const activeProfileState = profileState && profileState.userId === userId ? profileState : null
+  const profile = activeProfileState?.status === 'ready' ? activeProfileState.profile : null
+  const profileError = activeProfileState?.status === 'error' ? activeProfileState.error : null
 
-  useInitialRouteLoad(!isAuthLoading)
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
+
+  useEffect(() => {
+    if (isAuthLoading || !userId) return
+    let active = true
+    getCustomerAccountProfileService()
+      .then((result) => {
+        if (!active) return
+        setProfileState({ userId, status: 'ready', profile: result })
+        // Keep the header identity in sync when the profile changes.
+        const current = userRef.current
+        if (current) setUser({ ...current, name: result.name, phone: result.phone })
+      })
+      .catch((caught: unknown) => {
+        if (!active) return
+        if (caught instanceof ApiError && caught.status === 401) return
+        setProfileState({
+          userId,
+          status: 'error',
+          error: caught instanceof ApiError ? caught.message : 'Your profile could not be loaded.',
+        })
+      })
+    return () => { active = false }
+  }, [isAuthLoading, reloadNonce, setUser, userId])
+
+  const retryProfile = () => {
+    setProfileState(null)
+    setReloadNonce((current) => current + 1)
+  }
+
+  const handleProfileUpdated = (updated: CustomerAccountProfile) => {
+    if (!userId) return
+    setProfileState({ userId, status: 'ready', profile: updated })
+  }
+
+  useInitialRouteLoad(!isAuthLoading && (!user || activeProfileState !== null))
 
   return (
     <>
-      <Seo title={ACCOUNT_TITLE} description="View and manage your Ayanfe Food Variety account details." canonicalPath="/account" />
+      <Seo title={`${ACCOUNT_TITLE}`} description="Manage your Ayanfe Food Variety profile, saved addresses and account preferences." canonicalPath="/account" />
       <Navbar />
-      <main>
+      <main className="flex-1">
         <section className="border-b border-line/70 bg-sage/35">
-          <div className="container py-12 sm:py-16">
+          <div className="container py-12 sm:py-14">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Your account</p>
-            <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Account settings</h1>
-            <p className="mt-4 text-base text-muted">Your profile and everything you manage as a signed-in customer.</p>
+            <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Account</h1>
           </div>
         </section>
-        <section className="container py-12 sm:py-16 lg:py-24">
+        <section className="container py-12 sm:py-16 lg:py-20">
           {!isAuthLoading && !user ? (
             <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
               <h2 className="text-3xl font-bold text-green-dark">Sign in to manage your account</h2>
-              <button className="mt-6 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={() => openAuth()}>
+              <p className="mx-auto mt-3 max-w-md text-sm text-muted">
+                You need to be signed in to view your profile, saved addresses and preferences.
+              </p>
+              <button className="mt-6 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={() => void openAuth()}>
                 Sign in or create an account
               </button>
             </div>
+          ) : profileError ? (
+            <div className="rounded-3xl border border-orange/25 bg-orange/5 p-8 text-sm text-orange" role="alert">
+              <p>{profileError}</p>
+              <button
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-orange/30 bg-white px-3 py-2 text-xs font-bold text-green-dark hover:bg-cream"
+                type="button"
+                onClick={retryProfile}
+              >
+                Retry loading your account
+              </button>
+            </div>
+          ) : !profile || isAuthLoading ? (
+            <div className="mx-auto max-w-xl space-y-10" role="status" aria-label="Loading your account">
+              <div className="space-y-3 text-center">
+                <div className="mx-auto size-16 rounded-full bg-sage/60 animate-pulse" />
+                <div className="mx-auto h-4 w-40 rounded bg-sage/60 animate-pulse" />
+                <div className="mx-auto h-3 w-56 rounded bg-sage/40 animate-pulse" />
+              </div>
+              {[0, 1, 2].map((row) => (
+                <div className="h-44 rounded-3xl bg-sage/60 animate-pulse" key={row} />
+              ))}
+            </div>
           ) : (
-            <div className="mx-auto max-w-3xl space-y-6">
-              <div className="rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <h2 className="text-2xl font-bold text-green-dark">{user?.name}</h2>
-                    <p className="mt-1 truncate text-sm text-muted">{user?.email}</p>
-                    <p className="mt-1 text-sm text-muted">{user?.phone || 'Phone number not provided'}</p>
-                  </div>
-                  <span className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] ${shoppingMode === 'WHOLESALE' ? 'bg-green-dark text-cream' : 'bg-sage text-green-dark'}`}>
-                    {shoppingMode} mode
-                  </span>
-                </div>
-                <div className="mt-6 rounded-2xl bg-cream p-4 text-xs leading-relaxed text-muted">
-                  Your shopping mode decides the prices shown across the store. Switch between Retail and Wholesale from the header.
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                {quickLinks.map((link) => (
-                  <Link className="group rounded-3xl border border-line bg-white p-5 shadow-sm transition-colors hover:border-green/40 hover:bg-sage/25" to={link.href} key={link.href}>
-                    <span className="inline-flex size-11 items-center justify-center rounded-2xl bg-sage text-green"><link.icon size={20} /></span>
-                    <span className="mt-4 flex items-center gap-1.5 font-bold text-green-dark">{link.label}<ArrowRight size={15} className="text-muted transition-transform group-hover:translate-x-0.5" /></span>
-                    <span className="mt-1 block text-xs text-muted">{link.description}</span>
-                  </Link>
-                ))}
-              </div>
-              <div className="text-center">
-                <button className="rounded-full border border-orange/40 px-5 py-2.5 text-sm font-bold text-orange transition-colors hover:bg-orange hover:text-white" type="button" onClick={() => void logout()}>
-                  Sign out
-                </button>
-              </div>
+            <div className="mx-auto max-w-xl space-y-10">
+              <IdentityHeader name={profile.name} email={profile.email} />
+              <ProfileSection profile={profile} onProfileUpdated={handleProfileUpdated} />
+              <AddressesSection />
+              <MoreSection />
             </div>
           )}
         </section>

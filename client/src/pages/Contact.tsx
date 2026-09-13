@@ -34,7 +34,7 @@ export function Contact() {
                 Contact {businessName}
               </h1>
               <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-                Have a question about our gluten-free foodstuff, pickup, or delivery? Reach out and our team will help.
+                Have a question about our gluten-free products, pickup, or delivery? Reach out and our team will help.
               </p>
             </div>
           </div>

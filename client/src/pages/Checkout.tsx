@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight } from '../assets/icons'
 import { Footer } from '../components/layout/Footer'
@@ -8,6 +8,8 @@ import { CheckoutHeader } from '../components/checkout/CheckoutHeader'
 import { CheckoutSummary } from '../components/checkout/CheckoutSummary'
 import { ContactDetailsSection, PaymentMethodSection } from '../components/checkout/CheckoutFormSections'
 import { DeliveryOptionsSection } from '../components/checkout/DeliveryOptionsSection'
+import { SavedAddressSection } from '../components/checkout/SavedAddressSection'
+import { checkoutFormToAddressSaveInput } from '../components/checkout/savedAddressHelpers'
 import { calculateCheckoutTotals, deliveryFeeFromZone } from '../components/checkout/checkoutCalculations'
 import { validateCheckoutForm } from '../components/checkout/checkoutValidation'
 import { useCheckoutPaymentSettings } from '../components/checkout/useCheckoutPaymentSettings'
@@ -25,10 +27,12 @@ import { useCart } from '../hooks/useCart'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
-import { checkoutCustomerCart, type FulfillmentMethod } from '../services/orderService'
+import { checkoutCustomerCart, getDeliveryLocationStates, type FulfillmentMethod } from '../services/orderService'
+import { createCustomerAccountAddressService } from '../services/customerAccountService'
 import { initializeGuestPaystackPayment, initializePaystackPayment } from '../services/paymentService'
 import { clearGuestCheckout } from '../utils/guestCheckout'
 import { saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
+import { readGuestSavedDetails, writeGuestSavedDetails } from '../utils/guestSavedDetails'
 
 export function Checkout() {
   const {
@@ -47,6 +51,9 @@ export function Checkout() {
   const [form, setForm] = useState<CheckoutFormData>(readCheckoutDraft)
   const [checkoutKeys] = useState(bootCheckoutKeys)
   const [errors, setErrors] = useState<CheckoutFormErrors>({})
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [saveAddressOptIn, setSaveAddressOptIn] = useState(false)
+  const [saveDetailsOptIn, setSaveDetailsOptIn] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [needsCartReview, setNeedsCartReview] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -60,17 +67,58 @@ export function Checkout() {
     writeSessionValue(CHECKOUT_DRAFT_STORAGE_KEY, JSON.stringify(form))
   }, [form])
 
-  useEffect(() => {
-    if (!user) return
-    // This effect intentionally hydrates editable local fields from the session profile.
+useEffect(() => {
+  if (!user) return
+  // This effect intentionally hydrates editable local fields from the session profile.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  setForm((currentForm) => ({
+    ...currentForm,
+    fullName: currentForm.fullName || user.name,
+    phone: currentForm.phone || user.phone || '',
+    email: user.email,
+  }))
+}, [user])
+
+useEffect(() => {
+    if (user || !guestCheckout) return
+    // For a returning guest that opted in, fill only the fields the form doesn't
+    // already carry (the in-tab draft wins). Device-saved data is never applied
+    // to an authenticated customer's checkout.
+    const saved = readGuestSavedDetails()
+    if (!saved) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((currentForm) => ({
-      ...currentForm,
-      fullName: currentForm.fullName || user.name,
-      phone: currentForm.phone || user.phone || '',
-      email: user.email,
-    }))
-  }, [user])
+    ...currentForm,
+    fullName: currentForm.fullName || saved.fullName || '',
+    phone: currentForm.phone || saved.phone || '',
+    email: currentForm.email || saved.email || '',
+    fulfillmentMethod: currentForm.fulfillmentMethod || saved.fulfillmentMethod || '',
+    state: currentForm.state || saved.state || '',
+    cityId: currentForm.cityId || saved.cityId || '',
+    city: currentForm.city || saved.city || '',
+    areaId: currentForm.areaId || saved.areaId || '',
+    area: currentForm.area || saved.area || '',
+    address: currentForm.address || saved.address || '',
+    deliveryInstructions: currentForm.deliveryInstructions || saved.deliveryInstructions || '',
+    paymentMethod: saved.paymentMethod || currentForm.paymentMethod,
+  }))
+}, [guestCheckout, user])
+
+const applyAddressFields = useCallback((fields: Partial<CheckoutFormData>) => {
+  setForm((currentForm) => ({ ...currentForm, ...fields }))
+}, [])
+
+// Store the checkout address in the customer's address book only when they
+// opted in. Best-effort: any failure must never block an otherwise completed
+// order, so errors are swallowed and the order continues.
+const persistCheckoutAddress = async (currentForm: CheckoutFormData) => {
+  try {
+    const states = await getDeliveryLocationStates()
+    await createCustomerAccountAddressService(checkoutFormToAddressSaveInput(currentForm, states))
+  } catch {
+    // Address saving is a convenience, not a requirement of the order.
+  }
+}
 
   const updateField = (field: CheckoutField, value: string) => {
     setForm((currentForm) => ({ ...currentForm, [field]: value }))
@@ -145,6 +193,16 @@ export function Checkout() {
       // for the confirmation page, which both load the order themselves.
       if (!user) {
         saveGuestOrderAccessToken(order.orderNumber, checkoutKeys.guestAccessToken)
+      }
+
+      // Persist opt-in details as the first step of finishing the order.
+      // Address saving is awaited so it survives the Paystack redirect; guest
+      // device storage is synchronous and cannot be lost either way.
+      if (user && saveAddressOptIn) {
+        await persistCheckoutAddress(form)
+      }
+      if (!user && saveDetailsOptIn) {
+        writeGuestSavedDetails(form)
       }
 
       if (form.paymentMethod === 'PAYSTACK') {
@@ -237,7 +295,28 @@ export function Checkout() {
                 </div>
               )}
 
-              <ContactDetailsSection form={form} errors={errors} isAuthenticated={Boolean(user)} onChange={updateField} />
+              <ContactDetailsSection
+                form={form}
+                errors={errors}
+                isAuthenticated={Boolean(user)}
+                onChange={updateField}
+                footer={!user ? (
+                  <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm font-semibold text-green-dark">
+                    <input
+                      className="mt-0.5 size-4 accent-green"
+                      type="checkbox"
+                      checked={saveDetailsOptIn}
+                      onChange={(event) => setSaveDetailsOptIn(event.target.checked)}
+                    />
+                    <span>
+                      Save my details on this device
+                      <span className="mt-0.5 block text-xs leading-5 font-normal text-muted">
+                        We’ll remember your contact and delivery details for next time — stored only on this device.
+                      </span>
+                    </span>
+                  </label>
+                ) : undefined}
+              />
               <PaymentMethodSection
                 methods={paymentMethods}
                 selectedMethod={form.paymentMethod}
@@ -255,6 +334,33 @@ export function Checkout() {
                 zoneError={zoneError}
                 deliveryFee={deliveryFee}
                 onChange={updateField}
+                savedAddressSection={user && form.fulfillmentMethod === 'DELIVERY' ? (
+                  <SavedAddressSection
+                    form={form}
+                    selectedAddressId={selectedAddressId}
+                    onSelect={setSelectedAddressId}
+                    onApply={applyAddressFields}
+                  />
+                ) : undefined}
+                saveAddressSlot={user && form.fulfillmentMethod === 'DELIVERY' ? (
+                  <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-green-dark">
+                    <input
+                      className="mt-0.5 size-4 accent-green"
+                      type="checkbox"
+                      checked={saveAddressOptIn}
+                      disabled={selectedAddressId !== null}
+                      onChange={(event) => setSaveAddressOptIn(event.target.checked)}
+                    />
+                    <span>
+                      Save this delivery address to my address book
+                      <span className="mt-0.5 block text-xs leading-5 font-normal text-muted">
+                        {selectedAddressId !== null
+                          ? 'This address is already saved to your account.'
+                          : 'We’ll reuse it at checkout, and you can manage saved addresses in your account.'}
+                      </span>
+                    </span>
+                  </label>
+                ) : undefined}
               />
 
               <div className="mt-10">

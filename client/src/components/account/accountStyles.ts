@@ -3,6 +3,9 @@
 export const accountCardClassName =
   'rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8'
 
+export const accountSectionLabelClassName =
+  'text-[11px] font-bold uppercase tracking-[0.18em] text-orange'
+
 export const accountSectionHeadingClassName =
   'text-2xl font-bold tracking-[-0.03em] text-green-dark'
 

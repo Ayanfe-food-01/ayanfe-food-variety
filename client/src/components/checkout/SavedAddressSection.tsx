@@ -5,6 +5,7 @@ import {
   type CustomerAccountAddress,
 } from '../../services/customerAccountService'
 import { getDeliveryLocationStates, type DeliveryLocationState } from '../../services/orderService'
+import { AddressCard } from '../account/addresses/AddressCard'
 import { savedAddressToCheckoutFields } from './savedAddressHelpers'
 import type { CheckoutFormData } from './types'
 
@@ -89,44 +90,16 @@ export function SavedAddressSection({ form, selectedAddressId, onSelect, onApply
         </p>
       ) : (
         <div className="mt-3 space-y-2" role="radiogroup" aria-label="Choose a saved address">
-          {addresses.map((address) => {
-            const locationLine = [address.areaName, address.city, address.state].filter(Boolean).join(', ')
-            const selected = selectedAddressId === address.id
-            return (
-              <label
-                className={`block cursor-pointer rounded-xl border p-3 transition-colors ${
-                  selected ? 'border-green bg-sage/30' : 'border-line bg-white hover:border-green/40'
-                }`}
-                key={address.id}
-              >
-                <span className="flex items-start gap-3">
-                  <input
-                    className="mt-0.5 size-4 accent-green"
-                    type="radio"
-                    name="savedAddress"
-                    value={address.id}
-                    checked={selected}
-                    onChange={() => selectAddress(address)}
-                  />
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-green-dark">{address.label}</span>
-                      {address.isDefault && (
-                        <span className="rounded-full bg-green px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cream">
-                          Default
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block truncate text-xs text-muted">
-                      {address.recipientName} · {address.phone}
-                    </span>
-                    <span className="block truncate text-xs text-muted">{address.address}</span>
-                    {locationLine && <span className="block truncate text-xs text-muted">{locationLine}</span>}
-                  </span>
-                </span>
-              </label>
-            )
-          })}
+          {addresses.map((address) => (
+            <AddressCard
+              address={address}
+              key={address.id}
+              variant="select"
+              name="savedAddress"
+              selected={selectedAddressId === address.id}
+              onSelect={() => selectAddress(address)}
+            />
+          ))}
           <label
             className={`block cursor-pointer rounded-xl border p-3 transition-colors ${
               selectedAddressId === null ? 'border-green bg-sage/30' : 'border-line bg-white hover:border-green/40'

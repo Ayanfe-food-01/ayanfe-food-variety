@@ -34,7 +34,8 @@
     "test:delivery-time": "tsx scripts/delivery-time-smoke.ts",
     "test:search": "tsx scripts/search-smoke.ts",
     "test:search-api": "tsx scripts/search-api-smoke.ts",
-    "test:wholesale-packages": "tsx scripts/wholesale-package-smoke.ts"
+    "test:wholesale-packages": "tsx scripts/wholesale-package-smoke.ts",
+    "test:account-checkout": "tsx scripts/account-checkout-e2e.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

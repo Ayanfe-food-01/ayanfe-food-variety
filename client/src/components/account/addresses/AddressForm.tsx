@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import type { CustomerAccountAddress, CustomerAddressSaveInput } from '../../services/customerAccountService'
-import { isValidE164PhoneNumber } from '../../utils/phone'
-import { PhoneInputField } from '../ui/PhoneInput'
+import type { CustomerAccountAddress, CustomerAddressSaveInput } from '../../../services/customerAccountService'
+import { isValidE164PhoneNumber } from '../../../utils/phone'
+import { PhoneInputField } from '../../ui/PhoneInput'
 import {
   AddressLocationFields,
 } from './AddressLocationFields'
@@ -10,7 +10,7 @@ import {
   accountFieldErrorClassName,
   accountFieldLabelClassName,
   accountInputClassName,
-} from './accountStyles'
+} from '../accountStyles'
 
 interface AddressFormProps {
   editing: CustomerAccountAddress | null

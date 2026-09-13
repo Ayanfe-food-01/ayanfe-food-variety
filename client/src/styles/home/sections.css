@@ -32,6 +32,21 @@
   margin-bottom: 4px;
 }
 
+.home-section-heading-accent {
+  width: 100vw;
+  max-width: none;
+  margin-left: calc(50% - 50vw);
+  margin-bottom: 20px;
+  padding: 16px max(24px, calc((100vw - 1160px) / 2));
+  border-radius: 0;
+  background: var(--color-green-dark);
+  align-items: center;
+}
+
+.home-section-heading-accent .eyebrow {
+  color: var(--color-orange);
+}
+
 .home-section-heading-actions {
   display: flex;
   align-items: center;

@@ -109,6 +109,41 @@ export function WriteReview() {
     </div>
   )
 
+  const renderReviewFormSkeleton = () => (
+    <div className="mx-auto max-w-3xl" role="status" aria-label="Loading review form">
+      <span className="block h-3 w-24 animate-pulse rounded-full bg-line" />
+      <div className="mt-6 space-y-5 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+        <div className="space-y-3">
+          <span className="block h-3 w-20 animate-pulse rounded-full bg-line" />
+          <span className="block h-8 w-48 animate-pulse rounded-full bg-line sm:w-64" />
+        </div>
+        <div className="flex items-start gap-4 rounded-2xl border border-line bg-cream/50 p-4">
+          <span className="block size-20 shrink-0 animate-pulse rounded-2xl bg-line" />
+          <div className="min-w-0 flex-1 space-y-3 pt-1">
+            <span className="block h-4 w-3/4 animate-pulse rounded-full bg-line" />
+            <span className="block h-3 w-1/3 animate-pulse rounded-full bg-line" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <span className="block h-3 w-24 animate-pulse rounded-full bg-line" />
+          <div className="flex gap-1.5">
+            {Array.from({ length: 5 }, (_, index) => (
+              <span className="block size-7 animate-pulse rounded-full bg-line" key={index} />
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3">
+          <span className="block h-3 w-20 animate-pulse rounded-full bg-line" />
+          <span className="block h-32 w-full animate-pulse rounded-xl bg-line" />
+        </div>
+        <div className="flex gap-3">
+          <span className="block h-11 w-36 animate-pulse rounded-full bg-line" />
+          <span className="block h-11 w-24 animate-pulse rounded-full bg-line" />
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <>
       <Navbar />
@@ -119,7 +154,7 @@ export function WriteReview() {
             <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{loadError}</div>
           </div>
         ) : isLoading || (!eligibility && isAuthLoading) ? (
-          <p className="rounded-2xl bg-white p-8 text-center text-sm text-muted">Loading…</p>
+          renderReviewFormSkeleton()
         ) : !item ? (
           <div className="mx-auto max-w-3xl">
             <Link className="text-sm font-bold text-green hover:text-orange" to={`/orders/${orderNumber}`}>← Back to order</Link>

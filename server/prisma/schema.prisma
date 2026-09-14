@@ -404,9 +404,11 @@ model Order {
   note                   String?
   subtotal               Decimal                  @db.Decimal(12, 2)
   deliveryFee            Decimal                  @default(0) @map("delivery_fee") @db.Decimal(12, 2)
-  // Delivery zone snapshot captured at order time. The name and fee are stored
-  // directly on the order so historical orders are never affected by later
-  // edits to a zone's fee or name. deliveryZoneId is informational only.
+  // Delivery zone snapshot captured at order time. Stores the specific city the
+  // customer chose at checkout (not the zone's full coverage label, which lists
+  // every city/area the zone serves). The fee is stored on deliveryFee so
+  // historical orders are never affected by later edits. deliveryZoneId is
+  // informational only.
   deliveryZoneId         String?                  @map("delivery_zone_id") @db.Uuid
   deliveryZoneName       String?                  @map("delivery_zone_name") @db.VarChar(120)
   // Delivery area snapshot captured at order time, following the same pattern as

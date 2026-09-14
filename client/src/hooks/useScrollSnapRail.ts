@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 interface UseScrollSnapRailOptions {
   itemCount: number
   autoAdvanceMs?: number
+  alignment?: 'center' | 'start'
 }
 
 interface ScrollSnapRail {
@@ -13,7 +14,7 @@ interface ScrollSnapRail {
   onScroll: () => void
 }
 
-export function useScrollSnapRail({ itemCount, autoAdvanceMs = 5000 }: UseScrollSnapRailOptions): ScrollSnapRail {
+export function useScrollSnapRail({ itemCount, autoAdvanceMs = 5000, alignment = 'center' }: UseScrollSnapRailOptions): ScrollSnapRail {
   const trackRef = useRef<HTMLDivElement>(null)
   const currentIndexRef = useRef(0)
   const autoScrollingRef = useRef(false)
@@ -36,8 +37,11 @@ export function useScrollSnapRail({ itemCount, autoAdvanceMs = 5000 }: UseScroll
     if (!target) return
     const trackRect = track.getBoundingClientRect()
     const targetContentLeft = target.getBoundingClientRect().left - trackRect.left + track.scrollLeft
-    track.scrollTo({ left: targetContentLeft + target.offsetWidth / 2 - track.clientWidth / 2, behavior })
-  }, [])
+    const targetLeft = alignment === 'start'
+      ? targetContentLeft
+      : targetContentLeft + target.offsetWidth / 2 - track.clientWidth / 2
+    track.scrollTo({ left: targetLeft, behavior })
+  }, [alignment])
 
   const goTo = useCallback((index: number) => {
     const track = trackRef.current

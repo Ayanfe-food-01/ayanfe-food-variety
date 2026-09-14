@@ -3,10 +3,10 @@
   gap: 20px;
   overflow-x: auto;
   margin-top: 40px;
-  padding-inline: max(24px, calc((100% - var(--container-max-width)) / 2));
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: max(24px, calc((100% - var(--container-max-width)) / 2));
   scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
 }
 
 .testimonial-rail::-webkit-scrollbar {
@@ -21,9 +21,16 @@
   scroll-snap-stop: always;
 }
 
+.testimonial-slide > * {
+  width: 100%;
+  min-width: 0;
+}
+
 @media (max-width: 767px) {
   .testimonial-rail {
     gap: 14px;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
   }
 
   .testimonial-slide {

@@ -126,6 +126,11 @@ import {
   getAdminCustomerController,
   listAdminCustomersController,
 } from '../customers/customer.controller.js'
+import {
+  deleteAdminContactMessageController,
+  listAdminContactMessagesController,
+  updateAdminContactMessageStatusController,
+} from '../contact/contact.admin.controller.js'
 
 export const adminRoutes = Router()
 
@@ -196,6 +201,9 @@ adminRoutes.get('/quotes/:reference', getAdminQuoteRequestController)
 adminRoutes.patch('/quotes/:reference/status', updateAdminQuoteRequestStatusController)
 adminRoutes.patch('/quotes/:reference/note', updateAdminQuoteRequestNoteController)
 adminRoutes.post('/quotes/:reference/price', prepareAdminQuotePricingController)
+adminRoutes.get('/contact', listAdminContactMessagesController)
+adminRoutes.patch('/contact/:id/status', updateAdminContactMessageStatusController)
+adminRoutes.delete('/contact/:id', deleteAdminContactMessageController)
 adminRoutes.get('/notifications', listAdminNotificationsController)
 adminRoutes.post('/notifications/read-all', markAllAdminNotificationsReadController)
 adminRoutes.patch('/notifications/:id/read', markAdminNotificationReadController)

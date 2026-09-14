@@ -9,6 +9,7 @@ export type AdminNotificationType =
   | 'NEW_QUOTE_REQUEST'
   | 'QUOTE_ACCEPTED'
   | 'QUOTE_REJECTED'
+  | 'NEW_CONTACT_MESSAGE'
 
 export interface AdminNotification {
   id: string

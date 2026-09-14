@@ -29,6 +29,7 @@ import { Payments } from './pages/Admin/Payments'
 import { Notifications } from './pages/Admin/Notifications'
 import { QuoteRequests } from './pages/Admin/QuoteRequests'
 import { QuoteRequestDetail } from './pages/Admin/QuoteRequestDetail'
+import { ContactMessages } from './pages/Admin/contact/ContactMessages'
 import { Settings } from './pages/Admin/Settings'
 import { StoreSettings } from './pages/Admin/StoreSettings'
 import { PaymentSettings } from './pages/Admin/PaymentSettings'
@@ -50,7 +51,6 @@ import { ProductStockMovements } from './pages/Admin/ProductStockMovements'
 import { Customers } from './pages/Admin/Customers'
 import { CustomerDetail } from './pages/Admin/CustomerDetail'
 import { Categories } from './pages/Admin/Categories'
-import { CategoryForm } from './pages/Admin/CategoryForm'
 import { DeliveryZones } from './pages/Admin/DeliveryZones'
 import { Banners } from './pages/Admin/Banners'
 import { BannerForm } from './pages/Admin/BannerForm'
@@ -174,6 +174,7 @@ function RouteTransition() {
           <Route path="/admin/orders/:orderNumber" element={<RequireAdmin><OrderDetail /></RequireAdmin>} />
           <Route path="/admin/quote-requests" element={<RequireAdmin><QuoteRequests /></RequireAdmin>} />
           <Route path="/admin/quote-requests/:reference" element={<RequireAdmin><QuoteRequestDetail /></RequireAdmin>} />
+          <Route path="/admin/contact" element={<RequireAdmin><ContactMessages /></RequireAdmin>} />
           <Route path="/admin/products" element={<RequireAdmin><Products /></RequireAdmin>} />
           <Route path="/admin/products/new" element={<RequireAdmin><ProductForm /></RequireAdmin>} />
           <Route path="/admin/products/:id" element={<RequireAdmin><ProductView /></RequireAdmin>} />
@@ -183,8 +184,6 @@ function RouteTransition() {
           <Route path="/admin/customers" element={<RequireAdmin><Customers /></RequireAdmin>} />
           <Route path="/admin/customers/:id" element={<RequireAdmin><CustomerDetail /></RequireAdmin>} />
           <Route path="/admin/categories" element={<RequireAdmin><Categories /></RequireAdmin>} />
-          <Route path="/admin/categories/new" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
-          <Route path="/admin/categories/:id/edit" element={<RequireAdmin><CategoryForm /></RequireAdmin>} />
           <Route path="/admin/delivery-zones" element={<RequireAdmin><DeliveryZones /></RequireAdmin>} />
           <Route path="/admin/banners" element={<RequireAdmin><Banners /></RequireAdmin>} />
           <Route path="/admin/banners/new" element={<RequireAdmin><BannerForm /></RequireAdmin>} />

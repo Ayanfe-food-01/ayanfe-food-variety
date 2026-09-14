@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
@@ -138,7 +139,7 @@ export function CustomerQuoteDetail() {
   return (
     <>
       <Navbar />
-      <main className="container py-12 sm:py-16 lg:py-24">
+      <main className="container py-10 sm:py-14">
         {!isAuthLoading && !user ? (
           <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
             <h1 className="text-3xl font-bold text-green-dark">Choose how to continue</h1>
@@ -150,10 +151,25 @@ export function CustomerQuoteDetail() {
         ) : error ? (
           <div className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
         ) : !quote ? (
-          <p className="rounded-2xl bg-white p-8 text-center text-sm text-muted">Loading quotation…</p>
+          <div className="animate-pulse" role="status" aria-label="Loading quotation">
+            <div className="h-4 w-40 rounded bg-sage/70" />
+            <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
+              <div className="space-y-3">
+                <div className="h-3 w-24 rounded bg-sage" />
+                <div className="h-9 w-52 rounded bg-sage" />
+                <div className="h-3 w-40 rounded bg-sage/70" />
+              </div>
+              <div className="ml-auto h-7 w-28 rounded-full bg-sage" />
+            </div>
+            <div className="mt-8 space-y-6">
+              <div className="h-64 rounded-2xl bg-sage" />
+              <div className="h-24 rounded-2xl bg-sage" />
+              <div className="h-36 rounded-2xl bg-sage" />
+            </div>
+          </div>
         ) : (
-          <div className="mx-auto max-w-3xl">
-            <Link className="text-sm font-bold text-green hover:text-orange" to="/quotes">← Back to quotes</Link>
+          <div>
+            <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Quotes', href: '/quotes' }, { label: quote.quoteNumber }]} />
             <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Quote request</p>

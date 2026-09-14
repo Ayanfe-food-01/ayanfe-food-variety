@@ -19,6 +19,7 @@ import { cancelCustomerOrder, getCustomerOrder, getGuestOrder, type CreatedOrder
 import { canCustomerCancelOrder, customerCancellationReasons, formatOrderStatus } from '../utils/orderStatus'
 import { ImagePreview } from '../components/ui/ImagePreview'
 import { SelectField } from '../components/ui/SelectField'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { formatDate } from '../utils/dateFormat'
 import { lockBodyScroll } from '../utils/browserCompatibility'
 import { getGuestOrderAccessToken, saveGuestOrderAccessToken } from '../utils/guestOrderAccess'
@@ -186,7 +187,7 @@ export function CustomerOrderDetails() {
   return (
     <>
       <Navbar />
-      <main className="container py-12 sm:py-16 lg:py-24">
+      <main className="container py-10 sm:py-14">
         {!isAuthLoading && !user && !guestAccessToken ? (
           <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
             <h1 className="text-3xl font-bold text-green-dark">Choose how to continue</h1>
@@ -198,7 +199,7 @@ export function CustomerOrderDetails() {
         ) : error ? (
           <div className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error}</div>
         ) : !order ? (
-          <div className="mx-auto max-w-3xl animate-pulse" role="status" aria-label="Loading order">
+          <div className="animate-pulse" role="status" aria-label="Loading order">
             <div className="h-4 w-40 rounded bg-sage/70" />
             <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
               <div className="space-y-3">
@@ -212,12 +213,20 @@ export function CustomerOrderDetails() {
               </div>
             </div>
             <div className="mt-8 h-28 rounded-2xl bg-sage" />
-            <div className="mt-6 h-40 rounded-2xl bg-sage" />
-            <div className="mt-6 h-64 rounded-2xl bg-sage" />
+            <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+              <div className="space-y-6">
+                <div className="h-64 rounded-2xl bg-sage" />
+                <div className="h-36 rounded-2xl bg-sage" />
+              </div>
+              <div className="flex flex-col gap-6">
+                <div className="h-48 rounded-2xl bg-sage" />
+                <div className="min-h-32 flex-1 rounded-2xl bg-sage" />
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-3xl">
-             <Link className="text-sm font-bold text-green hover:text-orange" to={isGuestOrder ? '/shop' : '/orders'}>← {isGuestOrder ? 'Continue shopping' : 'Back to orders'}</Link>
+          <div>
+             <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: isGuestOrder ? 'Shop' : 'Orders', href: isGuestOrder ? '/shop' : '/orders' }, { label: order.orderNumber }]} />
             <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Order details</p>
@@ -265,79 +274,53 @@ export function CustomerOrderDetails() {
             <div className="mt-8">
               <OrderTracker order={order} />
             </div>
-            <div className="mt-6 rounded-2xl border border-green/20 bg-sage/30 p-6 shadow-sm sm:p-8">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Fulfillment</p>
-              {order.fulfillmentMethod === 'PICKUP' ? (
-                <>
-                  <h2 className="mt-2 text-2xl font-bold text-green-dark">Pickup</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted">You will collect this order from the store. We will contact you using your phone number when it is ready.</p>
-                </>
-              ) : (
-                <>
-                  <h2 className="mt-2 text-2xl font-bold text-green-dark">Delivery</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted">{order.deliveryAddress}, {order.deliveryAreaName ? `${order.deliveryAreaName}, ` : ''}{order.city}{order.state ? `, ${order.state}` : ''}</p>
-                </>
-              )}
-            </div>
-            <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-2xl font-bold text-green-dark">Items</h2>
-              <div className="mt-5 divide-y divide-line">
-                {order.orderItems.map((item) => (
-                  <div className="flex items-start justify-between gap-4 py-4" key={item.id}>
-                    <div>
-                      <p className="font-bold text-green-dark">{item.productName}</p>
-                        {item.productOptionLabel && <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>}
-                        {item.wholesalePackageName && (
-                          <p className="mt-0.5 text-xs font-semibold text-orange">
-                            {item.wholesalePackageName}
-                            {item.wholesaleUnitsPerPackage ? ` · ${item.wholesaleUnitsPerPackage} ${item.wholesaleUnitsPerPackage === 1 ? 'unit' : 'units'} per package` : ''}
-                          </p>
-                        )}
-                        <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)}</p>
-                        {reviewEligibility && !isGuestOrder && (() => {
-                          const reviewInfo = reviewEligibility.items.find((review) => review.id === item.id)
-                          if (!reviewInfo) return null
-                          if (reviewInfo.canReview) {
-                            return (
-                              <Link
-                                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-green/25 bg-sage/40 px-4 py-2 text-xs font-bold text-green-dark transition-colors hover:bg-sage"
-                                to={`/orders/${order.orderNumber}/review/${item.id}`}
-                              >
-                                Write a review <ArrowRight size={14} />
-                              </Link>
-                            )
-                          }
-                          if (reviewInfo.reviewed) {
-                            return (
-                              <span className="mt-3 inline-flex items-center rounded-full bg-cream px-4 py-2 text-xs font-bold text-muted">
-                                Reviewed{reviewInfo.reviewRating ? ` · ${reviewInfo.reviewRating}/5` : ''}
-                              </span>
-                            )
-                          }
-                          return null
-                        })()}
-                    </div>
-                    <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
+            <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+                  <h2 className="text-2xl font-bold text-green-dark">Items</h2>
+                  <div className="mt-5 divide-y divide-line">
+                    {order.orderItems.map((item) => (
+                      <div className="flex items-start justify-between gap-4 py-4" key={item.id}>
+                        <div>
+                          <p className="font-bold text-green-dark">{item.productName}</p>
+                          {item.productOptionLabel && <p className="mt-0.5 text-xs font-semibold text-orange">{item.productOptionLabel}</p>}
+                          {item.wholesalePackageName && (
+                            <p className="mt-0.5 text-xs font-semibold text-orange">
+                              {item.wholesalePackageName}
+                              {item.wholesaleUnitsPerPackage ? ` · ${item.wholesaleUnitsPerPackage} ${item.wholesaleUnitsPerPackage === 1 ? 'unit' : 'units'} per package` : ''}
+                            </p>
+                          )}
+                          <p className="mt-1 text-xs text-muted">{item.quantity} × {formatPrice(item.unitPrice)}</p>
+                          {reviewEligibility && !isGuestOrder && (() => {
+                            const reviewInfo = reviewEligibility.items.find((review) => review.id === item.id)
+                            if (!reviewInfo) return null
+                            if (reviewInfo.canReview) {
+                              return (
+                                <Link
+                                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-green/25 bg-sage/40 px-4 py-2 text-xs font-bold text-green-dark transition-colors hover:bg-sage"
+                                  to={`/orders/${order.orderNumber}/review/${item.id}`}
+                                >
+                                  Write a review <ArrowRight size={14} />
+                                </Link>
+                              )
+                            }
+                            if (reviewInfo.reviewed) {
+                              return (
+                                <span className="mt-3 inline-flex items-center rounded-full bg-cream px-4 py-2 text-xs font-bold text-muted">
+                                  Reviewed{reviewInfo.reviewRating ? ` · ${reviewInfo.reviewRating}/5` : ''}
+                                </span>
+                              )
+                            }
+                            return null
+                          })()}
+                        </div>
+                        <strong className="text-sm text-green-dark">{formatPrice(item.subtotal)}</strong>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="mt-5 space-y-3 border-t border-line pt-5 text-sm">
-                <div className="flex justify-between text-muted"><span>Subtotal</span><strong className="text-green-dark">{formatPrice(order.subtotal)}</strong></div>
-                {order.fulfillmentMethod === 'DELIVERY' && order.deliveryZoneName && (
-                  <div className="flex justify-between text-muted"><span>Delivery zone</span><strong className="text-green-dark">{order.deliveryZoneName}</strong></div>
-                )}
-                {order.fulfillmentMethod === 'DELIVERY' && order.deliveryAreaName && (
-                  <div className="flex justify-between text-muted"><span>Delivery area</span><strong className="text-green-dark">{order.deliveryAreaName}</strong></div>
-                )}
-                {order.fulfillmentMethod === 'DELIVERY' && order.deliveryMinDays && order.deliveryMaxDays && (
-                  <div className="flex justify-between text-muted"><span>Estimated delivery</span><strong className="text-green-dark">{order.deliveryMinDays === order.deliveryMaxDays ? `${order.deliveryMinDays} business day${order.deliveryMinDays === 1 ? '' : 's'}` : `${order.deliveryMinDays}–${order.deliveryMaxDays} business days`}</strong></div>
-                )}
-                <div className="flex justify-between text-muted"><span>Delivery fee</span><strong className="text-green-dark">{order.deliveryFee === '0' || Number(order.deliveryFee) === 0 ? 'FREE' : formatPrice(order.deliveryFee)}</strong></div>
-                <div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div>
-              </div>
-            </div>
-            {order.paymentStatus !== 'PAID' && (order.paymentMethod === 'PAYSTACK' ? (
-              <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
+                </div>
+                {order.paymentStatus !== 'PAID' && (order.paymentMethod === 'PAYSTACK' ? (
+              <div className="rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
                 <h2 className="text-xl font-bold text-green-dark">Payment verification</h2>
                 {gatewayStatus.kind === 'checking' && (
                   <p className="mt-3 text-sm leading-6 text-muted">Checking your payment status with the provider…</p>
@@ -372,7 +355,7 @@ export function CustomerOrderDetails() {
                 )}
               </div>
             ) : (
-              <div className="mt-6 rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
+              <div className="rounded-2xl border border-line bg-cream/60 p-6 sm:p-8">
                 <h2 className="text-xl font-bold text-green-dark">Payment verification</h2>
                 {order.paymentSubmissions[0]?.status === 'PENDING' ? (
                   <p className="mt-3 text-sm leading-6 text-muted">Payment verification pending. We will update this order after review.</p>
@@ -399,7 +382,7 @@ export function CustomerOrderDetails() {
               </div>
             ))}
             {order.paymentSubmissions.length > 0 && (
-              <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+              <div className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
                 <h2 className="text-xl font-bold text-green-dark">Payment submissions</h2>
                 <div className="mt-4 divide-y divide-line">
                   {order.paymentSubmissions.map((submission) => (
@@ -421,6 +404,41 @@ export function CustomerOrderDetails() {
                 </div>
               </div>
             )}
+              </div>
+              <div className="flex flex-col gap-6">
+                <div className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Order summary</p>
+                  <div className="mt-5 space-y-3 text-sm">
+                    <div className="flex justify-between text-muted"><span>Subtotal</span><strong className="text-green-dark">{formatPrice(order.subtotal)}</strong></div>
+                    {order.fulfillmentMethod === 'DELIVERY' && order.deliveryZoneName && (
+                      <div className="flex justify-between text-muted"><span>Delivery zone</span><strong className="text-green-dark">{order.deliveryZoneName}</strong></div>
+                    )}
+                    {order.fulfillmentMethod === 'DELIVERY' && order.deliveryAreaName && (
+                      <div className="flex justify-between text-muted"><span>Delivery area</span><strong className="text-green-dark">{order.deliveryAreaName}</strong></div>
+                    )}
+                    {order.fulfillmentMethod === 'DELIVERY' && order.deliveryMinDays && order.deliveryMaxDays && (
+                      <div className="flex justify-between text-muted"><span>Estimated delivery</span><strong className="text-green-dark">{order.deliveryMinDays === order.deliveryMaxDays ? `${order.deliveryMinDays} business day${order.deliveryMinDays === 1 ? '' : 's'}` : `${order.deliveryMinDays}–${order.deliveryMaxDays} business days`}</strong></div>
+                    )}
+                    <div className="flex justify-between text-muted"><span>Delivery fee</span><strong className="text-green-dark">{order.deliveryFee === '0' || Number(order.deliveryFee) === 0 ? 'FREE' : formatPrice(order.deliveryFee)}</strong></div>
+                    <div className="flex justify-between border-t border-line pt-3 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(order.total)}</span></div>
+                  </div>
+                </div>
+                <div className="flex-1 rounded-2xl border border-green/20 bg-sage/30 p-6 shadow-sm sm:p-8">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Fulfillment</p>
+                  {order.fulfillmentMethod === 'PICKUP' ? (
+                    <>
+                      <h2 className="mt-2 text-2xl font-bold text-green-dark">Pickup</h2>
+                      <p className="mt-2 text-sm leading-6 text-muted">You will collect this order from the store. We will contact you using your phone number when it is ready.</p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="mt-2 text-2xl font-bold text-green-dark">Delivery</h2>
+                      <p className="mt-2 text-sm leading-6 text-muted">{order.deliveryAddress}, {order.deliveryAreaName ? `${order.deliveryAreaName}, ` : ''}{order.city}{order.state ? `, ${order.state}` : ''}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>

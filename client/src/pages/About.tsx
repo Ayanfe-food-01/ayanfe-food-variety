@@ -33,12 +33,12 @@ const promises = [
   {
     icon: ShieldIcon,
     title: 'Manufactured by us',
-    text: 'We produce our gluten-free products ourselves, so quality is controlled from production to your door.',
+    text: 'We produce our gluten-free food products ourselves, so quality is controlled from production to your door.',
   },
   {
     icon: CheckIcon,
     title: 'Gluten-free, clearly labelled',
-    text: 'We highlight gluten-free products so you can choose with confidence for everyday meals.',
+    text: 'We highlight gluten-free food products so you can choose with confidence for everyday meals.',
   },
   {
     icon: HeartIcon,
@@ -116,7 +116,7 @@ export function About() {
                 Simple, trustworthy food shopping.
               </h2>
               <p className="mt-5 text-base leading-7 text-muted">
-                Our mission is to manufacture quality gluten-free food — produced fresh, easy to trust and easy to get.
+                Our mission is to manufacture quality gluten-free food products — produced fresh, easy to trust and easy to get.
               </p>
             </div>
             <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -158,7 +158,7 @@ export function About() {
               Ready to fill your kitchen with good food?
             </h2>
             <p className="mx-auto mt-5 max-w-[460px] text-base leading-7 text-muted">
-              Browse our range of gluten-free products we produce ourselves, and order your own custom food package.
+              Browse our range of gluten-free food products we produce ourselves, and order your own custom food package.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link className="inline-flex items-center gap-2 rounded-full bg-orange px-7 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105" to="/shop">

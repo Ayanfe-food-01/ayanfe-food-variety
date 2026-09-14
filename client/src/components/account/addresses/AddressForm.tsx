@@ -13,6 +13,7 @@ import {
 } from '../accountStyles'
 
 interface AddressFormProps {
+  embedded?: boolean
   editing: CustomerAccountAddress | null
   isSaving: boolean
   submitError: string | null
@@ -43,7 +44,7 @@ const toLocationValue = (address: CustomerAccountAddress | null): AddressLocatio
       }
     : emptyAddressLocation
 
-export function AddressForm({ editing, isSaving, submitError, onCancel, onSubmit }: AddressFormProps) {
+export function AddressForm({ embedded = false, editing, isSaving, submitError, onCancel, onSubmit }: AddressFormProps) {
   const [label, setLabel] = useState(editing?.label ?? '')
   const [recipientName, setRecipientName] = useState(editing?.recipientName ?? '')
   const [phone, setPhone] = useState(editing?.phone ?? '')
@@ -86,14 +87,17 @@ export function AddressForm({ editing, isSaving, submitError, onCancel, onSubmit
 
   return (
     <form
-      className="rounded-3xl border border-green/20 bg-sage/20 p-6 sm:p-8"
+      id={embedded ? 'address-modal-form' : undefined}
+      className={embedded ? '' : 'rounded-3xl border border-green/20 bg-sage/20 p-6 sm:p-8'}
       onSubmit={handleSubmit}
       noValidate
       aria-label={editing ? 'Edit saved address' : 'Add a saved address'}
     >
-      <h3 className="text-xl font-bold tracking-[-0.03em] text-green-dark">
-        {editing ? 'Edit address' : 'Add a new address'}
-      </h3>
+      {!embedded && (
+        <h3 className="text-xl font-bold tracking-[-0.03em] text-green-dark">
+          {editing ? 'Edit address' : 'Add a new address'}
+        </h3>
+      )}
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div>
@@ -229,23 +233,25 @@ export function AddressForm({ editing, isSaving, submitError, onCancel, onSubmit
         </p>
       )}
 
-      <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-        <button
-          className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50"
-          type="button"
-          onClick={onCancel}
-          disabled={isSaving}
-        >
-          Cancel
-        </button>
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50 sm:order-first"
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? (editing ? 'Saving…' : 'Adding…') : editing ? 'Save address' : 'Add address'}
-        </button>
-      </div>
+      {!embedded && (
+        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+          <button
+            className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+          >
+            Cancel
+          </button>
+          <button
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50 sm:order-first"
+            type="submit"
+            disabled={isSaving}
+          >
+            {isSaving ? (editing ? 'Saving…' : 'Adding…') : editing ? 'Save address' : 'Add address'}
+          </button>
+        </div>
+      )}
     </form>
   )
 }

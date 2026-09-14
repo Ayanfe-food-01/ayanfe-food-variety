@@ -1,14 +1,14 @@
 export const SITE_NAME = 'Ayanfe Food Variety'
-export const HOMEPAGE_TITLE = 'Ayanfe Food Variety | Quality Gluten-Free Foods'
-export const BRAND_MESSAGE = 'Quality Gluten-Free Foods, Made for Your Everyday Needs.'
+export const HOMEPAGE_TITLE = 'Ayanfe Food Variety | Quality Gluten-Free Food Products'
+export const BRAND_MESSAGE = 'Quality Gluten-Free Food Products, Made for Your Everyday Needs.'
 export const DEFAULT_SITE_DESCRIPTION =
   'Shop quality food essentials, carefully selected for your everyday needs, with convenient pickup and delivery options.'
-export const ABOUT_TITLE = 'About Ayanfe Food Variety | Gluten-Free Products'
+export const ABOUT_TITLE = 'About Ayanfe Food Variety | Gluten-Free Food Products'
 export const ABOUT_DESCRIPTION =
   `Ayanfe Food Variety produces and distributes premium gluten-free food products, crafted in-house and delivered to homes, events and corporate clients.`
 export const CONTACT_TITLE = 'Contact Ayanfe Food Variety'
 export const CONTACT_DESCRIPTION =
-  'Contact Ayanfe Food Variety for gluten-free products, pickup information, and delivery support. Find the business contact details and pickup location.'
+  'Contact Ayanfe Food Variety for gluten-free food products, pickup information, and delivery support. Find the business contact details and pickup location.'
 export const HELP_TITLE = 'Help Centre | Ayanfe Food Variety'
 export const HELP_DESCRIPTION =
   'Find answers about ordering and shopping, payment, delivery and pickup, wholesale shopping, order tracking, returns and refunds, and your account at Ayanfe Food Variety.'

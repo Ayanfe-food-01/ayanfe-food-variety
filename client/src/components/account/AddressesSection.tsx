@@ -10,6 +10,7 @@ import {
 } from '../../services/customerAccountService'
 import { useToast } from '../ui/Toast'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
+import { Modal } from '../ui/Modal'
 import { AccountSection } from './AccountSection'
 import { AddressCard } from './addresses/AddressCard'
 import { AddressForm } from './addresses/AddressForm'
@@ -138,7 +139,7 @@ export function AddressesSection() {
   return (
     <AccountSection label="Saved addresses" action={addNewLink}>
       {isLoading ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2" role="status" aria-label="Loading your addresses">
+        <div className="mt-6 space-y-4" role="status" aria-label="Loading your addresses">
           {[0, 1].map((row) => (
             <div className="h-40 rounded-2xl bg-sage/60 animate-pulse" key={row} />
           ))}
@@ -153,16 +154,6 @@ export function AddressesSection() {
           >
             Retry loading addresses
           </button>
-        </div>
-      ) : formOpen ? (
-        <div className="mt-6">
-          <AddressForm
-            editing={editing}
-            isSaving={isSaving}
-            submitError={submitError}
-            onCancel={cancelForm}
-            onSubmit={handleSave}
-          />
         </div>
       ) : addresses.length === 0 ? (
         <div className="mt-8 rounded-2xl bg-cream p-8 text-center">
@@ -179,7 +170,7 @@ export function AddressesSection() {
           </button>
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 space-y-4">
           {addresses.map((address) => (
             <AddressCard
               address={address}
@@ -191,6 +182,44 @@ export function AddressesSection() {
             />
           ))}
         </div>
+      )}
+
+      {formOpen && (
+        <Modal
+          eyebrow="Saved addresses"
+          title={editing ? 'Edit address' : 'Add a new address'}
+          blocking={isSaving}
+          onClose={cancelForm}
+          footer={
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                disabled={isSaving}
+                onClick={cancelForm}
+              >
+                Cancel
+              </button>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+                type="submit"
+                form="address-modal-form"
+                disabled={isSaving}
+              >
+                {isSaving ? (editing ? 'Saving…' : 'Adding…') : editing ? 'Save address' : 'Add address'}
+              </button>
+            </div>
+          }
+        >
+          <AddressForm
+            embedded
+            editing={editing}
+            isSaving={isSaving}
+            submitError={submitError}
+            onCancel={cancelForm}
+            onSubmit={handleSave}
+          />
+        </Modal>
       )}
 
       {deleting && (

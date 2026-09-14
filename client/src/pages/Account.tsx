@@ -107,22 +107,36 @@ export function Account() {
               </button>
             </div>
           ) : !profile || isAuthLoading ? (
-            <div className="mx-auto max-w-xl space-y-10" role="status" aria-label="Loading your account">
-              <div className="space-y-3 text-center">
-                <div className="mx-auto size-16 rounded-full bg-sage/60 animate-pulse" />
-                <div className="mx-auto h-4 w-40 rounded bg-sage/60 animate-pulse" />
-                <div className="mx-auto h-3 w-56 rounded bg-sage/40 animate-pulse" />
+            <div className="mx-auto w-full" role="status" aria-label="Loading your account">
+              <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+                <div className="flex-1">
+                  <div className="space-y-3 text-center">
+                    <div className="mx-auto size-16 rounded-full bg-sage/60 animate-pulse" />
+                    <div className="mx-auto h-4 w-40 rounded bg-sage/60 animate-pulse" />
+                    <div className="mx-auto h-3 w-56 rounded bg-sage/40 animate-pulse" />
+                  </div>
+                  <div className="mt-8 h-52 rounded-3xl bg-sage/60 animate-pulse" />
+                </div>
+                <div className="flex-1 space-y-8">
+                  <div className="h-52 rounded-3xl bg-sage/60 animate-pulse" />
+                  <div className="h-56 rounded-3xl bg-sage/60 animate-pulse" />
+                </div>
               </div>
-              {[0, 1, 2].map((row) => (
-                <div className="h-44 rounded-3xl bg-sage/60 animate-pulse" key={row} />
-              ))}
             </div>
           ) : (
-            <div className="mx-auto max-w-xl space-y-10">
-              <IdentityHeader name={profile.name} email={profile.email} />
-              <ProfileSection profile={profile} onProfileUpdated={handleProfileUpdated} />
-              <AddressesSection />
-              <MoreSection />
+            <div className="mx-auto grid w-full gap-8 lg:grid-cols-2 lg:grid-rows-2">
+              <div className="min-w-0 rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:col-start-1 lg:row-start-1">
+                <IdentityHeader name={profile.name} />
+              </div>
+              <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+                <ProfileSection profile={profile} onProfileUpdated={handleProfileUpdated} />
+              </div>
+              <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+                <AddressesSection />
+              </div>
+              <div className="min-w-0 lg:col-start-2 lg:row-start-2">
+                <MoreSection />
+              </div>
             </div>
           )}
         </section>

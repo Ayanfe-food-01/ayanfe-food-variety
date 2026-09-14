@@ -46,7 +46,7 @@ export function NotificationPreferences() {
           </div>
         </section>
         <section className="container py-12 sm:py-16 lg:py-20">
-          <div className="mx-auto max-w-xl">
+          <div className="mx-auto max-w-2xl">
             {!isAuthLoading && !user ? (
               <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
                 <h2 className="text-3xl font-bold text-green-dark">Sign in to view your preferences</h2>

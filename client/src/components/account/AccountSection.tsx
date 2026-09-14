@@ -9,7 +9,7 @@ interface AccountSectionProps {
 
 export function AccountSection({ label, action, children }: AccountSectionProps) {
   return (
-    <section aria-labelledby={`account-section-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+    <section className="flex h-full flex-col" aria-labelledby={`account-section-${label.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="flex items-baseline justify-between gap-4">
         <h2
           className={accountSectionLabelClassName}
@@ -19,7 +19,7 @@ export function AccountSection({ label, action, children }: AccountSectionProps)
         </h2>
         {action}
       </div>
-      <div className={`${accountCardClassName} mt-3`}>{children}</div>
+      <div className={`${accountCardClassName} mt-3 grow`}>{children}</div>
     </section>
   )
 }

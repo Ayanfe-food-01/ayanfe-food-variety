@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { accountCardClassName, accountSectionLabelClassName } from './accountStyles'
+import { AccountCard } from './AccountCard'
 
 interface AccountSectionProps {
   label: string
@@ -8,18 +8,19 @@ interface AccountSectionProps {
 }
 
 export function AccountSection({ label, action, children }: AccountSectionProps) {
+  const sectionId = `account-section-${label.toLowerCase().replace(/\s+/g, '-')}`
+  const header = (
+    <div className="flex items-center justify-between gap-4">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange" id={sectionId}>
+        {label}
+      </h2>
+      {action}
+    </div>
+  )
+
   return (
-    <section className="flex h-full flex-col" aria-labelledby={`account-section-${label.toLowerCase().replace(/\s+/g, '-')}`}>
-      <div className="flex items-baseline justify-between gap-4">
-        <h2
-          className={accountSectionLabelClassName}
-          id={`account-section-${label.toLowerCase().replace(/\s+/g, '-')}`}
-        >
-          {label}
-        </h2>
-        {action}
-      </div>
-      <div className={`${accountCardClassName} mt-3 grow`}>{children}</div>
+    <section aria-labelledby={sectionId}>
+      <AccountCard header={header}>{children}</AccountCard>
     </section>
   )
 }

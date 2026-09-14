@@ -11,7 +11,8 @@ import {
 import { useToast } from '../ui/Toast'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { Modal } from '../ui/Modal'
-import { AccountSection } from './AccountSection'
+import { MapPinIcon, HomeIcon } from '../../assets/icons'
+import { AccountCard } from './AccountCard'
 import { AddressCard } from './addresses/AddressCard'
 import { AddressForm } from './addresses/AddressForm'
 
@@ -26,6 +27,7 @@ export function AddressesSection() {
   const [isSaving, setIsSaving] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<CustomerAccountAddress | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -112,7 +114,8 @@ export function AddressesSection() {
   }
 
   const handleDelete = async () => {
-    if (!deleting) return
+    if (!deleting || isDeleting) return
+    setIsDeleting(true)
     try {
       const updated = await deleteCustomerAccountAddressService(deleting.id)
       setAddresses(updated)
@@ -123,6 +126,8 @@ export function AddressesSection() {
         caught instanceof ApiError ? caught.message : 'This address could not be deleted.',
         'error',
       )
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -136,16 +141,28 @@ export function AddressesSection() {
     </button>
   ) : undefined
 
+  const header = (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sage/60 text-green">
+          <MapPinIcon size={18} />
+        </span>
+        <h2 className="text-xl font-bold text-green-dark">Saved Addresses</h2>
+      </div>
+      {addNewLink}
+    </div>
+  )
+
   return (
-    <AccountSection label="Saved addresses" action={addNewLink}>
+    <AccountCard id="addresses" header={header}>
       {isLoading ? (
-        <div className="mt-6 space-y-4" role="status" aria-label="Loading your addresses">
+        <div className="space-y-4" role="status" aria-label="Loading your addresses">
           {[0, 1].map((row) => (
             <div className="h-40 rounded-2xl bg-sage/60 animate-pulse" key={row} />
           ))}
         </div>
       ) : error ? (
-        <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">
+        <div className="rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">
           <p>{error}</p>
           <button
             className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-orange/30 bg-white px-3 py-2 text-xs font-bold text-green-dark hover:bg-cream"
@@ -156,13 +173,16 @@ export function AddressesSection() {
           </button>
         </div>
       ) : addresses.length === 0 ? (
-        <div className="mt-8 rounded-2xl bg-cream p-8 text-center">
-          <p className="font-bold text-green-dark">No saved addresses yet.</p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-muted">
+        <div className="flex flex-col items-center py-10 text-center">
+          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-cream text-green">
+            <HomeIcon size={28} />
+          </span>
+          <p className="mt-4 text-lg font-bold text-green-dark">No saved addresses yet.</p>
+          <p className="mt-1 max-w-sm text-sm text-muted">
             Save your delivery address to make checkout faster.
           </p>
           <button
-            className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-green px-5 py-2.5 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
+            className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark"
             type="button"
             onClick={openCreate}
           >
@@ -170,7 +190,7 @@ export function AddressesSection() {
           </button>
         </div>
       ) : (
-        <div className="mt-6 space-y-4">
+        <div className="space-y-4">
           {addresses.map((address) => (
             <AddressCard
               address={address}
@@ -227,11 +247,13 @@ export function AddressesSection() {
           title={`Delete “${deleting.label}” address?`}
           description="This saved address will be removed from your account. Orders already placed are not affected."
           confirmLabel="Delete address"
+          isBusy={isDeleting}
+          busyLabel="Deleting…"
           error={submitError}
           onCancel={() => setDeleting(null)}
           onConfirm={() => void handleDelete()}
         />
       )}
-    </AccountSection>
+    </AccountCard>
   )
 }

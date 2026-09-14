@@ -5,7 +5,6 @@ import { resolveCheckoutDelivery } from './checkout.delivery.js'
 import { nextOrderNumber, orderInclude } from './order.mapper.js'
 import type { OrderWithItems } from './order.mapper.js'
 import type { CheckoutInput } from './order.types.js'
-import { zoneCoverageLabel } from '../delivery-zones/delivery-zone-label.js'
 import type { CheckoutCartItem, CheckoutOrderItem, CheckoutPaymentSettings } from './checkout.cart.js'
 
 export interface CreateCheckoutOrderContext {
@@ -70,16 +69,9 @@ export async function createCheckoutOrder(
           minDeliveryDays: true,
           maxDeliveryDays: true,
           isActive: true,
-          deliveryZoneCities: { select: { city: { select: { name: true } } } },
-          deliveryZoneAreas: { select: { area: { select: { name: true, city: { select: { name: true } } } } } },
         },
       })
       zone = fallback
-        ? {
-          ...fallback,
-          label: zoneCoverageLabel(fallback),
-        }
-        : null
     }
 
     if (!zone) {
@@ -92,7 +84,6 @@ export async function createCheckoutOrder(
       throw new HttpError(409, 'Delivery is not currently available for this location. Please choose another location.')
     }
     deliveryZoneId = zone.id
-    deliveryZoneName = zone.label
     deliveryMinDays = zone.minDeliveryDays ?? null
     deliveryMaxDays = zone.maxDeliveryDays ?? null
     if (zone.freeDeliveryThreshold !== null && subtotal.gte(zone.freeDeliveryThreshold)) {
@@ -104,6 +95,12 @@ export async function createCheckoutOrder(
     deliveryStateName = resolved.stateName ?? deliveryStateName
     deliveryAreaId = resolved.area?.id ?? null
     deliveryAreaName = resolved.area?.name ?? null
+    // The delivery zone snapshot records the specific location the customer
+    // chose. A zone is identified by the whole list of cities/areas it covers,
+    // so storing that label here would show every city in the zone on the
+    // order. We intentionally store the resolved city instead — the customer's
+    // own selection — which is what admin and customer views should display.
+    deliveryZoneName = deliveryCityName.trim() || null
   }
 
   const order = await transaction.order.create({

@@ -92,6 +92,7 @@ export function ImageUploadField({
       <label className="block text-sm font-bold text-green-dark">
         {label}
         <input
+          key={previewUrl || currentUrl || ''}
           className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal file:mr-3 file:border-0 file:bg-sage file:px-3 file:py-1 file:font-bold"
           type="file"
           accept={accept}

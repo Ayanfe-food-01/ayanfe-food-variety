@@ -41,16 +41,6 @@
   overflow: hidden;
 }
 
-.admin-product-form-steps {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.admin-product-form-steps > li {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
 @media (max-width: 639px) {
   .admin-products-page-header {
     gap: 16px;

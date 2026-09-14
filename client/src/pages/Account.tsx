@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
@@ -11,10 +12,11 @@ import {
 } from '../services/customerAccountService'
 import { Seo } from '../seo/Seo'
 import { ACCOUNT_TITLE } from '../seo/config'
+import { Breadcrumb } from '../components/ui/Breadcrumb'
+import { PersonalInformationCard } from '../components/account/PersonalInformationCard'
 import { AddressesSection } from '../components/account/AddressesSection'
-import { IdentityHeader } from '../components/account/IdentityHeader'
-import { MoreSection } from '../components/account/more/MoreSection'
-import { ProfileSection } from '../components/account/profile/ProfileSection'
+import { SecurityPreferencesCard } from '../components/account/security/SecurityPreferencesCard'
+import { HeadsetIcon, ChatIcon } from '../assets/icons'
 
 interface AccountProfileState {
   userId: string
@@ -75,23 +77,42 @@ export function Account() {
 
   return (
     <>
-      <Seo title={`${ACCOUNT_TITLE}`} description="Manage your Ayanfe Food Variety profile, saved addresses and account preferences." canonicalPath="/account" />
+      <Seo
+        title={`${ACCOUNT_TITLE}`}
+        description="Manage your Ayanfe Food Variety profile, saved addresses and account preferences."
+        canonicalPath="/account"
+      />
       <Navbar />
       <main className="flex-1">
-        <section className="border-b border-line/70 bg-sage/35">
+        <section className="relative overflow-hidden border-b border-line/70 bg-sage/35">
           <div className="container py-12 sm:py-14">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Your account</p>
-            <h1 className="m-0 text-5xl font-bold tracking-[-0.05em] text-green-dark sm:text-6xl">Account</h1>
+            <Breadcrumb className="mb-6" items={[{ label: 'Home', href: '/' }, { label: 'Account' }]} />
+            <div className="relative flex justify-between">
+              <div>
+                <h1 className="text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">
+                  Account Settings
+                </h1>
+                <p className="mt-2 text-base text-muted">
+                  Manage your profile, security and preferences.
+                </p>
+              </div>
+              
+            </div>
           </div>
         </section>
-        <section className="container py-12 sm:py-16 lg:py-20">
+
+        <section className="container py-8 lg:py-12">
           {!isAuthLoading && !user ? (
             <div className="rounded-3xl border border-line bg-white px-6 py-14 text-center shadow-sm">
               <h2 className="text-3xl font-bold text-green-dark">Sign in to manage your account</h2>
               <p className="mx-auto mt-3 max-w-md text-sm text-muted">
                 You need to be signed in to view your profile, saved addresses and preferences.
               </p>
-              <button className="mt-6 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" type="button" onClick={() => void openAuth()}>
+              <button
+                className="mt-6 rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark"
+                type="button"
+                onClick={() => void openAuth()}
+              >
                 Sign in or create an account
               </button>
             </div>
@@ -108,36 +129,46 @@ export function Account() {
             </div>
           ) : !profile || isAuthLoading ? (
             <div className="mx-auto w-full" role="status" aria-label="Loading your account">
-              <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-                <div className="flex-1">
-                  <div className="space-y-3 text-center">
-                    <div className="mx-auto size-16 rounded-full bg-sage/60 animate-pulse" />
-                    <div className="mx-auto h-4 w-40 rounded bg-sage/60 animate-pulse" />
-                    <div className="mx-auto h-3 w-56 rounded bg-sage/40 animate-pulse" />
-                  </div>
-                  <div className="mt-8 h-52 rounded-3xl bg-sage/60 animate-pulse" />
+              <div className="space-y-8">
+                <div className="h-64 rounded-3xl bg-sage/60 animate-pulse" />
+                <div className="grid gap-8 md:grid-cols-2">
+                  <div className="h-64 rounded-3xl bg-sage/60 animate-pulse" />
+                  <div className="h-64 rounded-3xl bg-sage/60 animate-pulse" />
                 </div>
-                <div className="flex-1 space-y-8">
-                  <div className="h-52 rounded-3xl bg-sage/60 animate-pulse" />
-                  <div className="h-56 rounded-3xl bg-sage/60 animate-pulse" />
-                </div>
+                <div className="h-28 rounded-3xl bg-sage/60 animate-pulse" />
               </div>
             </div>
           ) : (
-            <div className="mx-auto grid w-full gap-8 lg:grid-cols-2 lg:grid-rows-2">
-              <div className="min-w-0 rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8 lg:col-start-1 lg:row-start-1">
-                <IdentityHeader name={profile.name} />
+            <>
+              <div className="flex flex-col gap-8">
+                <PersonalInformationCard profile={profile} onProfileUpdated={handleProfileUpdated} />
+                <div className="grid gap-8 md:grid-cols-2">
+                  <AddressesSection />
+                  <SecurityPreferencesCard />
+                </div>
+                <div className="rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8">
+                  <div className="flex flex-col items-start text-left sm:flex-row sm:items-center sm:text-left">
+                    <div className="flex items-center gap-4">
+                      <span className="grid size-12 shrink-0 place-items-center rounded-full bg-sage text-green">
+                        <HeadsetIcon size={22} />
+                      </span>
+                      <div>
+                        <p className="text-lg font-bold text-green-dark">Need help?</p>
+                        <p className="mt-0.5 text-sm text-muted">
+                          Our support team is always here to help you.
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      to="/contact"
+                      className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-green px-6 py-3 text-sm font-bold text-cream transition-colors hover:bg-green-dark sm:ml-auto sm:mt-0"
+                    >
+                      <ChatIcon size={16} /> Contact Support
+                    </Link>
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-                <ProfileSection profile={profile} onProfileUpdated={handleProfileUpdated} />
-              </div>
-              <div className="min-w-0 lg:col-start-2 lg:row-start-1">
-                <AddressesSection />
-              </div>
-              <div className="min-w-0 lg:col-start-2 lg:row-start-2">
-                <MoreSection />
-              </div>
-            </div>
+            </>
           )}
         </section>
       </main>

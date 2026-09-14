@@ -60,6 +60,7 @@ const navGroups: NavGroup[] = [
     links: [
       { label: 'Orders', to: '/admin/orders', icon: <ShoppingCartIcon size={18} strokeWidth={2} /> },
       { label: 'Quote Requests', to: '/admin/quote-requests', icon: <FileTextIcon size={18} strokeWidth={2} /> },
+      { label: 'Contact Messages', to: '/admin/contact', icon: <MailIcon size={18} strokeWidth={2} /> },
       { label: 'Analytics', to: '/admin/analytics', icon: <SparkIcon size={18} strokeWidth={2} /> },
       { label: 'Customers', to: '/admin/customers', icon: <UserIcon size={18} strokeWidth={2} /> },
     ],

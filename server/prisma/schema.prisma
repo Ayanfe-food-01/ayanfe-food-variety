@@ -98,6 +98,15 @@ enum AdminNotificationType {
   NEW_QUOTE_REQUEST
   QUOTE_ACCEPTED
   QUOTE_REJECTED
+  NEW_CONTACT_MESSAGE
+}
+
+// Lifecycle of a customer-submitted contact form message. NEW means it has
+// arrived and not yet been handled; RESOLVED marks it as dealt with so the
+// admin inbox can focus on what still needs attention.
+enum ContactMessageStatus {
+  NEW
+  RESOLVED
 }
 
 enum QuoteRequestStatus {
@@ -395,9 +404,11 @@ model Order {
   note                   String?
   subtotal               Decimal                  @db.Decimal(12, 2)
   deliveryFee            Decimal                  @default(0) @map("delivery_fee") @db.Decimal(12, 2)
-  // Delivery zone snapshot captured at order time. The name and fee are stored
-  // directly on the order so historical orders are never affected by later
-  // edits to a zone's fee or name. deliveryZoneId is informational only.
+  // Delivery zone snapshot captured at order time. Stores the specific city the
+  // customer chose at checkout (not the zone's full coverage label, which lists
+  // every city/area the zone serves). The fee is stored on deliveryFee so
+  // historical orders are never affected by later edits. deliveryZoneId is
+  // informational only.
   deliveryZoneId         String?                  @map("delivery_zone_id") @db.Uuid
   deliveryZoneName       String?                  @map("delivery_zone_name") @db.VarChar(120)
   // Delivery area snapshot captured at order time, following the same pattern as
@@ -588,6 +599,24 @@ model StoreSettings {
   @@map("store_settings")
 }
 
+model ContactMessage {
+  id         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requestKey String                @unique @map("request_key") @db.VarChar(64)
+  userId     String?               @map("user_id") @db.Uuid
+  name       String                @db.VarChar(180)
+  email      String                @db.VarChar(255)
+  subject    String                @db.VarChar(180)
+  message    String                @db.Text
+  status     ContactMessageStatus  @default(NEW)
+  createdAt  DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user       User?                 @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([status, createdAt(sort: Desc)], map: "contact_messages_status_created_idx")
+  @@index([userId], map: "contact_messages_user_id_idx")
+  @@map("contact_messages")
+}
+
 model PromotionalBanner {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title           String   @db.VarChar(180)
@@ -634,6 +663,7 @@ model User {
   quoteRequests       QuoteRequest[]
   reviews             Review[]
   addresses           CustomerAddress[]
+  contactMessages     ContactMessage[]
 
   @@map("users")
 }

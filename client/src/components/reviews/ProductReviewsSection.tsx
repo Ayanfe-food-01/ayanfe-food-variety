@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import type { UseProductReviewsResult } from '../../hooks/useProductReviews'
 import type { ProductRatingDistribution, ProductReviewItem } from '../../services/reviewService'
-import { formatReviewDate } from '../../utils/dateFormat'
+import { formatNumericDate } from '../../utils/dateFormat'
 import { ReviewStars } from './ReviewStars'
+import { VerifiedPurchaseBadge } from './VerifiedPurchaseBadge'
 import { SectionHeader } from '../ui/SectionHeader'
 
 interface ProductReviewsSectionProps {
@@ -26,20 +27,21 @@ function ReviewCard({ review }: { review: ProductReviewItem }) {
   return (
     <li className="py-6 sm:py-7">
       <article aria-label={`Review by ${review.authorName}`}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-center justify-between gap-3">
           <ReviewStars
             value={review.rating}
             size={16}
             label={`${review.rating} out of 5 stars`}
           />
+          {review.verifiedPurchase && <VerifiedPurchaseBadge />}
         </div>
         <blockquote className="mt-3 text-sm leading-6 text-muted sm:text-base sm:leading-7">
-          “{review.content}”
+          "{review.content}"
         </blockquote>
         <footer className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted">
           <span className="font-bold text-green-dark">{review.authorName}</span>
           <span aria-hidden="true">·</span>
-          <time dateTime={review.createdAt}>{formatReviewDate(review.createdAt)}</time>
+          <time dateTime={review.createdAt}>{formatNumericDate(review.createdAt)}</time>
         </footer>
       </article>
     </li>

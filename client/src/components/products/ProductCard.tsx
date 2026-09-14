@@ -78,7 +78,7 @@ export function ProductCard({ product, variant = 'full' }: ProductCardProps) {
               <span className="wholesale-price-value">{formatPrice(wholesaleFrom)}</span>
             </strong>
           ) : (
-            <div className="product-price-row">
+            <>
               <strong className="product-price">
                 <ProductPrice
                   originalPrice={product.price}
@@ -88,7 +88,7 @@ export function ProductCard({ product, variant = 'full' }: ProductCardProps) {
                 />
               </strong>
               <ProductRating rating={product.averageRating} count={product.reviewCount} />
-            </div>
+            </>
           )}
         </div>
       </Link>

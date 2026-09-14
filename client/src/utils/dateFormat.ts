@@ -16,6 +16,9 @@ export const formatDate = (value: string, includeTime = false): string =>
 export const formatReviewDate = (value: string): string =>
   new Intl.DateTimeFormat('en-NG', { month: 'long', year: 'numeric' }).format(new Date(value))
 
+export const formatNumericDate = (value: string): string =>
+  new Intl.DateTimeFormat('en-NG', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
+
 const RELATIVE_DIVISORS: Array<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> = [
   { unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
   { unit: 'month', ms: 30 * 24 * 60 * 60 * 1000 },

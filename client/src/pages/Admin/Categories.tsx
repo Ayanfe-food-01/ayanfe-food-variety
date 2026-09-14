@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { ActionMenu, ActionMenuButton, ActionMenuLink } from '../../components/admin/ActionMenu'
+import { useSearchParams } from 'react-router-dom'
+import { ActionMenu, ActionMenuButton } from '../../components/admin/ActionMenu'
 import { AdminPagination } from '../../components/admin/AdminPagination'
 import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { FilterBar } from '../../components/filters/FilterBar'
@@ -19,6 +19,7 @@ import {
 import type { Category } from '../../types/category'
 import { formatDate as formatCompatibleDate } from '../../utils/dateFormat'
 import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable'
+import { CategoryFormModal } from '../../components/admin/categories/CategoryFormModal'
 
 const pageSize = 10
 const formatDate = (value?: string) => value
@@ -44,15 +45,16 @@ interface CategoryActionsProps {
   category: Category
   isBusy: boolean
   onToggleStatus: () => void
+  onEdit: () => void
   onDelete: () => void
 }
 
-function CategoryActions({ category, isBusy, onToggleStatus, onDelete }: CategoryActionsProps) {
+function CategoryActions({ category, isBusy, onToggleStatus, onEdit, onDelete }: CategoryActionsProps) {
   return (
     <ActionMenu ariaLabel={`Actions for ${category.name}`} isBusy={isBusy} fixedPosition>
       {(close) => (
         <>
-          <ActionMenuLink to={`/admin/categories/${category.id}/edit`} onClick={close}>Edit</ActionMenuLink>
+          <ActionMenuButton onClick={() => { close(); onEdit() }}>Edit</ActionMenuButton>
           <ActionMenuButton tone="accent" onClick={() => { close(); onToggleStatus() }}>{category.isActive ? 'Deactivate' : 'Activate'}</ActionMenuButton>
           <ActionMenuButton tone="danger" onClick={() => { close(); onDelete() }}>Delete</ActionMenuButton>
         </>
@@ -79,6 +81,7 @@ export function Categories() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [categoryModal, setCategoryModal] = useState<{ category: Category | null } | null>(null)
 
   useInitialRouteLoad(!isLoading)
 
@@ -160,6 +163,14 @@ export function Categories() {
   const currentPage = result?.pagination.page ?? query.page
   const totalPages = result?.pagination.totalPages ?? 1
 
+  const handleCategorySaved = (saved: Category) => {
+    void saved
+    const wasEditing = Boolean(categoryModal?.category)
+    showToast(`Category ${wasEditing ? 'updated' : 'created'} successfully.`, 'success')
+    setCategoryModal(null)
+    setQuery((current) => ({ ...current }))
+  }
+
   return (
     <>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
@@ -169,7 +180,7 @@ export function Categories() {
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Categories</h1>
           <p className="mt-3 text-sm text-muted">Create and control the categories available to your product catalog.</p>
         </div>
-        <Link className="inline-flex w-full justify-center rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark sm:w-fit" to="/admin/categories/new">Add category</Link>
+        <button className="inline-flex w-full justify-center rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark sm:w-fit" type="button" onClick={() => setCategoryModal({ category: null })}>Add category</button>
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Category filters">
@@ -198,7 +209,7 @@ export function Categories() {
         <div className="mt-8 rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
           <h2 className="text-xl font-bold text-green-dark">No categories yet</h2>
           <p className="mt-2 text-sm text-muted">Create your first category to start organizing products.</p>
-          <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/categories/new">Add category</Link>
+          <button className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" type="button" onClick={() => setCategoryModal({ category: null })}>Add category</button>
         </div>
       ) : (
         <div className="mt-8 rounded-2xl border border-line bg-white shadow-sm">
@@ -222,6 +233,7 @@ export function Categories() {
                     category={category}
                     isBusy={busyId === category.id || deletingId === category.id}
                     onToggleStatus={() => requestStatusChange(category)}
+                    onEdit={() => setCategoryModal({ category })}
                     onDelete={() => openDeleteConfirmation(category)}
                   />
                 </div>
@@ -264,7 +276,7 @@ export function Categories() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${category.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>{category.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.createdAt)}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-xs text-muted">{formatDate(category.updatedAt)}</td>
-                      <td className="px-5 py-4"><CategoryActions category={category} isBusy={busyId === category.id || deletingId === category.id} onToggleStatus={() => requestStatusChange(category)} onDelete={() => openDeleteConfirmation(category)} /></td>
+                      <td className="px-5 py-4"><CategoryActions category={category} isBusy={busyId === category.id || deletingId === category.id} onToggleStatus={() => requestStatusChange(category)} onEdit={() => setCategoryModal({ category })} onDelete={() => openDeleteConfirmation(category)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -286,10 +298,10 @@ export function Categories() {
           onConfirm={() => void confirmStatusChange()}
         />
       )}
-      {categoryToDelete && (
+{categoryToDelete && (
         <ConfirmDialog
           eyebrow="Delete category"
-          title={`Delete “${categoryToDelete.name}”?`}
+          title={`Delete "${categoryToDelete.name}"?`}
           description="This is only allowed when the category has no products."
           error={deleteError}
           isBusy={deletingId === categoryToDelete.id}
@@ -297,6 +309,13 @@ export function Categories() {
           busyLabel="Deleting…"
           onCancel={() => setCategoryToDelete(null)}
           onConfirm={() => void confirmDelete()}
+        />
+      )}
+      {categoryModal && (
+        <CategoryFormModal
+          category={categoryModal.category}
+          onClose={() => setCategoryModal(null)}
+          onSaved={handleCategorySaved}
         />
       )}
     </>

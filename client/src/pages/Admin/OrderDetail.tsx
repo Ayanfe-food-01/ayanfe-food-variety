@@ -133,8 +133,7 @@ export function OrderDetail() {
       </div>
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
-      <div className="mt-8 grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
-        <div className="space-y-5">
+      <div className="mt-8 space-y-5">
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Customer information</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -192,7 +191,7 @@ export function OrderDetail() {
           </section>
         </div>
 
-        <div className="space-y-5">
+        <div className="mt-8 grid gap-5 xl:grid-cols-2">
           <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Order status</h2>
             <p className="mt-1 text-sm text-muted">Payment status remains separate and cannot be changed here.</p>
@@ -205,13 +204,11 @@ export function OrderDetail() {
             <label className="mt-4 block text-sm font-bold text-green-dark">Internal note <textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the audit history" maxLength={1000} /></label>
              <button className="mt-4 w-full rounded-xl bg-green px-4 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={isSaving || status === order.orderStatus} onClick={saveStatus}>{isSaving ? 'Updating…' : 'Save order status'}</button>
           </section>
-
-          <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
+        <section className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-green-dark">Status history</h2>
             {order.statusHistory.length === 0 ? <p className="mt-4 text-sm text-muted">No status changes have been recorded.</p> : <div className="mt-4 space-y-4">{order.statusHistory.map((history) => <div className="border-l-2 border-sage pl-4" key={history.id}><p className="text-sm font-bold text-green-dark">{history.previousStatus ? `${formatOrderStatus(history.previousStatus)} → ` : 'Created → '}{formatOrderStatus(history.newStatus)}</p><p className="mt-1 text-xs text-muted">{formatDate(history.createdAt)} · {history.changedBy?.name ?? 'Guest checkout'}</p>{history.note && <p className="mt-2 text-sm text-muted">{history.note}</p>}</div>)}</div>}
           </section>
         </div>
-      </div>
       {isCancelConfirmationOpen && (
         <ConfirmDialog
           eyebrow="Cancel order"

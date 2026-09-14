@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { CustomerAccountAddress, CustomerAddressSaveInput } from '../../../services/customerAccountService'
 import { isValidE164PhoneNumber } from '../../../utils/phone'
 import { PhoneInputField } from '../../ui/PhoneInput'
+import { SelectField } from '../../ui/SelectField'
 import {
   AddressLocationFields,
 } from './AddressLocationFields'
@@ -60,7 +61,6 @@ export function AddressForm({ embedded = false, editing, isSaving, submitError, 
     event.preventDefault()
     const next: AddressFormErrors = {}
     if (!label.trim()) next.label = 'Please give this address a label.'
-    else if (label.trim().length > 40) next.label = 'Keep the label to 40 characters or fewer.'
     if (!recipientName.trim()) next.recipientName = 'Please enter the recipient’s name.'
     if (!phone.trim()) next.phone = 'Please enter a phone number.'
     else if (!isValidE164PhoneNumber(phone)) next.phone = 'Please enter a valid phone number.'
@@ -104,23 +104,24 @@ export function AddressForm({ embedded = false, editing, isSaving, submitError, 
           <label className={accountFieldLabelClassName} htmlFor="address-label">
             Address label <span className="text-orange" aria-hidden="true">*</span>
           </label>
-          <input
-            className={accountInputClassName(Boolean(errors.label))}
-            id="address-label"
-            name="label"
-            type="text"
-            list="address-label-suggestions"
-            autoComplete="off"
-            placeholder="Home, Office, Other…"
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-            aria-invalid={Boolean(errors.label)}
-            aria-describedby={errors.label ? 'address-label-error' : undefined}
-            required
-          />
-          <datalist id="address-label-suggestions">
-            {labelSuggestions.map((suggestion) => <option value={suggestion} key={suggestion} />)}
-          </datalist>
+          <div className="mt-2">
+            <SelectField
+              id="address-label"
+              name="label"
+              ariaLabel="Address label"
+              placeholder="Select a label"
+              value={label}
+              options={
+                labelSuggestions.some((suggestion) => suggestion === label)
+                  ? labelSuggestions.map((suggestion) => ({ value: suggestion, label: suggestion }))
+                  : [{ value: label, label }, ...labelSuggestions.map((suggestion) => ({ value: suggestion, label: suggestion }))]
+              }
+              aria-invalid={Boolean(errors.label)}
+              aria-describedby={errors.label ? 'address-label-error' : undefined}
+              required
+              onChange={setLabel}
+            />
+          </div>
           {errors.label && (
             <p className={accountFieldErrorClassName} id="address-label-error" role="alert">{errors.label}</p>
           )}

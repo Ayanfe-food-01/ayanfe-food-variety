@@ -6,6 +6,7 @@ import { cartRoutes } from '../modules/cart/cart.routes.js'
 import { customerCartRoutes } from '../modules/cart/cart.customer.routes.js'
 import { customerAccountRoutes } from '../modules/customers/customer-account.routes.js'
 import { categoryRoutes } from '../modules/categories/category.routes.js'
+import { contactRoutes } from '../modules/contact/contact.routes.js'
 import { customerStoriesRoutes } from '../modules/customer-stories/customer-stories.routes.js'
 import { deliveryZoneRoutes } from '../modules/delivery-zones/delivery-zone.routes.js'
 import { orderRoutes } from '../modules/orders/order.routes.js'
@@ -18,6 +19,7 @@ import { wishlistRoutes } from '../modules/wishlist/wishlist.routes.js'
 export const apiRoutes = Router()
 
 apiRoutes.use('/categories', categoryRoutes)
+apiRoutes.use('/contact', contactRoutes)
 apiRoutes.use('/products', productRoutes)
 apiRoutes.use('/orders', orderRoutes)
 apiRoutes.use('/payments', paymentRoutes)

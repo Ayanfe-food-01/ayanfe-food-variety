@@ -1,6 +1,5 @@
 import { Prisma } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
-import { zoneCoverageLabel } from '../delivery-zones/delivery-zone-label.js'
 
 // Resolves the active delivery zone that serves a selected city, using the
 // State -> City -> DeliveryZoneCity -> DeliveryZone mapping (delivery redesign
@@ -13,8 +12,6 @@ const ZONE_SELECT = {
   minDeliveryDays: true,
   maxDeliveryDays: true,
   isActive: true,
-  deliveryZoneCities: { select: { city: { select: { name: true } } } },
-  deliveryZoneAreas: { select: { area: { select: { name: true, city: { select: { name: true } } } } } },
 } satisfies Prisma.DeliveryZoneSelect
 
 type CheckoutZone = {
@@ -24,7 +21,6 @@ type CheckoutZone = {
   minDeliveryDays: number | null
   maxDeliveryDays: number | null
   isActive: boolean
-  label: string
 }
 
 const toCheckoutZone = (zone: {
@@ -34,13 +30,15 @@ const toCheckoutZone = (zone: {
   minDeliveryDays: number | null
   maxDeliveryDays: number | null
   isActive: boolean
-  deliveryZoneCities: Array<{ city: { name: string } }>
-  deliveryZoneAreas: Array<{ area: { name: string; city: { name: string } } }>
 } | null): CheckoutZone | null => {
   if (!zone) return null
   return {
-    ...zone,
-    label: zoneCoverageLabel(zone),
+    id: zone.id,
+    fee: zone.fee,
+    freeDeliveryThreshold: zone.freeDeliveryThreshold,
+    minDeliveryDays: zone.minDeliveryDays,
+    maxDeliveryDays: zone.maxDeliveryDays,
+    isActive: zone.isActive,
   }
 }
 

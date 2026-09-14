@@ -97,23 +97,23 @@ export function Navbar() {
     if (!host) return
 
     const recompute = () => {
-      // Only compute on desktop; the nav is hidden (width 0) on small screens.
       if (host.clientWidth === 0) return
       const measureHost = desktopNavMeasureRef.current
       if (!measureHost || measureHost.children.length === 0 || host.clientWidth === 0) return
 
       const gap = parseFloat(getComputedStyle(host).gap) || 27
-      const linkWidths = Array.from(measureHost.children).map(
-        (element) => element.getBoundingClientRect().width,
-      )
-      const wishlistWidth = host.querySelector<HTMLElement>('.wishlist-nav-link')?.getBoundingClientRect().width ?? 0
+      const linkWidths = Array.from(measureHost.children)
+        .filter((el) => el.tagName === 'SPAN' && !el.classList.contains('more-nav-trigger'))
+        .map((element) => element.getBoundingClientRect().width)
+      // Always measure wishlist and More trigger from the measurement host
+      // so widths are consistent regardless of which items are currently rendered.
+      const measureWishlist = measureHost.querySelector<HTMLElement>('.wishlist-nav-link')
+      const measureMore = measureHost.querySelector<HTMLElement>('.more-nav-trigger')
+      const wishlistWidth = measureWishlist?.getBoundingClientRect().width ?? 0
       const shoppingWidth = host.querySelector<HTMLElement>('.desktop-shopping-mode')?.getBoundingClientRect().width ?? 0
-      const moreTriggerWidth = host.querySelector<HTMLElement>('.more-nav-trigger')?.getBoundingClientRect().width ?? 64
+      const moreTriggerWidth = measureMore?.getBoundingClientRect().width ?? 64
       const available = host.clientWidth
 
-      // Both states leave two fixed trailing items: collapsed -> More trigger +
-      // shopping mode (the wishlist folds into the More dropdown); expanded ->
-      // wishlist + shopping mode.
       const countThatFit = (withMore: boolean) => {
         const trailingItems = 2
         const chrome = (withMore ? moreTriggerWidth : wishlistWidth) + shoppingWidth
@@ -137,9 +137,11 @@ export function Navbar() {
     }
 
     recompute()
-    window.addEventListener('resize', recompute)
-    return () => window.removeEventListener('resize', recompute)
-  }, [ wishlistCount, desktopNavCount ])
+
+    const resizeObserver = new ResizeObserver(recompute)
+    resizeObserver.observe(host)
+    return () => resizeObserver.disconnect()
+  }, [wishlistCount])
 
   const submitSearch = (query: string) => {
     const trimmed = query.trim()
@@ -257,6 +259,8 @@ export function Navbar() {
         {/* Off-screen measurement host used to size the primary nav links against available space. */}
         <div className="desktop-nav-measure" ref={desktopNavMeasureRef} aria-hidden="true">
           {links.map((link) => <span key={link.href} className="desktop-nav-measure-item">{link.label}</span>)}
+          <Link className="wishlist-nav-link desktop-nav-measure-item" to="/wishlist">Wishlist</Link>
+          <span className="more-nav-trigger desktop-nav-measure-item">More <ChevronDownIcon size={14} /></span>
         </div>
         <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
         <aside className={`mobile-menu y-scrollbar ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">

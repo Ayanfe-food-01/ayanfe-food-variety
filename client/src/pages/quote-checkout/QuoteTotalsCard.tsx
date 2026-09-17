@@ -4,10 +4,29 @@ import { formatPrice } from '../../utils/formatPrice'
 
 interface QuoteTotalsCardProps {
   quote: QuoteRequest
+  // The delivery fee that will be charged. Null while the customer has not yet
+  // selected a resolvable delivery location (and there is no admin override).
+  deliveryFee: number | null
+  isResolvingFee: boolean
 }
 
-export function QuoteTotalsCard({ quote }: QuoteTotalsCardProps) {
+export function QuoteTotalsCard({ quote, deliveryFee, isResolvingFee }: QuoteTotalsCardProps) {
   const isDelivery = quote.fulfillmentMethod === 'DELIVERY'
+  const subtotal = quote.quotedSubtotal !== null ? Number(quote.quotedSubtotal) : null
+  const total = subtotal !== null && (!isDelivery || deliveryFee !== null)
+    ? subtotal + (isDelivery ? (deliveryFee ?? 0) : 0)
+    : null
+
+  const deliveryFeeDisplay = !isDelivery
+    ? 'Free'
+    : isResolvingFee
+      ? 'Checking…'
+      : deliveryFee === null
+        ? 'Calculated at checkout'
+        : deliveryFee === 0
+          ? 'Free'
+          : formatPrice(deliveryFee)
+
   return (
     <aside className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
       <h2 className="text-lg font-bold text-green-dark">Your quotation</h2>
@@ -35,17 +54,19 @@ export function QuoteTotalsCard({ quote }: QuoteTotalsCardProps) {
         </div>
         <div className="flex items-center justify-between gap-4">
           <dt className="text-muted">Delivery fee</dt>
-          <dd className="font-bold text-green-dark">{Number(quote.deliveryFee ?? '0') === 0 ? 'Free' : formatPrice(quote.deliveryFee ?? '0')}</dd>
+          <dd className="font-bold text-green-dark">{deliveryFeeDisplay}</dd>
         </div>
         <div className="flex items-center justify-between gap-4 border-t border-line pt-2 text-base">
           <dt className="font-bold text-green-dark">Total</dt>
-          <dd className="text-lg font-bold text-green">{quote.quotedTotal !== null ? formatPrice(quote.quotedTotal) : '—'}</dd>
+          <dd className="text-lg font-bold text-green">{total !== null ? formatPrice(total) : '—'}</dd>
         </div>
       </dl>
       <p className="mt-3 text-xs leading-5 text-muted">
-        {isDelivery
-          ? `Delivery to your address. The delivery fee is ${Number(quote.deliveryFee ?? '0') === 0 ? 'waived' : 'included in the total'}.`
-          : 'Pickup at the store — no delivery fee applies.'}
+        {!isDelivery
+          ? 'Pickup at the store — no delivery fee applies.'
+          : deliveryFee === null && !isResolvingFee
+            ? 'Select your delivery location to see the delivery fee for your area.'
+            : 'Delivery to your address. The delivery fee is included in the total.'}
       </p>
       <Link className="mt-4 inline-block text-xs font-bold text-green hover:text-orange" to={`/quotes/${quote.quoteNumber}`}>
         ← Back to quotation

@@ -1,3 +1,10 @@
+import type { ResolvedDeliveryZone } from '../../services/orderService'
+import { formatPrice } from '../../utils/formatPrice'
+import { whatsAppChatUrl } from '../../utils/whatsApp'
+import { useStoreSettings } from '../../hooks/useStoreSettings'
+import { CheckoutFieldError } from '../../components/checkout/CheckoutFormSections'
+import { DeliveryLocationFields } from '../../components/checkout/DeliveryLocationFields'
+import { DeliveryZoneInfo } from '../../components/checkout/DeliveryZoneInfo'
 import {
   checkoutFieldsetClassName,
   checkoutInputClassName,
@@ -5,68 +12,90 @@ import {
   checkoutLegendClassName,
   checkoutSectionClassName,
 } from '../../components/checkout/checkoutStyles'
+import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../../components/checkout/types'
 
 interface QuoteCheckoutDeliveryFormProps {
-  address: string
-  city: string
-  instructions: string
-  error: string | null
-  onChangeAddress: (value: string) => void
-  onChangeCity: (value: string) => void
-  onChangeInstructions: (value: string) => void
+  form: CheckoutFormData
+  errors: CheckoutFormErrors
+  onChange: (field: CheckoutField, value: string) => void
+  zone: ResolvedDeliveryZone | null
+  isZoneResolving: boolean
+  zoneError: string | null
+  deliveryFee: number | null
+  hasOverride: boolean
 }
 
 export function QuoteCheckoutDeliveryForm({
-  address,
-  city,
-  instructions,
-  error,
-  onChangeAddress,
-  onChangeCity,
-  onChangeInstructions,
+  form,
+  errors,
+  onChange,
+  zone,
+  isZoneResolving,
+  zoneError,
+  deliveryFee,
+  hasOverride,
 }: QuoteCheckoutDeliveryFormProps) {
+  const { settings } = useStoreSettings()
+  const whatsappNumber = settings?.whatsappNumber?.trim()
+  const whatsappUrl = whatsappNumber ? whatsAppChatUrl(whatsappNumber) : null
+
   return (
     <section className={checkoutSectionClassName}>
       <fieldset className={checkoutFieldsetClassName}>
         <legend className={checkoutLegendClassName}>Delivery details</legend>
         <p className={checkoutDescriptionClassName}>
-          The delivery fee was included in the accepted quotation. Tell us where to deliver it.
+          {hasOverride
+            ? 'Tell us where to deliver. The delivery fee was fixed by the store and is already included in your quotation.'
+            : 'Tell us where to deliver. The delivery fee is calculated from your delivery zone and added to your total.'}
         </p>
-        <div className={`mt-6 space-y-5 ${error ? 'rounded-2xl border border-orange/30 bg-orange/5 p-5' : ''}`}>
-          <label className="block text-sm font-bold text-green-dark">
-            Delivery address <span className="text-orange">*</span>
+        <div className="mt-6 grid gap-6">
+          <div>
+            <label className="text-sm font-bold text-green-dark" htmlFor="quote-delivery-address">
+              Delivery address <span className="text-orange" aria-hidden="true">*</span>
+            </label>
             <textarea
-              className={checkoutInputClassName(Boolean(error))}
-              rows={3}
-              maxLength={2000}
-              placeholder="Street address, area, landmark"
-              value={address}
-              onChange={(event) => onChangeAddress(event.target.value)}
+              className={`${checkoutInputClassName(Boolean(errors.address))} min-h-28 resize-y`}
+              id="quote-delivery-address"
+              placeholder="House number, street name, landmark"
+              value={form.address}
+              onChange={(event) => onChange('address', event.target.value)}
             />
-          </label>
-          <label className="block text-sm font-bold text-green-dark">
-            City <span className="text-orange">*</span>
-            <input
-              className={checkoutInputClassName(Boolean(error))}
-              maxLength={120}
-              placeholder="Your city"
-              value={city}
-              onChange={(event) => onChangeCity(event.target.value)}
+            <CheckoutFieldError id="address" message={errors.address} />
+          </div>
+
+          <DeliveryLocationFields form={form} errors={errors} onChange={onChange} />
+
+          {hasOverride ? (
+            <div className="rounded-2xl border border-green/25 bg-sage/30 p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Delivery fee</p>
+              <p className="mt-2 text-sm font-bold text-green-dark">
+                {deliveryFee === 0 ? 'Free delivery' : formatPrice(deliveryFee ?? 0)}
+              </p>
+              <p className="mt-1 text-xs text-muted">Fixed by the store and included in your accepted quotation.</p>
+            </div>
+          ) : form.city.trim() ? (
+            <DeliveryZoneInfo
+              zone={zone}
+              isResolving={isZoneResolving}
+              error={zoneError}
+              deliveryFee={deliveryFee}
+              whatsappUrl={whatsappUrl}
             />
-          </label>
-          <label className="block text-sm font-bold text-green-dark">
-            Delivery instructions <span className="font-normal text-muted">(optional)</span>
+          ) : null}
+
+          <div>
+            <label className="text-sm font-bold text-green-dark" htmlFor="quote-delivery-instructions">
+              Delivery instructions <span className="font-normal text-muted">(optional)</span>
+            </label>
             <textarea
-              className={checkoutInputClassName(false)}
-              rows={3}
-              maxLength={2000}
-              placeholder="Anything the delivery team should know"
-              value={instructions}
-              onChange={(event) => onChangeInstructions(event.target.value)}
+              className={`${checkoutInputClassName(false)} min-h-24 resize-y`}
+              id="quote-delivery-instructions"
+              placeholder="Landmark, preferred delivery time, or other helpful details"
+              value={form.deliveryInstructions}
+              onChange={(event) => onChange('deliveryInstructions', event.target.value)}
             />
-          </label>
+          </div>
         </div>
-        {error && <p className="mt-3 text-sm font-medium text-orange" role="alert">{error}</p>}
       </fieldset>
     </section>
   )

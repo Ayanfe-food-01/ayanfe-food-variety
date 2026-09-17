@@ -13,6 +13,7 @@ import {
   type QuoteRequest,
 } from '../services/quoteService'
 import { formatDate } from '../utils/dateFormat'
+import { formatQuoteDeliveryFee } from '../utils/quoteDelivery'
 import { AcceptQuoteDialog } from './customer-quote-detail/AcceptQuoteDialog'
 import { DeclineQuoteDialog } from './customer-quote-detail/DeclineQuoteDialog'
 import { QuoteActionPanel } from './customer-quote-detail/QuoteActionPanel'
@@ -185,9 +186,16 @@ export function CustomerQuoteDetail() {
                   <div className="flex justify-between text-muted"><span>Subtotal</span><strong className="text-green-dark">{formatPrice(quote.quotedSubtotal)}</strong></div>
                   <div className="flex justify-between text-muted">
                     <span>Delivery fee</span>
-                    <strong className="text-green-dark">{Number(quote.deliveryFee ?? '0') === 0 ? 'Free' : formatPrice(quote.deliveryFee ?? '0')}</strong>
+                    <strong className="text-green-dark">{formatQuoteDeliveryFee(quote.fulfillmentMethod, quote.deliveryFee)}</strong>
                   </div>
-                  {isDelivery && <p className="text-xs text-muted">Delivery to your address at checkout. The delivery fee is {Number(quote.deliveryFee ?? '0') === 0 ? 'waived' : 'included in the total'}.</p>}
+                  {isDelivery && (
+                    <p className="text-xs text-muted">
+                      Delivery to your address at checkout.{' '}
+                      {quote.deliveryFee === null
+                        ? 'The delivery fee is calculated from your delivery zone and added to your total at checkout.'
+                        : 'The delivery fee is included in the total.'}
+                    </p>
+                  )}
                   {quote.fulfillmentMethod === 'PICKUP' && <p className="text-xs text-muted">Pickup at the store. No delivery fee applies.</p>}
                   <div className="flex justify-between pt-2 text-base font-bold text-green-dark"><span>Total</span><span>{formatPrice(quote.quotedTotal)}</span></div>
                 </div>

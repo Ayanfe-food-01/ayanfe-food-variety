@@ -10,7 +10,9 @@ const MAX_QUOTED_AMOUNT = new Prisma.Decimal('9999999999.99')
 /**
  * Prepares a quotation for a pending or contacted quote request. The admin
  * supplies a quoted unit price for every requested item and an optional
- * delivery fee. All money is re-derived server-side from the stored request:
+ * delivery fee. A blank delivery fee means the fee is calculated from the
+ * customer's delivery zone when they check out; a value locks it as an
+ * override. All money is re-derived server-side from the stored request:
  * per-item subtotals, the overall quoted subtotal and the final total are
  * computed with Prisma.Decimal from the durably stored quantities and are
  * never taken from the browser.
@@ -54,12 +56,12 @@ export async function prepareQuotePricing(
       return running.add(itemSubtotal)
     }, new Prisma.Decimal(0))
 
-    const deliveryFee = new Prisma.Decimal(input.deliveryFee)
-    const quotedTotal = subtotal.add(deliveryFee)
+    const deliveryFee = input.deliveryFee === null ? null : new Prisma.Decimal(input.deliveryFee)
+    const quotedTotal = subtotal.add(deliveryFee ?? new Prisma.Decimal(0))
     if (quotedTotal.gt(MAX_QUOTED_AMOUNT)) {
       throw new HttpError(400, 'The quoted total is too large.')
     }
-    if (input.fulfillmentMethod === FulfillmentMethod.PICKUP && deliveryFee.gt(0)) {
+    if (input.fulfillmentMethod === FulfillmentMethod.PICKUP && deliveryFee !== null && deliveryFee.gt(0)) {
       throw new HttpError(400, 'A pickup quotation cannot include a delivery fee.')
     }
 

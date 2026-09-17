@@ -9,8 +9,9 @@ import {
   prepareQuotePricing,
   updateAdminQuoteRequestStatus,
 } from '../src/modules/quotes/admin-quote.service.js'
-import { convertQuoteRequestToOrder } from '../src/modules/orders/order.service.js'
-import { hashPassword, loginCustomer } from '../src/modules/auth/auth.service.js'
+import { convertQuoteRequestToOrder } from '../src/modules/orders/quote-to-order.service.js'
+import { hashPassword } from '../src/modules/auth/auth.service.js'
+import { loginCustomer } from '../src/modules/auth/customer-auth.service.js'
 import { HttpError } from '../src/utils/http.js'
 
 const slug = `quote-convert-smoke-${Date.now().toString(36)}`
@@ -181,15 +182,17 @@ async function main() {
     if ((await orderCountFor(userA.id)) !== beforeOrderCount + 1) throw new Error('Second conversion created a duplicate order.')
     if ((await stockFor()) !== beforeStock - 4) throw new Error('Second conversion deducted stock twice.')
 
-    // --- 3. Converting a QUOTED quotation implicitly accepts it ---
-    const implicitReference = await createQuote(userA.id, 2)
-    await priceQuote(implicitReference, '5000.00')
-    const implicitConvert = await convertQuoteRequestToOrder(userA.id, implicitReference, {})
-    if (!implicitConvert.created) throw new Error('Conversion directly from QUOTED should create an order.')
-    if (!moneyEquals(implicitConvert.order.total, 10_000)) throw new Error('Implicit-accept conversion total is wrong.')
-    const implicitQuote = await quoteFor(implicitReference)
-    if (implicitQuote.status !== COMPLETED) throw new Error('Implicit-accept quote did not reach COMPLETED.')
-    if (implicitQuote.acceptedAt === null) throw new Error('Implicit-accept quote has no acceptance timestamp.')
+    // --- 3. A quotation must be accepted before it can be converted ---
+    const acceptedReference = await createQuote(userA.id, 2)
+    await priceQuote(acceptedReference, '5000.00')
+    await expectConflict(convertQuoteRequestToOrder(userA.id, acceptedReference, {}))
+    await acceptQuoteRequest(acceptedReference, userA.id)
+    const acceptedConvert = await convertQuoteRequestToOrder(userA.id, acceptedReference, {})
+    if (!acceptedConvert.created) throw new Error('Conversion from ACCEPTED should create an order.')
+    if (!moneyEquals(acceptedConvert.order.total, 10_000)) throw new Error('Accepted conversion total is wrong.')
+    const acceptedQuote = await quoteFor(acceptedReference)
+    if (acceptedQuote.status !== COMPLETED) throw new Error('Accepted quote did not reach COMPLETED.')
+    if (acceptedQuote.acceptedAt === null) throw new Error('Accepted quote has no acceptance timestamp.')
 
     // --- 4. Cross-owner conversion is a 404 ---
     await expectNotFound(convertQuoteRequestToOrder(userB.id, reference, {}))

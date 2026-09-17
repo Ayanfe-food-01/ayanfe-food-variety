@@ -4,7 +4,10 @@ import { Footer } from '../../components/layout/Footer'
 import { Navbar } from '../../components/layout/Navbar'
 import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { PaymentMethodSection } from '../../components/checkout/CheckoutFormSections'
+import { deliveryFeeFromZone } from '../../components/checkout/checkoutCalculations'
 import { checkoutSectionClassName } from '../../components/checkout/checkoutStyles'
+import { useDeliveryZoneResolution } from '../../components/checkout/useDeliveryZoneResolution'
+import type { CheckoutField, CheckoutFormData, CheckoutFormErrors } from '../../components/checkout/types'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
@@ -44,21 +47,39 @@ const GUARDED_MESSAGES: Record<string, { title: string; body: string; action?: {
   },
 }
 
+const EMPTY_FORM: CheckoutFormData = {
+  fullName: '',
+  phone: '',
+  email: '',
+  fulfillmentMethod: 'PICKUP',
+  state: '',
+  cityId: '',
+  city: '',
+  areaId: '',
+  area: '',
+  address: '',
+  deliveryInstructions: '',
+  paymentMethod: 'BANK_TRANSFER',
+}
+
 export function QuoteCheckout() {
   const { reference } = useParams()
   const navigate = useNavigate()
   const { user, isLoading: isAuthLoading, openAuth } = useCustomerAuth()
   const [quote, setQuote] = useState<QuoteRequest | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
-  const [instructions, setInstructions] = useState('')
+  const [form, setForm] = useState<CheckoutFormData>(EMPTY_FORM)
+  const [errors, setErrors] = useState<CheckoutFormErrors>({})
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BANK_TRANSFER')
   const [pageError, setPageError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useInitialRouteLoad(!isAuthLoading && (!user || !!quote || !!loadError))
   const { paymentMethods, isPaymentLoading, paymentError } = useQuotePaymentMethods(setPaymentMethod)
+
+  const isDelivery = quote?.fulfillmentMethod === 'DELIVERY'
+  const locationForm: CheckoutFormData = { ...form, fulfillmentMethod: isDelivery ? 'DELIVERY' : 'PICKUP' }
+  const { resolvedZone, isZoneResolving, zoneError } = useDeliveryZoneResolution(locationForm)
 
   useEffect(() => {
     if (isAuthLoading || !user || !reference) return
@@ -73,27 +94,62 @@ export function QuoteCheckout() {
     return () => { active = false }
   }, [isAuthLoading, reference, user])
 
-  const isDelivery = quote?.fulfillmentMethod === 'DELIVERY'
+  const updateField = (field: CheckoutField, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+    setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current))
+    setPageError(null)
+  }
+
   const isConverted = quote?.status === 'COMPLETED' && quote.convertedOrderNumber !== null
   const canPlaceOrder = quote?.status === 'ACCEPTED' && !isConverted
   const selectedSettings = paymentMethods.find((method) => method.paymentMethod === paymentMethod) ?? null
 
+  const subtotal = quote?.quotedSubtotal !== null && quote?.quotedSubtotal !== undefined
+    ? Number(quote.quotedSubtotal)
+    : 0
+  // An admin override locks the fee in the quotation; otherwise the fee is
+  // resolved from the customer's delivery zone, exactly like normal checkout.
+  const overrideFee = quote && quote.deliveryFee !== null ? Number(quote.deliveryFee) : null
+  const hasOverride = overrideFee !== null
+  const zoneFee = deliveryFeeFromZone(resolvedZone, subtotal)
+  const effectiveDeliveryFee = !isDelivery ? 0 : (overrideFee ?? zoneFee)
+  const isResolvingFee = isDelivery && !hasOverride && isZoneResolving
+  const payableTotal = subtotal + (effectiveDeliveryFee ?? 0)
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!reference || !quote) return
-    const trimmedAddress = address.trim()
-    const trimmedCity = city.trim()
-    if (isDelivery && (!trimmedAddress || !trimmedCity)) {
-      setPageError('A delivery address and city are required for delivery orders.')
+
+    const nextErrors: CheckoutFormErrors = {}
+    if (isDelivery) {
+      if (!form.address.trim()) nextErrors.address = 'Enter your delivery address.'
+      if (!form.city.trim()) nextErrors.city = 'Choose your city / LGA.'
+      if (!hasOverride && form.city.trim()) {
+        if (isZoneResolving) {
+          setPageError('Checking delivery for your location, please wait…')
+          return
+        }
+        if (!resolvedZone) {
+          nextErrors.city = 'Delivery is not available for this location. Choose another city or contact us.'
+        }
+      }
+    }
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      setPageError('Please fix the highlighted fields.')
       return
     }
+
     setIsSubmitting(true)
     setPageError(null)
     try {
       const order = await convertQuoteToOrder(reference, {
-        deliveryAddress: isDelivery ? trimmedAddress : undefined,
-        city: isDelivery ? trimmedCity : undefined,
-        deliveryInstructions: instructions.trim() || undefined,
+        deliveryAddress: isDelivery ? form.address.trim() : undefined,
+        city: isDelivery ? form.city.trim() : undefined,
+        stateId: isDelivery ? form.state || undefined : undefined,
+        cityId: isDelivery ? form.cityId || undefined : undefined,
+        areaId: isDelivery ? form.areaId || undefined : undefined,
+        deliveryInstructions: form.deliveryInstructions.trim() || undefined,
         paymentMethod,
       })
       if (paymentMethod === 'PAYSTACK') {
@@ -168,7 +224,7 @@ export function QuoteCheckout() {
               <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark">Place your order</h1>
               <p className="mt-2 text-sm text-muted">
                 Quote {quote.quoteNumber} · accepted {quote.acceptedAt ? formatDate(quote.acceptedAt, true) : '—'} · total{' '}
-                <strong className="font-bold text-green-dark">{quote.quotedTotal !== null ? formatPrice(quote.quotedTotal) : '—'}</strong>
+                <strong className="font-bold text-green-dark">{formatPrice(payableTotal)}</strong>
               </p>
             </div>
 
@@ -176,13 +232,14 @@ export function QuoteCheckout() {
               <div className="min-w-0">
                 {isDelivery && (
                   <QuoteCheckoutDeliveryForm
-                    address={address}
-                    city={city}
-                    instructions={instructions}
-                    error={pageError}
-                    onChangeAddress={(value) => { setAddress(value); setPageError(null) }}
-                    onChangeCity={(value) => { setCity(value); setPageError(null) }}
-                    onChangeInstructions={setInstructions}
+                    form={form}
+                    errors={errors}
+                    onChange={updateField}
+                    zone={resolvedZone}
+                    isZoneResolving={isZoneResolving}
+                    zoneError={zoneError}
+                    deliveryFee={effectiveDeliveryFee}
+                    hasOverride={hasOverride}
                   />
                 )}
 
@@ -203,13 +260,13 @@ export function QuoteCheckout() {
                     type="submit"
                     disabled={isSubmitting || isPaymentLoading || !selectedSettings}
                   >
-                    {isSubmitting ? 'Placing your order…' : `Place order (${formatPrice(quote.quotedTotal ?? '0')})`}
+                    {isSubmitting ? 'Placing your order…' : `Place order (${formatPrice(payableTotal)})`}
                   </button>
                   {pageError && <p className="mt-3 text-center text-sm font-medium text-orange" role="alert">{pageError}</p>}
                 </div>
               </div>
 
-              <QuoteTotalsCard quote={quote} />
+              <QuoteTotalsCard quote={quote} deliveryFee={effectiveDeliveryFee} isResolvingFee={isResolvingFee} />
             </form>
           </div>
         )}

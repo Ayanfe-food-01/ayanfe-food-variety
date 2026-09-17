@@ -44,7 +44,7 @@ export function QuoteRequestDetail() {
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [isPreparingQuotation, setIsPreparingQuotation] = useState(false)
   const [unitPrices, setUnitPrices] = useState<Record<string, string>>({})
-  const [deliveryFeeInput, setDeliveryFeeInput] = useState('0')
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState('')
   const [fulfillmentMethod, setFulfillmentMethod] = useState<QuoteFulfillmentOption>('PICKUP')
   const [quotationError, setQuotationError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -61,7 +61,7 @@ export function QuoteRequestDetail() {
 
   const syncFromLoaded = (loaded: AdminQuoteRequestDetail) => {
     setUnitPrices(Object.fromEntries(loaded.items.map((item) => [item.id, item.quotedUnitPrice ?? ''])))
-    setDeliveryFeeInput(loaded.deliveryFee ?? '0')
+    setDeliveryFeeInput(loaded.deliveryFee ?? '')
     setFulfillmentMethod(loaded.fulfillmentMethod === 'DELIVERY' ? 'DELIVERY' : 'PICKUP')
   }
 
@@ -173,7 +173,7 @@ export function QuoteRequestDetail() {
 
   const handleFulfillmentMethodChange = (value: QuoteFulfillmentOption) => {
     setFulfillmentMethod(value)
-    if (value === 'PICKUP') setDeliveryFeeInput('0')
+    if (value === 'PICKUP') setDeliveryFeeInput('')
   }
 
   const missingUnitPriceCount = quote ? quote.items.filter((item) => !isValidUnitPrice(unitPrices[item.id] ?? '')).length : 0
@@ -196,11 +196,14 @@ export function QuoteRequestDetail() {
       setQuotationError('Pickup quotations cannot include a delivery fee.')
       return
     }
-    if (fulfillmentMethod === 'DELIVERY' && !isValidDeliveryFee(deliveryFeeInput)) {
-      setQuotationError('Delivery fee must be a non-negative amount with up to two decimal places.')
+    // A blank delivery fee is valid: the fee is then calculated from the
+    // customer's delivery zone when they check out. A value locks it as an
+    // override.
+    if (fulfillmentMethod === 'DELIVERY' && deliveryFeeInput.trim() !== '' && !isValidDeliveryFee(deliveryFeeInput)) {
+      setQuotationError('Delivery fee must be a non-negative amount with up to two decimal places, or left blank.')
       return
     }
-    if (fulfillmentMethod === 'DELIVERY' && Number(deliveryFeeInput) > MAX_DELIVERY_FEE) {
+    if (fulfillmentMethod === 'DELIVERY' && deliveryFeeInput.trim() !== '' && Number(deliveryFeeInput) > MAX_DELIVERY_FEE) {
       setQuotationError(`Delivery fee cannot exceed ${formatPrice(MAX_DELIVERY_FEE)}.`)
       return
     }
@@ -208,7 +211,7 @@ export function QuoteRequestDetail() {
     try {
       const updated = await prepareAdminQuotePricing(reference, {
         items: quote.items.map((item) => ({ itemId: item.id, quotedUnitPrice: (unitPrices[item.id] ?? '').trim() })),
-        deliveryFee: fulfillmentMethod === 'PICKUP' ? '0' : (deliveryFeeInput.trim() || '0'),
+        deliveryFee: fulfillmentMethod === 'PICKUP' ? '' : deliveryFeeInput.trim(),
         fulfillmentMethod,
       })
       setQuote(updated)
@@ -261,6 +264,7 @@ export function QuoteRequestDetail() {
           onDeliveryFeeInputChange={setDeliveryFeeInput}
           subtotalCents={previewSubtotalCents}
           deliveryFeeCents={previewDeliveryFeeCents}
+          deliveryFeeIsBlank={fulfillmentMethod === 'DELIVERY' && deliveryFeeInput.trim() === ''}
           totalCents={previewTotalCents}
           quotationError={quotationError}
           isPreparingQuotation={isPreparingQuotation}

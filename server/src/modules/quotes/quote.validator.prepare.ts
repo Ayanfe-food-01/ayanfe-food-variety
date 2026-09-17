@@ -51,9 +51,11 @@ export function validatePrepareQuotePricingInput(body: unknown): PrepareQuotePri
     }
   })
 
+  // A blank delivery fee means the fee is calculated from the customer's
+  // delivery zone when they check out. A value locks it as an override.
   const rawDeliveryFee = body.deliveryFee
   const deliveryFee = rawDeliveryFee === undefined || rawDeliveryFee === null || rawDeliveryFee === ''
-    ? '0.00'
+    ? null
     : parseMoney(rawDeliveryFee, 'Delivery fee', MAX_DELIVERY_FEE, { allowZero: true })
 
   const fulfillmentMethod = body.fulfillmentMethod

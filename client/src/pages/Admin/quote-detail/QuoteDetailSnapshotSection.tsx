@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { AdminQuoteRequestDetail } from '../../../services/quoteService'
 import { formatDate } from '../../../utils/dateFormat'
 import { formatPrice } from '../../../utils/formatPrice'
+import { formatQuoteDeliveryFee } from '../../../utils/quoteDelivery'
 
 interface QuoteDetailSnapshotSectionProps {
   quote: AdminQuoteRequestDetail
@@ -72,7 +73,7 @@ export function QuoteDetailSnapshotSection({ quote, isRevising, onRevise }: Quot
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">Delivery fee</dt>
-          <dd className="font-bold text-green-dark">{quote.deliveryFee === null ? '—' : Number(quote.deliveryFee) === 0 ? 'Free' : formatPrice(Number(quote.deliveryFee))}</dd>
+          <dd className="font-bold text-green-dark">{formatQuoteDeliveryFee(quote.fulfillmentMethod, quote.deliveryFee)}</dd>
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-line pt-2">
           <dt className="font-semibold text-green-dark">Quoted total</dt>

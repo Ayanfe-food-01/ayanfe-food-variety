@@ -204,7 +204,7 @@ async function main() {
       items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '4500.5' }],
       fulfillmentMethod: PICKUP,
     })
-    if (validInput.items[0].quotedUnitPrice !== '4500.50' || validInput.deliveryFee !== '0.00' || validInput.fulfillmentMethod !== PICKUP) {
+    if (validInput.items[0].quotedUnitPrice !== '4500.50' || validInput.deliveryFee !== null || validInput.fulfillmentMethod !== PICKUP) {
       throw new Error('Validator did not normalize money values.')
     }
     const zeroFeeInput = validatePrepareQuotePricingInput({
@@ -213,6 +213,14 @@ async function main() {
       fulfillmentMethod: PICKUP,
     })
     if (zeroFeeInput.deliveryFee !== '0.00') throw new Error('Validator did not accept a zero delivery fee.')
+    // A blank delivery fee means it is calculated from the customer's delivery
+    // zone at checkout, not a zero override.
+    const blankFeeInput = validatePrepareQuotePricingInput({
+      items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100' }],
+      deliveryFee: '',
+      fulfillmentMethod: DELIVERY,
+    })
+    if (blankFeeInput.deliveryFee !== null) throw new Error('Validator did not treat a blank delivery fee as calculated at checkout.')
 
     // --- Prepare a quotation on the PENDING request ---
     const expectedSubtotalA = 4500 * freshA.items[0].quantity + 3000 * freshA.items[1].quantity

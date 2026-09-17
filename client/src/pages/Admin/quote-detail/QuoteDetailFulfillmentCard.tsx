@@ -8,6 +8,7 @@ interface QuoteDetailFulfillmentCardProps {
   onDeliveryFeeInputChange: (value: string) => void
   subtotalCents: number
   deliveryFeeCents: number
+  deliveryFeeIsBlank: boolean
   totalCents: number
   quotationError: string | null
   isPreparingQuotation: boolean
@@ -21,6 +22,7 @@ export function QuoteDetailFulfillmentCard({
   onDeliveryFeeInputChange,
   subtotalCents,
   deliveryFeeCents,
+  deliveryFeeIsBlank,
   totalCents,
   quotationError,
   isPreparingQuotation,
@@ -51,19 +53,19 @@ export function QuoteDetailFulfillmentCard({
       <p className="mt-3 text-xs leading-5 text-muted">
         {fulfillmentMethod === 'PICKUP'
           ? 'No delivery fee applies. The customer collects the order from the store.'
-          : 'A delivery fee can be added below and is charged to the customer.'}
+          : 'Leave the delivery fee blank to charge the customer’s delivery zone rate at checkout, or enter an amount to lock a fixed fee.'}
       </p>
 
       {fulfillmentMethod === 'DELIVERY' && (
         <label className="mt-4 block text-sm font-bold text-green-dark" htmlFor="quote-delivery-fee">
-          Delivery fee <span className="font-normal normal-case tracking-normal text-muted">(optional — {formatPrice(0)} if blank)</span>
+          Delivery fee <span className="font-normal normal-case tracking-normal text-muted">(optional — blank means calculated at checkout)</span>
           <div className="mt-2 flex items-center rounded-xl border border-line bg-cream focus-within:border-green focus-within:ring-2 focus-within:ring-green/10">
             <span className="pl-3 text-sm font-bold text-muted">₦</span>
             <input
               className="w-full bg-transparent px-3 py-2.5 text-right text-sm font-bold text-green-dark outline-none"
               id="quote-delivery-fee"
               inputMode="decimal"
-              placeholder="0.00"
+              placeholder="Calculated at checkout"
               value={deliveryFeeInput}
               onChange={(event) => onDeliveryFeeInputChange(event.target.value)}
             />
@@ -79,12 +81,25 @@ export function QuoteDetailFulfillmentCard({
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">Delivery fee</dt>
-          <dd className="font-bold text-green-dark">{fulfillmentMethod === 'PICKUP' || deliveryFeeCents === 0 ? 'Free' : formatPrice(deliveryFeeCents / 100)}</dd>
+          <dd className="font-bold text-green-dark">
+            {fulfillmentMethod === 'PICKUP'
+              ? 'Free'
+              : deliveryFeeIsBlank
+                ? 'Calculated at checkout'
+                : deliveryFeeCents === 0
+                  ? 'Free'
+                  : formatPrice(deliveryFeeCents / 100)}
+          </dd>
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-line pt-2">
           <dt className="font-semibold text-green-dark">Quoted total</dt>
           <dd className="text-lg font-bold text-green">{formatPrice((fulfillmentMethod === 'PICKUP' ? subtotalCents : totalCents) / 100)}</dd>
         </div>
+        {fulfillmentMethod === 'DELIVERY' && deliveryFeeIsBlank && (
+          <p className="pt-1 text-[11px] leading-4 text-muted">
+            The delivery fee is not included in this total. It is calculated from the customer’s delivery zone when they place the order.
+          </p>
+        )}
       </dl>
 
       {quotationError && <div className="mt-4 rounded-xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{quotationError}</div>}

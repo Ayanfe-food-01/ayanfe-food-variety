@@ -45,6 +45,9 @@ export interface ConvertQuoteToOrderInput {
   whatsapp?: string
   deliveryAddress?: string
   city?: string
+  stateId?: string
+  cityId?: string
+  areaId?: string
   deliveryInstructions?: string
   paymentMethod?: PaymentMethod
 }

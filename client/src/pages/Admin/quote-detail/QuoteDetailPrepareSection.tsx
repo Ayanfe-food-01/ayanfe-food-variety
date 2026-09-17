@@ -15,6 +15,7 @@ interface QuoteDetailPrepareSectionProps {
   onDeliveryFeeInputChange: (value: string) => void
   subtotalCents: number
   deliveryFeeCents: number
+  deliveryFeeIsBlank: boolean
   totalCents: number
   quotationError: string | null
   isPreparingQuotation: boolean
@@ -41,6 +42,7 @@ export function QuoteDetailPrepareSection({
   onDeliveryFeeInputChange,
   subtotalCents,
   deliveryFeeCents,
+  deliveryFeeIsBlank,
   totalCents,
   quotationError,
   isPreparingQuotation,
@@ -83,6 +85,7 @@ export function QuoteDetailPrepareSection({
           onDeliveryFeeInputChange={onDeliveryFeeInputChange}
           subtotalCents={subtotalCents}
           deliveryFeeCents={deliveryFeeCents}
+          deliveryFeeIsBlank={deliveryFeeIsBlank}
           totalCents={totalCents}
           quotationError={quotationError}
           isPreparingQuotation={isPreparingQuotation}

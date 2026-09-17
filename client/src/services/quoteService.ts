@@ -100,6 +100,8 @@ export interface AdminQuoteRequestDetail extends AdminQuoteRequestListItem {
 
 export interface PrepareQuotePricingInput {
   items: Array<{ itemId: string; quotedUnitPrice: string }>
+  // Empty string means the delivery fee is calculated from the customer's
+  // delivery zone at checkout; a value locks it as an override.
   deliveryFee: string
   fulfillmentMethod: QuoteFulfillmentMethod
 }
@@ -256,6 +258,9 @@ export interface ConvertQuoteToOrderInput {
   whatsapp?: string
   deliveryAddress?: string
   city?: string
+  stateId?: string
+  cityId?: string
+  areaId?: string
   deliveryInstructions?: string
   paymentMethod?: PaymentMethod
 }

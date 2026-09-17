@@ -22,7 +22,7 @@ export const QUOTE_STATUS_GUIDE: Record<QuoteRequestStatus, QuoteStatusGuideEntr
   },
   CONTACTED: {
     stepLabel: 'Contacted',
-    adminNextStep: 'Enter a quoted price for every item (and delivery details) in the Prepare quotation card and submit it — the request moves to Quoted automatically.',
+    adminNextStep: 'Enter a quoted price for every item in the Prepare quotation card. Leave the delivery fee blank to charge the customer’s delivery zone rate at checkout, or enter an amount to lock a fixed fee, then submit — the request moves to Quoted automatically.',
     optionHint: 'Contacted requests move to Quoted by submitting the Prepare quotation card, not through this status menu.',
   },
   QUOTED: {

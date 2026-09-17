@@ -46,7 +46,7 @@ export interface QuotePricingItemInput {
 
 export interface PrepareQuotePricingInput {
   items: QuotePricingItemInput[]
-  deliveryFee: string
+  deliveryFee: string | null
   fulfillmentMethod: FulfillmentMethod
 }
 

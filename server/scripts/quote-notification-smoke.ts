@@ -1,11 +1,8 @@
 import { AdminNotificationType, FulfillmentMethod, UserRole } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/config/prisma.js'
-import {
-  acceptQuoteRequest,
-  createQuoteRequest,
-  prepareQuotePricing,
-  rejectQuoteRequest,
-} from '../src/modules/quotes/quote.service.js'
+import { acceptQuoteRequest, rejectQuoteRequest } from '../src/modules/quotes/customer-quote.service.js'
+import { prepareQuotePricing } from '../src/modules/quotes/admin-quote.service.js'
+import { createQuoteRequest } from '../src/modules/quotes/quote-create.service.js'
 import { hashPassword } from '../src/modules/auth/auth.service.js'
 import type { AuthenticatedUser } from '../src/modules/auth/auth.types.js'
 

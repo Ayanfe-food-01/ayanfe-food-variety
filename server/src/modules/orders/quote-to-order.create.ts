@@ -15,7 +15,7 @@ import { createAdminNotification } from '../notifications/notification.service.j
 import { nextOrderNumber, orderInclude } from './order.mapper.js'
 import type { OrderWithItems } from './order.mapper.js'
 import type { ConvertQuoteToOrderInput } from './order.types.js'
-import type { DerivedOrderFinances, QuoteSnapshot } from './quote-to-order.pricing.js'
+import type { DerivedOrderFinances, OrderDeliverySnapshot, QuoteSnapshot } from './quote-to-order.pricing.js'
 
 export type CreateConvertedOrderParams = {
   userId: string
@@ -25,6 +25,7 @@ export type CreateConvertedOrderParams = {
   paymentMethod: PaymentMethod
   fulfillmentMethod: FulfillmentMethod
   finances: DerivedOrderFinances
+  delivery: OrderDeliverySnapshot
   paymentSettings: PaymentSettings | null
 }
 
@@ -32,7 +33,7 @@ export async function createConvertedOrder(
   transaction: Prisma.TransactionClient,
   params: CreateConvertedOrderParams,
 ): Promise<OrderWithItems> {
-  const { userId, user, current, input, paymentMethod, fulfillmentMethod, finances, paymentSettings } = params
+  const { userId, user, current, input, paymentMethod, fulfillmentMethod, finances, delivery, paymentSettings } = params
   const { orderItems, subtotal, deliveryFee, total } = finances
 
   const order = await transaction.order.create({
@@ -47,7 +48,14 @@ export async function createConvertedOrder(
       fulfillmentMethod,
       shoppingMode: current.shoppingMode ?? ShoppingMode.RETAIL,
       deliveryAddress: fulfillmentMethod === FulfillmentMethod.DELIVERY ? input.deliveryAddress!.trim() : '',
-      city: fulfillmentMethod === FulfillmentMethod.DELIVERY ? input.city!.trim() : '',
+      city: delivery.cityName,
+      state: delivery.stateName,
+      deliveryAreaId: delivery.areaId,
+      deliveryAreaName: delivery.areaName,
+      deliveryZoneId: delivery.zoneId,
+      deliveryZoneName: delivery.zoneName,
+      deliveryMinDays: delivery.minDays,
+      deliveryMaxDays: delivery.maxDays,
       note: input.deliveryInstructions ?? null,
       subtotal,
       deliveryFee,

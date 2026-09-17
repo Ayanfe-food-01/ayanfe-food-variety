@@ -12,8 +12,8 @@ import { orderInclude, toOrderResponse } from './order.mapper.js'
 import type { OrderWithItems } from './order.mapper.js'
 import { assertItemsAvailable } from './quote-to-order.availability.js'
 import { sendQuoteConversionConfirmation } from './quote-to-order.notify.js'
-import { deriveOrderFinances } from './quote-to-order.pricing.js'
-import type { QuoteSnapshot } from './quote-to-order.pricing.js'
+import { deriveQuoteOrderItems, resolveOrderDeliveryFee } from './quote-to-order.pricing.js'
+import type { DerivedOrderFinances, QuoteSnapshot } from './quote-to-order.pricing.js'
 import { createConvertedOrder } from './quote-to-order.create.js'
 
 const QUOTE_CONVERTIBLE_STATUSES: QuoteRequestStatus[] = [QuoteRequestStatus.ACCEPTED]
@@ -90,7 +90,29 @@ export async function convertQuoteRequestToOrder(
         throw new HttpError(400, 'A delivery address and city are required for delivery orders.')
       }
 
-      const finances = deriveOrderFinances(current as QuoteSnapshot, fulfillmentMethod)
+      const { orderItems, subtotal } = deriveQuoteOrderItems(current as QuoteSnapshot)
+
+      // The delivery fee is decided here: an admin override locks a fixed fee,
+      // otherwise the customer's delivery zone (resolved from the location they
+      // provide at checkout) prices it exactly like a normal checkout order.
+      const delivery = await resolveOrderDeliveryFee(transaction, {
+        fulfillmentMethod,
+        overrideFee: current.deliveryFee,
+        subtotal,
+        location: {
+          areaId: input.areaId,
+          cityId: input.cityId,
+          cityName: input.city?.trim(),
+          stateId: input.stateId,
+        },
+      })
+
+      const finances: DerivedOrderFinances = {
+        orderItems,
+        subtotal,
+        deliveryFee: delivery.fee,
+        total: subtotal.add(delivery.fee),
+      }
 
       // Availability mirrors the checkout validation for friendly messages;
       // deductStock below performs the authoritative, locked deduction.
@@ -155,6 +177,7 @@ export async function convertQuoteRequestToOrder(
         paymentMethod,
         fulfillmentMethod,
         finances,
+        delivery,
         paymentSettings,
       })
 

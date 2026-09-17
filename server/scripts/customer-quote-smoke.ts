@@ -2,14 +2,14 @@ import { QuoteRequestStatus, UserRole } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   acceptQuoteRequest,
-  getAdminQuoteRequest,
   getCustomerQuoteRequest,
   listCustomerQuoteRequests,
   rejectQuoteRequest,
-  createQuoteRequest,
-  prepareQuotePricing,
-} from '../src/modules/quotes/quote.service.js'
-import { hashPassword, loginCustomer } from '../src/modules/auth/auth.service.js'
+} from '../src/modules/quotes/customer-quote.service.js'
+import { getAdminQuoteRequest, prepareQuotePricing } from '../src/modules/quotes/admin-quote.service.js'
+import { createQuoteRequest } from '../src/modules/quotes/quote-create.service.js'
+import { hashPassword } from '../src/modules/auth/auth.service.js'
+import { loginCustomer } from '../src/modules/auth/customer-auth.service.js'
 import type { AuthenticatedUser } from '../src/modules/auth/auth.types.js'
 import { HttpError } from '../src/utils/http.js'
 

@@ -23,6 +23,7 @@ export type QuoteSnapshot = {
   quotedAt: Date | null
   quotedSubtotal: Prisma.Decimal | null
   quotedTotal: Prisma.Decimal | null
+  acceptedAt: Date | null
   items: QuoteOrderItem[]
 }
 

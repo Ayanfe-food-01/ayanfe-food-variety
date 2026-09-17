@@ -30,6 +30,7 @@ import { optimizedImageUrl } from '../utils/optimizedImageUrl'
 import {
   getAbsoluteUrl,
   getBreadcrumbSchema,
+  getMerchantReturnPolicySchema,
   getProductMetaDescription,
   getProductTitle,
   getSiteUrl,
@@ -299,10 +300,11 @@ export function ProductDetails() {
       '@type': 'Offer',
       url: getSiteUrl() ? new URL(productPath, `${getSiteUrl()}/`).toString() : productPath,
       priceCurrency: 'NGN',
-       price: product.discountedPrice.toFixed(2),
+      price: product.discountedPrice.toFixed(2),
       availability: product.isAvailable
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
+      hasMerchantReturnPolicy: getMerchantReturnPolicySchema(),
     },
   } : null
 

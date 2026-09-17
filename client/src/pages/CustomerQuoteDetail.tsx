@@ -2,33 +2,24 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
-import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { Breadcrumb } from '../components/ui/Breadcrumb'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useInitialRouteLoad } from '../hooks/useInitialRouteLoad'
 import { ApiError } from '../services/api'
 import {
   acceptCustomerQuoteRequest,
-  convertQuoteToOrder,
   getCustomerQuoteRequest,
   rejectCustomerQuoteRequest,
   type QuoteRequest,
-  type QuoteRequestStatus,
 } from '../services/quoteService'
 import { formatDate } from '../utils/dateFormat'
-import { lockBodyScroll } from '../utils/browserCompatibility'
+import { AcceptQuoteDialog } from './customer-quote-detail/AcceptQuoteDialog'
+import { DeclineQuoteDialog } from './customer-quote-detail/DeclineQuoteDialog'
+import { QuoteActionPanel } from './customer-quote-detail/QuoteActionPanel'
+import { QuoteStatusBadge } from './customer-quote-detail/QuoteStatusBadge'
 
 const formatPrice = (price: string) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(price))
-
-const quoteStatusCopy: Record<QuoteRequestStatus, { label: string; className: string }> = {
-  PENDING: { label: 'Pending review', className: 'bg-sage text-green-dark' },
-  CONTACTED: { label: 'We contacted you', className: 'bg-sage text-green-dark' },
-  QUOTED: { label: 'Ready for you', className: 'bg-orange/15 text-orange' },
-  ACCEPTED: { label: 'Accepted', className: 'bg-green/10 text-green' },
-  COMPLETED: { label: 'Completed', className: 'bg-green text-cream' },
-  CANCELLED: { label: 'Declined', className: 'bg-orange/10 text-orange' },
-}
 
 export function CustomerQuoteDetail() {
   const { reference } = useParams()
@@ -43,10 +34,6 @@ export function CustomerQuoteDetail() {
   const [declineReason, setDeclineReason] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
   const [isBusy, setIsBusy] = useState(false)
-  const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false)
-  const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [city, setCity] = useState('')
-  const [deliveryInstructions, setDeliveryInstructions] = useState('')
 
   useEffect(() => {
     if (isAuthLoading || !user || !reference) return
@@ -61,16 +48,9 @@ export function CustomerQuoteDetail() {
     return () => { active = false }
   }, [isAuthLoading, reference, user])
 
-  useEffect(() => {
-    if (!isAcceptDialogOpen && !isDeclineDialogOpen && !isConvertDialogOpen) return
-    const releaseBodyScroll = lockBodyScroll()
-    return () => { releaseBodyScroll() }
-  }, [isAcceptDialogOpen, isDeclineDialogOpen, isConvertDialogOpen])
-
   const closeDialogs = () => {
     setIsAcceptDialogOpen(false)
     setIsDeclineDialogOpen(false)
-    setIsConvertDialogOpen(false)
     setDeclineReason('')
     setActionError(null)
   }
@@ -103,30 +83,9 @@ export function CustomerQuoteDetail() {
     }
   }
 
-  const confirmConvert = async () => {
-    if (!reference || !quote) return
-    const isDelivery = quote.fulfillmentMethod === 'DELIVERY'
-    const address = deliveryAddress.trim()
-    const town = city.trim()
-    if (isDelivery && (!address || !town)) {
-      setActionError('A delivery address and city are required for delivery.')
-      return
-    }
-    setIsBusy(true)
-    setActionError(null)
-    try {
-      const order = await convertQuoteToOrder(reference, {
-        deliveryAddress: isDelivery ? address : undefined,
-        city: isDelivery ? town : undefined,
-        deliveryInstructions: deliveryInstructions.trim() || undefined,
-      })
-      setIsConvertDialogOpen(false)
-      navigate(`/order-confirmation/${order.orderNumber}`)
-    } catch (caught: unknown) {
-      setActionError(caught instanceof ApiError ? caught.message : 'The quotation could not be converted into an order.')
-    } finally {
-      setIsBusy(false)
-    }
+  const goToCheckout = () => {
+    if (!reference) return
+    navigate(`/checkout/quote/${encodeURIComponent(reference)}`)
   }
 
   const isQuoted = quote?.status === 'QUOTED'
@@ -176,7 +135,7 @@ export function CustomerQuoteDetail() {
                 <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark">{quote.quoteNumber}</h1>
                 <p className="mt-2 text-sm text-muted">Requested {formatDate(quote.createdAt)}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold ${quoteStatusCopy[quote.status].className}`}>{quoteStatusCopy[quote.status].label}</span>
+              <QuoteStatusBadge status={quote.status} />
             </div>
 
             {quote.message && (
@@ -238,7 +197,7 @@ export function CustomerQuoteDetail() {
             {quote.status === 'ACCEPTED' && quote.acceptedAt && (
               <div className="mt-6 rounded-2xl border border-green/20 bg-sage/30 p-6">
                 <p className="font-bold text-green">Quotation accepted</p>
-                <p className="mt-1 text-sm text-muted">Accepted {formatDate(quote.acceptedAt, true)}. You can now continue to place your order.</p>
+                <p className="mt-1 text-sm text-muted">Accepted {formatDate(quote.acceptedAt, true)}. Place your order to choose a payment method and pay.</p>
               </div>
             )}
 
@@ -259,138 +218,38 @@ export function CustomerQuoteDetail() {
               </div>
             )}
 
-            {(isQuoted || isAccepted) && !isConverted && (
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <button
-                  className="rounded-full bg-green px-6 py-3 text-sm font-bold text-cream hover:bg-green-dark"
-                  type="button"
-                  onClick={() => { setActionError(null); setIsConvertDialogOpen(true) }}
-                >
-                  Continue to order
-                </button>
-                {isQuoted && (
-                  <button
-                    className="rounded-full border border-green/40 px-6 py-3 text-sm font-bold text-green transition-colors hover:bg-sage/40"
-                    type="button"
-                    onClick={() => { setActionError(null); setIsAcceptDialogOpen(true) }}
-                  >
-                    Accept quotation
-                  </button>
-                )}
-                <button
-                  className="rounded-full border border-orange/40 px-6 py-3 text-sm font-bold text-orange transition-colors hover:bg-orange/10"
-                  type="button"
-                  onClick={() => { setActionError(null); setIsDeclineDialogOpen(true) }}
-                >
-                  Decline quotation
-                </button>
-              </div>
-            )}
+            <QuoteActionPanel
+              status={quote.status}
+              isConverted={isConverted}
+              onAccept={() => { setActionError(null); setIsAcceptDialogOpen(true) }}
+              onDecline={() => { setActionError(null); setIsDeclineDialogOpen(true) }}
+              onPlaceOrder={goToCheckout}
+            />
           </div>
         )}
       </main>
       <Footer />
 
       {isAcceptDialogOpen && quote && (
-        <ConfirmDialog
-          eyebrow="Accept quotation"
-          title="Accept this quotation?"
-          description={`You are accepting the quotation ${quote.quoteNumber} for ${formatPrice(quote.quotedTotal ?? '0')}. You can then continue to place your order.`}
+        <AcceptQuoteDialog
+          quoteNumber={quote.quoteNumber}
+          totalLabel={formatPrice(quote.quotedTotal ?? '0')}
           error={actionError}
           isBusy={isBusy}
-          confirmLabel="Accept quotation"
-          busyLabel="Accepting…"
           onCancel={() => { setActionError(null); setIsAcceptDialogOpen(false) }}
           onConfirm={() => void confirmAccept()}
         />
       )}
 
       {isDeclineDialogOpen && quote && (
-        <div className="safe-modal-backdrop fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-hidden bg-green-dark/50" role="presentation" onClick={(event) => {
-          if (event.target === event.currentTarget) closeDialogs()
-        }}>
-          <div className="y-scrollbar my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="decline-quote-title">
-            <h2 id="decline-quote-title" className="text-2xl font-bold text-green-dark">Decline this quotation?</h2>
-            <p className="mt-3 text-sm leading-6 text-muted">You will not be committed to this quotation. Let us know if anything can be improved.</p>
-            <label className="mt-6 block text-sm font-bold text-green-dark">
-              Reason <span className="font-normal text-muted">(optional)</span>
-              <textarea
-                className="mt-2 min-h-24 w-full resize-y rounded-xl border border-line bg-cream/60 px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-                value={declineReason}
-                onChange={(event) => setDeclineReason(event.target.value)}
-                maxLength={500}
-                placeholder="Tell us why you are declining (optional)"
-              />
-            </label>
-            {actionError && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 p-3 text-sm text-orange" role="alert">{actionError}</p>}
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button className="rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={closeDialogs} disabled={isBusy}>
-                Keep quotation
-              </button>
-              <button className="rounded-full bg-orange px-5 py-3 text-sm font-bold text-white hover:bg-orange/90 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => void confirmDecline()} disabled={isBusy}>
-                {isBusy ? 'Declining…' : 'Decline quotation'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isConvertDialogOpen && quote && (
-        <div className="safe-modal-backdrop fixed inset-0 z-50 flex min-h-dvh items-center justify-center overflow-hidden bg-green-dark/50" role="presentation" onClick={(event) => {
-          if (event.target === event.currentTarget) closeDialogs()
-        }}>
-          <div className="y-scrollbar my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="convert-quote-title">
-            <h2 id="convert-quote-title" className="text-2xl font-bold text-green-dark">Continue to order</h2>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              {isDelivery
-                ? `Place this order for delivery to your address. The delivery fee is ${Number(quote.deliveryFee ?? '0') === 0 ? 'waived' : formatPrice(quote.deliveryFee ?? '0')} and will be part of the order total.`
-                : 'Place this quotation as an order for pickup at the store. After placing it you can submit your payment proof.'}
-            </p>
-            {isDelivery && (
-              <div className="mt-6 space-y-4">
-                <label className="block text-sm font-bold text-green-dark">
-                  Delivery address <span className="text-orange">*</span>
-                  <textarea
-                    className="mt-2 min-h-20 w-full resize-y rounded-xl border border-line bg-cream/60 px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-                    value={deliveryAddress}
-                    onChange={(event) => setDeliveryAddress(event.target.value)}
-                    maxLength={2000}
-                    placeholder="Street address, area, landmark"
-                  />
-                </label>
-                <label className="block text-sm font-bold text-green-dark">
-                  City <span className="text-orange">*</span>
-                  <input
-                    className="mt-2 w-full rounded-xl border border-line bg-cream/60 px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
-                    maxLength={120}
-                    placeholder="Your city"
-                  />
-                </label>
-                <label className="block text-sm font-bold text-green-dark">
-                  Delivery instructions <span className="font-normal text-muted">(optional)</span>
-                  <textarea
-                    className="mt-2 min-h-20 w-full resize-y rounded-xl border border-line bg-cream/60 px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-                    value={deliveryInstructions}
-                    onChange={(event) => setDeliveryInstructions(event.target.value)}
-                    maxLength={2000}
-                    placeholder="Anything the delivery team should know"
-                  />
-                </label>
-              </div>
-            )}
-            {actionError && <p className="mt-4 rounded-xl border border-orange/25 bg-orange/5 p-3 text-sm text-orange" role="alert">{actionError}</p>}
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button className="rounded-full border border-line px-5 py-3 text-sm font-bold text-green-dark hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={closeDialogs} disabled={isBusy}>
-                Back
-              </button>
-              <button className="rounded-full bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => void confirmConvert()} disabled={isBusy}>
-                {isBusy ? 'Placing your order…' : `Place order (${formatPrice(quote.quotedTotal ?? '0')})`}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeclineQuoteDialog
+          reason={declineReason}
+          onChange={(value) => { setDeclineReason(value); setActionError(null) }}
+          error={actionError}
+          isBusy={isBusy}
+          onCancel={closeDialogs}
+          onConfirm={() => void confirmDecline()}
+        />
       )}
     </>
   )

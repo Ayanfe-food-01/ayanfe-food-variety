@@ -10,7 +10,7 @@ export function HelpCategorySection({ category, query }: HelpCategorySectionProp
   const { icon: Icon, id, title, intro, faqs } = category
 
   return (
-    <section className="faq-section" id={id} aria-labelledby={`${id}-heading`}>
+    <section className="scroll-mt-[calc(118px+env(safe-area-inset-top))]" id={id} aria-labelledby={`${id}-heading`}>
       <div className="flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-green/10 text-green" aria-hidden="true">
           <Icon size={19} />

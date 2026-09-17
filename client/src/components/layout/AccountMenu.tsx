@@ -27,15 +27,15 @@ export function AccountMenu() {
   }
 
   return (
-    <div className="account-menu" ref={rootRef}>
+    <div className="relative flex" ref={rootRef}>
       <button
-        className="account-link"
+        className="flex items-center gap-[6px] text-green-dark text-[13px] font-bold p-[5px] md:p-0"
         type="button"
         aria-haspopup={user ? 'menu' : undefined}
         aria-expanded={user ? isOpen : undefined}
         onClick={handleTriggerClick}
       >
-        <UserIcon size={22} /><span className="desktop-only">{user ? 'Account' : 'Sign in'}</span>
+        <UserIcon size={22} /><span className="hidden md:block">{user ? 'Account' : 'Sign in'}</span>
       </button>
       {user && (
         <Popover
@@ -47,17 +47,17 @@ export function AccountMenu() {
         >
           {(closeMenu) => (
             <>
-              <div className="account-menu-header">
-                <p className="account-menu-name">{user.name}</p>
-                <p className="account-menu-email">{user.email}</p>
+              <div className="px-3 pt-[9px] pb-[11px] border-b border-line">
+                <p className="m-0 text-green-dark text-[13px] font-extrabold overflow-hidden text-ellipsis whitespace-nowrap">{user.name}</p>
+                <p className="mt-[3px] mb-0 text-muted text-[11px] overflow-hidden text-ellipsis whitespace-nowrap">{user.email}</p>
               </div>
               {menuItems.map((item) => (
-                <button className="account-menu-item" type="button" role="menuitem" key={item.href} onClick={() => handleNavigate(item.href)}>
+                <button className="flex w-full items-center gap-[10px] border-0 rounded-[10px] bg-transparent p-[10px_12px] text-ink text-[13px] font-semibold text-left cursor-pointer transition-[background-color,color] duration-150 ease-[ease] hover:bg-sage hover:text-green-dark [&_svg]:shrink-0 [&_svg]:text-green hover:[&_svg]:text-green-dark" type="button" role="menuitem" key={item.href} onClick={() => handleNavigate(item.href)}>
                   <item.icon size={16} />{item.label}
                 </button>
               ))}
-              <div className="account-menu-divider" />
-              <button className="account-menu-item account-menu-item--signout" type="button" role="menuitem" onClick={() => { closeMenu(); void logout() }}>
+              <div className="h-px my-[6px] bg-line" />
+              <button className="flex w-full items-center gap-[10px] border-0 rounded-[10px] bg-transparent p-[10px_12px] text-orange text-[13px] font-semibold text-left cursor-pointer transition-[background-color,color] duration-150 ease-[ease] hover:bg-orange hover:text-white [&_svg]:shrink-0 [&_svg]:text-green hover:[&_svg]:text-green-dark" type="button" role="menuitem" onClick={() => { closeMenu(); void logout() }}>
                 Sign out
               </button>
             </>

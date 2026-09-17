@@ -46,12 +46,12 @@ export function ProductsTable({
   }, [allProductsSelected, someProductsSelected])
 
   return (
-    <div className="admin-products-table min-w-0 overflow-hidden">
+    <div className="min-w-0 overflow-hidden">
       <div className="space-y-3 p-4 lg:hidden">
-        <label className="admin-products-mobile-selection flex items-center gap-2 text-xs font-bold text-green-dark">
+        <label className="flex min-h-[32px] items-center gap-2 px-[2px] text-xs font-bold text-green-dark">
           <input
             ref={mobileSelectAllRef}
-            className="admin-products-checkbox size-4"
+            className="size-4 accent-[var(--color-green)] cursor-pointer"
             type="checkbox"
             checked={allProductsSelected}
             onChange={onToggleSelectAll}
@@ -63,7 +63,7 @@ export function ProductsTable({
           <article className="rounded-2xl border border-line bg-cream/45 p-4" key={product.id}>
             <div className="flex items-start gap-3">
               <input
-                className="admin-products-checkbox mt-1 size-4 shrink-0"
+                className="mt-1 size-4 shrink-0 accent-[var(--color-green)] cursor-pointer"
                 type="checkbox"
                 checked={selectedProductIds.includes(product.id)}
                 onChange={() => onToggleSelect(product.id)}
@@ -72,7 +72,7 @@ export function ProductsTable({
               <img className="size-16 shrink-0 rounded-xl object-cover" src={product.image} alt="" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold text-green-dark">{product.name}</p>
-                <p className="admin-products-card-description mt-1 break-words text-xs text-muted">{product.description}</p>
+                <p className="mt-1 line-clamp-3 break-words text-xs text-muted">{product.description}</p>
                 <p className="mt-1 text-xs text-muted">{product.category}</p>
               </div>
               <ProductActions product={product} isBusy={updatingId === product.id || deletingId === product.id} onToggleStatus={() => onToggleStatus(product)} onToggleFeatured={() => onToggleFeatured(product)} onDelete={() => onDelete(product)} />
@@ -97,7 +97,7 @@ export function ProductsTable({
                 <th className="w-12 px-4 py-4 font-bold">
                   <input
                     ref={selectAllRef}
-                    className="admin-products-checkbox size-4"
+                    className="size-4 accent-[var(--color-green)] cursor-pointer"
                     type="checkbox"
                     checked={allProductsSelected}
                     onChange={onToggleSelectAll}
@@ -120,7 +120,7 @@ export function ProductsTable({
                 <tr key={product.id} className="group align-middle">
                   <td className="px-4 py-4">
                     <input
-                      className="admin-products-checkbox size-4"
+                      className="size-4 accent-[var(--color-green)] cursor-pointer"
                       type="checkbox"
                       checked={selectedProductIds.includes(product.id)}
                       onChange={() => onToggleSelect(product.id)}
@@ -161,7 +161,7 @@ function AvailabilityPill({ product }: { product: AdminProductsPage['products'][
 
 function ProductStatusPill({ product }: { product: AdminProductsPage['products'][number] }) {
   return (
-    <span className={`inline-flex rounded-full bg-sage px-2.5 py-1 font-bold ${product.isActive ? 'text-green' : 'bg-line text-muted'}`}>
+    <span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${product.isActive ? 'bg-sage text-green' : 'bg-line text-muted'}`}>
       {product.isActive ? 'Active' : 'Inactive'}
     </span>
   )

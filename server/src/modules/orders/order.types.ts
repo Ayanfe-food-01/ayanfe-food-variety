@@ -46,6 +46,7 @@ export interface ConvertQuoteToOrderInput {
   deliveryAddress?: string
   city?: string
   deliveryInstructions?: string
+  paymentMethod?: PaymentMethod
 }
 
 export interface OrderItemResponse {

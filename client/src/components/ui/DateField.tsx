@@ -1,11 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '../../assets/icons'
-
-const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-
-const toISODate = (date: Date): string =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+import { ChevronDownIcon } from '../../assets/icons'
+import { DateCalendar } from './date/DateCalendar'
 
 const parseISO = (value: string): Date | null => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
@@ -51,7 +47,6 @@ export function DateField({
   })
 
   const selectedDate = parseISO(value)
-  const todayISO = toISODate(new Date())
 
   const openCalendar = () => {
     if (selectedDate) {
@@ -148,37 +143,10 @@ export function DateField({
     setCursor(({ year, month }) => (month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 }))
   }
 
-  const minDate = min ? parseISO(min) : null
-  const maxDate = max ? parseISO(max) : null
-  const cursorStamp = cursor.year * 12 + cursor.month
-  const prevDisabled = minDate ? cursorStamp - 1 < minDate.getFullYear() * 12 + minDate.getMonth() : false
-  const nextDisabled = maxDate ? cursorStamp + 1 > maxDate.getFullYear() * 12 + maxDate.getMonth() : false
-
-  const firstWeekday = new Date(cursor.year, cursor.month, 1).getDay()
-  const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate()
-  const daysInPrevMonth = new Date(cursor.year, cursor.month, 0).getDate()
-
-  const cells: Array<{ date: Date; inCurrentMonth: boolean }> = []
-  for (let offset = firstWeekday - 1; offset >= 0; offset -= 1) {
-    cells.push({ date: new Date(cursor.year, cursor.month - 1, daysInPrevMonth - offset), inCurrentMonth: false })
-  }
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    cells.push({ date: new Date(cursor.year, cursor.month, day), inCurrentMonth: true })
-  }
-  const totalCells = Math.ceil(cells.length / 7) * 7
-  for (let day = 1; cells.length < totalCells; day += 1) {
-    cells.push({ date: new Date(cursor.year, cursor.month + 1, day), inCurrentMonth: false })
-  }
-
-  const rows: Array<typeof cells> = []
-  for (let index = 0; index < cells.length; index += 7) rows.push(cells.slice(index, index + 7))
-
-  const monthLabel = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(cursor.year, cursor.month, 1))
-
   return (
-    <div className={`date-field ${className}`.trim()} ref={wrapperRef}>
+    <div className={`relative min-w-0 ${className}`.trim()} ref={wrapperRef}>
       <button
-        className={`date-field-trigger ${value ? 'has-value' : ''} ${isOpen ? 'is-open' : ''}`}
+        className="date-field-trigger flex h-[46px] w-full items-center justify-between gap-2.5 rounded-xl border border-line bg-cream px-[14px] text-left text-sm cursor-pointer transition-colors duration-150 hover:border-green focus-visible:outline-2 focus-visible:outline-green focus-visible:outline-offset-2"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label={ariaLabel}
@@ -187,76 +155,35 @@ export function DateField({
         onKeyDown={handleTriggerKeyDown}
         type="button"
       >
-        <span className={value ? 'date-field-value' : 'date-field-placeholder'}>
+        <span className={`min-w-0 truncate ${value ? 'text-green-dark' : 'text-muted'}`}>
           {value ? formatDisplay(value) : placeholder}
         </span>
-        <ChevronDownIcon className="date-field-chevron" size={17} aria-hidden="true" />
+        <ChevronDownIcon className={`flex-none transition-transform duration-200 ease-in-out ${isOpen ? 'rotate-180' : ''}`} size={17} aria-hidden="true" />
       </button>
 
       {isOpen && createPortal(
         <div
           className="date-field-panel"
-          role="dialog"
-          aria-label={ariaLabel ?? 'Choose date'}
           ref={menuRef}
           style={menuStyle ?? undefined}
         >
-          <div className="date-field-nav">
-            <button
-              aria-label="Previous month"
-              className="date-field-nav-button"
-              disabled={prevDisabled}
-              onClick={prevMonth}
-              type="button"
-            >
-              <ChevronLeftIcon size={18} aria-hidden="true" />
-            </button>
-            <span className="date-field-month">{monthLabel}</span>
-            <button
-              aria-label="Next month"
-              className="date-field-nav-button"
-              disabled={nextDisabled}
-              onClick={nextMonth}
-              type="button"
-            >
-              <ChevronRightIcon size={18} aria-hidden="true" />
-            </button>
-          </div>
-
-          <div className="date-field-weekdays" aria-hidden="true">
-            {WEEKDAYS.map((weekday) => <span className="date-field-weekday" key={weekday}>{weekday}</span>)}
-          </div>
-
-          <div className="date-field-grid" role="grid" aria-label="Calendar">
-            {rows.map((row, rowIndex) => (
-              <div className="date-field-row" role="row" key={`${cursor.year}-${cursor.month}-${rowIndex}`}>
-                {row.map((cell) => {
-                  const iso = toISODate(cell.date)
-                  const isSelected = iso === value
-                  const isToday = iso === todayISO
-                  const isDisabled = (min !== undefined && iso < min) || (max !== undefined && iso > max)
-                  return (
-                    <button
-                      aria-label={formatDisplay(iso)}
-                      aria-pressed={isSelected}
-                      className={`date-field-day ${!cell.inCurrentMonth ? 'is-muted' : ''} ${isSelected ? 'is-selected' : ''} ${isToday && !isSelected ? 'is-today' : ''}`}
-                      disabled={isDisabled}
-                      key={iso}
-                      onClick={() => selectDate(iso)}
-                      role="gridcell"
-                      type="button"
-                    >
-                      {cell.date.getDate()}
-                    </button>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-
+          <DateCalendar
+            value={value}
+            cursor={cursor}
+            min={min}
+            max={max}
+            ariaLabel={ariaLabel}
+            onDateSelect={selectDate}
+            onPrevMonth={prevMonth}
+            onNextMonth={nextMonth}
+          />
           {value && (
-            <div className="date-field-footer">
-              <button className="date-field-clear" onClick={() => { onChange(''); setIsOpen(false) }} type="button">
+            <div className="mt-3 flex justify-end border-t border-line pt-3">
+              <button
+                className="border-0 bg-transparent p-0.5 text-[12px] font-bold text-orange cursor-pointer hover:underline"
+                onClick={() => { onChange(''); setIsOpen(false) }}
+                type="button"
+              >
                 Clear
               </button>
             </div>

@@ -21,7 +21,7 @@ export function WholesalePricing({
 }: WholesalePricingProps) {
   if (status === 'loading' || status === 'idle') {
     return (
-      <p className="wholesale-price-line" role="status" aria-live="polite">
+      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] mb-2.5" role="status" aria-live="polite">
         Loading wholesale pricing…
       </p>
     )
@@ -29,7 +29,7 @@ export function WholesalePricing({
 
   if (status === 'error') {
     return (
-      <p className="wholesale-price-line wholesale-price-error" role="status" aria-live="polite">
+      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-2.5 text-orange text-[13px] font-bold" role="status" aria-live="polite">
         Wholesale pricing could not be loaded right now.
       </p>
     )
@@ -37,7 +37,7 @@ export function WholesalePricing({
 
   if (packages.length === 0) {
     return (
-      <p className="wholesale-note" role="status">
+      <p className="mt-2.5 text-[12px] text-muted" role="status">
         Wholesale pricing is not available for this product yet.
       </p>
     )
@@ -60,9 +60,13 @@ export function WholesalePricing({
   })
 
   return (
-    <div className="wholesale-pricing w-full min-w-0" role="region" aria-label="Wholesale packaging">
-      <div className="wholesale-pricing-head">
-        <span className="wholesale-badge">Wholesale</span>
+    <div
+      className="w-full min-w-0 mt-[22px] rounded-2xl border border-green/22 bg-[#fbfbf7] p-3.5"
+      role="region"
+      aria-label="Wholesale packaging"
+    >
+      <div className="flex flex-wrap items-center gap-2 mb-2.5">
+        <span className="inline-flex items-center min-h-[22px] rounded-full border border-green/25 bg-sage px-2 text-[10px] font-extrabold uppercase tracking-[0.1em] text-green-dark">Wholesale</span>
       </div>
       <label
         className="block text-xs font-bold uppercase tracking-[0.14em] text-green-dark"
@@ -82,13 +86,13 @@ export function WholesalePricing({
       </div>
       {selectedPackage && (
         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="wholesale-unit-price">{formatPrice(selectedPackage.price)}</span>
-          <span className="wholesale-per">
+          <span className="text-[24px] font-extrabold tracking-[-0.02em] text-green-dark">{formatPrice(selectedPackage.price)}</span>
+          <span className="text-[13px] text-muted">
             per {selectedPackage.unitsPerPackage} {selectedPackage.unitsPerPackage === 1 ? 'unit' : 'units'}
             {selectedSizeLabel ? ` · ${selectedSizeLabel}` : ''}
           </span>
           {perUnit !== null && (
-            <span className="wholesale-per">({formatPrice(perUnit)} / {unit})</span>
+            <span className="text-[13px] text-muted">({formatPrice(perUnit)} / {unit})</span>
           )}
         </div>
       )}

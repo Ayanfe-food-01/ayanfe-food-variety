@@ -155,6 +155,11 @@ export function validateConvertQuoteInput(body: unknown): ConvertQuoteToOrderInp
     deliveryAddress: optionalText(body.deliveryAddress, 'deliveryAddress', 2000),
     city: optionalText(body.city, 'city', 120),
     deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
+    paymentMethod: body.paymentMethod === undefined || body.paymentMethod === null
+      ? undefined
+      : body.paymentMethod === PaymentMethod.BANK_TRANSFER || body.paymentMethod === PaymentMethod.PAYSTACK
+        ? body.paymentMethod
+        : (() => { throw new HttpError(400, 'Payment method is not supported.') })(),
   }
 }
 

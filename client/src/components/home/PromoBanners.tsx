@@ -26,10 +26,10 @@ function useMediaQuery(query: string) {
 function PromoBannersSkeleton({ isXL }: { isXL: boolean }) {
   if (isXL) {
     return (
-      <section className="promo-fade-wrap" aria-label="Loading promotional offers" aria-busy="true">
-        <div className="promo-fade-track" aria-hidden="true">
-          <div className="promo-fade-slide is-active">
-            <div className="promo-banner-card promo-banner-skeleton" />
+      <section className="relative my-[30px] flex flex-col items-center" aria-label="Loading promotional offers" aria-busy="true">
+        <div className="relative aspect-[2/1] h-auto max-w-full w-[min(var(--container-max-width),calc(100%-48px))] overflow-hidden rounded-[20px] shadow-[0_0_4px_rgb(20_33_22/0.15)]" aria-hidden="true">
+          <div className="absolute inset-0 opacity-100">
+            <div className="relative h-full w-full animate-promo-shimmer overflow-hidden bg-sage bg-[linear-gradient(90deg,var(--color-line),#eef0e8_50%,var(--color-line))] bg-[length:200%_100%]" />
           </div>
         </div>
       </section>
@@ -37,10 +37,10 @@ function PromoBannersSkeleton({ isXL }: { isXL: boolean }) {
   }
 
   return (
-    <section className="promo-banners-wrap" aria-label="Loading promotional offers" aria-busy="true">
-      <div className="promo-banners-track" aria-hidden="true">
+    <section className="bg-transparent pb-2 pt-7" aria-label="Loading promotional offers" aria-busy="true">
+      <div className="flex snap-x snap-mandatory gap-[14px] overflow-x-auto bg-transparent px-[18px] [scroll-padding-inline:18px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-5 md:px-6 md:[scroll-padding-inline:24px] lg:px-[max(24px,calc((100%-1160px)/2))] lg:[scroll-padding-inline:max(24px,calc((100%-1160px)/2))]" aria-hidden="true">
         {Array.from({ length: 2 }, (_, index) => (
-          <div className="promo-banner-card promo-banner-skeleton" key={index} />
+          <div className="relative h-[160px] w-[320px] min-w-0 shrink-0 animate-promo-shimmer overflow-hidden rounded-[20px] bg-sage bg-[linear-gradient(90deg,var(--color-line),#eef0e8_50%,var(--color-line))] bg-[length:200%_100%] shadow-[0_0_4px_rgb(20_33_22/0.15)] md:h-[400px] md:w-[800px] lg:aspect-[2/1] lg:h-auto lg:w-[min(var(--container-max-width),100%)]" key={index} />
         ))}
       </div>
     </section>

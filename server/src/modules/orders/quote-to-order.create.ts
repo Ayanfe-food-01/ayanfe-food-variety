@@ -22,16 +22,17 @@ export type CreateConvertedOrderParams = {
   user: { email: string }
   current: QuoteSnapshot
   input: ConvertQuoteToOrderInput
+  paymentMethod: PaymentMethod
   fulfillmentMethod: FulfillmentMethod
   finances: DerivedOrderFinances
-  paymentSettings: PaymentSettings
+  paymentSettings: PaymentSettings | null
 }
 
 export async function createConvertedOrder(
   transaction: Prisma.TransactionClient,
   params: CreateConvertedOrderParams,
 ): Promise<OrderWithItems> {
-  const { userId, user, current, input, fulfillmentMethod, finances, paymentSettings } = params
+  const { userId, user, current, input, paymentMethod, fulfillmentMethod, finances, paymentSettings } = params
   const { orderItems, subtotal, deliveryFee, total } = finances
 
   const order = await transaction.order.create({
@@ -51,7 +52,7 @@ export async function createConvertedOrder(
       subtotal,
       deliveryFee,
       total,
-      paymentMethod: PaymentMethod.BANK_TRANSFER,
+      paymentMethod,
       paymentStatus: PaymentStatus.PENDING,
       orderStatus: OrderStatus.ORDER_PLACED,
       orderItems: { create: orderItems },
@@ -62,15 +63,19 @@ export async function createConvertedOrder(
           changedBy: userId,
         },
       },
-      paymentSnapshot: {
-        create: {
-          paymentMethod: paymentSettings.paymentMethod,
-          bankName: paymentSettings.bankName,
-          accountName: paymentSettings.accountName,
-          accountNumber: paymentSettings.accountNumber,
-          instructions: paymentSettings.instructions,
-        },
-      },
+      ...(paymentSettings && paymentMethod === PaymentMethod.BANK_TRANSFER
+        ? {
+          paymentSnapshot: {
+            create: {
+              paymentMethod: paymentSettings.paymentMethod,
+              bankName: paymentSettings.bankName,
+              accountName: paymentSettings.accountName,
+              accountNumber: paymentSettings.accountNumber,
+              instructions: paymentSettings.instructions,
+            },
+          },
+        }
+        : {}),
     },
     include: orderInclude,
   })
@@ -96,14 +101,16 @@ export async function createConvertedOrder(
     data: { stockDeductedAt: new Date() },
   })
 
-  // Completes the quotation and links it to the order. Converting a quote
-  // that was never explicitly accepted records the acceptance implicitly.
+  // Completes the quotation and links it to the order. Conversion is only
+  // allowed once the customer has accepted, so acceptance was recorded earlier;
+  // setting it here is a defensive fallback for quotes accepted out of band.
   await transaction.quoteRequest.update({
     where: { id: current.id },
     data: {
       status: QuoteRequestStatus.COMPLETED,
+      completedAt: new Date(),
       convertedOrderId: order.id,
-      ...(current.status === QuoteRequestStatus.QUOTED ? { acceptedAt: new Date() } : {}),
+      ...(current.acceptedAt ? {} : { acceptedAt: new Date() }),
     },
   })
 

@@ -19,9 +19,9 @@ export function CategoryProductSections({
 }: CategoryProductSectionsProps) {
   if (hasError && !sections.length) {
     return (
-      <section className="home-section bg-white" aria-labelledby="category-products-error-heading">
+      <section className="border-b border-line bg-white py-[25px] md:py-8" aria-labelledby="category-products-error-heading">
         <div className="container">
-          <div className="section-message" role="alert">
+          <div className="flex min-h-[100px] items-center justify-center gap-[13px] rounded-xl border border-dashed border-green px-6 text-[13px] text-muted" role="alert">
             <span>Category shelves are temporarily unavailable.</span>
             <button type="button" className="border-0 bg-transparent text-orange font-extrabold cursor-pointer" onClick={onRetry}>Try again</button>
           </div>

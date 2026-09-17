@@ -1,4 +1,4 @@
-import { request } from './api'
+import { ApiError, request } from './api'
 import type { Product, ProductOption } from '../types/product'
 import type { Category } from '../types/category'
 import type { OrderStatus, PaymentMethod, PaymentStatus } from './orderService'
@@ -790,6 +790,28 @@ export async function updateAdminProductFeatured(id: string, isFeatured: boolean
 
 export async function deleteAdminProduct(id: string): Promise<void> {
   await request<{ success: true }>(`/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function bulkUpdateAdminProductStatus(ids: string[], isActive: boolean): Promise<Product[]> {
+  return Promise.all(ids.map((id) => updateAdminProductStatus(id, isActive)))
+}
+
+export async function bulkUpdateAdminProductFeatured(ids: string[], isFeatured: boolean): Promise<Product[]> {
+  return Promise.all(ids.map((id) => updateAdminProductFeatured(id, isFeatured)))
+}
+
+export async function bulkDeleteAdminProducts(ids: string[]): Promise<{ deleted: number; failed: string[] }> {
+  let deleted = 0
+  const failed: string[] = []
+  for (const id of ids) {
+    try {
+      await deleteAdminProduct(id)
+      deleted += 1
+    } catch (caught) {
+      failed.push(caught instanceof ApiError ? caught.message : 'Product could not be deleted.')
+    }
+  }
+  return { deleted, failed }
 }
 
 export interface AdminTestimonial {

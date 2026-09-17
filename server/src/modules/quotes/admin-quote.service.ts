@@ -2,7 +2,6 @@ import { Prisma, QuoteRequestStatus } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
-import { notifyQuoteReady } from './quote.email.js'
 import type { AdminQuoteRequest, AdminQuoteRequestListItem, QuoteRequestPage, QuoteRequestQuery } from './quote.types.js'
 import { quoteDetailInclude, type QuoteRequestWithItems } from './quote.service.js'
 import { toAdminDetail, toAdminListItem } from './admin-quote.mapper.js'
@@ -63,13 +62,54 @@ export async function getAdminQuoteRequest(reference: string): Promise<AdminQuot
     include: quoteDetailInclude,
   })
   if (!quoteRequest) throw new HttpError(404, 'Quote request not found.')
-  return toAdminDetail(quoteRequest)
+  const detail = toAdminDetail(quoteRequest)
+
+  if (detail.items.length > 0) {
+    const productIds = [...new Set(detail.items.map((item) => item.productId))]
+    const optionIds = [...new Set(detail.items.flatMap((item) => (item.productOptionId ? [item.productOptionId] : [])))]
+    const [products, options] = await Promise.all([
+      prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: {
+          id: true,
+          price: true,
+          wholesalePackages: { where: { isActive: true }, select: { productOptionId: true, price: true } },
+        },
+      }),
+      optionIds.length > 0
+        ? prisma.productOption.findMany({ where: { id: { in: optionIds } }, select: { id: true, price: true } })
+        : Promise.resolve([]),
+    ])
+    const productsById = new Map(products.map((product) => [product.id, product]))
+    const optionsById = new Map(options.map((option) => [option.id, option]))
+
+    detail.items = detail.items.map((item) => {
+      const product = productsById.get(item.productId)
+      const option = item.productOptionId ? optionsById.get(item.productOptionId) : undefined
+      const retail = option?.price ?? product?.price ?? null
+      const packages = (product?.wholesalePackages ?? []).filter(
+        (pkg) => pkg.productOptionId === null || pkg.productOptionId === item.productOptionId,
+      )
+      const wholesale = packages.length > 0
+        ? packages.map((pkg) => pkg.price).reduce((lowest, next) => (next.lt(lowest) ? next : lowest)).toString()
+        : null
+      return {
+        ...item,
+        priceHint: {
+          retail: retail === null ? null : retail.toString(),
+          wholesale,
+        },
+      }
+    })
+  }
+
+  return detail
 }
 
 const allowedTransitions: Record<QuoteRequestStatus, readonly QuoteRequestStatus[]> = {
   [QuoteRequestStatus.PENDING]: [QuoteRequestStatus.CONTACTED, QuoteRequestStatus.CANCELLED],
-  [QuoteRequestStatus.CONTACTED]: [QuoteRequestStatus.QUOTED, QuoteRequestStatus.CANCELLED],
-  [QuoteRequestStatus.QUOTED]: [QuoteRequestStatus.ACCEPTED, QuoteRequestStatus.COMPLETED, QuoteRequestStatus.CANCELLED],
+  [QuoteRequestStatus.CONTACTED]: [QuoteRequestStatus.CANCELLED],
+  [QuoteRequestStatus.QUOTED]: [QuoteRequestStatus.CANCELLED],
   [QuoteRequestStatus.ACCEPTED]: [QuoteRequestStatus.COMPLETED, QuoteRequestStatus.CANCELLED],
   [QuoteRequestStatus.COMPLETED]: [],
   [QuoteRequestStatus.CANCELLED]: [],
@@ -78,6 +118,7 @@ const allowedTransitions: Record<QuoteRequestStatus, readonly QuoteRequestStatus
 export async function updateAdminQuoteRequestStatus(
   reference: string,
   status: QuoteRequestStatus,
+  reason?: string,
 ): Promise<AdminQuoteRequest> {
   const existing = await prisma.quoteRequest.findUnique({ where: { quoteNumber: reference } })
   if (!existing) throw new HttpError(404, 'Quote request not found.')
@@ -87,16 +128,55 @@ export async function updateAdminQuoteRequestStatus(
     throw new HttpError(409, `Quote status cannot change from ${existing.status} to ${status}.`)
   }
 
-  await prisma.quoteRequest.update({
-    where: { id: existing.id },
-    data: { status },
-  })
-  const detail = await getAdminQuoteRequest(reference)
-  if (status === QuoteRequestStatus.QUOTED && detail.quotedTotal !== null) {
-    void notifyQuoteReady(detail).catch((error: unknown) =>
-      console.error('Quotation ready email failed', error))
+  if (status === QuoteRequestStatus.CANCELLED) {
+    if (!reason?.trim()) {
+      throw new HttpError(400, 'A reason is required when cancelling a quote request.')
+    }
   }
-  return detail
+
+  const data: Prisma.QuoteRequestUpdateInput = { status }
+  if (status === QuoteRequestStatus.CANCELLED) {
+    data.cancelledAt = new Date()
+    data.cancelledReason = reason!.trim()
+  }
+  if (status === QuoteRequestStatus.COMPLETED) {
+    data.completedAt = new Date()
+  }
+
+  await prisma.quoteRequest.update({ where: { id: existing.id }, data })
+  return getAdminQuoteRequest(reference)
+}
+
+/**
+ * Returns a prepared quotation back to the contacted stage and clears the
+ * saved pricing snapshot so the admin can prepare a corrected one.
+ */
+export async function reviseQuotePricing(reference: string): Promise<AdminQuoteRequest> {
+  const existing = await prisma.quoteRequest.findUnique({ where: { quoteNumber: reference } })
+  if (!existing) throw new HttpError(404, 'Quote request not found.')
+
+  await prisma.$transaction(async (transaction) => {
+    const cleared = await transaction.quoteRequest.updateMany({
+      where: { id: existing.id, status: QuoteRequestStatus.QUOTED },
+      data: {
+        status: QuoteRequestStatus.CONTACTED,
+        fulfillmentMethod: null,
+        quotedSubtotal: null,
+        deliveryFee: null,
+        quotedTotal: null,
+        quotedAt: null,
+      },
+    })
+    if (cleared.count !== 1) {
+      throw new HttpError(409, 'A quotation can only be revised after it has been prepared.')
+    }
+    await transaction.quoteRequestItem.updateMany({
+      where: { quoteRequestId: existing.id },
+      data: { quotedUnitPrice: null },
+    })
+  })
+
+  return getAdminQuoteRequest(reference)
 }
 
 export async function updateAdminQuoteRequestNote(

@@ -109,7 +109,7 @@ export function Inventory() {
   const outOfStock = summary?.outOfStockCount ?? 0
 
   return (
-    <div className="admin-inventory-page min-w-0">
+    <div className="min-w-0">
       <div className="flex min-w-0 flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div className="min-w-0">
           <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Inventory' }]} />
@@ -157,7 +157,7 @@ export function Inventory() {
               />
             </section>
 
-          <section className="admin-inventory-workspace mt-6 rounded-2xl border border-line bg-white shadow-sm" aria-label="Inventory table">
+          <section className="mt-6 min-w-0 rounded-2xl border border-line bg-white shadow-sm" aria-label="Inventory table">
             {isInitialLoading ? (
               <AdminTableSkeleton desktopColumns={7} label="Loading inventory" />
             ) : items.length ? (
@@ -177,7 +177,7 @@ export function Inventory() {
                 )}
               </>
             ) : (
-              <div className="admin-inventory-empty rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
+              <div className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
                 <h2 className="text-xl font-bold text-green-dark">No inventory found</h2>
                 <p className="mt-2 text-sm text-muted">
                   {stockStatus === 'low-stock'

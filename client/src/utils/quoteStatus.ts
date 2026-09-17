@@ -21,8 +21,8 @@ export const quoteStatusClass = (status: QuoteRequestStatus): string => {
 
 export const allowedNextQuoteStatuses: Record<QuoteRequestStatus, readonly QuoteRequestStatus[]> = {
   PENDING: ['CONTACTED', 'CANCELLED'],
-  CONTACTED: ['QUOTED', 'CANCELLED'],
-  QUOTED: ['ACCEPTED', 'COMPLETED', 'CANCELLED'],
+  CONTACTED: ['CANCELLED'],
+  QUOTED: ['CANCELLED'],
   ACCEPTED: ['COMPLETED', 'CANCELLED'],
   COMPLETED: [],
   CANCELLED: [],

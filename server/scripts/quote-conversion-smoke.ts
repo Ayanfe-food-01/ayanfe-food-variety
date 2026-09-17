@@ -2,11 +2,13 @@ import { FulfillmentMethod, PaymentStatus, QuoteRequestStatus, UserRole } from '
 import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   acceptQuoteRequest,
-  getAdminQuoteRequest,
   getCustomerQuoteRequest,
+} from '../src/modules/quotes/customer-quote.service.js'
+import {
+  getAdminQuoteRequest,
   prepareQuotePricing,
   updateAdminQuoteRequestStatus,
-} from '../src/modules/quotes/quote.service.js'
+} from '../src/modules/quotes/admin-quote.service.js'
 import { convertQuoteRequestToOrder } from '../src/modules/orders/order.service.js'
 import { hashPassword, loginCustomer } from '../src/modules/auth/auth.service.js'
 import { HttpError } from '../src/utils/http.js'
@@ -276,6 +278,8 @@ async function main() {
     // --- 9. A quotation completed by admin (not via conversion) cannot convert ---
     const adminCompletedReference = await createQuote(userA.id, 1)
     await priceQuote(adminCompletedReference, '1000.00')
+    await expectConflict(updateAdminQuoteRequestStatus(adminCompletedReference, COMPLETED))
+    await acceptQuoteRequest(adminCompletedReference, userA.id)
     await updateAdminQuoteRequestStatus(adminCompletedReference, COMPLETED)
     await expectConflict(convertQuoteRequestToOrder(userA.id, adminCompletedReference, {}))
 

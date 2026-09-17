@@ -116,3 +116,15 @@ export const getBreadcrumbSchema = (items: Array<{ name: string; path: string }>
     item: getAbsoluteUrl(item.path),
   })),
 })
+
+// Merchant return policy for product offers, mirroring the site's Return &
+// Refund Policy page (each request reviewed on a case-by-case basis).
+export function getMerchantReturnPolicySchema(): Record<string, unknown> {
+  return {
+    '@type': 'MerchantReturnPolicy',
+    merchantReturnLink: getAbsoluteUrl('/return-refund-policy'),
+    applicableCountry: 'NG',
+    returnPolicyCategory: 'https://schema.org/MerchantReturnUnspecified',
+    returnMethod: 'https://schema.org/ReturnByMail',
+  }
+}

@@ -77,7 +77,7 @@ export function Help() {
               inputProps={{ 'aria-controls': 'help-search-results' }}
             />
             {isSearching && (
-              <p className="help-search-meta" role="status" aria-live="polite">
+              <p className="mx-auto mt-3.5 max-w-[640px] text-center text-[13px] text-muted" role="status" aria-live="polite">
                 {total === 0
                   ? `No results found for “${query.trim()}”.`
                   : `We found ${total} ${total === 1 ? 'result' : 'results'} for “${query.trim()}”.`}
@@ -115,13 +115,13 @@ export function Help() {
                   </div>
                 </div>
               ) : (
-                <div className="help-no-results">
-                  <span className="help-no-results-icon" aria-hidden="true">
+                <div className="mx-auto mt-[52px] max-w-[560px] text-center">
+                  <span className="mx-auto grid size-16 place-items-center rounded-full bg-sage text-green" aria-hidden="true">
                     <HelpIcon size={28} />
                   </span>
-                  <h3>Sorry, we couldn’t find an answer.</h3>
-                  <p>Try different words, or contact our team and we’ll be happy to help with your question.</p>
-                  <div className="help-no-results-actions">
+                  <h3 className="mt-[18px] text-[22px] font-extrabold tracking-[-0.02em] text-green-dark">Sorry, we couldn’t find an answer.</h3>
+                  <p className="mx-auto mt-2.5 max-w-[420px] text-sm leading-[1.7] text-muted">Try different words, or contact our team and we’ll be happy to help with your question.</p>
+                  <div className="mt-[22px] flex flex-wrap justify-center gap-2.5">
                     <Link className="rounded-xl bg-orange px-6 py-3 font-bold text-white transition-colors hover:bg-orange/90" to="/contact">
                       Contact support
                     </Link>
@@ -134,7 +134,11 @@ export function Help() {
                       </a>
                     )}
                   </div>
-                  <button className="help-no-results-reset" type="button" onClick={clearSearch}>
+                  <button
+                    className="mt-[18px] inline-block cursor-pointer border-0 bg-transparent text-[13px] font-extrabold text-green underline underline-offset-[3px] transition-colors hover:text-orange focus-visible:rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange"
+                    type="button"
+                    onClick={clearSearch}
+                  >
                     Clear search
                   </button>
                 </div>
@@ -144,7 +148,7 @@ export function Help() {
                 <div className="mt-10 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
                   {helpCategories.map(({ icon: Icon, id, title }) => (
                     <a
-                      className="help-category-anchor rounded-2xl border border-line bg-white p-6 transition-colors hover:border-green/40"
+                      className="scroll-mt-[calc(118px+env(safe-area-inset-top))] rounded-2xl border border-line bg-white p-6 transition-colors hover:border-green/40"
                       href={`#${id}`}
                       key={id}
                       onClick={(event) => handleCategoryJump(event, id)}

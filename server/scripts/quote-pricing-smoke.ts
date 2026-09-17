@@ -2,10 +2,13 @@ import { FulfillmentMethod, QuoteRequestStatus } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   createQuoteRequest,
+} from '../src/modules/quotes/quote-create.service.js'
+import {
   getAdminQuoteRequest,
   prepareQuotePricing,
+  reviseQuotePricing,
   updateAdminQuoteRequestStatus,
-} from '../src/modules/quotes/quote.service.js'
+} from '../src/modules/quotes/admin-quote.service.js'
 import { login } from '../src/modules/auth/auth.service.js'
 import { validatePrepareQuotePricingInput } from '../src/modules/quotes/quote.validator.js'
 import { HttpError } from '../src/utils/http.js'
@@ -272,11 +275,18 @@ async function main() {
     if (!moneyEquals(quotedAFee.deliveryFee, 200)) throw new Error('Delivery fulfilled quotation lost its delivery fee.')
     if (!moneyEquals(quotedAFee.quotedTotal, 300)) throw new Error('Delivery fulfilled quotation total is wrong.')
 
-    // --- Moving to COMPLETED preserves the quotation ---
-    const completedA = await updateAdminQuoteRequestStatus(referenceA, COMPLETED)
-    if (completedA.status !== COMPLETED) throw new Error('Quote did not move to COMPLETED.')
-    if (!moneyEquals(completedA.quotedTotal, expectedTotalA)) throw new Error('COMPLETED quote lost its quoted totals.')
-    if (completedA.adminNote !== null) throw new Error('COMPLETED quote unexpectedly has an internal note.')
+    // --- A QUOTED request cannot be completed by admin; it can only be revised ---
+    await expectHttpError(
+      updateAdminQuoteRequestStatus(referenceA, COMPLETED),
+      409,
+    )
+    const revisedA = await reviseQuotePricing(referenceA)
+    if (revisedA.status !== CONTACTED) throw new Error('Revise did not return the request to CONTACTED.')
+    if (revisedA.quotedSubtotal !== null || revisedA.quotedTotal !== null || revisedA.quotedAt !== null) {
+      throw new Error('Revise did not clear the quotation snapshot.')
+    }
+    if (revisedA.fulfillmentMethod !== null) throw new Error('Revise did not clear the fulfillment method.')
+    if (revisedA.items.some((item) => item.quotedUnitPrice !== null)) throw new Error('Revise did not clear item unit prices.')
 
     // --- Snapshot survives later catalog changes ---
     const referenceB = await createQuote([{ quantity: 4 }])

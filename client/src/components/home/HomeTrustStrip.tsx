@@ -7,11 +7,11 @@ const trustPoints = [
 ]
 
 export function HomeTrustStrip() {
-  return <section className="trust-strip" aria-label="Why shop with Ayanfe">
-    <div className="container trust-grid">
-      {trustPoints.map((point) => <div className="trust-point" key={point.title}>
-        <span className="trust-icon" aria-hidden="true">{point.icon}</span>
-        <span><strong>{point.title}</strong><small>{point.text}</small></span>
+  return <section className="bg-cream py-[25px]" aria-label="Why shop with Ayanfe">
+    <div className="container grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-[18px]">
+      {trustPoints.map((point) => <div className="flex items-center gap-2.5 border-b border-line pb-[10px] md:border-0 md:pb-0" key={point.title}>
+        <span className="grid size-9 place-items-center rounded-full bg-sage text-green" aria-hidden="true">{point.icon}</span>
+        <span><strong className="block text-[12px] font-bold text-green-dark">{point.title}</strong><small className="mt-0.5 block text-[10px] text-muted">{point.text}</small></span>
       </div>)}
     </div>
   </section>

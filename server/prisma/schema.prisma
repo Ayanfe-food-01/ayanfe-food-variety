@@ -980,6 +980,9 @@ model QuoteRequest {
   acceptedAt        DateTime?          @map("accepted_at") @db.Timestamptz(6)
   rejectedAt        DateTime?          @map("rejected_at") @db.Timestamptz(6)
   rejectionReason   String?            @map("rejection_reason") @db.VarChar(500)
+  cancelledAt       DateTime?          @map("cancelled_at") @db.Timestamptz(6)
+  cancelledReason   String?            @map("cancelled_reason") @db.VarChar(500)
+  completedAt       DateTime?          @map("completed_at") @db.Timestamptz(6)
   convertedOrderId  String?            @unique @map("converted_order_id") @db.Uuid
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

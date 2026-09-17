@@ -2,6 +2,7 @@ import { forwardRef, useId } from 'react'
 import PhoneInput from 'react-phone-number-input'
 import getUnicodeFlagIcon from 'country-flag-icons/unicode'
 import { SelectField } from './SelectField'
+import './PhoneInput.css'
 
 interface PhoneCountryOption {
   value?: string
@@ -42,7 +43,7 @@ function PhoneCountrySelect({
   return (
     <SelectField
       ariaLabel="Country code"
-      className="phone-country-select"
+      className="phone-country-select flex-none min-w-0 self-stretch max-w-[46%] m-0 [&_.select-field-button]:h-full [&_.select-field-button]:w-auto [&_.select-field-button]:min-h-0 [&_.select-field-button]:border-0 [&_.select-field-button]:border-r [&_.select-field-button]:border-line [&_.select-field-button]:rounded-none [&_.select-field-button]:px-3 [&_.select-field-button:hover]:border-r [&_.select-field-button:hover]:border-line [&_.select-field-button:focus-visible]:outline-offset-[-3px] [&_.select-field-button>span]:text-lg [&_.select-field-button>span]:leading-none"
       variant="compact"
       placeholder="Country"
       value={hasSelectedCountry ? selectedValue : ''}

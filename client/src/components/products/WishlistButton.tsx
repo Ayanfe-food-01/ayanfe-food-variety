@@ -25,9 +25,16 @@ export function WishlistButton({ product, className = '' }: { product: Product; 
     updateWishlist()
   }
 
+  const savedClasses = saved
+    ? 'border-orange bg-orange text-white'
+    : 'hover:border-orange hover:bg-orange hover:text-white focus-visible:border-orange focus-visible:bg-orange focus-visible:text-white'
+  const defaultClasses = className !== ''
+    ? ''
+    : 'flex-[0_0_38px] size-[38px] min-h-[38px] border border-line bg-white text-green'
+
   return (
     <button
-      className={`wishlist-button ${className} ${saved ? 'is-saved' : ''}`.trim()}
+      className={`grid place-items-center rounded-full cursor-pointer transition-colors disabled:cursor-wait disabled:opacity-60 ${savedClasses} ${defaultClasses} ${className}`.trim()}
       type="button"
       aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
       aria-pressed={saved}

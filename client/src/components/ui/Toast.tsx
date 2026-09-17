@@ -46,7 +46,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
       <div className="pointer-events-none fixed inset-x-4 top-4 z-[100] flex flex-col items-end gap-3 sm:left-auto sm:right-6 sm:max-w-md" aria-live="polite">
         {toasts.map((toast) => (
           <div
-            className={`toast-slide-in pointer-events-auto flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-xl shadow-green-dark/10 ${toastStyles[toast.type]}`}
+            className={`animate-toast-in pointer-events-auto flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-xl shadow-green-dark/10 motion-reduce:animate-none motion-reduce:transition-none ${toastStyles[toast.type]}`}
             key={toast.id}
             role={toast.type === 'error' ? 'alert' : 'status'}
           >

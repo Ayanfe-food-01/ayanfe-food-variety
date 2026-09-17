@@ -71,6 +71,7 @@ export function RequestQuote() {
   const isWholesaleShopper = user?.role === 'CUSTOMER' && user.shoppingMode === 'WHOLESALE'
 
   const [lines, setLines] = useState<QuoteLine[]>([])
+  const preselectHandledRef = useRef(false)
   const [customerName, setCustomerName] = useState(user?.name ?? '')
   const [customerEmail, setCustomerEmail] = useState(user?.email ?? '')
   const [customerPhone, setCustomerPhone] = useState(user?.phone ?? '')
@@ -98,7 +99,7 @@ export function RequestQuote() {
   }, [user])
 
   useEffect(() => {
-    if (!preselectedProductId || lines.length > 0) return
+    if (!preselectedProductId || preselectHandledRef.current) return
     let cancelled = false
     queueMicrotask(() => {
       if (!cancelled) setIsLoadingPreselect(true)
@@ -106,6 +107,7 @@ export function RequestQuote() {
     getProduct(preselectedProductId)
       .then((product) => {
         if (cancelled) return
+        preselectHandledRef.current = true
         const options = sortedOptions(product)
         const optionId = options.length > 0
           ? initialOptionFor(product, preselectedOptionId)
@@ -130,10 +132,11 @@ export function RequestQuote() {
     return () => {
       cancelled = true
     }
-  }, [lines.length, preselectedOptionId, preselectedProductId, preselectedQuantity])
+  }, [preselectedOptionId, preselectedProductId, preselectedQuantity])
 
   const updateLine = (uid: string, updates: Partial<QuoteLine>) => {
     setLines((current) => current.map((line) => (line.uid === uid ? { ...line, ...updates } : line)))
+    setSubmitError(null)
     setFieldErrors((current) => {
       const next = { ...current }
       delete next[`line-${uid}-quantity`]
@@ -145,6 +148,7 @@ export function RequestQuote() {
 
   const removeLine = (uid: string) => {
     setLines((current) => current.filter((line) => line.uid !== uid))
+    setSubmitError(null)
   }
 
   const addProductLine = (product: Product) => {
@@ -165,6 +169,7 @@ export function RequestQuote() {
     })
     setPickerSearch('')
     setPickerError(null)
+    setSubmitError(null)
   }
 
   const productAlreadyAdded = useCallback(
@@ -180,6 +185,7 @@ export function RequestQuote() {
 
     const email = customerEmail.trim().toLowerCase()
     if (email.length === 0) nextErrors.email = 'Enter your email address.'
+    else if (email.length > 255) nextErrors.email = 'Email must be 255 characters or fewer.'
     else if (!EMAIL_PATTERN.test(email)) nextErrors.email = 'Enter a valid email address.'
 
     if (customerPhone.trim().length === 0) nextErrors.phone = 'Enter your phone number.'
@@ -215,7 +221,7 @@ export function RequestQuote() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const created = await createQuoteRequest({
+      const { quoteRequest, created } = await createQuoteRequest({
         requestKey: requestKeyRef.current,
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim().toLowerCase(),
@@ -228,8 +234,19 @@ export function RequestQuote() {
           note: line.note.trim() || undefined,
         })),
       })
-      setSubmittedRequest(created)
-      scrollToTopInstant()
+      if (created) {
+        setSubmittedRequest(quoteRequest)
+        scrollToTopInstant()
+      } else {
+        // A concurrent duplicate was already received before this response
+        // landed. The form contents are NOT stored — inform the user and
+        // rotate the key so a corrected resubmission creates a fresh record.
+        requestKeyRef.current = makeRequestKey()
+        setSubmitError(
+          `This quote request was already received as ${quoteRequest.quoteNumber} from an earlier submission. ` +
+          'Your current form was NOT saved — submit again to create a new request.',
+        )
+      }
     } catch (error: unknown) {
       setSubmitError(error instanceof ApiError ? error.message : 'Your request could not be submitted right now.')
     } finally {
@@ -361,6 +378,7 @@ export function RequestQuote() {
                         }}
                         aria-invalid={Boolean(fieldErrors.name)}
                         aria-describedby={fieldErrors.name ? 'quote-name-error' : undefined}
+                        maxLength={180}
                       />
                       {fieldErrors.name && <p className="mt-2 text-xs font-semibold text-orange" id="quote-name-error">{fieldErrors.name}</p>}
                     </div>
@@ -381,6 +399,7 @@ export function RequestQuote() {
                         }}
                         aria-invalid={Boolean(fieldErrors.email)}
                         aria-describedby={fieldErrors.email ? 'quote-email-error' : undefined}
+                        maxLength={255}
                       />
                       {fieldErrors.email && <p className="mt-2 text-xs font-semibold text-orange" id="quote-email-error">{fieldErrors.email}</p>}
                     </div>
@@ -415,6 +434,7 @@ export function RequestQuote() {
                         value={message}
                         onChange={(event) => {
                           setMessage(event.target.value)
+                          setSubmitError(null)
                           setFieldErrors((current) => ({ ...current, message: '' }))
                         }}
                         aria-invalid={Boolean(fieldErrors.message)}

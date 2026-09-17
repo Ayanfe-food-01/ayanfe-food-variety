@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentStatus } from '@prisma/client'
+import { OrderStatus, PaymentStatus, ShoppingMode } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
 import type { AdminOrderArchiveView, AdminOrdersQuery, UpdateOrderStatusInput } from './admin.types.js'
 
@@ -60,6 +60,7 @@ export function validateAdminOrdersQuery(query: Record<string, unknown>): AdminO
     search: search || undefined,
     paymentStatus: parseEnum(query.paymentStatus, Object.values(PaymentStatus), 'Payment status'),
     orderStatus: parseEnum(query.orderStatus, Object.values(OrderStatus), 'Order status'),
+    shoppingMode: parseEnum(query.shoppingMode, Object.values(ShoppingMode), 'Shopping mode'),
     archive,
     sort: query.sort === 'oldest' ? 'oldest' : 'newest',
     page,

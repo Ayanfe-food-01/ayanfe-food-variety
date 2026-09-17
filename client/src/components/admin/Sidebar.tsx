@@ -113,6 +113,8 @@ const groupForPath = (pathname: string): string | undefined =>
 
 const activeNavClasses = 'bg-cream text-green-dark'
 const inactiveNavClasses = 'text-cream/80 xl:hover:bg-cream/10 hover:text-cream'
+const flyoutActiveNavClasses = 'bg-green/10 text-green-dark'
+const flyoutInactiveNavClasses = 'text-green-dark/75 hover:bg-green/10 hover:text-green-dark'
 
 export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const { settings } = useStoreSettings()
@@ -335,7 +337,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
               .links.map((link) => (
                 <NavLink
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors ${isActive ? activeNavClasses : inactiveNavClasses}`
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors ${isActive ? flyoutActiveNavClasses : flyoutInactiveNavClasses}`
                   }
                   end={link.end}
                   key={link.to}

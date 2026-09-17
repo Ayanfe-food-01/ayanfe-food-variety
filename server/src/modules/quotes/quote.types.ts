@@ -25,6 +25,20 @@ export interface QuoteRequestItemResponse {
   quotedUnitPrice: string | null
 }
 
+/**
+ * Current catalog prices attached to an admin quote item. Used purely as a
+ * pricing hint while preparing a quotation — the saved snapshot is the value
+ * in `quotedUnitPrice`, never these live prices.
+ */
+export interface QuotePriceHint {
+  retail: string | null
+  wholesale: string | null
+}
+
+export interface AdminQuoteRequestItem extends QuoteRequestItemResponse {
+  priceHint: QuotePriceHint
+}
+
 export interface QuotePricingItemInput {
   itemId: string
   quotedUnitPrice: string
@@ -93,8 +107,11 @@ export interface AdminQuoteRequest extends AdminQuoteRequestListItem {
   acceptedAt: string | null
   rejectedAt: string | null
   rejectionReason: string | null
+  cancelledAt: string | null
+  cancelledReason: string | null
+  completedAt: string | null
   convertedOrderNumber: string | null
-  items: QuoteRequestItemResponse[]
+  items: AdminQuoteRequestItem[]
 }
 
 export interface QuoteRequestQuery {

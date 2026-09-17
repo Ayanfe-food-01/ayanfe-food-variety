@@ -1,46 +1,38 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ApiError } from '../../services/api'
 import {
   getAdminQuoteRequest,
   prepareAdminQuotePricing,
+  reviseAdminQuoteRequest,
   updateAdminQuoteRequestNote,
   updateAdminQuoteRequestStatus,
   type AdminQuoteRequestDetail,
   type QuoteRequestStatus,
 } from '../../services/quoteService'
-import { formatQuoteStatus, getQuoteStatusOptions } from '../../utils/quoteStatus'
-import { formatDate } from '../../utils/dateFormat'
-import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { formatPrice } from '../../utils/formatPrice'
+import { getQuoteStatusOptions } from '../../utils/quoteStatus'
 import { useToast } from '../../components/ui/Toast'
-import { SelectField } from '../../components/ui/SelectField'
+import { Breadcrumb } from '../../components/ui/Breadcrumb'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { scrollToTopInstant } from '../../utils/browserCompatibility'
-
-const statusClass = (status: QuoteRequestStatus) => {
-  if (status === 'COMPLETED' || status === 'ACCEPTED') return 'bg-green/10 text-green'
-  if (status === 'CONTACTED' || status === 'QUOTED' || status === 'CANCELLED') return 'bg-orange/10 text-orange'
-  return 'bg-sage text-green-dark'
-}
-
-const isTerminal = (status: QuoteRequestStatus) => status === 'COMPLETED' || status === 'CANCELLED'
-
-const MONEY_INPUT_PATTERN = /^\d+(\.\d{1,2})?$/
-const isValidUnitPrice = (value: string) => MONEY_INPUT_PATTERN.test(value.trim()) && Number(value) > 0
-const isValidDeliveryFee = (value: string) => MONEY_INPUT_PATTERN.test(value.trim())
-
-const previewCents = (items: Array<{ id: string; quantity: number }>, unitPrices: Record<string, string>) =>
-  items.reduce(
-    (total, item) => {
-      const unitPrice = Number(unitPrices[item.id] ?? '')
-      const amount = Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 0
-      return total + Math.round(amount * item.quantity * 100)
-    },
-    0,
-  )
-
-export type QuoteFulfillmentOption = 'PICKUP' | 'DELIVERY'
+import {
+  isValidDeliveryFee,
+  isValidUnitPrice,
+  MAX_DELIVERY_FEE,
+  MAX_UNIT_PRICE,
+  OTHER_REASON_KEY,
+  type QuoteFulfillmentOption,
+} from './quote-detail/constants'
+import { QuoteDetailCustomerCard } from './quote-detail/QuoteDetailCustomerCard'
+import { QuoteDetailCustomerResponse } from './quote-detail/QuoteDetailCustomerResponse'
+import { QuoteDetailHeader } from './quote-detail/QuoteDetailHeader'
+import { QuoteDetailItemsTable } from './quote-detail/QuoteDetailItemsTable'
+import { QuoteDetailModals } from './quote-detail/QuoteDetailModals'
+import { QuoteDetailPrepareSection } from './quote-detail/QuoteDetailPrepareSection'
+import { QuoteDetailSnapshotSection } from './quote-detail/QuoteDetailSnapshotSection'
+import { QuoteDetailStatusSection } from './quote-detail/QuoteDetailStatusSection'
+import { QuoteStatusStepper } from './quote-detail/QuoteStatusStepper'
 
 export function QuoteRequestDetail() {
   const { reference } = useParams()
@@ -57,9 +49,21 @@ export function QuoteRequestDetail() {
   const [quotationError, setQuotationError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useInitialRouteLoad(!isLoading)
+  const [pendingTerminal, setPendingTerminal] = useState<'CANCELLED' | 'COMPLETED' | null>(null)
+  const [cancelReasonOption, setCancelReasonOption] = useState<string | null>(null)
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelReasonError, setCancelReasonError] = useState<string | null>(null)
+  const [isRevising, setIsRevising] = useState(false)
+  const [isReviseConfirmOpen, setIsReviseConfirmOpen] = useState(false)
 
+  useInitialRouteLoad(!isLoading)
   const { showToast } = useToast()
+
+  const syncFromLoaded = (loaded: AdminQuoteRequestDetail) => {
+    setUnitPrices(Object.fromEntries(loaded.items.map((item) => [item.id, item.quotedUnitPrice ?? ''])))
+    setDeliveryFeeInput(loaded.deliveryFee ?? '0')
+    setFulfillmentMethod(loaded.fulfillmentMethod === 'DELIVERY' ? 'DELIVERY' : 'PICKUP')
+  }
 
   useEffect(() => {
     if (!reference) return
@@ -68,25 +72,88 @@ export function QuoteRequestDetail() {
         setQuote(loaded)
         setStatus(loaded.status)
         setInternalNote(loaded.adminNote ?? '')
-        setUnitPrices(Object.fromEntries(loaded.items.map((item) => [item.id, item.quotedUnitPrice ?? ''])))
-        setDeliveryFeeInput(loaded.deliveryFee ?? '0')
-        setFulfillmentMethod(loaded.fulfillmentMethod === 'DELIVERY' ? 'DELIVERY' : 'PICKUP')
+        syncFromLoaded(loaded)
       })
       .catch((caught: unknown) => setError(caught instanceof ApiError ? caught.message : 'Quote request details could not be loaded.'))
       .finally(() => setIsLoading(false))
   }, [reference])
 
-  const persistStatus = async () => {
-    if (!quote || !reference || status === quote.status) return
+  const persistStatus = async (target = status, reason?: string) => {
+    if (!quote || !reference || target === quote.status) return
     setIsSavingStatus(true)
     setError(null)
     try {
-      setQuote(await updateAdminQuoteRequestStatus(reference, status))
+      const updated = await updateAdminQuoteRequestStatus(reference, target, reason)
+      setQuote(updated)
+      setStatus(updated.status)
+      syncFromLoaded(updated)
+      setPendingTerminal(null)
+      setCancelReasonOption(null)
+      setCancelReason('')
+      setCancelReasonError(null)
       showToast('Quote request status updated.', 'success')
     } catch (caught: unknown) {
+      setStatus(quote.status)
+      if (pendingTerminal) setPendingTerminal(null)
       showToast(caught instanceof ApiError ? caught.message : 'Quote request status could not be updated.', 'error')
     } finally {
       setIsSavingStatus(false)
+    }
+  }
+
+  const handleSaveStatus = () => {
+    if (status === 'CANCELLED') {
+      setPendingTerminal('CANCELLED')
+      return
+    }
+    if (status === 'COMPLETED') {
+      setPendingTerminal('COMPLETED')
+      return
+    }
+    void persistStatus(status)
+  }
+
+  const resetPendingTerminal = () => {
+    setPendingTerminal(null)
+    setCancelReasonOption(null)
+    setCancelReason('')
+    setCancelReasonError(null)
+  }
+
+  const confirmTerminal = () => {
+    if (pendingTerminal === 'CANCELLED') {
+      if (!cancelReasonOption) {
+        setCancelReasonError('Please select a cancellation reason.')
+        return
+      }
+      const finalReason = cancelReasonOption === OTHER_REASON_KEY ? cancelReason.trim() : cancelReasonOption
+      if (cancelReasonOption === OTHER_REASON_KEY && !finalReason) {
+        setCancelReasonError('Please provide a reason for cancelling.')
+        return
+      }
+      setCancelReasonError(null)
+      void persistStatus('CANCELLED', finalReason)
+      return
+    }
+    if (pendingTerminal === 'COMPLETED') {
+      void persistStatus('COMPLETED')
+    }
+  }
+
+  const handleRevise = async () => {
+    if (!quote || !reference) return
+    setIsReviseConfirmOpen(false)
+    setIsRevising(true)
+    try {
+      const updated = await reviseAdminQuoteRequest(reference)
+      setQuote(updated)
+      setStatus(updated.status)
+      syncFromLoaded(updated)
+      showToast('Quotation revised and returned to the contacted stage.', 'success')
+    } catch (caught: unknown) {
+      showToast(caught instanceof ApiError ? caught.message : 'The quotation could not be revised.', 'error')
+    } finally {
+      setIsRevising(false)
     }
   }
 
@@ -109,12 +176,19 @@ export function QuoteRequestDetail() {
     if (value === 'PICKUP') setDeliveryFeeInput('0')
   }
 
+  const missingUnitPriceCount = quote ? quote.items.filter((item) => !isValidUnitPrice(unitPrices[item.id] ?? '')).length : 0
+
   const persistQuotation = async () => {
     if (!quote || !reference || quote.items.length === 0) return
     setQuotationError(null)
     for (const item of quote.items) {
-      if (!isValidUnitPrice(unitPrices[item.id] ?? '')) {
+      const priceValue = (unitPrices[item.id] ?? '').trim()
+      if (!isValidUnitPrice(priceValue)) {
         setQuotationError('Enter a valid unit price for every item (a positive amount with up to two decimal places).')
+        return
+      }
+      if (Number(priceValue) > MAX_UNIT_PRICE) {
+        setQuotationError(`Unit price cannot exceed ${formatPrice(MAX_UNIT_PRICE)}.`)
         return
       }
     }
@@ -126,6 +200,10 @@ export function QuoteRequestDetail() {
       setQuotationError('Delivery fee must be a non-negative amount with up to two decimal places.')
       return
     }
+    if (fulfillmentMethod === 'DELIVERY' && Number(deliveryFeeInput) > MAX_DELIVERY_FEE) {
+      setQuotationError(`Delivery fee cannot exceed ${formatPrice(MAX_DELIVERY_FEE)}.`)
+      return
+    }
     setIsPreparingQuotation(true)
     try {
       const updated = await prepareAdminQuotePricing(reference, {
@@ -135,6 +213,7 @@ export function QuoteRequestDetail() {
       })
       setQuote(updated)
       setStatus(updated.status)
+      syncFromLoaded(updated)
       showToast('Quotation prepared.', 'success')
       scrollToTopInstant()
     } catch (caught: unknown) {
@@ -147,362 +226,98 @@ export function QuoteRequestDetail() {
   if (isLoading) return <div className="rounded-2xl border border-line bg-white px-5 py-14 text-center text-sm text-muted">Loading quote request…</div>
   if (!quote) return <div><Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Quote requests', href: '/admin/quote-requests' }, { label: 'Quote request' }]} /><div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-5 text-sm text-orange" role="alert">{error ?? 'Quote request not found.'}</div></div>
 
-  const statusOptions = getQuoteStatusOptions(status)
-  const canPrepareQuotation = status === 'PENDING' || status === 'CONTACTED'
+  const statusOptions = getQuoteStatusOptions(quote.status)
+  const canPrepareQuotation = quote.status === 'PENDING' || quote.status === 'CONTACTED'
   const hasQuotation = quote.quotedTotal !== null || quote.quotedAt !== null
   const previewDeliveryFeeCents = Number.isFinite(Number(deliveryFeeInput)) && Number(deliveryFeeInput) > 0
     ? Math.round(Number(deliveryFeeInput) * 100)
     : 0
-  const previewSubtotalCents = previewCents(quote.items, unitPrices)
+  const previewSubtotalCents = quote.items.reduce((total, item) => {
+    const unitPrice = Number(unitPrices[item.id] ?? '')
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) return total
+    return total + Math.round(unitPrice * item.quantity * 100)
+  }, 0)
   const previewTotalCents = previewSubtotalCents + previewDeliveryFeeCents
 
   return (
     <div>
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Quote requests', href: '/admin/quote-requests' }, { label: quote.quoteNumber }]} />
-          <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Quote request detail</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">{quote.quoteNumber}</h1>
-          <p className="mt-3 text-sm text-muted">Received {formatDate(quote.createdAt, true)}</p>
-          <p className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]">
-            <span className={quote.shoppingMode === 'WHOLESALE' ? 'inline-block size-2 rounded-full bg-orange' : 'inline-block size-2 rounded-full bg-green'} />
-            <span className={quote.shoppingMode === 'WHOLESALE' ? 'text-orange' : 'text-green-dark'}>{quote.shoppingMode === 'WHOLESALE' ? 'Wholesale Request' : 'Retail Request'}</span>
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className={`rounded-full px-3 py-2 text-xs font-bold ${statusClass(quote.status)}`}>{formatQuoteStatus(quote.status)}</span>
-          {isTerminal(quote.status) && <span className="rounded-full bg-sage px-3 py-2 text-xs font-bold text-green-dark">Closed</span>}
-        </div>
-      </div>
+      <QuoteDetailHeader quote={quote} />
+      <QuoteStatusStepper status={quote.status} />
 
       {error && <div className="mt-6 rounded-2xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{error}</div>}
 
-      <section className="mt-8 grid gap-5 lg:grid-cols-2" aria-label="Customer and request details">
-        <div className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-bold text-green-dark">Customer</h2>
-          <dl className="mt-4 space-y-4 text-sm">
-            <div>
-              <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">Name</dt>
-              <dd className="mt-1 font-semibold text-green-dark">{quote.customerName}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">Email</dt>
-              <dd className="mt-1 break-words text-muted"><a className="text-green hover:text-orange" href={`mailto:${quote.customerEmail}`}>{quote.customerEmail}</a></dd>
-            </div>
-            <div>
-              <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">Phone</dt>
-              <dd className="mt-1 break-words text-muted"><a className="text-green hover:text-orange" href={`tel:${quote.customerPhone}`}>{quote.customerPhone}</a></dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-bold text-green-dark">Request message</h2>
-          {quote.message ? (
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted">{quote.message}</p>
-          ) : (
-            <p className="mt-4 text-sm text-muted">No additional message was included with this request.</p>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-5 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6" aria-label="Requested items">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-green-dark">Requested items</h2>
-          <span className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{quote.items.length} {quote.items.length === 1 ? 'item' : 'items'}</span>
-        </div>
-        <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-          <table className="w-full min-w-[560px] text-left text-sm">
-            <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
-              <tr>
-                <th className="px-4 py-3 font-bold">Product</th>
-                <th className="px-4 py-3 font-bold">Option / size</th>
-                <th className="px-4 py-3 font-bold text-right">Quantity</th>
-                <th className="px-4 py-3 font-bold">Item note</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {quote.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3">
-                    <Link className="break-words font-semibold text-green-dark hover:text-orange" to={`/admin/products/${item.productId}`}>{item.productName}</Link>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted">{item.productOptionLabel ?? '—'}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-green-dark">{item.quantity}</td>
-                  <td className="max-w-[260px] break-words px-4 py-3 text-muted">{item.note ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <QuoteDetailCustomerCard quote={quote} />
+      <QuoteDetailItemsTable items={quote.items} />
 
       {canPrepareQuotation && (
-        <section className="mt-5 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6" aria-label="Prepare quotation">
-          <div>
-            <h2 className="text-lg font-bold text-green-dark">Prepare quotation</h2>
-            <p className="mt-1 text-sm text-muted">Enter a quoted unit price for each requested item and an optional delivery fee. Totals are calculated on the server and saved as a snapshot, so later catalog price changes never affect this quotation.</p>
-          </div>
-
-          <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-bold">Product</th>
-                  <th className="px-4 py-3 font-bold text-right">Quantity</th>
-                  <th className="px-4 py-3 font-bold">Agreed unit price</th>
-                  <th className="px-4 py-3 font-bold text-right">Line subtotal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {quote.items.map((item) => {
-                  const unitPrice = Number(unitPrices[item.id] ?? '')
-                  const lineSubtotal = Number.isFinite(unitPrice) && unitPrice > 0 ? Math.round(unitPrice * item.quantity * 100) / 100 : 0
-                  return (
-                    <tr key={item.id}>
-                      <td className="px-4 py-3">
-                        <span className="break-words font-semibold text-green-dark">{item.productName}</span>
-                        <span className="block text-xs text-muted">{item.productOptionLabel ?? 'Standard option'}</span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-green-dark">{item.quantity}</td>
-                      <td className="px-4 py-3">
-                        <label className="sr-only" htmlFor={`quote-unit-price-${item.id}`}>Quoted unit price for {item.productName}</label>
-                        <div className="flex max-w-44 items-center rounded-xl border border-line bg-cream focus-within:border-green focus-within:ring-2 focus-within:ring-green/10">
-                          <span className="pl-3 text-sm font-bold text-muted">₦</span>
-                          <input
-                            className="w-full bg-transparent px-3 py-2 text-right text-sm font-bold text-green-dark outline-none"
-                            id={`quote-unit-price-${item.id}`}
-                            inputMode="decimal"
-                            placeholder="0.00"
-                            value={unitPrices[item.id] ?? ''}
-                            onChange={(event) => setUnitPrices((current) => ({ ...current, [item.id]: event.target.value }))}
-                          />
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-green-dark">{formatPrice(lineSubtotal)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-6 border-t border-line pt-5">
-            <span className="text-sm font-bold text-green-dark">Fulfillment method</span>
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
-              <div className="flex gap-3">
-                {(['PICKUP', 'DELIVERY'] as const).map((option) => (
-                  <button
-                    className={`rounded-xl border px-5 py-3 text-sm font-bold transition-colors ${
-                      fulfillmentMethod === option
-                        ? 'border-green bg-sage text-green-dark'
-                        : 'border-line bg-cream/40 text-muted hover:border-green/40'
-                    }`}
-                    key={option}
-                    type="button"
-                    role="radio"
-                    aria-checked={fulfillmentMethod === option}
-                    onClick={() => handleFulfillmentMethodChange(option)}
-                  >
-                    {option === 'PICKUP' ? 'Pickup' : 'Delivery'}
-                  </button>
-                ))}
-              </div>
-              <p className="max-w-sm text-xs leading-5 text-muted">
-                {fulfillmentMethod === 'PICKUP'
-                  ? 'No delivery fee applies. The customer collects the order from the store.'
-                  : 'A delivery fee can be added below and is charged to the customer.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            {fulfillmentMethod === 'DELIVERY' && (
-              <label className="block max-w-sm text-sm font-bold text-green-dark" htmlFor="quote-delivery-fee">
-                Delivery fee <span className="font-normal normal-case tracking-normal text-muted">(optional — {formatPrice(0)} if blank)</span>
-                <div className="mt-2 flex items-center rounded-xl border border-line bg-cream focus-within:border-green focus-within:ring-2 focus-within:ring-green/10">
-                  <span className="pl-3 text-sm font-bold text-muted">₦</span>
-                  <input
-                    className="w-full bg-transparent px-3 py-2.5 text-right text-sm font-bold text-green-dark outline-none"
-                    id="quote-delivery-fee"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={deliveryFeeInput}
-                    onChange={(event) => setDeliveryFeeInput(event.target.value)}
-                  />
-                </div>
-              </label>
-            )}
-            <dl className="ml-auto w-full max-w-xs space-y-2 rounded-xl border border-line bg-sage/25 p-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted">Items subtotal</dt>
-                <dd className="font-bold text-green-dark">{formatPrice(previewSubtotalCents / 100)}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted">Delivery fee</dt>
-                <dd className="font-bold text-green-dark">{fulfillmentMethod === 'PICKUP' || previewDeliveryFeeCents === 0 ? 'Free' : formatPrice(previewDeliveryFeeCents / 100)}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 border-t border-line pt-2">
-                <dt className="font-semibold text-green-dark">Quoted total</dt>
-                <dd className="text-lg font-bold text-green">{formatPrice((fulfillmentMethod === 'PICKUP' ? previewSubtotalCents : previewTotalCents) / 100)}</dd>
-              </div>
-            </dl>
-          </div>
-
-          {quotationError && <div className="mt-4 rounded-xl border border-orange/25 bg-orange/5 p-4 text-sm text-orange" role="alert">{quotationError}</div>}
-
-          <div className="mt-4 border-t border-line pt-4 text-right">
-            <p className="mb-3 text-xs text-muted">Submitting moves this request to <strong className="font-bold text-green-dark">Quoted</strong> and locks the prices and fulfillment method.</p>
-            <button
-              className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream disabled:cursor-not-allowed disabled:opacity-50 hover:bg-green-dark"
-              type="button"
-              disabled={isPreparingQuotation}
-              onClick={() => void persistQuotation()}
-            >
-              {isPreparingQuotation ? 'Preparing…' : 'Prepare quotation'}
-            </button>
-          </div>
-        </section>
+        <QuoteDetailPrepareSection
+          quote={quote}
+          unitPrices={unitPrices}
+          onPriceChange={(itemId, value) => setUnitPrices((current) => ({ ...current, [itemId]: value }))}
+          missingUnitPriceCount={missingUnitPriceCount}
+          fulfillmentMethod={fulfillmentMethod}
+          onFulfillmentMethodChange={handleFulfillmentMethodChange}
+          deliveryFeeInput={deliveryFeeInput}
+          onDeliveryFeeInputChange={setDeliveryFeeInput}
+          subtotalCents={previewSubtotalCents}
+          deliveryFeeCents={previewDeliveryFeeCents}
+          totalCents={previewTotalCents}
+          quotationError={quotationError}
+          isPreparingQuotation={isPreparingQuotation}
+          onPrepare={() => void persistQuotation()}
+          status={status}
+          statusOptions={statusOptions}
+          onStatusChange={(next) => setStatus(next)}
+          isSavingStatus={isSavingStatus}
+          onSaveStatus={handleSaveStatus}
+          internalNote={internalNote}
+          onInternalNoteChange={setInternalNote}
+          isSavingNote={isSavingNote}
+          onSaveNote={() => void persistNote()}
+        />
       )}
 
       {hasQuotation && !canPrepareQuotation && (
-        <section className="mt-5 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6" aria-label="Quotation">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-green-dark">Quotation</h2>
-              <p className="mt-1 text-sm text-muted">Saved on {quote.quotedAt ? formatDate(quote.quotedAt, true) : '—'}. These prices are a snapshot from the catalog at the time of quoting.</p>
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-            <span className="inline-flex items-center gap-2 rounded-full bg-sage/40 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-green-dark">
-              <span className={`inline-block size-2 rounded-full ${quote.fulfillmentMethod === 'DELIVERY' ? 'bg-orange' : 'bg-green'}`} />
-              {quote.fulfillmentMethod === 'DELIVERY' ? 'Delivery' : 'Pickup'}
-            </span>
-            {quote.convertedOrderNumber && (
-              <Link className="font-bold text-green hover:text-orange" to={`/admin/orders/${quote.convertedOrderNumber}`}>
-                Converted into order {quote.convertedOrderNumber} →
-              </Link>
-            )}
-          </div>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="border-b border-line bg-sage/35 text-xs uppercase tracking-[0.12em] text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-bold">Product</th>
-                  <th className="px-4 py-3 font-bold text-right">Quantity</th>
-                  <th className="px-4 py-3 font-bold text-right">Unit price</th>
-                  <th className="px-4 py-3 font-bold text-right">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {quote.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3">
-                      <Link className="break-words font-semibold text-green-dark hover:text-orange" to={`/admin/products/${item.productId}`}>{item.productName}</Link>
-                      <span className="block text-xs text-muted">{item.productOptionLabel ?? 'Standard option'}</span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-green-dark">{item.quantity}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-muted">{item.quotedUnitPrice === null ? '—' : formatPrice(Number(item.quotedUnitPrice))}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-green-dark">{item.quotedUnitPrice === null ? '—' : formatPrice(Number(item.quotedUnitPrice) * item.quantity)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <dl className="mt-4 ml-auto w-full max-w-xs space-y-2 rounded-xl border border-line bg-sage/25 p-4 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted">Items subtotal</dt>
-              <dd className="font-bold text-green-dark">{quote.quotedSubtotal === null ? '—' : formatPrice(Number(quote.quotedSubtotal))}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted">Delivery fee</dt>
-              <dd className="font-bold text-green-dark">{quote.deliveryFee === null ? '—' : Number(quote.deliveryFee) === 0 ? 'Free' : formatPrice(Number(quote.deliveryFee))}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-line pt-2">
-              <dt className="font-semibold text-green-dark">Quoted total</dt>
-              <dd className="text-lg font-bold text-green">{quote.quotedTotal === null ? '—' : formatPrice(Number(quote.quotedTotal))}</dd>
-            </div>
-          </dl>
-        </section>
+        <QuoteDetailSnapshotSection
+          quote={quote}
+          isRevising={isRevising}
+          onRevise={() => setIsReviseConfirmOpen(true)}
+        />
       )}
 
-      {(quote.acceptedAt !== null || quote.rejectedAt !== null) && (
-        <section className="mt-5 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6" aria-label="Customer response">
-          <h2 className="text-lg font-bold text-green-dark">Customer response</h2>
-          {quote.acceptedAt !== null ? (
-            <div className="mt-4 rounded-xl border border-green/20 bg-sage/30 p-4">
-              <p className="font-bold text-green">Accepted by the customer</p>
-              <p className="mt-1 text-sm text-muted">Accepted {formatDate(quote.acceptedAt, true)}.</p>
-            </div>
-          ) : (
-            <div className="mt-4 rounded-xl border border-orange/25 bg-orange/5 p-4">
-              <p className="font-bold text-orange">Declined by the customer</p>
-              <p className="mt-1 text-sm text-muted">Declined {quote.rejectedAt ? formatDate(quote.rejectedAt, true) : '—'}.</p>
-              {quote.rejectionReason && (
-                <p className="mt-2 text-sm leading-6 text-muted"><strong className="text-green-dark">Reported reason:</strong> {quote.rejectionReason}</p>
-              )}
-            </div>
-          )}
-        </section>
+      <QuoteDetailCustomerResponse quote={quote} />
+
+      {!canPrepareQuotation && (
+        <QuoteDetailStatusSection
+          status={status}
+          currentStatus={quote.status}
+          statusOptions={statusOptions}
+          onStatusChange={setStatus}
+          isSavingStatus={isSavingStatus}
+          onSaveStatus={handleSaveStatus}
+          internalNote={internalNote}
+          onInternalNoteChange={setInternalNote}
+          savedNote={quote.adminNote ?? ''}
+          isSavingNote={isSavingNote}
+          onSaveNote={() => void persistNote()}
+        />
       )}
 
-      <section className="mt-5 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6" aria-label="Status and notes">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div>
-            <h2 className="text-lg font-bold text-green-dark">Quote status</h2>
-            <p className="mt-1 text-sm text-muted">Move the request through your normal flow as you respond to the customer.</p>
-          </div>
-          {!isTerminal(status) && (
-            <div className="flex items-end gap-2">
-              <label className="text-xs font-bold text-green-dark">
-                Status
-                <SelectField
-                  className="mt-2 w-44"
-                  options={statusOptions.map((option) => ({
-                    value: option,
-                    label: option === status ? formatQuoteStatus(option) : `Move to ${formatQuoteStatus(option).toLowerCase()}`,
-                  }))}
-                  value={status}
-                  onChange={(value) => setStatus(value as QuoteRequestStatus)}
-                />
-              </label>
-              <button
-                className="rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream disabled:cursor-not-allowed disabled:opacity-50 hover:bg-green-dark"
-                type="button"
-                disabled={isSavingStatus || status === quote.status}
-                onClick={() => void persistStatus()}
-              >
-                {isSavingStatus ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 border-t border-line pt-6">
-          <label className="block text-sm font-bold text-green-dark" htmlFor="admin-quote-note">
-            Internal note <span className="font-normal normal-case tracking-normal text-muted">(never shown to customers)</span>
-          </label>
-          <textarea
-            className="mt-2 w-full resize-y rounded-xl border border-line bg-cream px-4 py-3 text-sm font-normal outline-none focus:border-green focus:ring-2 focus:ring-green/10"
-            id="admin-quote-note"
-            rows={4}
-            maxLength={2000}
-            placeholder="Internal context for this request — pricing notes, agreed amounts, etc. This note is private to the admin portal."
-            value={internalNote}
-            onChange={(event) => setInternalNote(event.target.value)}
-          />
-          <div className="mt-3 flex justify-end">
-            <button
-              className="rounded-xl border border-green/25 px-5 py-2.5 text-sm font-bold text-green disabled:cursor-not-allowed disabled:opacity-50 hover:bg-green hover:text-cream"
-              type="button"
-              disabled={isSavingNote || internalNote === (quote.adminNote ?? '')}
-              onClick={() => void persistNote()}
-            >
-              {isSavingNote ? 'Saving…' : 'Save note'}
-            </button>
-          </div>
-        </div>
-      </section>
+      <QuoteDetailModals
+        pendingTerminal={pendingTerminal}
+        isSavingStatus={isSavingStatus}
+        cancelReasonOption={cancelReasonOption}
+        cancelReason={cancelReason}
+        cancelReasonError={cancelReasonError}
+        onSelectCancelReason={(option) => { setCancelReasonOption(option); setCancelReasonError(null) }}
+        onCancelReasonChange={(value) => { setCancelReason(value); setCancelReasonError(null) }}
+        onCloseCancel={resetPendingTerminal}
+        onConfirm={confirmTerminal}
+        isRevising={isRevising}
+        isReviseConfirmOpen={isReviseConfirmOpen}
+        onCloseRevise={() => setIsReviseConfirmOpen(false)}
+        onRevise={() => void handleRevise()}
+      />
     </div>
   )
 }

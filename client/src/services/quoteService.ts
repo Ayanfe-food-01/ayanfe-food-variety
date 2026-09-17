@@ -1,5 +1,5 @@
 import { request } from './api'
-import type { CreatedOrder } from './orderService'
+import type { CreatedOrder, PaymentMethod } from './orderService'
 
 export type QuoteRequestStatus = 'PENDING' | 'CONTACTED' | 'QUOTED' | 'ACCEPTED' | 'COMPLETED' | 'CANCELLED'
 export type QuoteShoppingMode = 'RETAIL' | 'WHOLESALE' | null
@@ -14,6 +14,15 @@ export interface QuoteRequestItem {
   quantity: number
   note: string | null
   quotedUnitPrice: string | null
+}
+
+export interface QuotePriceHint {
+  retail: string | null
+  wholesale: string | null
+}
+
+export interface AdminQuoteRequestItem extends QuoteRequestItem {
+  priceHint: QuotePriceHint
 }
 
 export interface QuoteRequest {
@@ -55,7 +64,7 @@ export interface CreateQuoteRequestInput {
 interface CreateQuoteRequestResponse {
   success: true
   message: string
-  data: { quoteRequest: QuoteRequest }
+  data: { quoteRequest: QuoteRequest; created: boolean }
 }
 
 export interface AdminQuoteRequestListItem {
@@ -82,8 +91,11 @@ export interface AdminQuoteRequestDetail extends AdminQuoteRequestListItem {
   acceptedAt: string | null
   rejectedAt: string | null
   rejectionReason: string | null
+  cancelledAt: string | null
+  cancelledReason: string | null
+  completedAt: string | null
   convertedOrderNumber: string | null
-  items: QuoteRequestItem[]
+  items: AdminQuoteRequestItem[]
 }
 
 export interface PrepareQuotePricingInput {
@@ -121,13 +133,13 @@ interface AdminQuoteRequestResponse {
   data: { quoteRequest: AdminQuoteRequestDetail }
 }
 
-export async function createQuoteRequest(input: CreateQuoteRequestInput): Promise<QuoteRequest> {
+export async function createQuoteRequest(input: CreateQuoteRequestInput): Promise<{ quoteRequest: QuoteRequest; created: boolean }> {
   const response = await request<CreateQuoteRequestResponse>('/quotes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return response.data.quoteRequest
+  return response.data
 }
 
 export async function getAdminQuoteRequests(query: AdminQuoteRequestsQuery = {}): Promise<AdminQuoteRequestsPage> {
@@ -147,11 +159,19 @@ export async function getAdminQuoteRequest(reference: string): Promise<AdminQuot
 export async function updateAdminQuoteRequestStatus(
   reference: string,
   status: QuoteRequestStatus,
+  reason?: string,
 ): Promise<AdminQuoteRequestDetail> {
   const response = await request<AdminQuoteRequestResponse>(`/admin/quotes/${encodeURIComponent(reference)}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(reason !== undefined && reason !== '' ? { status, reason } : { status }),
+  })
+  return response.data.quoteRequest
+}
+
+export async function reviseAdminQuoteRequest(reference: string): Promise<AdminQuoteRequestDetail> {
+  const response = await request<AdminQuoteRequestResponse>(`/admin/quotes/${encodeURIComponent(reference)}/revise`, {
+    method: 'POST',
   })
   return response.data.quoteRequest
 }
@@ -237,6 +257,7 @@ export interface ConvertQuoteToOrderInput {
   deliveryAddress?: string
   city?: string
   deliveryInstructions?: string
+  paymentMethod?: PaymentMethod
 }
 
 interface ConvertQuoteResponse {

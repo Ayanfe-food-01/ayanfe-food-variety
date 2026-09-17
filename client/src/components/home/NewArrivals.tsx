@@ -56,7 +56,7 @@ export function NewArrivals() {
             </Link>
           </div>
           {isLoading ? (
-            <div className="product-grid" aria-label="Loading new arrivals">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4" aria-label="Loading new arrivals">
               {Array.from({ length: 4 }, (_, index) => (
                 <div className="h-[390px] animate-pulse rounded-2xl bg-white/70" key={index} />
               ))}

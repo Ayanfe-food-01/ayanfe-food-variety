@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { AdminHeader } from './AdminHeader'
 import { logoutAdmin, type AuthenticatedUser } from '../../services/authService'
+import './adminTheme.css'
 
 const SIDEBAR_COLLAPSED_KEY = 'admin-sidebar-collapsed'
 

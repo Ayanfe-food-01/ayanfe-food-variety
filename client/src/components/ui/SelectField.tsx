@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { ChevronDownIcon } from '../../assets/icons'
+import { SelectMenu } from './select/SelectMenu'
 
 export interface SelectOption {
   value: string
@@ -25,6 +26,19 @@ interface SelectFieldProps {
   placeholder?: string
   buttonLabel?: string
 }
+
+const BUTTON_BASE =
+  'flex w-full min-h-[46px] items-center justify-between gap-2.5 border border-line rounded-xl bg-cream px-[14px] text-[14px] font-normal leading-[1.3] text-left cursor-pointer transition-colors duration-150 hover:border-green focus-visible:outline-2 focus-visible:outline-green focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-65'
+const BUTTON_OPEN = 'border-green'
+
+const FILTER_BUTTON =
+  'min-h-[44px] border-0 rounded-full bg-[#f0f1ee] text-[12px] font-bold px-4 hover:shadow-[0_0_0_2px_rgb(50_79_45/0.18)] focus-visible:shadow-[0_0_0_2px_rgb(50_79_45/0.18)]'
+
+const COMPACT_BUTTON =
+  'w-full min-h-[30px] gap-1.5 border-0 rounded-lg bg-transparent px-2 py-1 text-[11px] font-bold text-green-dark hover:border-transparent hover:bg-sage focus-visible:outline-2 focus-visible:outline-[rgb(50_79_45/0.25)] focus-visible:outline-offset-1'
+
+const INPUT_EXTRA =
+  'appearance-none [-webkit-appearance:none] [-moz-appearance:textfield] cursor-text bg-[image:none] border border-line [&::placeholder]:text-muted [&:disabled]:cursor-not-allowed'
 
 export function SelectField({
   value,
@@ -133,24 +147,12 @@ export function SelectField({
       const spaceBelow = viewportHeight - rect.bottom - viewportPadding
       const spaceAbove = rect.top - viewportPadding
 
-      const scrollBox = trigger.closest<HTMLElement>('.y-scrollbar')
-      let boxSpaceBelow = spaceBelow
-      let boxSpaceAbove = spaceAbove
-      if (scrollBox) {
-        const boxRect = scrollBox.getBoundingClientRect()
-        const boxPadding = 8
-        boxSpaceBelow = boxRect.bottom - rect.bottom - boxPadding
-        boxSpaceAbove = rect.top - boxRect.top - boxPadding
-      }
-
       const openBelow = spaceBelow >= Math.min(180, preferredMaxHeight) || spaceBelow >= spaceAbove
       const menuWidth = Math.min(
         Math.max(rect.width, variant === 'compact' ? 184 : rect.width),
         viewportWidth - viewportPadding * 2,
       )
-      const availableHeight = openBelow
-        ? Math.min(spaceBelow, boxSpaceBelow)
-        : Math.min(spaceAbove, boxSpaceAbove)
+      const availableHeight = openBelow ? spaceBelow : spaceAbove
       const maxHeight = Math.max(96, Math.min(preferredMaxHeight, availableHeight))
       const top = openBelow
         ? rect.bottom + gap
@@ -276,8 +278,14 @@ export function SelectField({
   const effectiveMenuStyle = isOpen ? menuStyle : null
   const menuOpen = isOpen && activeOptions.length > 0 && effectiveMenuStyle
 
+  const wrapperClass = [
+    'relative min-w-0',
+    variant === 'filter' ? 'min-h-[44px]' : '',
+    className,
+  ].join(' ')
+
   return (
-    <div className={`select-field ${variant === 'filter' ? 'select-field-filter' : ''} ${variant === 'compact' ? 'select-field-compact' : ''} ${className}`} ref={wrapperRef}>
+    <div className={wrapperClass} ref={wrapperRef}>
       {name && <input type="hidden" name={name} value={value} />}
       {searchable ? (
         <input
@@ -288,7 +296,7 @@ export function SelectField({
           aria-haspopup="listbox"
           aria-invalid={ariaInvalid}
           aria-label={ariaLabel}
-          className={`select-field-button select-field-input ${isOpen ? 'is-open' : ''}`}
+          className={`select-field-button ${BUTTON_BASE} ${variant === 'filter' ? FILTER_BUTTON : variant === 'compact' ? COMPACT_BUTTON : ''} ${INPUT_EXTRA} ${isOpen ? BUTTON_OPEN : ''}`}
           disabled={disabled}
           id={id}
           onKeyDown={handleSearchableKeyDown}
@@ -310,7 +318,7 @@ export function SelectField({
           aria-haspopup="listbox"
           aria-invalid={ariaInvalid}
           aria-label={ariaLabel}
-          className={`select-field-button ${isOpen ? 'is-open' : ''}`}
+          className={`select-field-button ${BUTTON_BASE} ${variant === 'filter' ? FILTER_BUTTON : variant === 'compact' ? COMPACT_BUTTON : ''} ${isOpen ? BUTTON_OPEN : ''}`}
           disabled={disabled}
           id={id}
           onClick={() => (isOpen ? closeMenu() : openMenu())}
@@ -318,39 +326,25 @@ export function SelectField({
           title={buttonLabel ?? selectedOption?.label}
           type="button"
         >
-          <span className={`block min-w-0 truncate ${!selectedOption && !buttonLabel ? 'select-field-placeholder' : ''}`.trim()}>
+          <span className={`block min-w-0 truncate ${!selectedOption && !buttonLabel ? 'text-muted' : 'text-green-dark'}`}>
             {buttonLabel ?? selectedOption?.label ?? placeholder}
           </span>
-          <ChevronDownIcon className="select-field-chevron" size={17} aria-hidden="true" />
+          <ChevronDownIcon className={`flex-none transition-transform duration-200 ease-in-out ${isOpen ? 'rotate-180' : ''}`} size={17} aria-hidden="true" />
         </button>
       )}
       {menuOpen && createPortal(
-        <div
-          className={`select-field-menu y-scrollbar ${variant === 'compact' ? 'select-field-menu-compact' : ''}`}
-          id={listboxId}
-          ref={menuRef}
-          role="listbox"
-          aria-label={ariaLabel}
+        <SelectMenu
+          value={value}
+          options={activeOptions}
+          highlightedIndex={highlightedIndex}
+          disabledOptions={disabledOptions}
+          listboxId={listboxId}
+          ariaLabel={ariaLabel}
+          menuRef={menuRef}
+          onSelect={chooseOption}
+          onHighlight={setHighlightedIndex}
           style={effectiveMenuStyle}
-        >
-          {activeOptions.map((option, index) => (
-            <button
-              aria-disabled={disabledOptions.includes(option.value)}
-              aria-selected={option.value === value}
-              className={`select-field-option ${highlightedIndex === index ? 'is-highlighted' : ''} ${option.value === value ? 'is-selected' : ''} ${disabledOptions.includes(option.value) ? 'is-disabled' : ''}`}
-              disabled={disabledOptions.includes(option.value)}
-              id={`${listboxId}-option-${index}`}
-              key={option.value}
-              onClick={() => chooseOption(option)}
-              role="option"
-              title={option.label}
-              type="button"
-            >
-              <span className="block min-w-0 truncate">{option.label}</span>
-              {option.value === value && <span className="select-field-check" aria-hidden="true">✓</span>}
-            </button>
-          ))}
-        </div>,
+        />,
         document.body,
       )}
       {required && <span className="sr-only" aria-hidden="true">Required</span>}

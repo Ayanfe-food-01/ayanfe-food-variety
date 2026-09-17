@@ -2,19 +2,23 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '../../components/ui/Toast'
 import { Breadcrumb } from '../../components/ui/Breadcrumb'
+import { ActionMenu, ActionMenuButton } from '../../components/admin/ActionMenu'
 import { ProductsFilterPanel } from '../../components/admin/ProductsFilterPanel'
 import { ProductsTable } from '../../components/admin/ProductsTable'
 import { AdminPagination } from '../../components/admin/AdminPagination'
 import { AdminTableSkeleton } from '../../components/admin/AdminTableSkeleton'
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useInitialRouteLoad } from '../../hooks/useInitialRouteLoad'
 import { ApiError } from '../../services/api'
+import { ProductsDialogs } from './ProductsDialogs'
 import {
   getAdminCategories,
   getAdminProducts,
   deleteAdminProduct,
   updateAdminProductFeatured,
   updateAdminProductStatus,
+  bulkDeleteAdminProducts,
+  bulkUpdateAdminProductFeatured,
+  bulkUpdateAdminProductStatus,
   type AdminProductsPage,
   type AdminProductsQuery,
 } from '../../services/adminService'
@@ -55,6 +59,9 @@ export function Products() {
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([])
+  const [bulkPending, setBulkPending] = useState(false)
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null)
 
   useInitialRouteLoad(!isLoading)
   const [productToStatus, setProductToStatus] = useState<AdminProductsPage['products'][number] | null>(null)
@@ -206,6 +213,64 @@ export function Products() {
     }
   }
 
+  const runBulkStatusAction = async (isActive: boolean) => {
+    const ids = selectedProductIds
+    if (ids.length === 0 || bulkPending) return
+    setBulkPending(true)
+    setError(null)
+    try {
+      await bulkUpdateAdminProductStatus(ids, isActive)
+      showToast(`${ids.length} product${ids.length === 1 ? '' : 's'} ${isActive ? 'activated' : 'deactivated'}.`, 'success')
+      clearProductSelection()
+      setQuery((current) => ({ ...current }))
+    } catch (caught) {
+      showToast(caught instanceof ApiError ? caught.message : 'Product availability could not be updated.', 'error')
+    } finally {
+      setBulkPending(false)
+    }
+  }
+
+  const runBulkFeaturedAction = async (isFeatured: boolean) => {
+    const ids = selectedProductIds
+    if (ids.length === 0 || bulkPending) return
+    setBulkPending(true)
+    setError(null)
+    try {
+      await bulkUpdateAdminProductFeatured(ids, isFeatured)
+      showToast(`${ids.length} product${ids.length === 1 ? '' : 's'} ${isFeatured ? 'marked as featured' : 'removed from featured'}.`, 'success')
+      clearProductSelection()
+      setQuery((current) => ({ ...current }))
+    } catch (caught) {
+      showToast(caught instanceof ApiError ? caught.message : 'Featured status could not be updated.', 'error')
+    } finally {
+      setBulkPending(false)
+    }
+  }
+
+  const confirmBulkDelete = async () => {
+    const ids = selectedProductIds
+    if (ids.length === 0 || bulkPending) return
+    setBulkPending(true)
+    setBulkDeleteError(null)
+    try {
+      const { deleted, failed } = await bulkDeleteAdminProducts(ids)
+      setIsBulkDeleteOpen(false)
+      clearProductSelection()
+      setQuery((current) => ({ ...current }))
+      if (failed.length === 0) {
+        showToast(`${deleted} product${deleted === 1 ? '' : 's'} deleted permanently.`, 'success')
+      } else if (deleted === 0) {
+        showToast(failed[0], 'error')
+      } else {
+        showToast(`${deleted} deleted; ${failed.length} skipped because they have protected records.`, 'error')
+      }
+    } catch (caught) {
+      setBulkDeleteError(caught instanceof ApiError ? caught.message : 'Some products could not be deleted.')
+    } finally {
+      setBulkPending(false)
+    }
+  }
+
   const currentPage = result?.pagination.page ?? query.page
   const totalPages = result?.pagination.totalPages ?? 1
   const pageProducts = result?.products ?? []
@@ -213,15 +278,15 @@ export function Products() {
   const somePageProductsSelected = pageProducts.some((product) => selectedProductIds.includes(product.id))
 
   return (
-    <div className="admin-products-page">
-      <div className="admin-products-page-header flex min-w-0 flex-col justify-between gap-5 sm:flex-row sm:items-end">
+    <div className="min-w-0">
+      <div className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-end sm:gap-5">
         <div className="min-w-0">
           <Breadcrumb className="mb-5" items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Products' }]} />
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange">Catalog</p>
           <h1 className="mt-2 text-4xl font-bold tracking-[-0.05em] text-green-dark sm:text-5xl">Products</h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">Manage your catalog, availability, prices, and stock levels. Deactivate products to preserve history; permanent deletion is only available when no protected records exist.</p>
         </div>
-        <Link className="admin-products-add-button inline-flex shrink-0 rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark" to="/admin/products/new">
+        <Link className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream hover:bg-green-dark sm:w-auto" to="/admin/products/new">
           Add product
         </Link>
       </div>
@@ -238,15 +303,26 @@ export function Products() {
           onSortChange={(sort) => setQuery((current) => ({ ...current, sort, page: 1 }))}
         />
       </section>
-      <section className="admin-products-workspace mt-6 rounded-2xl border border-line bg-white shadow-sm" aria-label="Products">
+      <section className="mt-6 min-w-0 rounded-2xl border border-line bg-white shadow-sm" aria-label="Products">
         {selectedProductIds.length > 0 && (
-          <div className="admin-products-selection-toolbar flex items-center justify-between gap-4 border-b border-line bg-sage/20 px-4 py-3 text-sm sm:px-5">
-            <span className="font-bold text-green-dark" role="status">
+          <div className="flex min-w-0 flex-row items-center justify-between gap-2 border-b border-line bg-sage/20 px-4 py-3 text-sm sm:items-center sm:gap-4 sm:px-5">
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-bold text-green-dark" role="status">
               {selectedProductIds.length} product{selectedProductIds.length === 1 ? '' : 's'} selected
             </span>
-            <button className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-green-dark hover:bg-sage" type="button" onClick={clearProductSelection}>
-              Clear selection
-            </button>
+            <div className="shrink-0">
+              <ActionMenu ariaLabel={`Bulk actions for selected products`} isBusy={bulkPending}>
+                {(close) => (
+                  <>
+                    <ActionMenuButton onClick={() => { close(); void runBulkStatusAction(true) }}>Activate selected</ActionMenuButton>
+                    <ActionMenuButton onClick={() => { close(); void runBulkStatusAction(false) }}>Deactivate selected</ActionMenuButton>
+                    <ActionMenuButton tone="accent" onClick={() => { close(); void runBulkFeaturedAction(true) }}>Mark as featured</ActionMenuButton>
+                    <ActionMenuButton tone="accent" onClick={() => { close(); void runBulkFeaturedAction(false) }}>Remove from featured</ActionMenuButton>
+                    <ActionMenuButton tone="danger" onClick={() => { close(); setBulkDeleteError(null); setIsBulkDeleteOpen(true) }}>Delete selected</ActionMenuButton>
+                    <ActionMenuButton onClick={() => { close(); clearProductSelection() }}>Clear selection</ActionMenuButton>
+                  </>
+                )}
+              </ActionMenu>
+            </div>
           </div>
         )}
 
@@ -281,38 +357,30 @@ export function Products() {
             )}
           </>
         ) : (
-          <div className="admin-products-empty rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
+          <div className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
             <h2 className="text-xl font-bold text-green-dark">No products found</h2>
             <p className="mt-2 text-sm text-muted">Try a different filter or add your first product.</p>
             <Link className="mt-5 inline-flex rounded-xl bg-green px-5 py-3 text-sm font-bold text-cream" to="/admin/products/new">Add product</Link>
           </div>
         )}
       </section>
-      {productToStatus && (
-        <ConfirmDialog
-          eyebrow="Change product availability"
-          title={`${productToStatus.isActive ? 'Deactivate' : 'Activate'} “${productToStatus.name}”?`}
-          description={productToStatus.isActive ? 'This hides the product from customer shopping and prevents it from being selected for new orders.' : 'This makes the product available for customer shopping again when it has stock.'}
-          isBusy={updatingId === productToStatus.id}
-          confirmLabel={productToStatus.isActive ? 'Deactivate product' : 'Activate product'}
-          busyLabel="Updating…"
-          onCancel={() => setProductToStatus(null)}
-          onConfirm={() => void confirmStatusChange()}
-        />
-      )}
-      {productToDelete && (
-        <ConfirmDialog
-          eyebrow="Permanent deletion"
-          title={`Delete “${productToDelete.name}”?`}
-          description="This permanently removes the product from the catalog. This action cannot be undone. Products with order or inventory history must be deactivated instead."
-          error={deleteError}
-          isBusy={deletingId === productToDelete.id}
-          confirmLabel="Delete permanently"
-          busyLabel="Deleting…"
-          onCancel={() => setProductToDelete(null)}
-          onConfirm={() => void confirmDelete()}
-        />
-      )}
+      <ProductsDialogs
+        productToStatus={productToStatus}
+        updatingId={updatingId}
+        onStatusChange={confirmStatusChange}
+        onCancelStatus={() => setProductToStatus(null)}
+        productToDelete={productToDelete}
+        deletingId={deletingId}
+        deleteError={deleteError}
+        onDelete={confirmDelete}
+        onCancelDelete={() => setProductToDelete(null)}
+        isBulkDeleteOpen={isBulkDeleteOpen}
+        selectedCount={selectedProductIds.length}
+        bulkPending={bulkPending}
+        bulkDeleteError={bulkDeleteError}
+        onBulkDelete={confirmBulkDelete}
+        onCancelBulkDelete={() => setIsBulkDeleteOpen(false)}
+      />
     </div>
   )
 }

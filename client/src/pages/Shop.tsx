@@ -154,6 +154,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
               position: index + 1,
               url: getAbsoluteUrl(`/product/${item.slug ?? item.id}`),
               name: item.name,
+              image: getAbsoluteUrl(item.image),
             })),
           },
         },
@@ -229,7 +230,7 @@ export function Shop({ newArrivalsOnly = false }: { newArrivalsOnly?: boolean })
           )}
 
           {isProductsLoading ? (
-            <div className="product-grid" aria-label="Loading products">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4" aria-label="Loading products">
               {Array.from({ length: 8 }, (_, index) => <div className="h-[390px] animate-pulse rounded-2xl bg-sage" key={index} />)}
             </div>
           ) : productsError ? (

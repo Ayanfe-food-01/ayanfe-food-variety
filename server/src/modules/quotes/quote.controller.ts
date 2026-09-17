@@ -12,6 +12,6 @@ export const createQuoteRequestController: RequestHandler = async (request, resp
     message: created
       ? "Your quote request has been received. We'll review your request and get back to you."
       : 'This quote request has already been received.',
-    data: { quoteRequest },
+    data: { quoteRequest, created },
   })
 }

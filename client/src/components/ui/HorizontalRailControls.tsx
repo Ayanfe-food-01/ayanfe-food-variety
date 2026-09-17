@@ -23,10 +23,13 @@ export function HorizontalRailControls({ railRef, label }: HorizontalRailControl
   ]
 
   return (
-    <div className="horizontal-rail-controls" aria-label={`${label} carousel controls`}>
+    <div
+      className="pointer-events-none absolute inset-x-[-18px] top-1/2 z-[2] hidden -translate-y-1/2 justify-between md:flex"
+      aria-label={`${label} carousel controls`}
+    >
       {controls.map(({ direction, label: controlLabel, icon }) => (
         <button
-          className="horizontal-rail-control"
+          className="pointer-events-auto grid size-8 cursor-pointer place-items-center rounded-full border border-line bg-white text-green-dark transition-all duration-200 hover:-translate-y-px hover:border-green hover:bg-green hover:text-white focus-visible:-translate-y-px focus-visible:border-green focus-visible:bg-green focus-visible:text-white"
           type="button"
           onClick={() => scrollRail(direction)}
           aria-label={controlLabel}

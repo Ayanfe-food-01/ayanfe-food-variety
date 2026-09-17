@@ -30,7 +30,7 @@ export function Testimonials() {
           </div>
 
           <div
-            className="testimonial-rail"
+            className="mt-10 flex snap-x snap-mandatory gap-[14px] overflow-x-auto [scrollbar-width:none] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_32px,#000_calc(100%-32px),transparent)] [mask-image:linear-gradient(to_right,transparent,#000_32px,#000_calc(100%-32px),transparent)] [&::-webkit-scrollbar]:hidden md:gap-5 md:[-webkit-mask-image:linear-gradient(to_right,transparent,#000_48px,#000_calc(100%-48px),transparent)] md:[mask-image:linear-gradient(to_right,transparent,#000_48px,#000_calc(100%-48px),transparent)]"
             ref={trackRef}
             onKeyDown={interruptAutoAdvance}
             onPointerDown={interruptAutoAdvance}
@@ -39,7 +39,7 @@ export function Testimonials() {
             onWheel={interruptAutoAdvance}
           >
             {stories.map((story) => (
-              <div className="testimonial-slide" key={story.id}>
+              <div className="flex min-w-0 shrink-0 basis-[min(320px,100%)] snap-center snap-always md:basis-[min(420px,100%)]" key={story.id}>
                 <CustomerStoryCard story={story} />
               </div>
             ))}

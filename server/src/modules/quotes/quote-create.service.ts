@@ -1,4 +1,4 @@
-import { AdminNotificationType, QuoteRequestStatus, ShoppingMode } from '@prisma/client'
+import { AdminNotificationType, Prisma, QuoteRequestStatus, ShoppingMode } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
@@ -60,43 +60,62 @@ export async function createQuoteRequest(
     }
 
     const isWholesale = user?.shoppingMode === ShoppingMode.WHOLESALE
-    const quoteRequest = await transaction.quoteRequest.create({
-      data: {
-        quoteNumber: await nextQuoteNumber(transaction),
-        requestKey: input.requestKey,
-        userId: user?.id ?? null,
-        customerName: input.customerName,
-        customerEmail: input.customerEmail,
-        customerPhone: input.customerPhone,
-        message: input.message ?? null,
-        shoppingMode: isWholesale ? ShoppingMode.WHOLESALE : ShoppingMode.RETAIL,
-        status: QuoteRequestStatus.PENDING,
-        items: {
-          create: input.items.map((item) => {
-            const product = productsById.get(item.productId)!
-            const option = item.productOptionId ? optionsById.get(item.productOptionId) : undefined
-            return {
-              productId: item.productId,
-              productName: product.name,
-              productOptionId: option?.id ?? null,
-              productOptionLabel: option?.label ?? null,
-              quantity: item.quantity,
-              note: item.note ?? null,
-            }
-          }),
+    let createdRequest
+    try {
+      createdRequest = await transaction.quoteRequest.create({
+        data: {
+          quoteNumber: await nextQuoteNumber(transaction),
+          requestKey: input.requestKey,
+          userId: user?.id ?? null,
+          customerName: input.customerName,
+          customerEmail: input.customerEmail,
+          customerPhone: input.customerPhone,
+          message: input.message ?? null,
+          shoppingMode: isWholesale ? ShoppingMode.WHOLESALE : ShoppingMode.RETAIL,
+          status: QuoteRequestStatus.PENDING,
+          items: {
+            create: input.items.map((item) => {
+              const product = productsById.get(item.productId)!
+              const option = item.productOptionId ? optionsById.get(item.productOptionId) : undefined
+              return {
+                productId: item.productId,
+                productName: product.name,
+                productOptionId: option?.id ?? null,
+                productOptionLabel: option?.label ?? null,
+                quantity: item.quantity,
+                note: item.note ?? null,
+              }
+            }),
+          },
         },
-      },
-      include: quoteDetailInclude,
-    })
+        include: quoteDetailInclude,
+      })
+    } catch (error) {
+      // Two parallel submissions can race past the findUnique guard above and
+      // collide on the unique request_key. Treat the loser as a duplicate of
+      // whichever request won, never as a server error.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const raced = await transaction.quoteRequest.findUnique({
+          where: { requestKey: input.requestKey },
+          include: quoteDetailInclude,
+        })
+        if (!raced) throw error
+        const belongsToUser = user ? raced.userId === user.id : raced.userId === null
+        if (!belongsToUser) throw new HttpError(409, 'This quote request cannot be reused.')
+        result = { quoteRequest: toQuoteRequestResponse(raced), created: false }
+        return
+      }
+      throw error
+    }
 
-    result = { quoteRequest: toQuoteRequestResponse(quoteRequest), created: true }
+    result = { quoteRequest: toQuoteRequestResponse(createdRequest), created: true }
 
     await createAdminNotification(transaction, {
       type: AdminNotificationType.NEW_QUOTE_REQUEST,
-      eventKey: `quote-request:${quoteRequest.id}`,
+      eventKey: `quote-request:${createdRequest.id}`,
       title: 'New quote request received',
-      message: `${quoteRequest.customerName} (${quoteRequest.customerEmail}) requested a quotation for ${quoteRequest.items.length} product(s).`,
-      href: `/admin/quote-requests/${quoteRequest.quoteNumber}`,
+      message: `${createdRequest.customerName} (${createdRequest.customerEmail}) requested a quotation for ${createdRequest.items.length} product(s).`,
+      href: `/admin/quote-requests/${createdRequest.quoteNumber}`,
     })
   })
 

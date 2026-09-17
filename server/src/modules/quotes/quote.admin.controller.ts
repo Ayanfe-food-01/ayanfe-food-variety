@@ -3,6 +3,7 @@ import {
   getAdminQuoteRequest,
   listAdminQuoteRequests,
   prepareQuotePricing,
+  reviseQuotePricing,
   updateAdminQuoteRequestNote,
   updateAdminQuoteRequestStatus,
 } from './admin-quote.service.js'
@@ -30,10 +31,20 @@ export const getAdminQuoteRequestController: RequestHandler = async (request, re
 
 export const updateAdminQuoteRequestStatusController: RequestHandler = async (request, response) => {
   const reference = validateQuoteNumber(request.params.reference)
+  const { status, reason } = validateQuoteRequestStatusInput(request.body)
   response.json({
     success: true,
     message: 'Quote status updated.',
-    data: { quoteRequest: await updateAdminQuoteRequestStatus(reference, validateQuoteRequestStatusInput(request.body)) },
+    data: { quoteRequest: await updateAdminQuoteRequestStatus(reference, status, reason) },
+  })
+}
+
+export const reviseAdminQuoteRequestController: RequestHandler = async (request, response) => {
+  const reference = validateQuoteNumber(request.params.reference)
+  response.json({
+    success: true,
+    message: 'Quotation revised. The request was returned to the contacted stage.',
+    data: { quoteRequest: await reviseQuotePricing(reference) },
   })
 }
 

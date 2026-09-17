@@ -46,15 +46,15 @@ export function Wishlist() {
 
         <div className="container py-14 sm:py-20">
         {isAuthLoading || (user && isLoading) ? (
-          <div className="product-grid" role="status" aria-label="Loading your wishlist">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4" role="status" aria-label="Loading your wishlist">
             {[0, 1, 2, 3].map((index) => (
-              <div className="product-skeleton" key={index}>
-                <div className="product-skeleton-media" />
-                <div className="product-skeleton-body">
-                  <div className="product-skeleton-line" />
-                  <div className="product-skeleton-line" />
+              <div className="flex flex-col overflow-hidden rounded-[10px] border border-line bg-white" key={index}>
+                <div className="aspect-square w-full bg-sage animate-pulse" />
+                <div className="grid flex-1 gap-[9px] p-[11px]">
+                  <div className="h-3 rounded bg-sage animate-pulse" />
+                  <div className="h-3 w-[62%] rounded bg-sage animate-pulse" />
                 </div>
-                <div className="product-skeleton-action" />
+                <div className="h-9 mx-[11px] mb-[11px] rounded-[9px] bg-sage animate-pulse" />
               </div>
             ))}
           </div>

@@ -22,6 +22,7 @@ export async function listAdminOrders(query: AdminOrdersQuery): Promise<AdminOrd
     ...(search ?? {}),
     ...(query.paymentStatus ? { paymentStatus: query.paymentStatus } : {}),
     ...(query.orderStatus ? { orderStatus: query.orderStatus } : {}),
+    ...(query.shoppingMode ? { shoppingMode: query.shoppingMode } : {}),
     ...(query.archive === 'active' ? { archivedAt: null } : {}),
     ...(query.archive === 'archived' ? { NOT: { archivedAt: null } } : {}),
   }

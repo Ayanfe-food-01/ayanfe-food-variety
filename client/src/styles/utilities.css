@@ -1,0 +1,67 @@
+@utility container {
+  width: calc(100% - 48px);
+  max-width: var(--container-max-width);
+  margin-inline: auto;
+
+  @media (max-width: 767px) {
+    width: calc(100% - 32px);
+  }
+}
+
+@utility x-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-green) transparent;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-sage);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    transition: background-color 0.25s ease;
+  }
+
+  &:hover::-webkit-scrollbar-thumb,
+  &.is-scrolling::-webkit-scrollbar-thumb {
+    background: var(--color-green);
+  }
+}
+
+@utility y-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-green) transparent;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 14px 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-sage);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &:hover::-webkit-scrollbar-thumb,
+    &.is-scrolling::-webkit-scrollbar-thumb {
+      background: var(--color-green-dark);
+    }
+  }
+}

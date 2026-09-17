@@ -36,13 +36,19 @@ export function ShoppingModeSwitch({ className = '' }: ShoppingModeSwitchProps) 
     }
   }
 
+  const isDesktop = className.includes('desktop-shopping-mode')
+  const isMobile = className.includes('mobile-shopping-mode')
+  const sizeClass = isDesktop ? 'min-h-[30px] px-[12px] text-[11px]' : isMobile ? 'flex-1 min-h-[42px] px-[10px] text-[12px]' : 'text-[11px]'
+  const modeClass = (mode: ShoppingMode) =>
+    `${sizeClass} ${shoppingMode === mode ? 'bg-green-dark text-cream hover:text-cream' : 'bg-transparent text-muted hover:text-green-dark'}`
+
   return (
     <>
-      <div className={`shopping-mode-switch${className ? ` ${className}` : ''}`}>
-        <span className="shopping-mode-label">Shopping Mode</span>
-        <div className="shopping-mode-toggle" role="group" aria-label="Shopping mode">
+      <div className={`inline-flex flex-col items-start gap-[3px]${isMobile ? ' w-full mb-[10px] pb-[14px]' : ''}${isDesktop ? ' md:flex-row md:items-center md:gap-[10px] md:mt-[10px] md:mb-[10px] md:mr-auto md:ml-0 md:pl-[10px] md:border-l md:border-line md:shrink-0 lg:pl-[14px]' : ''}${className ? ` ${className}` : ''}`}>
+        <span className={`text-muted font-extrabold uppercase ${isDesktop ? 'text-[11px] tracking-[0.08em] whitespace-nowrap' : 'text-[9px] tracking-[0.1em]'}`}>Shopping Mode</span>
+        <div className={`${isMobile ? 'flex w-full gap-[2px]' : 'inline-flex gap-[3px]'} items-center rounded-full border border-line bg-[#f0f1ee] p-[3px]`} role="group" aria-label="Shopping mode">
           <button
-            className={`shopping-mode-option${shoppingMode === 'RETAIL' ? ' is-active' : ''}`}
+            className={`min-h-[32px] border-0 rounded-full px-[14px] font-extrabold whitespace-nowrap cursor-pointer transition-[background-color,color] duration-200 ease-[ease] focus-visible:outline-2 focus-visible:outline-orange focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-60 ${modeClass('RETAIL')}`}
             type="button"
             aria-pressed={shoppingMode === 'RETAIL'}
             disabled={isLoading || isBusy}
@@ -51,7 +57,7 @@ export function ShoppingModeSwitch({ className = '' }: ShoppingModeSwitchProps) 
             Retail
           </button>
           <button
-            className={`shopping-mode-option${shoppingMode === 'WHOLESALE' ? ' is-active' : ''}`}
+            className={`min-h-[32px] border-0 rounded-full px-[14px] font-extrabold whitespace-nowrap cursor-pointer transition-[background-color,color] duration-200 ease-[ease] focus-visible:outline-2 focus-visible:outline-orange focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-60 ${modeClass('WHOLESALE')}`}
             type="button"
             aria-pressed={shoppingMode === 'WHOLESALE'}
             disabled={isLoading || isBusy}
@@ -60,7 +66,7 @@ export function ShoppingModeSwitch({ className = '' }: ShoppingModeSwitchProps) 
             Wholesale
           </button>
         </div>
-        {error && <span className="shopping-mode-error" role="alert">{error}</span>}
+        {error && <span className="text-orange text-[10px] font-bold" role="alert">{error}</span>}
       </div>
       {showLoginPrompt && createPortal(
         <ConfirmDialog

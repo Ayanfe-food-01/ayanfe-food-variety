@@ -46,8 +46,11 @@ export const toAdminDetail = (quoteRequest: QuoteRequestWithItems): AdminQuoteRe
   acceptedAt: toNullableIso(quoteRequest.acceptedAt),
   rejectedAt: toNullableIso(quoteRequest.rejectedAt),
   rejectionReason: quoteRequest.rejectionReason,
+  cancelledAt: toNullableIso(quoteRequest.cancelledAt),
+  cancelledReason: quoteRequest.cancelledReason,
+  completedAt: toNullableIso(quoteRequest.completedAt),
   convertedOrderNumber: quoteRequest.convertedOrder?.orderNumber ?? null,
   createdAt: quoteRequest.createdAt.toISOString(),
   updatedAt: quoteRequest.updatedAt.toISOString(),
-  items: quoteRequest.items.map(toItemResponse),
+  items: quoteRequest.items.map((item) => ({ ...toItemResponse(item), priceHint: { retail: null, wholesale: null } })),
 })

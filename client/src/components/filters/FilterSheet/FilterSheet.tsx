@@ -68,7 +68,7 @@ export function FilterSheet({ onClose, fields, committed, onApply, anchorRefs }:
     <FilterSheetPortal>
       <div
         id="filter-sheet"
-        className={`filter-sheet ${isPopover ? 'is-popover' : ''}`.trim()}
+        className={`fixed inset-0 z-[90] ${isPopover ? 'pointer-events-none' : ''}`}
         role="dialog"
         aria-modal={isPopover ? undefined : true}
         aria-label="Filters"
@@ -78,13 +78,14 @@ export function FilterSheet({ onClose, fields, committed, onApply, anchorRefs }:
           '--filter-sheet-width': `${popoverPosition.width}px`,
         } as React.CSSProperties : undefined}
       >
-        <FilterSheetBackdrop onClose={onClose} />
+        <FilterSheetBackdrop onClose={onClose} isPopover={isPopover} />
         <FilterSheetPanel
           fields={fields}
           draft={draft}
           onDraftChange={setDraft}
           onApply={onApply}
           onClose={onClose}
+          isPopover={isPopover}
         />
       </div>
     </FilterSheetPortal>

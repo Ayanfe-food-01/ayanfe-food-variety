@@ -39,14 +39,20 @@ export function validateQuoteRequestQuery(query: Record<string, unknown>): Quote
   }
 }
 
-export function validateQuoteRequestStatusInput(body: unknown): QuoteRequestStatus {
+export interface QuoteRequestStatusUpdateInput {
+  status: QuoteRequestStatus
+  reason?: string
+}
+
+export function validateQuoteRequestStatusInput(body: unknown): QuoteRequestStatusUpdateInput {
   if (!isRecord(body) || typeof body.status !== 'string') {
     throw new HttpError(400, 'status is required.')
   }
   if (!Object.values(QuoteRequestStatus).includes(body.status as QuoteRequestStatus)) {
     throw new HttpError(400, 'status is invalid.')
   }
-  return body.status as QuoteRequestStatus
+  const reason = optionalText(body.reason, 'Cancellation reason', 500)
+  return { status: body.status as QuoteRequestStatus, reason }
 }
 
 export function validateQuoteRequestNoteInput(body: unknown): string {

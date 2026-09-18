@@ -154,7 +154,15 @@ export function validateConvertQuoteInput(body: unknown): ConvertQuoteToOrderInp
     whatsapp: optionalText(body.whatsapp, 'WhatsApp number', 40),
     deliveryAddress: optionalText(body.deliveryAddress, 'deliveryAddress', 2000),
     city: optionalText(body.city, 'city', 120),
+    stateId: validateOptionalLocationId(body.stateId, 'state'),
+    cityId: validateOptionalLocationId(body.cityId, 'city'),
+    areaId: validateOptionalLocationId(body.areaId, 'area'),
     deliveryInstructions: optionalText(body.deliveryInstructions, 'deliveryInstructions', 2000),
+    paymentMethod: body.paymentMethod === undefined || body.paymentMethod === null
+      ? undefined
+      : body.paymentMethod === PaymentMethod.BANK_TRANSFER || body.paymentMethod === PaymentMethod.PAYSTACK
+        ? body.paymentMethod
+        : (() => { throw new HttpError(400, 'Payment method is not supported.') })(),
   }
 }
 

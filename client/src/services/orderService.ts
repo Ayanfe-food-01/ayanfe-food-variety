@@ -314,6 +314,7 @@ export interface AdminOrdersQuery {
   search?: string
   paymentStatus?: PaymentStatus
   orderStatus?: OrderStatus
+  shoppingMode?: OrderType
   archive?: 'active' | 'archived' | 'all'
   sort?: 'newest' | 'oldest'
   page?: number

@@ -85,7 +85,11 @@ export function SearchBar({
   }
 
   return (
-    <form className={`search-bar ${className}`} role="search" onSubmit={handleSubmit}>
+    <form
+      className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-transparent bg-line px-[13px] text-muted focus-within:border-green ${className}`}
+      role="search"
+      onSubmit={handleSubmit}
+    >
       <SearchIcon size={19} />
       <input
         {...inputProps}
@@ -95,13 +99,14 @@ export function SearchBar({
         onChange={(event) => handleChange(event.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel}
+        className="min-w-0 flex-1 border-0 bg-transparent py-[13px] text-ink outline-0 [appearance:none] [-webkit-appearance:none] placeholder:text-muted [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
         type="search"
         autoComplete="off"
         spellCheck={false}
       />
       {clearable && value !== '' && (
         <button
-          className="search-bar-clear"
+          className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-sage p-1 text-green-dark cursor-pointer hover:text-green"
           type="button"
           aria-label="Clear search"
           onClick={() => handleChange('')}

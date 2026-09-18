@@ -52,6 +52,18 @@ const orderFields: FilterField[] = [
       { value: 'CANCELLED', label: 'Cancelled' },
     ],
   },
+  {
+    key: 'shoppingMode',
+    label: 'Order type',
+    type: 'select',
+    quick: true,
+    group: 'Status',
+    options: [
+      { value: '', label: 'All order types' },
+      { value: 'RETAIL', label: 'Retail' },
+      { value: 'WHOLESALE', label: 'Wholesale' },
+    ],
+  },
 ]
 
 const orderSortOptions: FilterSortOption[] = [
@@ -179,11 +191,13 @@ export function Orders() {
           committed={{
             paymentStatus: query.paymentStatus ?? '',
             orderStatus: query.orderStatus ?? '',
+            shoppingMode: query.shoppingMode ?? '',
           }}
           onApply={(next: FilterValues) => setQuery((current) => ({
             ...current,
             paymentStatus: (next.paymentStatus || undefined) as AdminOrdersQuery['paymentStatus'],
             orderStatus: (next.orderStatus || undefined) as AdminOrdersQuery['orderStatus'],
+            shoppingMode: (next.shoppingMode || undefined) as AdminOrdersQuery['shoppingMode'],
             page: 1,
           }))}
           search={{

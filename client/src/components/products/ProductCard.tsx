@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ProductPrice } from './ProductPrice'
-import { ProductRating } from './ProductRating'
 import { WishlistButton } from './WishlistButton'
 import type { Product } from '../../types/product'
 import { useCart } from '../../hooks/useCart'
@@ -9,18 +7,18 @@ import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { cartItemLineKey } from '../../context/cartContext'
 import { CartIcon } from '../../assets/icons'
 import { useToast } from '../ui/Toast'
-import { formatPrice } from '../../utils/formatPrice'
-import { optimizedImageUrl } from '../../utils/optimizedImageUrl'
 import { ProductOptionsModal } from './ProductOptionsModal'
-import { StoreStockBadge } from './StoreStockBadge'
+import { ProductCardImage } from './ProductCardImage'
+import { ProductCardPricing } from './ProductCardPricing'
+import { ProductCardActions } from './ProductCardActions'
 
 interface ProductCardProps {
   product: Product
   variant?: 'full' | 'compact'
+  imagePriority?: boolean
 }
 
-export function ProductCard({ product, variant = 'full' }: ProductCardProps) {
-  const [imageError, setImageError] = useState(false)
+export function ProductCard({ product, variant = 'full', imagePriority = false }: ProductCardProps) {
   const [optionsOpen, setOptionsOpen] = useState(false)
   const { addToCart, pendingItemIds } = useCart()
   const { user, shoppingMode } = useCustomerAuth()
@@ -60,42 +58,21 @@ export function ProductCard({ product, variant = 'full' }: ProductCardProps) {
     void handleAddToCart()
   }
 
+  const isCompact = variant === 'compact'
+
   return (
-    <article className={`product-card${variant === 'compact' ? ' product-card-quick-add' : ''}`}>
-      <div className="product-image-wrap">
-        <Link className="product-image-link" to={productUrl} aria-label={`View ${product.name}`}>
-          {product.image && !imageError ? <img src={optimizedImageUrl(product.image, 480)} alt={`${product.name} - Ayanfe Food Variety`} loading="lazy" onError={() => setImageError(true)} /> : <span className="product-image-fallback">Image unavailable</span>}
-        </Link>
-        {discountPercent > 0 && <span className="product-discount-badge">-{discountPercent}%</span>}
-        <StoreStockBadge product={product} className="product-card-stock-badge" />
-      </div>
-      <Link className="product-card-link" to={productUrl}>
-        <div className="product-card-body">
-          <span className="product-name">{product.name}</span>
-          {showsWholesale ? (
-            <strong className="product-price product-price-wholesale">
-              <span className="wholesale-price-label">Wholesale from</span>
-              <span className="wholesale-price-value">{formatPrice(wholesaleFrom)}</span>
-            </strong>
-          ) : (
-            <>
-              <strong className="product-price">
-                <ProductPrice
-                  originalPrice={product.price}
-                  discountedPrice={product.discountedPrice}
-                  discountedClassName="text-green-dark"
-                  originalClassName="ml-1 text-sm font-normal text-muted"
-                />
-              </strong>
-              <ProductRating rating={product.averageRating} count={product.reviewCount} />
-            </>
-          )}
+    <article className="relative flex min-w-0 flex-col overflow-hidden rounded-[10px] border border-line bg-white transition-[box-shadow,border-color,transform,translate] duration-200 hover:border-green/24 hover:shadow-[0_10px_24px_rgb(32_60_36/0.11)] hover:-translate-y-0.5">
+      <ProductCardImage product={product} productUrl={productUrl} discountPercent={discountPercent} imagePriority={imagePriority} />
+      <Link className={`flex min-w-0 flex-1 flex-col text-inherit ${isCompact ? 'pr-[50px]' : ''}`} to={productUrl}>
+        <div className="grid min-w-0 flex-1 content-start gap-[3px] p-[9px_10px_11px] md:p-[10px_11px_12px]">
+          <span className="line-clamp-2 min-h-0 text-[13px] font-bold leading-[1.3] text-ink hover:text-orange">{product.name}</span>
+          <ProductCardPricing product={product} showsWholesale={showsWholesale} wholesaleFrom={wholesaleFrom ?? null} />
         </div>
       </Link>
-      <WishlistButton product={product} className="product-card-wishlist" />
-      {variant === 'compact' && (
+      <WishlistButton product={product} className="absolute top-[9px] right-[9px] z-2 grid size-[30px] min-h-[30px] place-items-center border border-line bg-white text-green-dark shadow-[0_1px_4px_rgb(20_33_22/0.14)] hover:border-orange hover:bg-orange hover:text-white focus-visible:border-orange focus-visible:bg-orange focus-visible:text-white" />
+      {isCompact && (
         <button
-          className="product-quick-add"
+          className="absolute right-[10px] bottom-[10px] z-3 grid size-[34px] place-items-center rounded-full border-0 bg-green text-white shadow-[0_2px_10px_rgb(20_33_22/0.28)] cursor-pointer transition-[background-color,box-shadow,scale] duration-200 hover:bg-green-dark hover:scale-[1.06] hover:shadow-[0_4px_14px_rgb(20_33_22/0.32)] focus-visible:outline-2 focus-visible:outline-orange focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-60 disabled:transform-none"
           type="button"
           aria-label={hasOptions ? `Select options for ${product.name}` : `Add ${product.name} to cart`}
           title={hasOptions ? 'Select options' : 'Add to cart'}
@@ -106,40 +83,14 @@ export function ProductCard({ product, variant = 'full' }: ProductCardProps) {
         </button>
       )}
       {variant === 'full' && (
-        <div className="product-card-actions">
-        {isWholesaleShopper ? (
-          <button
-            className="product-card-add"
-            type="button"
-            onClick={() => setOptionsOpen(true)}
-            aria-label={`Choose a wholesale package for ${product.name}`}
-          >
-            <CartIcon size={15} />
-            Choose package
-          </button>
-        ) : hasOptions ? (
-          <button
-            className="product-card-add"
-            type="button"
-            onClick={() => setOptionsOpen(true)}
-            aria-label={`Select options for ${product.name}`}
-          >
-            <CartIcon size={15} />
-            Select options
-          </button>
-        ) : (
-          <button
-            className="product-card-add"
-            type="button"
-            disabled={!product.isAvailable || isAdding}
-            onClick={() => void handleAddToCart()}
-            aria-label={`Add ${product.name} to cart`}
-          >
-            <CartIcon size={15} />
-            {isAdding ? 'Adding…' : product.isAvailable ? 'Add to cart' : 'Unavailable'}
-          </button>
-        )}
-      </div>
+        <ProductCardActions
+          product={product}
+          isWholesaleShopper={isWholesaleShopper}
+          hasOptions={hasOptions}
+          isAdding={isAdding}
+          onAddToCart={() => void handleAddToCart()}
+          onOpenOptions={() => setOptionsOpen(true)}
+        />
       )}
       {optionsOpen && (
         <ProductOptionsModal

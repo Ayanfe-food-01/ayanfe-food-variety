@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowRight, CloseIcon, EyeIcon, EyeOffIcon } from '../../assets/icons'
-import { Button } from '../ui/Button'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { ApiError } from '../../services/api'
 import { getCurrentUser, getGoogleSignInUrl, login, signupCustomer, type AuthenticatedUser } from '../../services/authService'
@@ -14,8 +12,10 @@ import {
 import { markGuestCheckout } from '../../utils/guestCheckout'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { BrandLogo } from '../layout/BrandLogo'
+import { AuthModalShell } from './AuthModalShell'
+import { AuthGatewayView } from './AuthGatewayView'
+import { LoginForm, type AuthFormValues, type Mode } from './LoginForm'
 
-type Mode = 'login' | 'signup'
 type LoginView = 'gateway' | 'email'
 
 const googleErrorMessages: Record<string, string> = {
@@ -66,8 +66,6 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const sheetDragRef = useRef({ startY: 0, pulled: 0, active: false })
 
   const getDestination = useCallback((user: AuthenticatedUser) => {
     const from = readInternalReturnPath(location.state)
@@ -84,55 +82,6 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
     }
     closeAuth()
   }, [closeAuth, location.state, navigate, standalone])
-
-  const handleSheetPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    const scroll = scrollRef.current
-    if (!scroll) return
-    event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
-    sheetDragRef.current = { startY: event.clientY, pulled: 0, active: true }
-    if (panelRef.current) panelRef.current.style.animation = 'none'
-  }
-
-  const handleSheetPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const scroll = scrollRef.current
-    const panel = panelRef.current
-    if (!scroll || !panel || !sheetDragRef.current.active) return
-    const dy = Math.max(0, event.clientY - sheetDragRef.current.startY)
-    if (scroll.scrollTop > 0) {
-      const startScrollTop = scroll.scrollTop
-      if (dy < startScrollTop) {
-        scroll.scrollTop = startScrollTop - dy
-        return
-      }
-      scroll.scrollTop = 0
-      sheetDragRef.current.pulled = dy - startScrollTop
-    } else {
-      sheetDragRef.current.pulled = dy
-    }
-    panel.style.transition = 'none'
-    panel.style.transform = `translateY(${sheetDragRef.current.pulled}px)`
-  }
-
-  const handleSheetPointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    const panel = panelRef.current
-    const { active, pulled } = sheetDragRef.current
-    if (!active || !panel) return
-    sheetDragRef.current.active = false
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-    const threshold = Math.max(120, panel.getBoundingClientRect().height * 0.25)
-    if (pulled > threshold) {
-      handleClose()
-      return
-    }
-    panel.style.transition = 'transform .28s cubic-bezier(0.22, 1, 0.36, 1)'
-    panel.style.transform = ''
-    window.setTimeout(() => {
-      panel.style.transition = ''
-    }, 300)
-  }
 
   useEffect(() => {
     if (!standalone) return
@@ -160,7 +109,7 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
         return
       }
       if (event.key !== 'Tab') return
-      const panel = document.querySelector<HTMLElement>('.auth-modal-panel')
+      const panel = panelRef.current
       if (!panel) return
       const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
         .filter((element) => !element.hasAttribute('disabled'))
@@ -227,6 +176,13 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
     }
   }
 
+  const handleFormChange = (patch: Partial<AuthFormValues>) => {
+    if ('name' in patch) setName(patch.name ?? '')
+    if ('email' in patch) setEmail(patch.email ?? '')
+    if ('password' in patch) setPassword(patch.password ?? '')
+    if ('showPassword' in patch) setShowPassword(patch.showPassword ?? false)
+  }
+
   const continueWithGoogle = () => {
     setError(null)
     setIsSubmitting(true)
@@ -261,133 +217,41 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
   }
 
   return (
-    <div className="auth-modal">
-      <div className="auth-modal-backdrop" onClick={handleClose} aria-hidden="true" />
-      <div className="auth-modal-panel" ref={panelRef} role="dialog" aria-modal="true" aria-label="Sign in">
-        <button
-          ref={closeButtonRef}
-          className="auth-modal-close"
-          type="button"
-          onClick={handleClose}
-          aria-label="Close sign in"
-        >
-          <CloseIcon size={20} />
-        </button>
-        <div
-          className="auth-modal-handle"
-          role="presentation"
-          onPointerDown={handleSheetPointerDown}
-          onPointerMove={handleSheetPointerMove}
-          onPointerUp={handleSheetPointerUp}
-          onPointerCancel={handleSheetPointerUp}
-        >
-          <span className="auth-modal-handle-bar" aria-hidden="true" />
+    <AuthModalShell label="Sign in" onClose={handleClose} panelRef={panelRef} closeButtonRef={closeButtonRef}>
+      <div className="px-5 pb-[max(1.5rem,calc(1.5rem+env(safe-area-inset-bottom)))] sm:px-8">
+        <div className="flex justify-center">
+          <BrandLogo className="h-20 w-20 object-contain" />
         </div>
-        <div className="auth-modal-scroll y-scrollbar" ref={scrollRef}>
-          <div className="px-5 pb-[max(1.5rem,calc(1.5rem+env(safe-area-inset-bottom)))] sm:px-8">
-            <div className="flex justify-center">
-              <BrandLogo className="h-20 w-20 object-contain" />
-            </div>
-            {view === 'gateway' ? (
-              <>
-                <div className="mt-7">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange">Welcome</p>
-                  <h1 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-green-dark">How would you like to continue?</h1>
-                  <p className="mt-3 text-sm leading-6 text-muted">Sign in for account features or continue as a guest to place your order.</p>
-                </div>
-                <div className="mt-7 space-y-3">
-                  <Button fullWidth size="lg" type="button" onClick={() => { setView('email'); setError(null) }}>
-                    Continue with Email <ArrowRight size={17} />
-                  </Button>
-                  <Button fullWidth variant="outline" size="lg" type="button" disabled={isSubmitting} onClick={continueWithGoogle}>
-                    <img className="size-5" src="/branding/google-icon.svg" alt="" aria-hidden="true" />
-                    Continue with Google
-                  </Button>
-                  <Button fullWidth variant="outline" size="lg" type="button" onClick={continueAsGuest}>
-                    Continue as Guest <ArrowRight size={17} />
-                  </Button>
-                </div>
-                {error && <p className="mt-5 rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
-              </>
-            ) : (
-              <>
-                {!adminMode && (
-                  <button className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={() => { setView('gateway'); setMode('login'); setError(null) }}>
-                    ← Back
-                  </button>
-                )}
-                <div className="mt-5">
-                  <h1 className="text-3xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
-                  <p className="mt-3 text-sm leading-6 text-muted">
-                    {mode === 'login' ? 'Sign in to your account to continue.' : 'Create an account to get started.'}
-                  </p>
-                </div>
-                <form className="mt-7 space-y-5" onSubmit={submit}>
-                  {mode === 'signup' && (
-                    <label className="block text-sm font-bold text-green-dark">Name<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} required /></label>
-                  )}
-                  <label className="block text-sm font-bold text-green-dark">Email<input className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
-                  <div>
-                    <div className="flex items-center justify-between gap-4 text-sm font-bold text-green-dark">
-                      <label htmlFor="login-password">Password</label>
-                      {mode === 'login' && (
-                        <button className="text-xs text-green hover:text-orange" type="button" onClick={openForgotPassword}>
-                          Forgot Password?
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative mt-2">
-                      <input id="login-password" className="w-full rounded-xl border border-line px-4 py-3 pr-12 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />
-                      <button
-                        className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center rounded-lg p-1.5 text-muted transition-colors hover:bg-sage/40 hover:text-green-dark focus:outline-none focus:ring-2 focus:ring-green/20"
-                        type="button"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        aria-pressed={showPassword}
-                        onClick={() => setShowPassword((current) => !current)}
-                      >
-                        {showPassword ? <EyeOffIcon size={19} /> : <EyeIcon size={19} />}
-                      </button>
-                    </div>
-                    <span className="mt-1 block text-xs font-normal text-muted">At least 6 characters.</span>
-                  </div>
-                  {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
-                  <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (mode === 'login' ? 'Signing in…' : 'Creating…') : mode === 'login' ? 'Sign in' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
-                  </Button>
-                </form>
-                {mode === 'login' && error?.toLowerCase().includes('verify your email') && (
-                  <Button className="mt-4 w-full" variant="outline" size="sm" type="button" onClick={openVerifyEmail}>
-                    Verify your email
-                  </Button>
-                )}
-                {adminMode && mode === 'login' && (
-                  <div className="mt-6">
-                    <div className="flex items-center gap-3">
-                      <span className="h-px flex-1 bg-line" aria-hidden="true" />
-                      <span className="text-xs font-bold text-muted">OR</span>
-                      <span className="h-px flex-1 bg-line" aria-hidden="true" />
-                    </div>
-                    <Button className="mt-4 w-full" variant="outline" size="lg" type="button" disabled={isSubmitting} onClick={continueWithGoogle}>
-                      <img className="size-5" src="/branding/google-icon.svg" alt="" aria-hidden="true" />
-                      Continue with Google
-                    </Button>
-                  </div>
-                )}
-                {!adminMode && (
-                  <Button className="mt-7 w-full text-center" variant="text" size="sm" type="button" onClick={() => { setMode((current) => current === 'login' ? 'signup' : 'login'); setError(null) }}>
-                    {mode === 'login' ? 'Don’t have an account? Sign up' : 'Already have an account? Sign in'}
-                  </Button>
-                )}
-              </>
-            )}
-            {standalone && (
-              <button className="mt-7 block w-full text-center text-xs font-bold text-muted hover:text-green" type="button" onClick={handleClose}>
-                Return to storefront
-              </button>
-            )}
-          </div>
-        </div>
+        {view === 'gateway' ? (
+          <AuthGatewayView
+            error={error}
+            isSubmitting={isSubmitting}
+            onContinueEmail={() => { setView('email'); setError(null) }}
+            onContinueGoogle={continueWithGoogle}
+            onContinueGuest={continueAsGuest}
+          />
+        ) : (
+          <LoginForm
+            mode={mode}
+            values={{ name, email, password, showPassword }}
+            isSubmitting={isSubmitting}
+            error={error}
+            adminMode={adminMode}
+            onChange={handleFormChange}
+            onSubmit={submit}
+            onModeChange={(nextMode) => { setMode(nextMode); setError(null) }}
+            onBack={() => { setView('gateway'); setMode('login'); setError(null) }}
+            onForgotPassword={openForgotPassword}
+            onVerifyEmail={openVerifyEmail}
+            onContinueGoogle={continueWithGoogle}
+          />
+        )}
+        {standalone && (
+          <button className="mt-7 block w-full text-center text-xs font-bold text-muted hover:text-green" type="button" onClick={handleClose}>
+            Return to storefront
+          </button>
+        )}
       </div>
-    </div>
+    </AuthModalShell>
   )
 }

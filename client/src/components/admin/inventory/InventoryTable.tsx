@@ -12,7 +12,7 @@ interface InventoryTableProps {
 
 export function InventoryTable({ items, isRefreshing, onAdjust }: InventoryTableProps) {
   return (
-    <div className="admin-inventory-table min-w-0 overflow-hidden">
+    <div className="min-w-0 overflow-hidden">
       <div className="space-y-3 p-4 lg:hidden">
         {items.map((item) => {
           const key = item.productOptionId ? `${item.productId}-${item.productOptionId}` : item.productId

@@ -16,6 +16,7 @@ interface ProductRailProps {
   tone?: 'cream' | 'yellow'
   hideWhenEmpty?: boolean
   headingId?: string
+  imagePriority?: boolean
 }
 
 export function ProductRail({
@@ -29,34 +30,47 @@ export function ProductRail({
   tone = 'cream',
   hideWhenEmpty = false,
   headingId,
+  imagePriority = false,
 }: ProductRailProps) {
   const railRef = useRef<HTMLDivElement>(null)
   const resolvedHeadingId = headingId ?? `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-heading`
+  const isAccent = tone === 'yellow'
 
   if (hideWhenEmpty && !isLoading && !hasError && products.length === 0) return null
 
   return (
-    <section className={`home-section product-section product-section-${tone}`} aria-labelledby={resolvedHeadingId}>
+    <section className="border-b border-line bg-white py-[25px] md:py-8" aria-labelledby={resolvedHeadingId}>
       <div className="container">
-        <div className={`home-section-heading ${tone === 'yellow' ? 'home-section-heading-accent' : ''}`}>
-          <div><p className="eyebrow">{eyebrow}</p><h2 id={resolvedHeadingId}>{title}</h2></div>
-          <div className="home-section-heading-actions">
-            <Link className="section-link" to={href}>See all <ArrowRight size={16} /></Link>
+        <div className={`mb-4 flex items-center justify-between gap-[18px] ${isAccent ? 'w-screen max-w-none -ml-[calc(50vw-50%)] mb-5 bg-green-dark py-4 [padding-inline:max(24px,calc((100vw-1160px)/2))] rounded-none' : ''}`}>
+          <div>
+            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.15em] text-orange">{eyebrow}</p>
+            <h2 id={resolvedHeadingId} className={`m-0 tracking-[-0.035em] text-[clamp(1.35rem,3vw,1.8rem)] ${isAccent ? 'text-cream' : 'text-green-dark'}`}>{title}</h2>
+          </div>
+          <div className="flex items-center gap-2.5 md:gap-4">
+            <Link className={`inline-flex items-center gap-[5px] whitespace-nowrap text-[12px] font-extrabold transition-colors ${isAccent ? 'text-cream hover:text-orange!' : 'text-green hover:text-orange'}`} to={href}>See all <ArrowRight size={16} /></Link>
           </div>
         </div>
         {isLoading ? <ProductSkeleton /> : hasError ? (
-          <div className="section-message" role="alert">
-            <span>We couldn’t load this shelf.</span>
-            <button type="button" className="border-0 bg-transparent text-orange font-extrabold cursor-pointer" onClick={onRetry}>Try again</button>
+          <div className="flex min-h-[100px] items-center justify-center gap-[13px] rounded-xl border border-dashed border-green px-6 text-[13px] text-muted" role="alert">
+            <span>We couldn't load this shelf.</span>
+            <button type="button" className="cursor-pointer border-0 bg-transparent font-extrabold text-orange" onClick={onRetry}>Try again</button>
           </div>
         ) : products.length ? (
-          <div className="horizontal-rail-frame">
-            <div className="product-rail x-scrollbar" ref={railRef}>
-              {products.map((product) => <ProductCard key={product.id} product={product} variant="compact" />)}
+          <div className="relative">
+            <div
+className="flex items-stretch gap-3.5 overflow-x-auto pb-[18px] [scrollbar-gutter:stable] x-scrollbar md:gap-4 md:pb-0"
+              ref={railRef}
+              style={{ scrollbarGutter: undefined }}
+            >
+              {products.map((product, index) => (
+                <div className="flex min-w-0 flex-[0_0_min(40vw,200px)] md:flex-[0_0_clamp(220px,calc((100%-48px)/4),290px)]" key={product.id}>
+                  <ProductCard product={product} variant="compact" imagePriority={imagePriority && index < 6} />
+                </div>
+              ))}
             </div>
             <HorizontalRailControls railRef={railRef} label={title} />
           </div>
-        ) : <div className="section-message">No products are available on this shelf yet.</div>}
+        ) : <div className="flex min-h-[100px] items-center justify-center gap-[13px] rounded-xl border border-dashed border-green px-6 text-[13px] text-muted">No products are available on this shelf yet.</div>}
       </div>
     </section>
   )
@@ -64,14 +78,20 @@ export function ProductRail({
 
 function ProductSkeleton() {
   return (
-    <div className="product-rail x-scrollbar" aria-label="Loading products" aria-busy="true">
+    <div className="flex items-stretch gap-3.5 overflow-x-auto pb-[18px] [scrollbar-gutter:stable] x-scrollbar md:gap-4 md:pb-0" aria-label="Loading products" aria-busy="true">
       {Array.from({ length: 4 }, (_, index) => (
-        <div className="product-skeleton" key={index} role="status" aria-label="Loading product">
-          <div className="product-skeleton-media" />
-          <div className="product-skeleton-body">
-            <div className="product-skeleton-line" />
-            <div className="product-skeleton-line" />
+        <div
+          className="flex min-w-0 flex-col overflow-hidden rounded-[10px] border border-line bg-white flex-[0_0_min(40vw,200px)] md:flex-[0_0_clamp(220px,calc((100%-48px)/4),290px)]"
+          key={index}
+          role="status"
+          aria-label="Loading product"
+        >
+          <div className="aspect-square w-full animate-pulse bg-sage" />
+          <div className="grid flex-1 gap-[9px] p-[11px]">
+            <div className="h-3 animate-pulse rounded bg-sage" />
+            <div className="h-3 w-[62%] animate-pulse rounded bg-sage" />
           </div>
+          <div className="mx-[11px] mb-[11px] h-9 animate-pulse rounded-[9px] bg-sage" />
         </div>
       ))}
     </div>

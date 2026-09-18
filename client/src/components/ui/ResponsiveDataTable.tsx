@@ -19,7 +19,10 @@ export function ResponsiveDataTable({ children, className = '', label = 'Table h
 
   return (
     <div ref={frameRef} className={`relative min-w-0 ${className}`}>
-      <div ref={scrollerRef} className="responsive-table-scrollbar-hidden overflow-x-auto overscroll-x-contain">
+      <div
+        ref={scrollerRef}
+        className="relative min-w-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden [&_table]:border-separate [&_table]:border-spacing-0 [&_th]:[overflow-wrap:normal] [&_td]:[overflow-wrap:normal]"
+      >
         {children}
       </div>
       <FloatingTableScrollbar state={state} onScrollTo={scrollTo} label={label} />

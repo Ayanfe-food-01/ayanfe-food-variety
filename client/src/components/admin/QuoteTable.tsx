@@ -11,6 +11,9 @@ const statusClass = (status: string) => {
   return 'bg-sage text-green-dark'
 }
 
+const fulfillmentLabel = (value: AdminQuoteRequestListItem['fulfillmentMethod']): string =>
+  value === 'DELIVERY' ? 'Delivery' : value === 'PICKUP' ? 'Pickup' : 'To be confirmed'
+
 interface QuoteTableProps {
   quoteRequests: AdminQuoteRequestListItem[]
 }
@@ -46,6 +49,10 @@ export function QuoteTable({ quoteRequests }: QuoteTableProps) {
                 <dd className="mt-1 font-bold text-green-dark">{quote.itemCount} {quote.itemCount === 1 ? 'item' : 'items'}</dd>
               </div>
               <div>
+                <dt className="uppercase tracking-[0.12em] text-muted">Fulfilment</dt>
+                <dd className="mt-1 text-muted">{fulfillmentLabel(quote.fulfillmentMethod)}</dd>
+              </div>
+              <div>
                 <dt className="uppercase tracking-[0.12em] text-muted">Type</dt>
                 <dd className="mt-1"><span className={`inline-flex rounded-full px-2.5 py-1 font-bold ${quote.shoppingMode === 'WHOLESALE' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{quote.shoppingMode === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</span></dd>
               </div>
@@ -55,7 +62,7 @@ export function QuoteTable({ quoteRequests }: QuoteTableProps) {
       </div>
       <div className="hidden lg:block">
         <ResponsiveDataTable label="Quote requests table horizontal scroll">
-          <table className="w-full min-w-[1260px] whitespace-nowrap text-left text-sm">
+          <table className="w-full min-w-[1360px] whitespace-nowrap text-left text-sm">
             <thead className="sticky top-0 z-10 border-b border-line bg-sage/30 text-xs uppercase tracking-[0.12em] text-muted">
               <tr>
                 <th className="px-4 py-4 font-bold">Reference</th>
@@ -63,6 +70,7 @@ export function QuoteTable({ quoteRequests }: QuoteTableProps) {
                 <th className="px-4 py-4 font-bold">Phone</th>
                 <th className="px-4 py-4 font-bold">Date</th>
                 <th className="px-4 py-4 font-bold">Items</th>
+                <th className="px-4 py-4 font-bold">Fulfilment</th>
                 <th className="px-4 py-4 font-bold">Type</th>
                 <th className="px-4 py-4 font-bold">Status</th>
                 <th className="px-4 py-4 text-center font-bold">Actions</th>
@@ -79,6 +87,7 @@ export function QuoteTable({ quoteRequests }: QuoteTableProps) {
                   <td className="whitespace-nowrap px-4 py-4 text-muted">{quote.customerPhone}</td>
                   <td className="whitespace-nowrap px-4 py-4 text-muted">{formatDate(quote.createdAt, true)}</td>
                   <td className="whitespace-nowrap px-4 py-4 font-semibold text-green-dark">{quote.itemCount} {quote.itemCount === 1 ? 'item' : 'items'}</td>
+                  <td className="whitespace-nowrap px-4 py-4 text-muted">{fulfillmentLabel(quote.fulfillmentMethod)}</td>
                   <td className="px-4 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${quote.shoppingMode === 'WHOLESALE' ? 'bg-orange/10 text-orange' : 'bg-sage text-green-dark'}`}>{quote.shoppingMode === 'WHOLESALE' ? 'Wholesale' : 'Retail'}</span></td>
                   <td className="px-4 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(quote.status)}`}>{formatQuoteStatus(quote.status)}</span></td>
                   <td className="px-4 py-4 text-center">

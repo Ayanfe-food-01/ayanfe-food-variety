@@ -51,7 +51,7 @@ export function ProductOptionSelector({
       </label>
       <SelectField
         ariaLabel="Select an option"
-        className="product-option-select"
+        className=""
         disabled={disabled}
         disabledOptions={unavailableValues}
         id="product-option-select"

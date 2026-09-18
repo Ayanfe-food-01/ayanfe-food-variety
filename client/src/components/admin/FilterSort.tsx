@@ -62,9 +62,9 @@ export function FilterSort<T extends string = string>({ value, options, onChange
   const label = selectedLabel ? `Sort: ${selectedLabel}` : ariaLabel
 
   return (
-    <div className={`filter-sort-control ${className}`.trim()} ref={rootRef}>
+    <div className={`relative flex min-w-0 w-max h-11 items-center justify-end text-muted text-[11px] font-extrabold uppercase tracking-[.06em] ${className}`.trim()} ref={rootRef}>
       <button
-        className="filter-sort-trigger"
+        className="inline-flex min-w-0 w-11 h-11 flex-none items-center justify-center rounded-[10px] border border-line bg-cream p-0 text-green-dark cursor-pointer transition-[border-color,background,color] duration-[160ms] hover:border-green hover:bg-sage aria-expanded:border-green aria-expanded:bg-sage focus-visible:outline-2 focus-visible:outline-green focus-visible:outline-offset-2"
         type="button"
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -72,23 +72,25 @@ export function FilterSort<T extends string = string>({ value, options, onChange
         title="Sort"
         onClick={toggle}
       >
-        <SortIcon className="filter-sort-icon" size={17} />
+        <SortIcon className="flex" size={17} />
       </button>
       <Popover
         isOpen={isOpen}
         onClose={close}
-        className={`filter-sort-menu is-${sortMenuPosition.vertical}`}
+        className={`min-w-[220px] p-1.5 ${sortMenuPosition.vertical === 'below' ? 'top-[calc(100%+8px)]' : 'bottom-[calc(100%+8px)]'} filter-sort-menu`}
         style={{ left: `${sortMenuPosition.left}px`, right: 'auto' }}
         role="menu"
         ariaLabel={ariaLabel}
       >
         {(closeMenu) => (
-          <div className="filter-sort-options">
+          <div className="flex flex-col gap-0.5">
             {options.map((option) => {
               const isSelected = option.value === value
               return (
                 <button
-                  className={`filter-sort-option${isSelected ? ' is-selected' : ''}`}
+                  className={`flex w-full min-h-[38px] items-center rounded-[9px] border-0 px-2.5 text-left text-[13px] font-semibold cursor-pointer hover:text-orange ${
+                    isSelected ? 'bg-sage font-extrabold text-green-dark' : 'bg-transparent text-ink'
+                  }`}
                   type="button"
                   role="menuitemradio"
                   aria-checked={isSelected}

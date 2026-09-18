@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, CartIcon, CloseIcon } from '../../assets/icons'
-import type { CartItem } from '../../context/cartContext'
+import { useEffect, useRef } from 'react'
+import { CartIcon, CloseIcon } from '../../assets/icons'
 import { cartItemLineKey } from '../../context/cartContext'
 import { useCart } from '../../hooks/useCart'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
-import { ProductPrice } from '../products/ProductPrice'
+import { CartDrawerItem } from './CartDrawerItem'
+import { CartDrawerFooter } from './CartDrawerFooter'
+import { CartDrawerLoading, CartDrawerEmpty, CartDrawerError } from './CartDrawerState'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -19,67 +19,6 @@ const FOCUSABLE_SELECTOR = 'a, button, input, [tabindex]:not([tabindex="-1"])'
 interface CartDrawerProps {
   open: boolean
   onClose: () => void
-}
-
-function DrawerImage({ item }: { item: CartItem }) {
-  const [imageError, setImageError] = useState(false)
-
-  if (!item.image || imageError) {
-    return (
-      <div
-        className="grid size-16 shrink-0 place-items-center rounded-xl bg-sage px-2 text-center text-[10px] font-semibold text-muted"
-        role="img"
-        aria-label={`${item.name} image unavailable`}
-      >
-        Image unavailable
-      </div>
-    )
-  }
-
-  return (
-    <img
-      className="size-16 shrink-0 rounded-xl object-cover"
-      src={item.image}
-      alt={item.name}
-      loading="lazy"
-      onError={() => setImageError(true)}
-    />
-  )
-}
-
-interface DrawerQuantityProps {
-  item: CartItem
-  disabled: boolean
-  onDecrease: () => void
-  onIncrease: () => void
-}
-
-function DrawerQuantity({ item, disabled, onDecrease, onIncrease }: DrawerQuantityProps) {
-  return (
-    <div className="flex h-8 w-fit items-center rounded-lg border border-line bg-cream" aria-label={`Quantity for ${item.name}`}>
-      <button
-        className="grid size-8 place-items-center text-base text-muted transition-colors hover:text-green disabled:cursor-not-allowed disabled:opacity-40"
-        type="button"
-        aria-label={`Decrease ${item.name} quantity`}
-        disabled={disabled || item.quantity <= (item.minQuantity ?? 1)}
-        onClick={onDecrease}
-      >
-        −
-      </button>
-      <output className="min-w-6 text-center text-sm font-bold text-green-dark" aria-live="polite">
-        {item.quantity}
-      </output>
-      <button
-        className="grid size-8 place-items-center text-base text-muted transition-colors hover:text-green disabled:cursor-not-allowed disabled:opacity-40"
-        type="button"
-        aria-label={`Increase ${item.name} quantity`}
-        disabled={disabled || !item.isAvailable}
-        onClick={onIncrease}
-      >
-        +
-      </button>
-    </div>
-  )
 }
 
 export function CartDrawer({ open, onClose }: CartDrawerProps) {
@@ -113,7 +52,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
         return
       }
       if (event.key !== 'Tab') return
-      const drawer = document.querySelector<HTMLElement>('.cart-drawer-panel')
+      const drawer = document.querySelector<HTMLElement>('[data-cart-panel]')
       if (!drawer) return
       const focusable = Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
         .filter((element) => !element.hasAttribute('disabled'))
@@ -139,25 +78,41 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
   }, [onClose, open])
 
   return (
-    <div className={`cart-drawer ${open ? 'is-open' : 'is-closed'}`} data-open={open}>
-      <div className="cart-drawer-backdrop" onClick={onClose} aria-hidden="true" />
+    <div
+      className={`fixed inset-0 z-80 grid place-items-center p-[max(1rem,env(safe-area-inset-top))_max(1rem,env(safe-area-inset-right))_max(1rem,env(safe-area-inset-bottom))_max(1rem,env(safe-area-inset-left))] pointer-events-none ${open ? 'motion-reduce:transition-none' : ''}`}
+      data-open={open}
+    >
+      <div
+        className={`fixed inset-0 bg-[#142116]/45 cursor-pointer pointer-events-auto motion-reduce:transition-none ${open ? 'opacity-100 visible transition-opacity duration-[280ms] ease-in' : 'opacity-0 invisible transition-[opacity_280ms_ease,visibility_0s_linear_280ms]'}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <aside
-        className="cart-drawer-panel"
+        className="relative flex min-h-0 w-[min(560px,100%)] max-h-[calc(100svh-2rem)] flex-col overflow-hidden rounded-3xl border border-line bg-cream shadow-[0_24px_64px_rgb(20_33_22/0.28)] pointer-events-auto will-change-[transform,opacity] motion-reduce:transition-none"
+        data-cart-panel=""
         role="dialog"
         aria-modal="true"
         aria-label={`${mode === 'WHOLESALE' ? 'Wholesale' : 'Retail'} cart`}
         aria-hidden={!open}
         inert={!open}
+        style={{
+          transform: open ? 'translateY(0)' : 'translateY(16px)',
+          opacity: open ? 1 : 0,
+          visibility: open ? 'visible' : 'hidden',
+          transition: open
+            ? 'opacity 280ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0s'
+            : 'opacity 280ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 320ms',
+        }}
       >
-        <header className="cart-drawer-head">
-          <div className="cart-drawer-title">
-            <span className="cart-drawer-title-icon">
+        <header className="flex items-center gap-2.5 border-b border-line bg-card py-[14px] pr-[18px] pl-[max(18px,env(safe-area-inset-left))]">
+          <div className="flex items-center gap-2">
+            <span className="grid size-[30px] place-items-center rounded-full bg-sage text-green">
               <CartIcon size={17} />
             </span>
-            <p className="cart-drawer-title-text">Your basket</p>
+            <p className="m-0 text-[15px] font-extrabold tracking-[-0.01em] text-green-dark">Your basket</p>
           </div>
           <span
-            className={`cart-drawer-mode ${mode === 'WHOLESALE' ? 'is-wholesale' : ''}`}
+            className={`ml-auto rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] ${mode === 'WHOLESALE' ? 'bg-orange text-cream' : 'bg-sage text-muted'}`}
           >
             {mode === 'WHOLESALE' ? 'Wholesale' : 'Retail'}
           </span>
@@ -173,138 +128,38 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
         </header>
 
         {isLoading ? (
-          <div className="cart-drawer-state" aria-label="Loading cart">
-            <div className="cart-drawer-state-icon">
-              <CartIcon size={26} />
-            </div>
-            <p className="cart-drawer-state-title">Loading your cart…</p>
-          </div>
+          <CartDrawerLoading />
         ) : items.length === 0 ? (
-          <div className="cart-drawer-state">
-            <div className="cart-drawer-state-icon">
-              <CartIcon size={26} />
-            </div>
-            <p className="cart-drawer-state-title">Your cart is empty</p>
-            <p className="cart-drawer-state-text">
-              Browse our carefully sourced foodstuff and add your everyday favourites to get started.
-            </p>
-            <Link className="cart-drawer-continue" to="/shop" onClick={onClose}>
-              Continue shopping <ArrowRight size={15} />
-            </Link>
-          </div>
+          <CartDrawerEmpty onClose={onClose} />
         ) : (
           <>
-            <ul className="cart-drawer-items y-scrollbar" aria-label="Cart items">
+            <ul className="y-scrollbar flex min-h-0 flex-1 flex-col overscroll-contain m-0 list-none p-0" style={{ WebkitOverflowScrolling: 'touch' }} aria-label="Cart items">
               {items.map((item) => {
                 const lineKey = cartItemLineKey(item.id, item.productOptionId, item.wholesalePackageId)
                 const isPending = pendingItemIds.includes(lineKey)
                 const isBusy = isPending || isClearing
                 return (
-                  <li className="cart-drawer-item" key={lineKey}>
-                    <DrawerImage item={item} />
-                    <div className="cart-drawer-item-body">
-                      <div className="cart-drawer-item-top">
-                        <div className="cart-drawer-item-info">
-                          <p className="cart-drawer-item-unit">{item.unit}</p>
-                          <h3 className="cart-drawer-item-name">{item.name}</h3>
-                          {item.productOptionLabel && (
-                            <p className="cart-drawer-item-option">{item.productOptionLabel}</p>
-                          )}
-                          {item.wholesalePackageName && (
-                            <p className="cart-drawer-item-option">
-                              {item.wholesalePackageName}
-                              {item.wholesaleUnitsPerPackage
-                                ? ` · ${item.wholesaleUnitsPerPackage} ${item.wholesaleUnitsPerPackage === 1 ? 'unit' : 'units'} per package`
-                                : ''}
-                            </p>
-                          )}
-                          {typeof item.minQuantity === 'number' && item.minQuantity > 1 && (
-                            <p className="cart-drawer-item-min">Minimum order: {item.minQuantity} units</p>
-                          )}
-                        </div>
-                        <button
-                          className="cart-drawer-remove"
-                          type="button"
-                          aria-label={`Remove ${item.name}${item.productOptionLabel ? ` (${item.productOptionLabel})` : ''}${item.wholesalePackageName ? ` (${item.wholesalePackageName})` : ''} from cart`}
-                          disabled={isBusy}
-                          onClick={() => void removeFromCart(item)}
-                        >
-                          <CloseIcon size={14} />
-                        </button>
-                      </div>
-                      {!item.isAvailable && (
-                        <p className="cart-drawer-item-alert" role="alert">
-                          {item.availabilityMessage ?? 'This item is unavailable.'}
-                        </p>
-                      )}
-                      <div className="cart-drawer-item-bottom">
-                        <DrawerQuantity
-                          item={item}
-                          disabled={isBusy}
-                          onDecrease={() => void decreaseQuantity(item)}
-                          onIncrease={() => void increaseQuantity(item)}
-                        />
-                        <div className="cart-drawer-item-price">
-                          <p className="cart-drawer-item-price-each">
-                            <ProductPrice
-                              originalPrice={item.originalPrice}
-                              discountedPrice={item.price}
-                              discountedClassName="font-bold text-green-dark"
-                              originalClassName="text-muted"
-                            />{' '}
-                            {item.wholesalePackageName ? 'per package' : 'each'}
-                          </p>
-                          <p className="cart-drawer-item-subtotal">{formatPrice(getItemSubtotal(item))}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
+                  <CartDrawerItem
+                    key={lineKey}
+                    item={item}
+                    isBusy={isBusy}
+                    subtotal={formatPrice(getItemSubtotal(item))}
+                    onDecrease={() => void decreaseQuantity(item)}
+                    onIncrease={() => void increaseQuantity(item)}
+                    onRemove={() => void removeFromCart(item)}
+                  />
                 )
               })}
             </ul>
 
-            {error && (
-              <div className="cart-drawer-error" role="alert">
-                <span>{error}</span>
-                <button type="button" onClick={() => void refreshCart()}>Refresh cart</button>
-              </div>
-            )}
+            {error && <CartDrawerError error={error} onRefresh={refreshCart} />}
 
-            <footer className="cart-drawer-foot">
-              <div className="cart-drawer-summary">
-                <div className="cart-drawer-summary-row">
-                  <span>Items</span>
-                  <span>{totalQuantity}</span>
-                </div>
-                <div className="cart-drawer-summary-row">
-                  <span>Subtotal</span>
-                  <span className="cart-drawer-summary-strong">{formatPrice(subtotal)}</span>
-                </div>
-                <p className="cart-drawer-summary-note">Delivery is calculated at checkout based on your delivery zone.</p>
-              </div>
-              {!canCheckout && (
-                <p className="cart-drawer-notice" role="alert">
-                  One or more items are no longer available in the requested quantity. Update or remove them before checkout.
-                </p>
-              )}
-              {canCheckout ? (
-                <Link className="cart-drawer-checkout" to="/checkout" onClick={onClose}>
-                  Proceed to checkout <ArrowRight size={16} />
-                </Link>
-              ) : (
-                <Link className="cart-drawer-checkout cart-drawer-checkout-is-disabled" to="/cart" onClick={onClose}>
-                  Update cart to checkout
-                </Link>
-              )}
-              <div className="cart-drawer-foot-links">
-                <Link className="cart-drawer-foot-link" to="/cart" onClick={onClose}>
-                  View cart
-                </Link>
-                <Link className="cart-drawer-foot-link" to="/shop" onClick={onClose}>
-                  Continue shopping
-                </Link>
-              </div>
-            </footer>
+            <CartDrawerFooter
+              totalQuantity={totalQuantity}
+              subtotalFormatted={formatPrice(subtotal)}
+              canCheckout={canCheckout}
+              onClose={onClose}
+            />
           </>
         )}
       </aside>

@@ -18,7 +18,7 @@ export function CustomerStoryCard({ story }: CustomerStoryCardProps) {
   const rating = story.rating ?? 0
 
   return (
-    <article className="flex h-full max-w-md flex-col rounded-3xl border border-line bg-white p-6 shadow-[0_0_5px_-28px_rgba(32,60,36,0.45)] sm:p-7">
+    <article className="flex h-full min-w-0 w-full max-w-md flex-col rounded-3xl border border-line bg-white p-6 shadow-[0_0_5px_-28px_rgba(32,60,36,0.45)] sm:p-7">
       <div className="flex items-start gap-4">
         <span
           className="grid size-14 shrink-0 place-items-center rounded-full bg-sage text-base font-bold text-green-dark"

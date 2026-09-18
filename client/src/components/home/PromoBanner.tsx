@@ -6,7 +6,7 @@ export function PromoBanner() {
   const phone = settings?.callToOrderPhone
 
   return (
-    <div className="home-promo">
+    <div className="bg-green py-[10px] text-[10px] font-bold text-white md:text-[12px]">
       <div className="container flex items-center justify-center">
         <a className="flex items-center gap-2" href={phone ? `tel:${phone}` : undefined} aria-label={phone ? `Call to order at ${phone}` : 'Call to order'}>
           <PhoneIcon size={16} />

@@ -77,7 +77,7 @@ export function FloatingTableScrollbar({ state, onScrollTo, label }: FloatingTab
   return createPortal(
     <div
       ref={barRef}
-      className="responsive-table-floating-bar"
+      className="fixed z-40 flex items-center h-8 border border-line rounded-full bg-white/95 px-2 shadow-[0_12px_28px_rgb(20_33_22/0.16)] backdrop-blur-sm touch-none focus-visible:outline-2 focus-visible:outline-orange focus-visible:outline-offset-2"
       role="scrollbar"
       aria-label={label}
       aria-valuemin={0}
@@ -92,10 +92,12 @@ export function FloatingTableScrollbar({ state, onScrollTo, label }: FloatingTab
         width: `${state.width}px`,
       }}
     >
-      <div className="responsive-table-track">
+      <div className="relative h-2 w-full rounded-full bg-sage">
         <div
           ref={thumbRef}
-          className={`responsive-table-thumb${isDragging ? ' is-dragging' : ''}`}
+          className={`absolute left-0 top-0 h-2 min-w-8 rounded-full bg-green shadow-[0_1px_2px_rgb(20_33_22/0.24)] cursor-grab touch-none hover:bg-green-dark ${
+            isDragging ? 'cursor-grabbing bg-green-dark' : ''
+          } motion-reduce:transition-none`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}

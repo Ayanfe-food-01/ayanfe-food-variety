@@ -1,0 +1,83 @@
+@layer base {
+  :root {
+    --container-max-width: 1160px;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-cream);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  * {
+    scrollbar-color: var(--color-green) var(--color-sage);
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--color-sage);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-green);
+    border: 2px solid var(--color-sage);
+    border-radius: 999px;
+  }
+
+  html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+    overflow-x: clip;
+  }
+
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
+  body {
+    @apply m-0 min-w-[320px] bg-cream text-ink;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+
+  button {
+    font: inherit;
+  }
+
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
+  img {
+    @apply block max-w-full;
+  }
+
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+

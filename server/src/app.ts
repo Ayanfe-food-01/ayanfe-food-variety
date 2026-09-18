@@ -7,6 +7,7 @@ import { errorMiddleware } from './middlewares/error.middleware.js'
 import { notFoundMiddleware } from './middlewares/notFound.middleware.js'
 import { requestLogger } from './middlewares/requestLogger.js'
 import { apiRoutes } from './routes/index.js'
+import { seoRoutes } from './modules/seo/seo.routes.js'
 import { paymentWebhookRouter } from './modules/payments/payment.webhook.js'
 import { HttpError } from './utils/http.js'
 
@@ -91,6 +92,7 @@ app.get('/ready', async (_request, response) => {
 })
 
 app.use('/api/v1', apiRoutes)
+app.use(seoRoutes)
 
 app.use(notFoundMiddleware)
 app.use(errorMiddleware)

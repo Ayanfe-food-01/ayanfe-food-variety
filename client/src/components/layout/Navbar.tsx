@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { CartIcon, ChevronDownIcon, CloseIcon, MenuIcon } from '../../assets/icons'
-import { useCart } from '../../hooks/useCart'
+import { MenuIcon } from '../../assets/icons'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useStoreSettings } from '../../hooks/useStoreSettings'
-import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete'
 import { useWishlist } from '../../hooks/useWishlist'
+import { useDropdown } from '../../hooks/useDropdown'
 import { lockBodyScroll } from '../../utils/browserCompatibility'
 import { DEFAULT_LOGO_PATH } from '../../seo/config'
-import { ShoppingModeSwitch } from './ShoppingModeSwitch'
-import { AccountMenu } from './AccountMenu'
 import { CartDrawer } from '../cart/CartDrawer'
 import { useMarketUi } from '../../hooks/useMarketUi'
-import { useDropdown } from '../../hooks/useDropdown'
-import { Popover } from '../ui/Popover'
+import { AnnouncementTicker } from './AnnouncementTicker'
+import { DesktopNavLinks } from './DesktopNavLinks'
+import { MobileDrawer } from './MobileDrawer'
+import { HeaderSearch } from './HeaderSearch'
+import { HeaderActions } from './HeaderActions'
+import { NavMeasurementHost } from './NavMeasurementHost'
+import { useDesktopNavMeasurement } from './useDesktopNavMeasurement'
 
 const links = [
   { label: 'Home', href: '/' },
@@ -30,21 +32,17 @@ const links = [
 let pendingSearchFocus = false
 
 export function Navbar() {
-  const [ isMenuOpen, setIsMenuOpen ] = useState(false)
-  const [ isScrolled, setIsScrolled ] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const { isCartDrawerOpen, openCartDrawer, closeCartDrawer } = useMarketUi()
-  const [ searchParams, setSearchParams ] = useSearchParams()
-  const [ search, setSearch ] = useState(searchParams.get('search') ?? '')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const closeMenuButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
-  const desktopNavRef = useRef<HTMLDivElement>(null)
-  const desktopNavMeasureRef = useRef<HTMLDivElement>(null)
   const headerSearchInputRef = useRef<HTMLInputElement>(null)
-  const [ desktopNavCount, setDesktopNavCount ] = useState(links.length)
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { isOpen: isMoreNavOpen, close: closeMoreNav, toggle: toggleMoreNav, rootRef: moreNavRef } = useDropdown()
-  const { totalQuantity } = useCart()
   const { user, logout, openAuth } = useCustomerAuth()
   const { count: wishlistCount } = useWishlist()
   const { settings } = useStoreSettings()
@@ -53,6 +51,7 @@ export function Navbar() {
     .split(/\r?\n|\|/)
     .map((message) => message.trim())
     .filter(Boolean)
+  const { desktopNavRef, desktopNavMeasureRef, desktopNavCount } = useDesktopNavMeasurement(links, wishlistCount)
 
   useEffect(() => {
     if (!isMenuOpen) return
@@ -92,57 +91,6 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', updateScrollState)
   }, [])
 
-  useEffect(() => {
-    const host = desktopNavRef.current
-    if (!host) return
-
-    const recompute = () => {
-      if (host.clientWidth === 0) return
-      const measureHost = desktopNavMeasureRef.current
-      if (!measureHost || measureHost.children.length === 0 || host.clientWidth === 0) return
-
-      const gap = parseFloat(getComputedStyle(host).gap) || 27
-      const linkWidths = Array.from(measureHost.children)
-        .filter((el) => el.tagName === 'SPAN' && !el.classList.contains('more-nav-trigger'))
-        .map((element) => element.getBoundingClientRect().width)
-      // Always measure wishlist and More trigger from the measurement host
-      // so widths are consistent regardless of which items are currently rendered.
-      const measureWishlist = measureHost.querySelector<HTMLElement>('.wishlist-nav-link')
-      const measureMore = measureHost.querySelector<HTMLElement>('.more-nav-trigger')
-      const wishlistWidth = measureWishlist?.getBoundingClientRect().width ?? 0
-      const shoppingWidth = host.querySelector<HTMLElement>('.desktop-shopping-mode')?.getBoundingClientRect().width ?? 0
-      const moreTriggerWidth = measureMore?.getBoundingClientRect().width ?? 64
-      const available = host.clientWidth
-
-      const countThatFit = (withMore: boolean) => {
-        const trailingItems = 2
-        const chrome = (withMore ? moreTriggerWidth : wishlistWidth) + shoppingWidth
-        let used = chrome + gap * trailingItems
-        let count = 0
-        for (const width of linkWidths) {
-          if (count > 0) used += gap
-          if (used + width > available) break
-          used += width
-          count++
-        }
-        return count
-      }
-
-      const withoutMore = countThatFit(false)
-      if (withoutMore === linkWidths.length) {
-        setDesktopNavCount(linkWidths.length)
-      } else {
-        setDesktopNavCount(Math.max(1, countThatFit(true)))
-      }
-    }
-
-    recompute()
-
-    const resizeObserver = new ResizeObserver(recompute)
-    resizeObserver.observe(host)
-    return () => resizeObserver.disconnect()
-  }, [wishlistCount])
-
   const submitSearch = (query: string) => {
     const trimmed = query.trim()
     if (pathname === '/shop' || pathname === '/new-arrivals') {
@@ -171,123 +119,52 @@ export function Navbar() {
 
   return (
     <>
-      <div className="header-utility" aria-label="Store announcements">
-        {announcementMessages.length > 0 && (
-          <div className="ticker-viewport">
-            <div className="ticker-track">
-              {[ 0, 1 ].map((group) => (
-                <div className="ticker-group" aria-hidden={group === 1} key={group}>
-                  {announcementMessages.map((message, index) => (
-                    <span className="ticker-message" key={`${group}-${index}-${message}`}>
-                      {message}
-                      <span className="ticker-separator" aria-hidden="true">•</span>
-                    </span>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-      <header className={`store-header ${isScrolled ? 'is-scrolled' : ''}`}>
-        <nav className="container store-nav" aria-label="Main navigation">
-          <button className="icon-button mobile-only" type="button" aria-label="Open navigation menu" onClick={() => setIsMenuOpen(true)}>
+      <AnnouncementTicker messages={announcementMessages} />
+      <header className={`sticky top-0 z-50 bg-cream/97 border-b border-line transition-[box-shadow] duration-200 ease-[ease] pt-[env(safe-area-inset-top)] ${isScrolled ? 'shadow-[0_8px_24px_rgb(20_33_22/0.10)]' : ''}`}>
+        <nav className="container flex flex-wrap items-center gap-2 min-h-0 pt-[5px] pb-[9px] md:flex-nowrap md:min-h-[64px] md:gap-[18px] md:pt-0 md:pb-0" aria-label="Main navigation">
+          <button className="grid place-items-center w-[36px] h-[36px] border-0 rounded-full bg-transparent text-green-dark cursor-pointer md:hidden" type="button" aria-label="Open navigation menu" onClick={() => setIsMenuOpen(true)}>
             <MenuIcon size={22} />
           </button>
-          <Link className="brand-mark" to="/" aria-label="Ayanfe Food Variety home">
-            <img src={logoUrl} alt="Ayanfe Food Variety" />
+          <Link className="block" to="/" aria-label="Ayanfe Food Variety home">
+            <img className="w-[54px] h-[43px] object-contain md:w-[62px] md:h-[52px]" src={logoUrl} alt="Ayanfe Food Variety" />
           </Link>
-          <ProductSearchAutocomplete
+          <HeaderSearch
             value={search}
             onChange={setSearch}
             onSearch={submitSearch}
             onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
-            placeholder="Search products, brands and categories"
-            ariaLabel="Search products"
             inputRef={headerSearchInputRef}
           />
-          <div className="store-actions">
-            <AccountMenu />
-            <button
-              className="cart-link"
-              type="button"
-              aria-label={`Open cart with ${totalQuantity} items`}
-              aria-haspopup="dialog"
-              aria-expanded={isCartDrawerOpen}
-              onClick={openCartDrawer}
-            >
-              <CartIcon size={22} /><span className="desktop-only">Cart</span><b>{totalQuantity}</b>
-            </button>
-          </div>
-        </nav>
-        <div className="desktop-nav container" ref={desktopNavRef}>
-          {links.slice(0, desktopNavCount).map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
-          {desktopNavCount < links.length && (
-            <div className="more-nav" ref={moreNavRef}>
-              <button
-                className="more-nav-trigger"
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={isMoreNavOpen}
-                onClick={toggleMoreNav}
-              >
-                More <ChevronDownIcon size={14} />
-              </button>
-              <Popover
-                isOpen={isMoreNavOpen}
-                onClose={closeMoreNav}
-                className="top-[calc(100%+8px)] left-0 min-w-[190px] p-2"
-                role="menu"
-                ariaLabel="More navigation"
-              >
-                {(closeMenu) => (
-                  <>
-                    {links.slice(desktopNavCount).map((link) => (
-                      <Link className="more-nav-menu-link" to={link.href} role="menuitem" key={link.href} onClick={closeMenu}>{link.label}</Link>
-                    ))}
-                    <Link className="more-nav-menu-link wishlist-nav-link" to="/wishlist" role="menuitem" aria-label={`Wishlist with ${wishlistCount} saved items`} onClick={closeMenu}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
-                  </>
-                )}
-              </Popover>
-            </div>
-          )}
-          {desktopNavCount >= links.length && (
-            <Link className="wishlist-nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlistCount} saved items`}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
-          )}
-          <ShoppingModeSwitch className="desktop-shopping-mode" />
-        </div>
-        {/* Off-screen measurement host used to size the primary nav links against available space. */}
-        <div className="desktop-nav-measure" ref={desktopNavMeasureRef} aria-hidden="true">
-          {links.map((link) => <span key={link.href} className="desktop-nav-measure-item">{link.label}</span>)}
-          <Link className="wishlist-nav-link desktop-nav-measure-item" to="/wishlist">Wishlist</Link>
-          <span className="more-nav-trigger desktop-nav-measure-item">More <ChevronDownIcon size={14} /></span>
-        </div>
-        <div className={`menu-backdrop ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)} aria-hidden="true" />
-        <aside className={`mobile-menu y-scrollbar ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen} role="dialog" aria-modal="true" aria-label="Store navigation">
-          <div className="mobile-menu-head">
-            <img className="mobile-menu-logo" src={logoUrl} alt="Ayanfe Food Variety" />
-            <button ref={closeMenuButtonRef} className="icon-button" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu"><CloseIcon size={22} /></button>
-          </div>
-          <ProductSearchAutocomplete
-            className="mobile-search"
-            value={search}
-            onChange={setSearch}
-            onSearch={submitSearch}
-            onSelectProduct={(product) => {
-              setIsMenuOpen(false)
-              navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)
-            }}
-            placeholder="Search the store"
-            ariaLabel="Search the store"
-            liveSearch={false}
+          <HeaderActions
+            isCartDrawerOpen={isCartDrawerOpen}
+            onOpenCart={openCartDrawer}
           />
-          <ShoppingModeSwitch className="mobile-shopping-mode" />
-          <div className="mobile-links">
-            {links.map((link) => <Link to={link.href} onClick={() => setIsMenuOpen(false)} key={link.href}>{link.label}</Link>)}
-            <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>Wishlist {wishlistCount > 0 && <b>{wishlistCount}</b>}</Link>
-          </div>
-          {user ? <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); void logout() }}>Log out</button> : <button className="logout-link" type="button" onClick={() => { setIsMenuOpen(false); openAuth() }}>Sign in</button>}
-        </aside>
+        </nav>
+        <DesktopNavLinks
+          links={links}
+          visibleCount={desktopNavCount}
+          navRef={desktopNavRef}
+          moreNavRef={moreNavRef}
+          isMoreNavOpen={isMoreNavOpen}
+          toggleMoreNav={toggleMoreNav}
+          closeMoreNav={closeMoreNav}
+          wishlistCount={wishlistCount}
+        />
+        <NavMeasurementHost links={links} measureRef={desktopNavMeasureRef} />
+        <MobileDrawer
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          closeMenuButtonRef={closeMenuButtonRef}
+          search={search}
+          setSearch={setSearch}
+          onSearch={submitSearch}
+          onSelectProduct={(product) => navigate(`/product/${encodeURIComponent(product.slug ?? product.id)}`)}
+          user={user}
+          logout={logout}
+          openAuth={openAuth}
+          wishlistCount={wishlistCount}
+          logoUrl={logoUrl}
+        />
         <CartDrawer open={isCartDrawerOpen} onClose={closeCartDrawer} />
       </header>
     </>

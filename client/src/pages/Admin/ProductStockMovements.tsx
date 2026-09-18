@@ -81,7 +81,7 @@ export function ProductStockMovements() {
   const totalLabel = useMemo(() => `${result?.pagination.total ?? 0} movement${(result?.pagination.total ?? 0) === 1 ? '' : 's'}`, [result])
 
   return (
-    <div className="admin-inventory-page min-w-0">
+    <div className="min-w-0">
       <div className="min-w-0">
         <Breadcrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Inventory', href: '/admin/inventory' }, { label: productName || 'Movements' }]} />
         <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-orange">Inventory</p>
@@ -107,7 +107,7 @@ export function ProductStockMovements() {
         </section>
       )}
 
-      <section className="admin-inventory-workspace mt-6 rounded-2xl border border-line bg-white shadow-sm" aria-label="Product stock movements">
+      <section className="mt-6 min-w-0 rounded-2xl border border-line bg-white shadow-sm" aria-label="Product stock movements">
         {isLoading ? (
           <AdminTableSkeleton desktopColumns={6} label="Loading product movements" />
         ) : movements.length ? (
@@ -163,7 +163,7 @@ export function ProductStockMovements() {
             )}
           </>
         ) : (
-          <div className="admin-inventory-empty rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
+          <div className="rounded-2xl border border-dashed border-green/25 bg-sage/25 px-6 py-16 text-center">
             <h2 className="text-xl font-bold text-green-dark">No movements recorded</h2>
             <p className="mt-2 text-sm text-muted">This unit has not had any stock changes yet.</p>
           </div>

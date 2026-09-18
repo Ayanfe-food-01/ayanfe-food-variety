@@ -12,7 +12,7 @@ import { deliveryZoneRoutes } from '../modules/delivery-zones/delivery-zone.rout
 import { orderRoutes } from '../modules/orders/order.routes.js'
 import { paymentRoutes } from '../modules/payments/payment.routes.js'
 import { productRoutes } from '../modules/products/product.routes.js'
-import { quoteRoutes } from '../modules/quotes/quote.routes.js'
+import { quoteRoutes } from '../modules/quotes/routes/quote.routes.js'
 import { settingsRoutes } from '../modules/settings/settings.routes.js'
 import { wishlistRoutes } from '../modules/wishlist/wishlist.routes.js'
 

@@ -27,7 +27,7 @@ export function Popover({
 
   return (
     <div
-      className={`popover-panel ${className}`.trim()}
+      className={`absolute z-60 border border-line rounded-[14px] bg-cream shadow-[0_18px_40px_rgb(20_33_22/0.14)] animate-popover-in motion-reduce:animate-none ${className}`.trim()}
       role={role}
       aria-label={ariaLabel}
       style={{

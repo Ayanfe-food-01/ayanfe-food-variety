@@ -13,9 +13,9 @@ export function PromoBannerCarousel({ banners }: PromoBannerCarouselProps) {
   })
 
   return (
-    <section className="promo-banners-wrap" aria-label="Promotional offers">
+    <section className="bg-transparent pb-2 pt-7" aria-label="Promotional offers">
       <div
-        className="promo-banners-track"
+        className="flex snap-x snap-mandatory gap-[14px] overflow-x-auto bg-transparent px-[18px] [scroll-padding-inline:18px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-5 md:px-6 md:[scroll-padding-inline:24px] lg:px-[max(24px,calc((100%-1160px)/2))] lg:[scroll-padding-inline:max(24px,calc((100%-1160px)/2))]"
         ref={trackRef}
         onKeyDown={interruptAutoAdvance}
         onPointerDown={interruptAutoAdvance}

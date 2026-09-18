@@ -4,6 +4,8 @@ import { SearchBar } from '../ui/SearchBar'
 import { normalizeSearchQuery } from '../../utils/search'
 import type { Product } from '../../types/product'
 
+
+
 interface ProductSearchAutocompleteProps {
   value: string
   onChange: (value: string) => void
@@ -91,7 +93,7 @@ export function ProductSearchAutocomplete({
   }
 
   return (
-    <div className={`product-search-autocomplete ${className}`} ref={wrapperRef}>
+    <div className={`relative flex min-w-0 flex-1 ${className}`} ref={wrapperRef}>
       <SearchBar
         value={value}
         onChange={handleChange}
@@ -121,15 +123,15 @@ export function ProductSearchAutocomplete({
         }}
       />
       {isOpen && canShowSuggestions && (
-        <div className="product-search-dropdown" id={listboxId} role="listbox" aria-label="Product suggestions">
+        <div className="absolute z-[60] top-[calc(100%+8px)] right-0 left-0 overflow-hidden border border-line rounded-2xl bg-cream shadow-[0_16px_32px_rgb(20_33_22/0.16)]" id={listboxId} role="listbox" aria-label="Product suggestions">
           {isLoading ? (
-            <p className="product-search-message" role="status">Searching products…</p>
+            <p className="m-0 px-4 py-[14px] text-muted text-xs" role="status">Searching products…</p>
           ) : hasError ? (
-            <p className="product-search-message">Suggestions are temporarily unavailable.</p>
+            <p className="m-0 px-4 py-[14px] text-muted text-xs">Suggestions are temporarily unavailable.</p>
           ) : suggestions.length > 0 ? (
             suggestions.map((product, index) => (
               <button
-                className={`product-search-option ${activeIndex === index ? 'is-active' : ''}`}
+                className={`flex w-full flex-col items-start gap-[3px] border-0 border-b border-line px-4 py-3 text-ink text-left cursor-pointer last:border-b-0 hover:bg-sage ${activeIndex === index ? 'bg-sage' : 'bg-transparent'}`}
                 id={`${listboxId}-option-${index}`}
                 key={product.id}
                 type="button"
@@ -138,12 +140,12 @@ export function ProductSearchAutocomplete({
                 onPointerDown={(event) => event.preventDefault()}
                 onClick={() => selectProduct(product)}
               >
-                 <span className="product-search-option-name block min-w-0 truncate" title={product.name}>{product.name}</span>
-                 <span className="product-search-option-meta block min-w-0 truncate" title={`${product.category}${product.unit ? ` · ${product.unit}` : ''}`}>{product.category}{product.unit ? ` · ${product.unit}` : ''}</span>
+                <span className="text-[13px] font-extrabold block min-w-0 truncate" title={product.name}>{product.name}</span>
+                <span className="text-muted text-[11px] block min-w-0 truncate" title={`${product.category}${product.unit ? ` · ${product.unit}` : ''}`}>{product.category}{product.unit ? ` · ${product.unit}` : ''}</span>
               </button>
             ))
           ) : (
-            <p className="product-search-message">No matching products found.</p>
+            <p className="m-0 px-4 py-[14px] text-muted text-xs">No matching products found.</p>
           )}
         </div>
       )}

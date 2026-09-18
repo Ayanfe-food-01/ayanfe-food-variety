@@ -2,14 +2,14 @@ import { QuoteRequestStatus, UserRole } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   acceptQuoteRequest,
-  getAdminQuoteRequest,
   getCustomerQuoteRequest,
   listCustomerQuoteRequests,
   rejectQuoteRequest,
-  createQuoteRequest,
-  prepareQuotePricing,
-} from '../src/modules/quotes/quote.service.js'
-import { hashPassword, loginCustomer } from '../src/modules/auth/auth.service.js'
+} from '../src/modules/quotes/services/customer-quote.service.js'
+import { getAdminQuoteRequest, prepareQuotePricing } from '../src/modules/quotes/services/admin-quote.service.js'
+import { createQuoteRequest } from '../src/modules/quotes/services/quote-create.service.js'
+import { hashPassword } from '../src/modules/auth/auth.service.js'
+import { loginCustomer } from '../src/modules/auth/customer-auth.service.js'
 import type { AuthenticatedUser } from '../src/modules/auth/auth.types.js'
 import { HttpError } from '../src/utils/http.js'
 
@@ -208,8 +208,20 @@ async function main() {
     const acceptedA1Again = await acceptQuoteRequest(quoteA1, userA.id)
     if (acceptedA1Again.status !== ACCEPTED) throw new Error('Second accept did not stay ACCEPTED.')
 
-    // An accepted quote cannot later be declined.
-    await expectConflict(rejectQuoteRequest(quoteA1, userA.id, {}))
+    // Admin detail for an accepted quote carries the acceptance timestamp.
+    const adminA1 = await getAdminQuoteRequest(quoteA1)
+    if (adminA1.status !== ACCEPTED) throw new Error('Admin sees the wrong status after customer accepted.')
+    if (adminA1.acceptedAt === null) throw new Error('Admin detail is missing acceptedAt for an accepted quote.')
+    if (adminA1.fulfillmentMethod !== 'DELIVERY') throw new Error('Admin detail is missing the fulfillment method.')
+    if (adminA1.convertedOrderNumber !== null) throw new Error('Accepted quote unexpectedly reports a converted order.')
+
+    // A customer who already accepted a quotation may still decline it before placing an order.
+    const declinedAcceptedA1 = await rejectQuoteRequest(quoteA1, userA.id, { reason: 'Changed my mind' })
+    if (declinedAcceptedA1.status !== CANCELLED) throw new Error(`Declining an accepted quote moved it to ${declinedAcceptedA1.status}.`)
+    if (declinedAcceptedA1.rejectedAt === null) throw new Error('Declining an accepted quote did not record rejectedAt.')
+    const adminA1Declined = await getAdminQuoteRequest(quoteA1)
+    if (adminA1Declined.status !== CANCELLED) throw new Error('Admin sees the wrong status after an accepted quote was declined.')
+    if (adminA1Declined.rejectionReason !== 'Changed my mind') throw new Error('Admin detail is missing the decline reason for an accepted quote.')
 
     // --- Decline lifecycle ---
     const rejectedA2 = await rejectQuoteRequest(quoteA2, userA.id, { reason: 'Out of budget' })
@@ -227,13 +239,6 @@ async function main() {
     if (rejectedA2Again.status !== CANCELLED) throw new Error('Second decline did not stay CANCELLED.')
     const adminA2After = await getAdminQuoteRequest(quoteA2)
     if (adminA2After.rejectionReason !== 'Out of budget') throw new Error('Idempotent decline wiped the stored reason.')
-
-    // Admin detail for an accepted quote carries the acceptance timestamp.
-    const adminA1 = await getAdminQuoteRequest(quoteA1)
-    if (adminA1.status !== ACCEPTED) throw new Error('Admin sees the wrong status after customer accepted.')
-    if (adminA1.acceptedAt === null) throw new Error('Admin detail is missing acceptedAt for an accepted quote.')
-    if (adminA1.fulfillmentMethod !== 'DELIVERY') throw new Error('Admin detail is missing the fulfillment method.')
-    if (adminA1.convertedOrderNumber !== null) throw new Error('Accepted quote unexpectedly reports a converted order.')
 
     // --- Public create-request serializer still hides internal fields ---
     const requestKeyA1 = (await quoteFor(quoteA1)).requestKey!

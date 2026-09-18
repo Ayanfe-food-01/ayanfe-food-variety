@@ -18,18 +18,25 @@ const fromToConstraint = (field: FilterField, values?: FilterValues): { min?: st
   return {}
 }
 
+const FILTER_OPTION =
+  'flex w-full min-h-9 items-center justify-between gap-3 rounded-[9px] border-0 px-2.5 py-[7px] text-left text-[13px] cursor-pointer transition-colors'
+const FILTER_OPTION_SELECTED = 'bg-sage font-bold text-green-dark'
+
 export function FilterFieldControl({ field, value, onChange, values }: FilterFieldControlProps) {
   if (field.type === 'toggle') {
     const isOn = value === 'true'
     return (
       <button
-        className={`filter-toggle ${isOn ? 'is-on' : ''}`}
+        className={`inline-flex h-[26px] w-11 items-center rounded-full p-[3px] cursor-pointer transition-colors duration-150 ${isOn ? 'bg-green' : 'bg-line'}`}
         type="button"
         role="switch"
         aria-checked={isOn}
         onClick={() => onChange(isOn ? '' : 'true')}
       >
-        <span className="filter-toggle-track" aria-hidden="true" />
+        <span
+          className={`block h-5 w-5 rounded-full bg-cream shadow-[0_1px_3px_rgb(20_33_22/0.25)] transition-transform duration-150 ${isOn ? 'translate-x-[18px]' : ''}`}
+          aria-hidden="true"
+        />
       </button>
     )
   }
@@ -58,12 +65,12 @@ export function FilterFieldControl({ field, value, onChange, values }: FilterFie
   }
 
   return (
-    <div className="filter-options" role="listbox" aria-label={field.label}>
+    <div className="flex flex-col gap-0.5" role="listbox" aria-label={field.label}>
       {field.options?.map((option) => {
         const isSelected = option.value === value
         return (
           <button
-            className={`filter-option ${isSelected ? 'is-selected' : ''}`}
+            className={`${FILTER_OPTION} ${isSelected ? FILTER_OPTION_SELECTED : 'bg-transparent text-ink hover:text-orange'}`}
             type="button"
             role="option"
             aria-selected={isSelected}
@@ -95,10 +102,10 @@ function MultiSelectControl({ field, value, onChange }: FilterFieldControlProps)
   }
 
   return (
-    <div className="filter-multi-select">
+    <div className="flex flex-col gap-2">
       {field.searchable && (
         <input
-          className="filter-multi-select-search"
+          className="w-full min-h-[38px] rounded-[10px] border border-line bg-cream px-[11px] text-[13px] text-ink focus:border-green focus:outline-2 focus:outline-[rgb(50_91_57/0.15)]"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={field.placeholder ?? 'Search options'}
@@ -106,26 +113,29 @@ function MultiSelectControl({ field, value, onChange }: FilterFieldControlProps)
           type="search"
         />
       )}
-      <div className="filter-options filter-options-scroll" role="listbox" aria-label={field.label} aria-multiselectable="true">
+      <div data-filter-scroll className="flex max-h-[330px] flex-col gap-0.5 overflow-y-auto overscroll-contain" role="listbox" aria-label={field.label} aria-multiselectable="true">
         {options.map((option) => {
           const isSelected = selected.has(option.value)
           return (
             <button
-              className={`filter-option ${isSelected ? 'is-selected' : ''}`}
+              className={`${FILTER_OPTION} ${isSelected ? FILTER_OPTION_SELECTED : 'bg-transparent text-ink hover:text-orange'}`}
               type="button"
               role="option"
               aria-selected={isSelected}
               key={option.value}
               onClick={() => toggleOption(option.value)}
             >
-              <span className="filter-option-check" aria-hidden="true">
+              <span
+                className={`inline-flex h-[17px] w-[17px] flex-none items-center justify-center rounded-[4px] border text-cream ${isSelected ? 'border-green bg-green' : 'border-line'}`}
+                aria-hidden="true"
+              >
                 {isSelected && <CheckIcon size={14} />}
               </span>
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
             </button>
           )
         })}
-        {options.length === 0 && <p className="filter-options-empty">No matching options</p>}
+        {options.length === 0 && <p className="m-0 px-2.5 py-3.5 text-xs text-muted">No matching options</p>}
       </div>
     </div>
   )

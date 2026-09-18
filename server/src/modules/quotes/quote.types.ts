@@ -1,4 +1,4 @@
-import type { FulfillmentMethod, QuoteRequestStatus, ShoppingMode } from '@prisma/client'
+import type { DeliveryFeeMode, FulfillmentMethod, QuoteRequestStatus, ShoppingMode } from '@prisma/client'
 
 export interface CreateQuoteRequestInput {
   requestKey: string
@@ -6,6 +6,13 @@ export interface CreateQuoteRequestInput {
   customerEmail: string
   customerPhone: string
   message?: string
+  fulfillmentMethod?: FulfillmentMethod
+  state?: string
+  stateId?: string
+  city?: string
+  cityId?: string
+  areaId?: string
+  deliveryAddress?: string
   items: Array<{
     productId: string
     productOptionId: string | null
@@ -25,6 +32,20 @@ export interface QuoteRequestItemResponse {
   quotedUnitPrice: string | null
 }
 
+/**
+ * Current catalog prices attached to an admin quote item. Used purely as a
+ * pricing hint while preparing a quotation — the saved snapshot is the value
+ * in `quotedUnitPrice`, never these live prices.
+ */
+export interface QuotePriceHint {
+  retail: string | null
+  wholesale: string | null
+}
+
+export interface AdminQuoteRequestItem extends QuoteRequestItemResponse {
+  priceHint: QuotePriceHint
+}
+
 export interface QuotePricingItemInput {
   itemId: string
   quotedUnitPrice: string
@@ -32,8 +53,13 @@ export interface QuotePricingItemInput {
 
 export interface PrepareQuotePricingInput {
   items: QuotePricingItemInput[]
-  deliveryFee: string
+  deliveryFee: string | null
   fulfillmentMethod: FulfillmentMethod
+  // Decides how the delivery fee is locked at preparation time. ZONE resolves
+  // it from the customer's chosen delivery zone, FREE locks a fee of zero and
+  // CUSTOM uses the supplied deliveryFee amount. Absent (legacy) keeps the fee
+  // resolved from the delivery zone at checkout.
+  deliveryFeeMode?: 'ZONE' | 'FREE' | 'CUSTOM'
 }
 
 /**
@@ -52,6 +78,18 @@ export interface QuoteRequestResponse {
   shoppingMode: ShoppingMode | null
   status: QuoteRequestStatus
   fulfillmentMethod: FulfillmentMethod | null
+  state: string | null
+  city: string | null
+  deliveryAddress: string | null
+  stateId: string | null
+  cityId: string | null
+  areaId: string | null
+  deliveryFeeMode: DeliveryFeeMode | null
+  deliveryZoneId: string | null
+  deliveryZoneName: string | null
+  deliveryAreaName: string | null
+  deliveryMinDays: number | null
+  deliveryMaxDays: number | null
   quotedSubtotal: string | null
   deliveryFee: string | null
   quotedTotal: string | null
@@ -77,6 +115,7 @@ export interface AdminQuoteRequestListItem {
   customerPhone: string
   itemCount: number
   shoppingMode: ShoppingMode | null
+  fulfillmentMethod: FulfillmentMethod | null
   status: QuoteRequestStatus
   createdAt: string
   updatedAt: string
@@ -86,6 +125,16 @@ export interface AdminQuoteRequest extends AdminQuoteRequestListItem {
   message: string | null
   adminNote: string | null
   fulfillmentMethod: FulfillmentMethod | null
+  state: string | null
+  city: string | null
+  deliveryAddress: string | null
+  deliveryFeeMode: DeliveryFeeMode | null
+  deliveryZoneId: string | null
+  deliveryZoneName: string | null
+  deliveryAreaId: string | null
+  deliveryAreaName: string | null
+  deliveryMinDays: number | null
+  deliveryMaxDays: number | null
   quotedSubtotal: string | null
   deliveryFee: string | null
   quotedTotal: string | null
@@ -93,8 +142,11 @@ export interface AdminQuoteRequest extends AdminQuoteRequestListItem {
   acceptedAt: string | null
   rejectedAt: string | null
   rejectionReason: string | null
+  cancelledAt: string | null
+  cancelledReason: string | null
+  completedAt: string | null
   convertedOrderNumber: string | null
-  items: QuoteRequestItemResponse[]
+  items: AdminQuoteRequestItem[]
 }
 
 export interface QuoteRequestQuery {

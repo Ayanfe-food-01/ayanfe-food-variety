@@ -127,7 +127,8 @@ export function ProductOptionsModal({ product, onClose, mode = 'retail' }: Produ
       onClick={onClose}
     >
       <div
-        className="product-options-panel w-full max-w-md rounded-2xl border border-line bg-white shadow-2xl"
+        className="w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-line bg-white shadow-2xl"
+        style={{ maxHeight: 'calc(100svh - 2rem)', WebkitOverflowScrolling: 'touch' }}
         role="dialog"
         aria-modal="true"
         aria-label={`Select options for ${product.name}`}

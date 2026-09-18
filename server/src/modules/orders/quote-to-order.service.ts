@@ -1,22 +1,22 @@
 import {
   FulfillmentMethod,
   PaymentMethod,
-  PaymentStatus,
   Prisma,
   QuoteRequestStatus,
 } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
+import { isOnlinePaymentEnabled } from '../payments/payment.provider.js'
 import type { ConvertQuoteToOrderInput, OrderResponse } from './order.types.js'
 import { orderInclude, toOrderResponse } from './order.mapper.js'
 import type { OrderWithItems } from './order.mapper.js'
 import { assertItemsAvailable } from './quote-to-order.availability.js'
 import { sendQuoteConversionConfirmation } from './quote-to-order.notify.js'
-import { deriveOrderFinances } from './quote-to-order.pricing.js'
-import type { QuoteSnapshot } from './quote-to-order.pricing.js'
+import { deriveQuoteOrderItems, resolveOrderDeliveryFee } from './quote-to-order.pricing.js'
+import type { DerivedOrderFinances, QuoteSnapshot } from './quote-to-order.pricing.js'
 import { createConvertedOrder } from './quote-to-order.create.js'
 
-const QUOTE_CONVERTIBLE_STATUSES: QuoteRequestStatus[] = [QuoteRequestStatus.ACCEPTED, QuoteRequestStatus.QUOTED]
+const QUOTE_CONVERTIBLE_STATUSES: QuoteRequestStatus[] = [QuoteRequestStatus.ACCEPTED]
 
 // The quotation snapshot is the single source of truth: order content, unit
 // prices, subtotal and delivery fee all come from the stored quotation, never
@@ -81,7 +81,7 @@ export async function convertQuoteRequestToOrder(
           ? 'This quotation has already been completed.'
           : current.status === QuoteRequestStatus.CANCELLED
             ? 'This quotation was cancelled and cannot be converted into an order.'
-            : 'This quotation must be prepared and accepted before it can be converted into an order.'
+            : 'Accept this quotation before placing the order.'
         throw new HttpError(409, message)
       }
 
@@ -90,7 +90,43 @@ export async function convertQuoteRequestToOrder(
         throw new HttpError(400, 'A delivery address and city are required for delivery orders.')
       }
 
-      const finances = deriveOrderFinances(current as QuoteSnapshot, fulfillmentMethod)
+      const { orderItems, subtotal } = deriveQuoteOrderItems(current as QuoteSnapshot)
+
+      // The delivery fee is decided here. A prepared quotation locks its fee by
+      // mode (FREE fixes zero, CUSTOM fixes the quoted amount, ZONE fixes the
+      // zone-priced amount as long as the checkout location is still in the
+      // quoted zone). Legacy quotes without a mode keep the old behaviour: an
+      // override fee is reused, otherwise the customer's delivery zone prices
+      // it exactly like a normal checkout order.
+      const delivery = await resolveOrderDeliveryFee(transaction, {
+        fulfillmentMethod,
+        mode: current.deliveryFeeMode,
+        lockedFee: current.deliveryFee,
+        subtotal,
+        location: {
+          areaId: input.areaId,
+          cityId: input.cityId,
+          cityName: input.city?.trim(),
+          stateId: input.stateId,
+        },
+        lockedLocation: {
+          zoneId: current.deliveryZoneId,
+          zoneName: current.deliveryZoneName,
+          areaId: current.deliveryAreaId,
+          areaName: current.deliveryAreaName,
+          stateName: current.state,
+          cityName: current.city,
+          minDays: current.deliveryMinDays,
+          maxDays: current.deliveryMaxDays,
+        },
+      })
+
+      const finances: DerivedOrderFinances = {
+        orderItems,
+        subtotal,
+        deliveryFee: delivery.fee,
+        total: subtotal.add(delivery.fee),
+      }
 
       // Availability mirrors the checkout validation for friendly messages;
       // deductStock below performs the authoritative, locked deduction.
@@ -125,15 +161,25 @@ export async function convertQuoteRequestToOrder(
 
       assertItemsAvailable(current.items, productsById, productOptionsById)
 
-      const paymentSettings = await transaction.paymentSettings.findUnique({
-        where: {
-          singletonKey_paymentMethod: {
-            singletonKey: 'default',
-            paymentMethod: PaymentMethod.BANK_TRANSFER,
+      const paymentMethod = input.paymentMethod ?? PaymentMethod.BANK_TRANSFER
+      // Bank-transfer orders snapshot the stored account details. Gateway
+      // (Paystack) orders have no bank row to snapshot; their availability is
+      // the provider configuration and the payment row is created at initialize.
+      const paymentSettings = paymentMethod === PaymentMethod.PAYSTACK
+        ? null
+        : await transaction.paymentSettings.findUnique({
+          where: {
+            singletonKey_paymentMethod: {
+              singletonKey: 'default',
+              paymentMethod,
+            },
           },
-        },
-      })
-      if (!paymentSettings || !paymentSettings.isActive) {
+        })
+      if (paymentMethod === PaymentMethod.PAYSTACK) {
+        if (!isOnlinePaymentEnabled()) {
+          throw new HttpError(400, 'Online payment is not available for this store.')
+        }
+      } else if (!paymentSettings || !paymentSettings.isActive) {
         throw new HttpError(400, 'The payment method is unavailable.')
       }
 
@@ -142,8 +188,10 @@ export async function convertQuoteRequestToOrder(
         user: { email: user.email },
         current: current as QuoteSnapshot,
         input,
+        paymentMethod,
         fulfillmentMethod,
         finances,
+        delivery,
         paymentSettings,
       })
 

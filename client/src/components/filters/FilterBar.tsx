@@ -28,6 +28,13 @@ interface FilterBarProps {
   className?: string
 }
 
+const FILTER_TRIGGER =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-line bg-cream px-4 text-[13px] font-bold text-green-dark cursor-pointer transition-[border-color,box-shadow,background-color] duration-150 hover:border-green focus-visible:outline-2 focus-visible:outline-green focus-visible:outline-offset-2 [&_svg]:flex-none'
+
+const FILTER_TRIGGER_ICON = 'relative w-11 min-w-11 rounded-[10px] p-0'
+
+const FILTER_TRIGGER_ACTIVE = 'border-green bg-sage text-green-dark'
+
 export function FilterBar({ fields, committed, onApply, search, quickFields, headerActions, ariaLabel = 'Filters', className = '' }: FilterBarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const desktopTriggerRef = useRef<HTMLButtonElement>(null)
@@ -60,12 +67,12 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
   }
 
   return (
-    <section className={`filter-bar ${className}`.trim()} aria-label={ariaLabel}>
-      <div className="filter-bar-toolbar">
-        <div className="filter-bar-search">
+    <section className={`flex flex-col gap-3 ${className}`.trim()} aria-label={ariaLabel}>
+      <div className="flex flex-nowrap items-end gap-2.5">
+        <div className="min-w-0 flex-1">
           {search && (
             <SearchBar
-              className="filter-bar-search-input"
+              className="h-11"
               value={search.value}
               onChange={search.onChange}
               onSearch={search.onSearch}
@@ -78,11 +85,11 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
           )}
         </div>
 
-        <div className="filter-bar-desktop">
-          <FilterQuickFilters fields={resolvedQuickFields} values={committed} onApply={onApply} />
+        <div className="hidden flex-none items-center gap-2 lg:flex">
+          <FilterQuickFilters className="hidden min-[1440px]:flex" fields={resolvedQuickFields} values={committed} onApply={onApply} />
           <button
             ref={desktopTriggerRef}
-            className={`filter-trigger filter-trigger-icon ${activeCount > 0 ? 'is-active' : ''}`}
+            className={`${FILTER_TRIGGER} ${FILTER_TRIGGER_ICON} ${activeCount > 0 ? FILTER_TRIGGER_ACTIVE : ''}`}
             type="button"
             aria-label="Open filters"
             title="Open filters"
@@ -92,14 +99,18 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
             onClick={() => setIsSheetOpen(true)}
           >
             <FilterIcon size={16} aria-hidden="true" />
-            {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
+            {activeCount > 0 && (
+              <span className="absolute -right-[7px] -top-[7px] inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-cream bg-orange px-1 text-[10px] font-extrabold text-cream">
+                {activeCount}
+              </span>
+            )}
           </button>
         </div>
 
-        <div className="filter-bar-mobile">
+        <div className="flex flex-none items-center gap-2 lg:hidden">
           <button
             ref={mobileTriggerRef}
-            className={`filter-trigger filter-trigger-icon ${activeCount > 0 ? 'is-active' : ''}`}
+            className={`${FILTER_TRIGGER} ${FILTER_TRIGGER_ICON} ${activeCount > 0 ? FILTER_TRIGGER_ACTIVE : ''}`}
             type="button"
             aria-label="Open filters"
             title="Open filters"
@@ -109,17 +120,21 @@ export function FilterBar({ fields, committed, onApply, search, quickFields, hea
             onClick={() => setIsSheetOpen(true)}
           >
             <FilterIcon size={16} aria-hidden="true" />
-            {activeCount > 0 && <span className="filter-badge">{activeCount}</span>}
+            {activeCount > 0 && (
+              <span className="absolute -right-[7px] -top-[7px] inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-cream bg-orange px-1 text-[10px] font-extrabold text-cream">
+                {activeCount}
+              </span>
+            )}
           </button>
         </div>
-        {headerActions && <div className="filter-bar-actions">{headerActions}</div>}
+        {headerActions && <div className="flex min-w-0 flex-none items-center">{headerActions}</div>}
       </div>
 
-      <div className="filter-bar-mobile-quick">
+      <div className="hidden">
         <FilterQuickFilters fields={resolvedQuickFields} values={committed} onApply={onApply} />
       </div>
 
-      <div className="filter-bar-footer">
+      <div className="flex min-w-0 items-center gap-3 empty:hidden">
         <FilterChips fields={fields} values={committed} onRemove={removeCommitted} onClearAll={clearAll} />
       </div>
 

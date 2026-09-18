@@ -18,6 +18,7 @@ type OrderEmailItem = {
 
 type CreatedOrderEmail = {
   orderNumber: string
+  quoteNumber?: string | null
   customerName: string
   customerEmail: string | null
   phone: string
@@ -93,6 +94,7 @@ const renderTotals = (order: CreatedOrderEmail): string => `
 const renderOrderDetails = (order: CreatedOrderEmail, includeCustomerEmail: boolean): string => `
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:20px 0;background:#f5f7f1;border-radius:14px;color:#58695e;font-size:13px;">
     <tr><td style="padding:14px 16px 5px;">Order number</td><td align="right" style="padding:14px 16px 5px;color:#173b2b;font-weight:bold;">${escapeHtml(order.orderNumber)}</td></tr>
+    ${order.quoteNumber ? `<tr><td style="padding:5px 16px;">Quotation</td><td align="right" style="padding:5px 16px;color:#173b2b;font-weight:bold;">${escapeHtml(order.quoteNumber)}</td></tr>` : ''}
     ${includeCustomerEmail && order.customerEmail ? `<tr><td style="padding:5px 16px;">Customer email</td><td align="right" style="padding:5px 16px;color:#173b2b;">${escapeHtml(order.customerEmail)}</td></tr>` : ''}
     <tr><td style="padding:5px 16px;">Payment method</td><td align="right" style="padding:5px 16px;color:#173b2b;font-weight:bold;">${escapeHtml(formatPaymentMethod(order.paymentMethod))}</td></tr>
     <tr><td style="padding:5px 16px;">Fulfillment</td><td align="right" style="padding:5px 16px;color:#173b2b;font-weight:bold;">${escapeHtml(formatFulfillmentMethod(order.fulfillmentMethod))}</td></tr>
@@ -146,6 +148,7 @@ const customerOrderMessage = (order: CreatedOrderEmail): EmailMessage => {
       'Ayanfe Food Variety order confirmation',
       `Hi ${order.customerName},`,
       `Order: ${order.orderNumber}`,
+      ...(order.quoteNumber ? [`Quotation: ${order.quoteNumber}`] : []),
       ...order.items.map((item) => `${item.name}${item.optionLabel ? ` (${item.optionLabel})` : ''} — ${item.quantity} × ${formatPrice(item.unitPrice)} = ${formatPrice(item.subtotal)}`),
       `Subtotal: ${formatPrice(order.subtotal)}`,
       `Delivery fee: ${formatPrice(order.deliveryFee)}`,

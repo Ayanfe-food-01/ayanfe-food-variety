@@ -1,13 +1,16 @@
-import { FulfillmentMethod, QuoteRequestStatus } from '@prisma/client'
+import { DeliveryFeeMode, FulfillmentMethod, QuoteRequestStatus } from '@prisma/client'
 import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   createQuoteRequest,
+} from '../src/modules/quotes/services/quote-create.service.js'
+import {
   getAdminQuoteRequest,
   prepareQuotePricing,
+  reviseQuotePricing,
   updateAdminQuoteRequestStatus,
-} from '../src/modules/quotes/quote.service.js'
+} from '../src/modules/quotes/services/admin-quote.service.js'
 import { login } from '../src/modules/auth/auth.service.js'
-import { validatePrepareQuotePricingInput } from '../src/modules/quotes/quote.validator.js'
+import { validatePrepareQuotePricingInput } from '../src/modules/quotes/validators/quote.validator.js'
 import { HttpError } from '../src/utils/http.js'
 
 const slug = `quote-price-smoke-${Date.now().toString(36)}`
@@ -52,6 +55,9 @@ async function main() {
   let categoryId = ''
   let productId = ''
   const quoteRequestIds: string[] = []
+  const deliveryZoneIds: string[] = []
+  const cityIds: string[] = []
+  const stateIds: string[] = []
 
   const createQuote = async (items: Array<{ quantity: number }>, status = PENDING): Promise<string> => {
     const requestKey = `${slug}-${quoteRequestIds.length}`
@@ -100,6 +106,16 @@ async function main() {
       },
     })
     productId = product.id
+
+    const state = await prisma.state.create({ data: { name: `Smoke State ${slug}`, sortOrder: 999 } })
+    const city = await prisma.city.create({ data: { stateId: state.id, name: `Smoke City ${slug}` } })
+    const deliveryZone = await prisma.deliveryZone.create({
+      data: { sortOrder: 999, isActive: true, fee: 1500, minDeliveryDays: 1, maxDeliveryDays: 3 },
+    })
+    deliveryZoneIds.push(deliveryZone.id)
+    cityIds.push(city.id)
+    stateIds.push(state.id)
+    await prisma.deliveryZoneCity.create({ data: { deliveryZoneId: deliveryZone.id, cityId: city.id } })
 
     // --- Fresh request has no pricing data ---
     const referenceA = await createQuote([{ quantity: 2 }, { quantity: 3 }])
@@ -201,7 +217,7 @@ async function main() {
       items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '4500.5' }],
       fulfillmentMethod: PICKUP,
     })
-    if (validInput.items[0].quotedUnitPrice !== '4500.50' || validInput.deliveryFee !== '0.00' || validInput.fulfillmentMethod !== PICKUP) {
+    if (validInput.items[0].quotedUnitPrice !== '4500.50' || validInput.deliveryFee !== null || validInput.fulfillmentMethod !== PICKUP) {
       throw new Error('Validator did not normalize money values.')
     }
     const zeroFeeInput = validatePrepareQuotePricingInput({
@@ -210,6 +226,14 @@ async function main() {
       fulfillmentMethod: PICKUP,
     })
     if (zeroFeeInput.deliveryFee !== '0.00') throw new Error('Validator did not accept a zero delivery fee.')
+    // A blank delivery fee means it is calculated from the customer's delivery
+    // zone at checkout, not a zero override.
+    const blankFeeInput = validatePrepareQuotePricingInput({
+      items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100' }],
+      deliveryFee: '',
+      fulfillmentMethod: DELIVERY,
+    })
+    if (blankFeeInput.deliveryFee !== null) throw new Error('Validator did not treat a blank delivery fee as calculated at checkout.')
 
     // --- Prepare a quotation on the PENDING request ---
     const expectedSubtotalA = 4500 * freshA.items[0].quantity + 3000 * freshA.items[1].quantity
@@ -272,11 +296,170 @@ async function main() {
     if (!moneyEquals(quotedAFee.deliveryFee, 200)) throw new Error('Delivery fulfilled quotation lost its delivery fee.')
     if (!moneyEquals(quotedAFee.quotedTotal, 300)) throw new Error('Delivery fulfilled quotation total is wrong.')
 
-    // --- Moving to COMPLETED preserves the quotation ---
-    const completedA = await updateAdminQuoteRequestStatus(referenceA, COMPLETED)
-    if (completedA.status !== COMPLETED) throw new Error('Quote did not move to COMPLETED.')
-    if (!moneyEquals(completedA.quotedTotal, expectedTotalA)) throw new Error('COMPLETED quote lost its quoted totals.')
-    if (completedA.adminNote !== null) throw new Error('COMPLETED quote unexpectedly has an internal note.')
+    // --- A QUOTED request cannot be completed by admin; it can only be revised ---
+    await expectHttpError(
+      updateAdminQuoteRequestStatus(referenceA, COMPLETED),
+      409,
+    )
+    const revisedA = await reviseQuotePricing(referenceA)
+    if (revisedA.status !== CONTACTED) throw new Error('Revise did not return the request to CONTACTED.')
+    if (revisedA.quotedSubtotal !== null || revisedA.quotedTotal !== null || revisedA.quotedAt !== null) {
+      throw new Error('Revise did not clear the quotation snapshot.')
+    }
+    if (revisedA.fulfillmentMethod !== null) throw new Error('Revise did not clear the fulfillment method.')
+    if (revisedA.items.some((item) => item.quotedUnitPrice !== null)) throw new Error('Revise did not clear item unit prices.')
+
+    // --- DeliveryFeeMode validator ---
+    expectValidatorError(() =>
+      validatePrepareQuotePricingInput({
+        items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+        fulfillmentMethod: PICKUP,
+        deliveryFeeMode: 'BANANA',
+      }),
+      400,
+    )
+    expectValidatorError(() =>
+      validatePrepareQuotePricingInput({
+        items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+        fulfillmentMethod: PICKUP,
+        deliveryFeeMode: 'ZONE',
+      }),
+      400,
+    )
+    expectValidatorError(() =>
+      validatePrepareQuotePricingInput({
+        items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+        fulfillmentMethod: DELIVERY,
+        deliveryFeeMode: 'CUSTOM',
+      }),
+      400,
+    )
+    expectValidatorError(() =>
+      validatePrepareQuotePricingInput({
+        items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+        fulfillmentMethod: DELIVERY,
+        deliveryFeeMode: 'FREE',
+        deliveryFee: '100.00',
+      }),
+      400,
+    )
+    expectValidatorError(() =>
+      validatePrepareQuotePricingInput({
+        items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+        fulfillmentMethod: DELIVERY,
+        deliveryFeeMode: 'ZONE',
+        deliveryFee: '100.00',
+      }),
+      400,
+    )
+    const validatedCustom = validatePrepareQuotePricingInput({
+      items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+      fulfillmentMethod: DELIVERY,
+      deliveryFeeMode: 'CUSTOM',
+      deliveryFee: '750',
+    })
+    if (validatedCustom.deliveryFeeMode !== 'CUSTOM' || validatedCustom.deliveryFee !== '750.00') {
+      throw new Error('CUSTOM mode validator failed.')
+    }
+    const validatedFree = validatePrepareQuotePricingInput({
+      items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+      fulfillmentMethod: DELIVERY,
+      deliveryFeeMode: 'FREE',
+    })
+    if (validatedFree.deliveryFeeMode !== 'FREE' || validatedFree.deliveryFee !== null) {
+      throw new Error('FREE mode validator failed.')
+    }
+    const validatedZone = validatePrepareQuotePricingInput({
+      items: [{ itemId: freshA.items[0].id, quotedUnitPrice: '100.00' }],
+      fulfillmentMethod: DELIVERY,
+      deliveryFeeMode: 'ZONE',
+    })
+    if (validatedZone.deliveryFeeMode !== 'ZONE' || validatedZone.deliveryFee !== null) {
+      throw new Error('ZONE mode validator failed.')
+    }
+
+    // --- Prepare mode FREE (no zone resolution needed) ---
+    const referenceFree = await createQuote([{ quantity: 2 }])
+    const freshFree = await getAdminQuoteRequest(referenceFree)
+    const quotedFree = await prepareQuotePricing(referenceFree, {
+      items: [{ itemId: freshFree.items[0].id, quotedUnitPrice: '1000.00' }],
+      fulfillmentMethod: DELIVERY,
+      deliveryFeeMode: 'FREE',
+    })
+    if (!moneyEquals(quotedFree.deliveryFee, 0)) throw new Error('FREE mode did not lock deliveryFee to 0.')
+    if (!moneyEquals(quotedFree.quotedTotal, 2000)) throw new Error('FREE mode total is wrong.')
+    if (quotedFree.deliveryFeeMode !== 'FREE') throw new Error('FREE mode deliveryFeeMode not stored.')
+    if (quotedFree.deliveryZoneId !== null || quotedFree.deliveryZoneName !== null || quotedFree.deliveryMinDays !== null || quotedFree.deliveryMaxDays !== null) {
+      throw new Error('FREE mode should not have zone snapshot.')
+    }
+
+    // --- Prepare mode CUSTOM (locks the supplied fee, no zone resolution) ---
+    const referenceCustom = await createQuote([{ quantity: 3 }])
+    const freshCustom = await getAdminQuoteRequest(referenceCustom)
+    const quotedCustom = await prepareQuotePricing(referenceCustom, {
+      items: [{ itemId: freshCustom.items[0].id, quotedUnitPrice: '500.00' }],
+      fulfillmentMethod: DELIVERY,
+      deliveryFeeMode: 'CUSTOM',
+      deliveryFee: '300.00',
+    })
+    if (!moneyEquals(quotedCustom.deliveryFee, 300)) throw new Error('CUSTOM mode did not lock deliveryFee.')
+    if (!moneyEquals(quotedCustom.quotedTotal, 1800)) throw new Error('CUSTOM mode total is wrong.')
+    if (quotedCustom.deliveryFeeMode !== 'CUSTOM') throw new Error('CUSTOM mode deliveryFeeMode not stored.')
+    if (quotedCustom.deliveryZoneId !== null || quotedCustom.deliveryZoneName !== null || quotedCustom.deliveryMinDays !== null || quotedCustom.deliveryMaxDays !== null) {
+      throw new Error('CUSTOM mode should not have zone snapshot.')
+    }
+
+    // --- Prepare mode ZONE resolves and snapshots the delivery zone ---
+    const referenceZone = await createQuote([{ quantity: 2 }])
+    await prisma.quoteRequest.update({
+      where: { id: quoteRequestIds[quoteRequestIds.length - 1] },
+      data: {
+        fulfillmentMethod: DELIVERY,
+        state: state.name,
+        stateId: state.id,
+        city: city.name,
+        cityId: city.id,
+        deliveryAddress: '123 Test St',
+      },
+    })
+    const freshZone = await getAdminQuoteRequest(referenceZone)
+    const quotedZone = await prepareQuotePricing(referenceZone, {
+      items: [{ itemId: freshZone.items[0].id, quotedUnitPrice: '2000.00' }],
+      fulfillmentMethod: DELIVERY,
+      deliveryFeeMode: 'ZONE',
+    })
+    const expectedZoneFee = quotedZone.quotedSubtotal && Number(quotedZone.quotedSubtotal) >= 150000 ? 0 : 1500
+    if (!moneyEquals(quotedZone.deliveryFee, expectedZoneFee)) throw new Error('ZONE mode fee is wrong.')
+    if (quotedZone.deliveryFeeMode !== 'ZONE') throw new Error('ZONE mode deliveryFeeMode not stored.')
+    if (quotedZone.deliveryZoneId !== deliveryZone.id) throw new Error('ZONE mode zoneId not stored.')
+    if (quotedZone.deliveryZoneName !== city.name) throw new Error('ZONE mode zoneName should be city name.')
+    if (quotedZone.deliveryAreaId !== null || quotedZone.deliveryAreaName !== null) {
+      throw new Error('ZONE mode should have null area when no area is chosen.')
+    }
+    if (quotedZone.deliveryMinDays !== 1 || quotedZone.deliveryMaxDays !== 3) {
+      throw new Error('ZONE mode lead times not stored.')
+    }
+
+    // --- ZONE mode for a quote with no matching zone is rejected ---
+    const referenceZoneNone = await createQuote([{ quantity: 1 }])
+    await prisma.quoteRequest.update({
+      where: { id: quoteRequestIds[quoteRequestIds.length - 1] },
+      data: {
+        fulfillmentMethod: DELIVERY,
+        state: 'Unknown State',
+        city: 'Unknown City',
+        deliveryAddress: 'Nowhere',
+      },
+    })
+    const freshZoneNone = await getAdminQuoteRequest(referenceZoneNone)
+    await expectHttpError(
+      prepareQuotePricing(referenceZoneNone, {
+        items: [{ itemId: freshZoneNone.items[0].id, quotedUnitPrice: '100.00' }],
+        fulfillmentMethod: DELIVERY,
+        deliveryFeeMode: 'ZONE',
+      }),
+      400,
+    )
 
     // --- Snapshot survives later catalog changes ---
     const referenceB = await createQuote([{ quantity: 4 }])
@@ -440,6 +623,10 @@ async function main() {
     await prisma.quoteRequest.deleteMany({ where: { customerEmail: 'phase-four@example.com' } })
     await prisma.product.deleteMany({ where: { slug: { startsWith: 'smoke-product-' } } })
     await prisma.category.deleteMany({ where: { slug: { startsWith: 'smoke-category-' } } })
+    await prisma.deliveryZoneCity.deleteMany({ where: { deliveryZoneId: { in: deliveryZoneIds } } })
+    await prisma.deliveryZone.deleteMany({ where: { id: { in: deliveryZoneIds } } })
+    await prisma.city.deleteMany({ where: { id: { in: cityIds } } })
+    await prisma.state.deleteMany({ where: { id: { in: stateIds } } })
   }
 }
 

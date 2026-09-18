@@ -70,6 +70,7 @@ export interface AdminOrdersQuery {
   search?: string
   paymentStatus?: PaymentStatus
   orderStatus?: OrderStatus
+  shoppingMode?: ShoppingMode
   archive: AdminOrderArchiveView
   sort: 'newest' | 'oldest'
   page: number

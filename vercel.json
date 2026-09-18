@@ -13,6 +13,14 @@
       "destination": "https://ayanfe-food-variety.onrender.com/api/v1"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "https://ayanfe-food-variety.onrender.com/sitemap.xml"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "https://ayanfe-food-variety.onrender.com/robots.txt"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

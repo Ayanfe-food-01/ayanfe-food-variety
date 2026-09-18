@@ -74,6 +74,16 @@ enum FulfillmentMethod {
   DELIVERY
 }
 
+// How a quotation's delivery fee was decided at preparation time. ZONE locks
+// the fee resolved from the customer's chosen delivery zone; FREE locks a fee
+// of zero; CUSTOM is an admin-entered amount. NULL (legacy) means the fee is
+// still resolved from the customer's delivery zone at checkout.
+enum DeliveryFeeMode {
+  ZONE
+  FREE
+  CUSTOM
+}
+
 enum UserRole {
   ADMIN
   CUSTOMER
@@ -288,6 +298,7 @@ model DeliveryZone {
   orders                Order[]
   deliveryZoneCities    DeliveryZoneCity[]
   deliveryZoneAreas     DeliveryZoneArea[]
+  quoteRequests         QuoteRequest[]        @relation("QuoteRequestDeliveryZone")
 
   @@index([isActive, sortOrder], map: "delivery_zones_active_order_idx")
   @@index([sortOrder], map: "delivery_zones_sort_order_idx")
@@ -305,6 +316,8 @@ model State {
 
   cities City[]
 
+  quoteRequests QuoteRequest[] @relation("QuoteRequestState")
+
   @@index([sortOrder], map: "states_sort_order_idx")
   @@map("states")
 }
@@ -321,6 +334,7 @@ model City {
   state            State             @relation(fields: [stateId], references: [id], onDelete: Restrict)
   deliveryZoneCity DeliveryZoneCity?
   areas            Area[]
+  quoteRequests    QuoteRequest[]    @relation("QuoteRequestCity")
 
   @@unique([stateId, name], map: "cities_state_name_key")
   @@index([stateId], map: "cities_state_id_idx")
@@ -378,6 +392,7 @@ model Area {
   city             City              @relation(fields: [cityId], references: [id], onDelete: Restrict)
   orders           Order[]
   deliveryZoneArea DeliveryZoneArea?
+  quoteRequests    QuoteRequest[]    @relation("QuoteRequestArea")
 
   @@unique([cityId, name], map: "areas_city_name_key")
   @@index([cityId, isActive], map: "areas_city_active_idx")
@@ -972,6 +987,22 @@ model QuoteRequest {
   shoppingMode      ShoppingMode?      @map("shopping_mode")
   status            QuoteRequestStatus @default(PENDING)
   fulfillmentMethod FulfillmentMethod? @map("fulfillment_method")
+  // Delivery location captured on the quote request itself so a quotation can
+  // lock delivery terms (zone, fee, estimate) without waiting for checkout.
+  // Names are durable snapshots; the ids are informational only.
+  state             String?            @db.VarChar(120)
+  city              String?            @db.VarChar(120)
+  deliveryAddress   String?            @map("delivery_address")
+  stateId           String?            @map("state_id") @db.Uuid
+  cityId            String?            @map("city_id") @db.Uuid
+  areaId            String?            @map("area_id") @db.Uuid
+  deliveryZoneId    String?            @map("delivery_zone_id") @db.Uuid
+  deliveryZoneName  String?            @map("delivery_zone_name") @db.VarChar(120)
+  deliveryAreaId    String?            @map("delivery_area_id") @db.Uuid
+  deliveryAreaName  String?            @map("delivery_area_name") @db.VarChar(120)
+  deliveryMinDays   Int?               @map("delivery_min_days")
+  deliveryMaxDays   Int?               @map("delivery_max_days")
+  deliveryFeeMode   DeliveryFeeMode?   @map("delivery_fee_mode")
   adminNote         String?            @map("admin_note") @db.VarChar(2000)
   quotedSubtotal    Decimal?           @map("quoted_subtotal") @db.Decimal(12, 2)
   deliveryFee       Decimal?           @map("delivery_fee") @db.Decimal(12, 2)
@@ -990,6 +1021,10 @@ model QuoteRequest {
   items             QuoteRequestItem[]
   convertedOrder    Order?             @relation("QuoteConvertedOrder", fields: [convertedOrderId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   orders            Order[]            @relation("QuoteSourceOrder")
+  stateRef          State?             @relation("QuoteRequestState", fields: [stateId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  cityRef           City?              @relation("QuoteRequestCity", fields: [cityId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  areaRef           Area?              @relation("QuoteRequestArea", fields: [areaId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  deliveryZoneRef   DeliveryZone?      @relation("QuoteRequestDeliveryZone", fields: [deliveryZoneId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([userId, createdAt(sort: Desc)], map: "quote_requests_user_created_idx")
   @@index([userId, status], map: "quote_requests_user_status_idx")
@@ -997,6 +1032,7 @@ model QuoteRequest {
   @@index([status], map: "quote_requests_status_idx")
   @@index([customerEmail], map: "quote_requests_customer_email_idx")
   @@index([customerPhone], map: "quote_requests_customer_phone_idx")
+  @@index([deliveryZoneId], map: "quote_requests_delivery_zone_id_idx")
   @@map("quote_requests")
 }
 

@@ -78,7 +78,7 @@ import {
   reviseAdminQuoteRequestController,
   updateAdminQuoteRequestNoteController,
   updateAdminQuoteRequestStatusController,
-} from '../quotes/quote.admin.controller.js'
+} from '../quotes/controllers/quote.admin.controller.js'
 import {
   createAdminTestimonialController,
   deleteAdminTestimonialController,

@@ -92,18 +92,32 @@ export async function convertQuoteRequestToOrder(
 
       const { orderItems, subtotal } = deriveQuoteOrderItems(current as QuoteSnapshot)
 
-      // The delivery fee is decided here: an admin override locks a fixed fee,
-      // otherwise the customer's delivery zone (resolved from the location they
-      // provide at checkout) prices it exactly like a normal checkout order.
+      // The delivery fee is decided here. A prepared quotation locks its fee by
+      // mode (FREE fixes zero, CUSTOM fixes the quoted amount, ZONE fixes the
+      // zone-priced amount as long as the checkout location is still in the
+      // quoted zone). Legacy quotes without a mode keep the old behaviour: an
+      // override fee is reused, otherwise the customer's delivery zone prices
+      // it exactly like a normal checkout order.
       const delivery = await resolveOrderDeliveryFee(transaction, {
         fulfillmentMethod,
-        overrideFee: current.deliveryFee,
+        mode: current.deliveryFeeMode,
+        lockedFee: current.deliveryFee,
         subtotal,
         location: {
           areaId: input.areaId,
           cityId: input.cityId,
           cityName: input.city?.trim(),
           stateId: input.stateId,
+        },
+        lockedLocation: {
+          zoneId: current.deliveryZoneId,
+          zoneName: current.deliveryZoneName,
+          areaId: current.deliveryAreaId,
+          areaName: current.deliveryAreaName,
+          stateName: current.state,
+          cityName: current.city,
+          minDays: current.deliveryMinDays,
+          maxDays: current.deliveryMaxDays,
         },
       })
 

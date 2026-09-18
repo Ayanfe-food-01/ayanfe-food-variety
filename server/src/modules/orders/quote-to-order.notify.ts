@@ -4,6 +4,7 @@ import type { OrderWithItems } from './order.mapper.js'
 export async function sendQuoteConversionConfirmation(order: OrderWithItems): Promise<void> {
   await notifyOrderCreated({
     orderNumber: order.orderNumber,
+    quoteNumber: order.quoteRequest?.quoteNumber ?? null,
     customerName: order.customerName,
     customerEmail: order.email,
     phone: order.phone,

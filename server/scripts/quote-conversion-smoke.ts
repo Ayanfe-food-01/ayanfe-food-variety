@@ -3,12 +3,12 @@ import { prisma, closeDatabase } from '../src/config/prisma.js'
 import {
   acceptQuoteRequest,
   getCustomerQuoteRequest,
-} from '../src/modules/quotes/customer-quote.service.js'
+} from '../src/modules/quotes/services/customer-quote.service.js'
 import {
   getAdminQuoteRequest,
   prepareQuotePricing,
   updateAdminQuoteRequestStatus,
-} from '../src/modules/quotes/admin-quote.service.js'
+} from '../src/modules/quotes/services/admin-quote.service.js'
 import { convertQuoteRequestToOrder } from '../src/modules/orders/quote-to-order.service.js'
 import { hashPassword } from '../src/modules/auth/auth.service.js'
 import { loginCustomer } from '../src/modules/auth/customer-auth.service.js'
@@ -50,6 +50,9 @@ async function main() {
   const customerEmailC = `${slug}-c@smoke.local`
   const quoteNumbers: string[] = []
   const createdUserIds: string[] = []
+  const deliveryZoneIds: string[] = []
+  const cityIds: string[] = []
+  const stateIds: string[] = []
 
   const createQuote = async (userId: string, quantity: number): Promise<string> => {
     const quoteRequest = await prisma.quoteRequest.create({
@@ -138,6 +141,31 @@ async function main() {
     const userC = await prisma.user.create({ data: { name: 'Conversion Customer C', email: customerEmailC, passwordHash, role: UserRole.CUSTOMER, emailVerified: false } })
     createdUserIds.push(userA.id, userB.id, userC.id)
 
+    const state = await prisma.state.create({ data: { name: `Smoke State ${slug}`, sortOrder: 999 } })
+    const cityA = await prisma.city.create({ data: { stateId: state.id, name: `City A ${slug}` } })
+    const cityB = await prisma.city.create({ data: { stateId: state.id, name: `City B ${slug}` } })
+    const zoneA = await prisma.deliveryZone.create({ data: { sortOrder: 998, isActive: true, fee: 1500, minDeliveryDays: 1, maxDeliveryDays: 3 } })
+    const zoneB = await prisma.deliveryZone.create({ data: { sortOrder: 997, isActive: true, fee: 4000, minDeliveryDays: 2, maxDeliveryDays: 5 } })
+    deliveryZoneIds.push(zoneA.id, zoneB.id)
+    cityIds.push(cityA.id, cityB.id)
+    stateIds.push(state.id)
+    await prisma.deliveryZoneCity.create({ data: { deliveryZoneId: zoneA.id, cityId: cityA.id } })
+    await prisma.deliveryZoneCity.create({ data: { deliveryZoneId: zoneB.id, cityId: cityB.id } })
+
+    const priceQuoteWithMode = async (
+      reference: string,
+      quotedUnitPrice: string,
+      opts: { mode?: 'ZONE' | 'FREE' | 'CUSTOM'; deliveryFee?: string; fulfillmentMethod: 'PICKUP' | 'DELIVERY' },
+    ): Promise<void> => {
+      const { items } = await getAdminQuoteRequest(reference)
+      await prepareQuotePricing(reference, {
+        items: items.map((item) => ({ itemId: item.id, quotedUnitPrice })),
+        deliveryFee: opts.deliveryFee ?? null,
+        fulfillmentMethod: opts.fulfillmentMethod,
+        deliveryFeeMode: opts.mode,
+      })
+    }
+
     // --- 1. An accepted pickup quotation converts into a normal order ---
     const reference = await createQuote(userA.id, 4)
     await priceQuote(reference, '7500.00')
@@ -217,6 +245,86 @@ async function main() {
     }
     if (deliveryOrder.order.note !== 'Call on arrival') throw new Error('Delivery instructions were not stored.')
     if (!moneyEquals(deliveryOrder.order.deliveryFee, 1500)) throw new Error('Delivery fee was not carried over.')
+
+    // --- 5b. FREE mode locks a zero fee regardless of zone pricing ---
+    const freeReference = await createQuote(userA.id, 2)
+    await prisma.quoteRequest.update({
+      where: { quoteNumber: freeReference },
+      data: { state: state.name, stateId: state.id, city: cityB.name, cityId: cityB.id, deliveryAddress: '1 Free St' },
+    })
+    await priceQuoteWithMode(freeReference, '1000.00', { mode: 'FREE', fulfillmentMethod: 'DELIVERY' })
+    await acceptQuoteRequest(freeReference, userA.id)
+    const freeOrder = await convertQuoteRequestToOrder(userA.id, freeReference, {
+      deliveryAddress: '1 Free St',
+      city: cityB.name,
+      cityId: cityB.id,
+      stateId: state.id,
+    })
+    if (!moneyEquals(freeOrder.order.deliveryFee, 0)) throw new Error('FREE mode order fee should be 0.')
+    if (freeOrder.order.city !== cityB.name) throw new Error('FREE mode order lost the locked city snapshot.')
+    if (freeOrder.order.deliveryZoneId !== null || freeOrder.order.deliveryMinDays !== null) {
+      throw new Error('FREE mode order should not carry a zone snapshot.')
+    }
+
+    // --- 5c. CUSTOM mode locks the admin fee even when the zone prices differently ---
+    const customReference = await createQuote(userA.id, 1)
+    await prisma.quoteRequest.update({
+      where: { quoteNumber: customReference },
+      data: { state: state.name, stateId: state.id, city: cityB.name, cityId: cityB.id, deliveryAddress: '2 Custom St' },
+    })
+    await priceQuoteWithMode(customReference, '1000.00', { mode: 'CUSTOM', deliveryFee: '2000.00', fulfillmentMethod: 'DELIVERY' })
+    await acceptQuoteRequest(customReference, userA.id)
+    const customOrder = await convertQuoteRequestToOrder(userA.id, customReference, {
+      deliveryAddress: '2 Custom St',
+      city: cityB.name,
+      cityId: cityB.id,
+      stateId: state.id,
+    })
+    if (!moneyEquals(customOrder.order.deliveryFee, 2000)) throw new Error('CUSTOM mode order fee was not locked.')
+    if (customOrder.order.city !== cityB.name) throw new Error('CUSTOM mode order lost the locked city snapshot.')
+
+    // --- 5d. ZONE mode locks the zone-priced fee and snapshots the zone ---
+    const zoneReference = await createQuote(userA.id, 3)
+    await prisma.quoteRequest.update({
+      where: { quoteNumber: zoneReference },
+      data: { state: state.name, stateId: state.id, city: cityA.name, cityId: cityA.id, deliveryAddress: '3 Zone St' },
+    })
+    await priceQuoteWithMode(zoneReference, '2000.00', { mode: 'ZONE', fulfillmentMethod: 'DELIVERY' })
+    const zoneQuote = await quoteFor(zoneReference)
+    if (zoneQuote.deliveryFeeMode !== 'ZONE' || zoneQuote.deliveryZoneId !== zoneA.id) {
+      throw new Error('ZONE quote did not snapshot the delivery zone.')
+    }
+    if (zoneQuote.deliveryMinDays !== 1 || zoneQuote.deliveryMaxDays !== 3) {
+      throw new Error('ZONE quote did not snapshot the zone lead time.')
+    }
+    if (!moneyEquals(String(zoneQuote.deliveryFee), 1500)) throw new Error('ZONE quote locked the wrong fee.')
+    await acceptQuoteRequest(zoneReference, userA.id)
+    const zoneOrder = await convertQuoteRequestToOrder(userA.id, zoneReference, {
+      deliveryAddress: '3 Zone St',
+      city: cityA.name,
+      cityId: cityA.id,
+      stateId: state.id,
+    })
+    if (!moneyEquals(zoneOrder.order.deliveryFee, 1500)) throw new Error('ZONE mode order fee was not locked.')
+    if (zoneOrder.order.deliveryZoneName !== cityA.name) throw new Error('ZONE order lost the zone snapshot.')
+    if (zoneOrder.order.deliveryMinDays !== 1 || zoneOrder.order.deliveryMaxDays !== 3) {
+      throw new Error('ZONE order lost the zone lead time.')
+    }
+
+    // --- 5e. ZONE mode rejects conversion from a different zone ---
+    const zoneMismatchReference = await createQuote(userA.id, 1)
+    await prisma.quoteRequest.update({
+      where: { quoteNumber: zoneMismatchReference },
+      data: { state: state.name, stateId: state.id, city: cityA.name, cityId: cityA.id, deliveryAddress: '4 Zone St' },
+    })
+    await priceQuoteWithMode(zoneMismatchReference, '1000.00', { mode: 'ZONE', fulfillmentMethod: 'DELIVERY' })
+    await acceptQuoteRequest(zoneMismatchReference, userA.id)
+    await expectConflict(convertQuoteRequestToOrder(userA.id, zoneMismatchReference, {
+      deliveryAddress: '4 Zone St',
+      city: cityB.name,
+      cityId: cityB.id,
+      stateId: state.id,
+    }))
 
     // --- 6. Out-of-stock conversion fails cleanly and changes nothing ---
     const oosproduct = await prisma.product.create({
@@ -359,12 +467,20 @@ async function main() {
     await prisma.order.deleteMany({ where: { userId: { in: createdUserIds } } })
     await prisma.quoteRequest.deleteMany({ where: { customerPhone: '+2348091110000' } })
     await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } })
+    await prisma.deliveryZoneCity.deleteMany({ where: { deliveryZoneId: { in: deliveryZoneIds } } })
+    await prisma.deliveryZone.deleteMany({ where: { id: { in: deliveryZoneIds } } })
+    await prisma.city.deleteMany({ where: { id: { in: cityIds } } })
+    await prisma.state.deleteMany({ where: { id: { in: stateIds } } })
     const smokeProducts = await prisma.product.findMany({
       where: { OR: [{ slug: { startsWith: 'smoke-low-stock-' } }, { slug: { startsWith: 'smoke-product-' } }] },
       select: { id: true },
     })
+    const smokeProductIds = smokeProducts.map((p) => p.id)
+    await prisma.orderItem.deleteMany({
+      where: { productId: { in: smokeProductIds } },
+    })
     await prisma.productStockAdjustment.deleteMany({
-      where: { productId: { in: smokeProducts.map((p) => p.id) } },
+      where: { productId: { in: smokeProductIds } },
     })
     await prisma.product.deleteMany({ where: { slug: { startsWith: 'smoke-low-stock-' } } })
     await prisma.product.deleteMany({ where: { slug: { startsWith: 'smoke-product-' } } })

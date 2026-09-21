@@ -47,6 +47,9 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
   }, [])
 
   const openAuth = useCallback((action?: AuthAction) => {
+    // The admin sign-in page already presents the login modal, so avoid
+    // stacking the storefront modal on top of it.
+    if (location.pathname === '/admin/login') return
     afterAuthRef.current = action
     const returnPath = `${location.pathname}${location.search}${location.hash}`
     storeAuthReturnPath(returnPath)

@@ -31,20 +31,18 @@ const ADMIN_EXPIRY_NOTICE = 'Your admin session has expired due to inactivity. P
 
 interface LoginModalProps {
   standalone?: boolean
-  adminMode?: boolean
 }
 
-export function LoginModal({ standalone = false, adminMode = false }: LoginModalProps) {
+export function LoginModal({ standalone = false }: LoginModalProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { completeAuthentication, completeGuestContinuation, closeAuth } = useCustomerAuth()
   const initialReturnPath = readInternalReturnPath(location.state)
   const initialGoogleError = new URLSearchParams(location.search).get('oauth_error')
-  const initialExpiryNotice = adminMode && new URLSearchParams(location.search).get('reason') === 'expired'
+  const initialExpiryNotice = location.pathname === '/admin/login' && new URLSearchParams(location.search).get('reason') === 'expired'
   const [view, setView] = useState<LoginView>(() => {
-    if (adminMode) return 'email'
     const state = location.state
-    return (state && typeof state === 'object' && 'email' in state) || initialReturnPath.startsWith('/admin')
+    return (state && typeof state === 'object' && 'email' in state) || initialReturnPath.startsWith('/admin') || location.pathname === '/admin/login'
       ? 'email'
       : 'gateway'
   })
@@ -56,6 +54,7 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
   })
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(() => {
     if (initialExpiryNotice) return ADMIN_EXPIRY_NOTICE
@@ -155,10 +154,6 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
         return
       }
       const user = await login(email, password)
-      if (adminMode && user.role !== 'ADMIN') {
-        setError('This account does not have administrator access.')
-        return
-      }
       completeAuthentication(user)
       if (standalone) {
         navigate(getDestination(user), { replace: true })
@@ -181,6 +176,7 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
     if ('email' in patch) setEmail(patch.email ?? '')
     if ('password' in patch) setPassword(patch.password ?? '')
     if ('showPassword' in patch) setShowPassword(patch.showPassword ?? false)
+    if ('agreedToTerms' in patch) setAgreedToTerms(patch.agreedToTerms ?? false)
   }
 
   const continueWithGoogle = () => {
@@ -233,17 +229,15 @@ export function LoginModal({ standalone = false, adminMode = false }: LoginModal
         ) : (
           <LoginForm
             mode={mode}
-            values={{ name, email, password, showPassword }}
+            values={{ name, email, password, showPassword, agreedToTerms }}
             isSubmitting={isSubmitting}
             error={error}
-            adminMode={adminMode}
             onChange={handleFormChange}
             onSubmit={submit}
             onModeChange={(nextMode) => { setMode(nextMode); setError(null) }}
             onBack={() => { setView('gateway'); setMode('login'); setError(null) }}
             onForgotPassword={openForgotPassword}
             onVerifyEmail={openVerifyEmail}
-            onContinueGoogle={continueWithGoogle}
           />
         )}
         {standalone && (

@@ -85,21 +85,28 @@ export function CustomerAuthProvider({ children }: CustomerAuthProviderProps) {
   }, [])
 
   const switchShoppingMode = useCallback(async (mode: ShoppingMode) => {
-    if (!userRef.current) {
-      throw new Error('Sign in to shop wholesale.')
-    }
-    if (userRef.current.shoppingMode === mode) return
-    try {
-      const updatedUser = await setShoppingMode(mode)
-      setUser(updatedUser.role === 'CUSTOMER' ? updatedUser : null)
-    } catch (error: unknown) {
-      if (error instanceof ApiError && error.status === 401) {
-        userRef.current = null
-        setUser(null)
-        openAuth(() => { void switchShoppingMode(mode) })
+    let canRetryAfterAuth = true
+    const attempt = async (): Promise<void> => {
+      if (!userRef.current) {
+        throw new Error('Sign in to shop wholesale.')
       }
-      throw error
+      if (userRef.current.shoppingMode === mode) return
+      try {
+        const updatedUser = await setShoppingMode(mode)
+        setUser(updatedUser.role === 'CUSTOMER' ? updatedUser : null)
+      } catch (error: unknown) {
+        if (error instanceof ApiError && error.status === 401) {
+          userRef.current = null
+          setUser(null)
+          if (canRetryAfterAuth) {
+            canRetryAfterAuth = false
+            openAuth(() => { void attempt() })
+          }
+        }
+        throw error
+      }
     }
+    await attempt()
   }, [openAuth])
 
   const value: CustomerAuthContextValue = {

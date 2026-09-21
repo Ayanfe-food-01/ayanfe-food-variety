@@ -33,16 +33,38 @@ export function Home() {
         '@type': 'ItemList',
         name: 'Featured, popular and new Ayanfe Food Variety products',
         numberOfItems: homepageProducts.length,
-        itemListElement: homepageProducts.map((product, index) => ({
-          '@type': 'ListItem',
-          position: index + 1,
-          item: {
-            '@type': 'Product',
-            name: product.name,
-            image: getAbsoluteUrl(product.image),
-            url: getAbsoluteUrl(`/product/${product.slug ?? product.id}`),
-          },
-        })),
+        itemListElement: homepageProducts.map((product, index) => {
+          const productUrl = getAbsoluteUrl(`/product/${product.slug ?? product.id}`)
+          return {
+            '@type': 'ListItem',
+            position: index + 1,
+            item: {
+              '@type': 'Product',
+              name: product.name,
+              image: getAbsoluteUrl(product.image),
+              url: productUrl,
+              ...(product.reviewCount && product.reviewCount > 0 && product.averageRating != null
+                ? {
+                    aggregateRating: {
+                      '@type': 'AggregateRating',
+                      ratingValue: product.averageRating,
+                      bestRating: 5,
+                      ratingCount: product.reviewCount,
+                    },
+                  }
+                : {}),
+              offers: {
+                '@type': 'Offer',
+                url: productUrl,
+                priceCurrency: 'NGN',
+                price: product.discountedPrice.toFixed(2),
+                availability: product.isAvailable
+                  ? 'https://schema.org/InStock'
+                  : 'https://schema.org/OutOfStock',
+              },
+            },
+          }
+        }),
       })
     }
     return organization

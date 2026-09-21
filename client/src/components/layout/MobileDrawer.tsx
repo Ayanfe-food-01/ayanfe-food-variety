@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import React, { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom';
 import { CloseIcon } from '../../assets/icons'
 import { ProductSearchAutocomplete } from '../products/ProductSearchAutocomplete'
 import { ShoppingModeSwitch } from './ShoppingModeSwitch'
@@ -45,6 +46,20 @@ export function MobileDrawer({
   wishlistCount,
   logoUrl,
 }: MobileDrawerProps) {
+  const panelRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (panelRef.current && !panelRef.current.contains(target)) onClose()
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [isOpen, onClose])
+
   return (
     <>
       <div
@@ -55,6 +70,7 @@ export function MobileDrawer({
         aria-hidden="true"
       />
       <aside
+        ref={panelRef}
         className={`mobile-menu flex flex-col fixed z-[70] inset-y-0 left-0 right-auto w-[min(84vw,330px)] max-w-full h-dvh overflow-x-hidden overflow-y-auto y-scrollbar bg-cream -translate-x-full transition-transform duration-[250ms] ease-[ease] motion-reduce:transition-none p-[calc(18px+env(safe-area-inset-top))] px-[18px] pb-[calc(18px+env(safe-area-inset-bottom))] md:hidden ${
           isOpen ? 'translate-x-0' : ''
         }`}
@@ -99,12 +115,24 @@ export function MobileDrawer({
           >
             Wishlist {wishlistCount > 0 && <b className="inline-grid min-w-[18px] h-[18px] place-items-center rounded-full bg-orange text-white text-[10px] font-bold">{wishlistCount}</b>}
           </Link>
+          {user ? (
+            <button
+              className="flex items-center gap-[7px] py-[15px] px-[2px] border-0 border-b border-line bg-transparent text-ink text-left font-bold cursor-pointer"
+              type="button"
+              onClick={() => { onClose(); void logout() }}
+            >
+              Log out
+            </button>
+          ) : (
+            <button
+              className="flex items-center gap-[7px] py-[15px] px-[2px] border-0 border-b border-line bg-transparent text-orange text-left font-bold cursor-pointer"
+              type="button"
+              onClick={() => { onClose(); openAuth() }}
+            >
+              Sign in
+            </button>
+          )}
         </div>
-        {user ? (
-          <button className="block w-full mt-auto py-[15px] px-[2px] border-0 bg-transparent text-orange text-left font-bold cursor-pointer" type="button" onClick={() => { onClose(); void logout() }}>Log out</button>
-        ) : (
-          <button className="block w-full mt-auto py-[15px] px-[2px] border-0 bg-transparent text-orange text-left font-bold cursor-pointer" type="button" onClick={() => { onClose(); openAuth() }}>Sign in</button>
-        )}
       </aside>
     </>
   )

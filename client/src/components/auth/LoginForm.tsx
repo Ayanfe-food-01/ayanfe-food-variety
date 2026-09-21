@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowRight, EyeIcon, EyeOffIcon } from '../../assets/icons'
 import { Button } from '../ui/Button'
 
@@ -9,6 +10,7 @@ export interface AuthFormValues {
   email: string
   password: string
   showPassword: boolean
+  agreedToTerms: boolean
 }
 
 interface LoginFormProps {
@@ -16,26 +18,22 @@ interface LoginFormProps {
   values: AuthFormValues
   isSubmitting: boolean
   error: string | null
-  adminMode: boolean
   onChange: (patch: Partial<AuthFormValues>) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   onModeChange: (mode: Mode) => void
   onBack: () => void
   onForgotPassword: () => void
   onVerifyEmail: () => void
-  onContinueGoogle?: () => void
 }
 
 const inputClass = 'mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none transition-colors focus:border-green focus:ring-2 focus:ring-green/10'
 
-export function LoginForm({ mode, values, isSubmitting, error, adminMode, onChange, onSubmit, onModeChange, onBack, onForgotPassword, onVerifyEmail, onContinueGoogle }: LoginFormProps) {
+export function LoginForm({ mode, values, isSubmitting, error, onChange, onSubmit, onModeChange, onBack, onForgotPassword, onVerifyEmail }: LoginFormProps) {
   return (
     <>
-      {!adminMode && (
-        <button className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={onBack}>
-          ← Back
-        </button>
-      )}
+      <button className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-green hover:text-orange" type="button" onClick={onBack}>
+        ← Back
+      </button>
       <div className="mt-5">
         <h1 className="text-3xl font-bold tracking-[-0.05em] text-green-dark">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
         <p className="mt-3 text-sm leading-6 text-muted">
@@ -79,8 +77,22 @@ export function LoginForm({ mode, values, isSubmitting, error, adminMode, onChan
           </div>
           <span className="mt-1 block text-xs font-normal text-muted">At least 6 characters.</span>
         </div>
+        {mode === 'signup' && (
+          <label className="flex items-start gap-2.5 text-xs leading-5 text-muted">
+            <input
+              className="mt-0.5 size-4 shrink-0 cursor-pointer accent-green"
+              type="checkbox"
+              checked={values.agreedToTerms}
+              onChange={(event) => onChange({ agreedToTerms: event.target.checked })}
+              required
+            />
+            <span>
+              I agree to the&nbsp;<Link className="font-bold text-green hover:text-orange" to="/terms-and-conditions" target="_blank" rel="noreferrer">Terms &amp; Conditions</Link> and&nbsp;<Link className="font-bold text-green hover:text-orange" to="/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</Link>.
+            </span>
+          </label>
+        )}
         {error && <p className="rounded-xl border border-orange/25 bg-orange/5 px-4 py-3 text-sm text-orange" role="alert">{error}</p>}
-        <Button fullWidth size="lg" type="submit" disabled={isSubmitting}>
+        <Button fullWidth size="lg" type="submit" disabled={isSubmitting || (mode === 'signup' && !values.agreedToTerms)}>
           {isSubmitting ? (mode === 'login' ? 'Signing in…' : 'Creating…') : mode === 'login' ? 'Sign in' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}
         </Button>
       </form>
@@ -89,23 +101,15 @@ export function LoginForm({ mode, values, isSubmitting, error, adminMode, onChan
           Verify your email
         </Button>
       )}
-      {adminMode && mode === 'login' && (
-        <div className="mt-6">
-          <div className="flex items-center gap-3">
-            <span className="h-px flex-1 bg-line" aria-hidden="true" />
-            <span className="text-xs font-bold text-muted">OR</span>
-            <span className="h-px flex-1 bg-line" aria-hidden="true" />
-          </div>
-          <Button className="mt-4 w-full" variant="outline" size="lg" type="button" disabled={isSubmitting} onClick={onContinueGoogle}>
-            <img className="size-5" src="/branding/google-icon.svg" alt="" aria-hidden="true" />
-            Continue with Google
-          </Button>
-        </div>
-      )}
-      {!adminMode && (
-        <Button className="mt-7 w-full text-center" variant="text" size="sm" type="button" onClick={() => onModeChange(mode === 'login' ? 'signup' : 'login')}>
-          {mode === 'login' ? 'Don\u2019t have an account? Sign up' : 'Already have an account? Sign in'}
-        </Button>
+      <Button className="mt-7 w-full text-center" variant="text" size="sm" type="button" onClick={() => onModeChange(mode === 'login' ? 'signup' : 'login')}>
+        {mode === 'login' ? 'Don\u2019t have an account? Sign up' : 'Already have an account? Sign in'}
+      </Button>
+      {mode === 'login' && (
+        <p className="mt-4 text-center text-[11px] leading-5 text-muted">
+          By continuing, you agree to our{' '}
+          <Link className="font-bold text-green hover:text-orange" to="/terms-and-conditions" target="_blank" rel="noreferrer">Terms &amp; Conditions</Link> and{' '}
+          <Link className="font-bold text-green hover:text-orange" to="/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</Link>.
+        </p>
       )}
     </>
   )

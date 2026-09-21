@@ -127,6 +127,26 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   const [flyout, setFlyout] = useState<{ label: string; left: number; top: number } | null>(null)
   const flyoutRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (panelRef.current && !panelRef.current.contains(target)) onClose()
+    }
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, onClose])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -241,6 +261,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
         />
       )}
       <aside
+        ref={panelRef}
         className={`fixed inset-y-0 left-0 z-40 flex h-dvh min-h-0 flex-col overflow-hidden border-r border-green-dark/10 bg-green-dark px-5 py-5 text-cream transition-transform duration-200 xl:transition-[width] ${
           isCollapsed ? 'w-72 xl:w-[84px] xl:px-3' : 'w-72'
         } ${isOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}

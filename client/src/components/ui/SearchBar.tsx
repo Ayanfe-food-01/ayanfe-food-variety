@@ -86,7 +86,7 @@ export function SearchBar({
 
   return (
     <form
-      className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-transparent bg-line px-[13px] text-muted focus-within:border-green ${className}`}
+      className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-transparent bg-mist px-[13px] text-muted focus-within:border-green ${className}`}
       role="search"
       onSubmit={handleSubmit}
     >

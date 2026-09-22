@@ -11,6 +11,10 @@ import { ProductFormSkeleton } from './components/ProductFormSkeleton'
 
 const cardClass = 'rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8'
 
+// On mobile the form is a step wizard: only the active step's card renders.
+// On md+ all sections show as one stacked form, so hidden cards stay visible there.
+const stepCardClass = (hidden: boolean) => (hidden ? `${cardClass} hidden md:block` : cardClass)
+
 export function ProductForm() {
   const c = useProductForm()
 
@@ -47,7 +51,7 @@ export function ProductForm() {
               <MobileProgress step={c.step} onSelect={c.goToStep} />
             </div>
 
-            <div className={cardClass}>
+            <div className={stepCardClass(c.step !== 0)}>
               <BasicsSection
                 hidden={c.step !== 0}
                 form={c.form}
@@ -59,7 +63,7 @@ export function ProductForm() {
               />
             </div>
 
-            <div className={cardClass}>
+            <div className={stepCardClass(c.step !== 1)}>
               <ImagesSection
                 hidden={c.step !== 1}
                 productName={c.form.name}
@@ -71,7 +75,7 @@ export function ProductForm() {
               />
             </div>
 
-            <div className={cardClass}>
+            <div className={stepCardClass(c.step !== 2)}>
               <PricingSection
                 hidden={c.step !== 2}
                 form={c.form}
@@ -90,7 +94,7 @@ export function ProductForm() {
               />
             </div>
 
-            <div className={cardClass}>
+            <div className={stepCardClass(c.step !== 3)}>
               <ReviewSection
                 hidden={c.step !== 3}
                 productName={c.form.name}

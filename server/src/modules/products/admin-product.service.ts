@@ -4,6 +4,7 @@ import { HttpError } from '../../utils/http.js'
 import { adminProductInclude, toAdminProduct } from './admin-product.mapper.js'
 import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
 import { LOW_STOCK_THRESHOLD_DEFAULT } from '../inventory/inventory.threshold.js'
+import { invalidateFeaturedCaches, invalidateProductCaches } from '../cache/index.js'
 import type { AdminProductQuery, Product } from './product.types.js'
 
 const LOW_STOCK_THRESHOLD = LOW_STOCK_THRESHOLD_DEFAULT
@@ -96,6 +97,9 @@ export async function updateProductStatus(id: string, isActive: boolean): Promis
     }
     throw error
   })
+  // Availability flips change every listing, detail page and homepage rail
+  // that references this product.
+  void invalidateProductCaches()
   return toAdminProduct(product)
 }
 
@@ -110,6 +114,9 @@ export async function updateProductFeatured(id: string, isFeatured: boolean): Pr
     }
     throw error
   })
+  // The featured rail (and homepage aggregate) must reflect the new selection.
+  void invalidateFeaturedCaches()
+  void invalidateProductCaches()
   return toAdminProduct(product)
 }
 
@@ -173,6 +180,11 @@ export async function deleteProduct(id: string): Promise<{ name: string; images:
         name: product.name,
         images: Array.from(new Set([product.image, ...imageRows.map((image) => image.url)].filter(Boolean))),
       }
+    }).then((result) => {
+      // The product can no longer appear in listings, searches, the homepage
+      // or its own detail page.
+      void invalidateProductCaches()
+      return result
     })
   } catch (error: unknown) {
     if (error instanceof HttpError) throw error

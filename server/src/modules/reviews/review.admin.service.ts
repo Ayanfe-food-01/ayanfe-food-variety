@@ -2,6 +2,7 @@ import { Prisma, ReviewStatus } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
+import { invalidateProductCaches } from '../cache/index.js'
 import {
   assertHomepageFeaturedCapacity,
   getHomepageFeaturedMetrics,
@@ -116,6 +117,9 @@ export async function updateReviewStatus(
       data: status === 'REJECTED' ? { status, isFeatured: false } : { status },
       include: adminReviewInclude,
     })
+    // Approving or rejecting a review changes the average rating and review
+    // count shown on every cached listing / detail / homepage rail.
+    void invalidateProductCaches()
     return toAdminReviewDetail(updated)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -175,6 +179,9 @@ export async function deleteReview(id: string): Promise<void> {
   await getAdminReview(id)
   try {
     await prisma.review.delete({ where: { id } })
+    // Removing a review (especially an approved one) changes the rating and
+    // review count on the product's cached pages.
+    void invalidateProductCaches()
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new HttpError(404, 'Review not found.')

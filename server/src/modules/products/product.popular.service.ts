@@ -4,6 +4,7 @@ import { calculateDiscountedPrice } from './product.pricing.js'
 import { toOption } from './product.mapper.js'
 import { getWishlistProductIds } from './product.list.service.js'
 import { getProductWholesaleFromMap } from './product.wholesale.service.js'
+import { browseParamsKey, cacheKey, CACHE_TTL, getOrSet } from '../cache/index.js'
 import type { Product, ProductOption, PublicProduct, PublicProductPage, PublicProductQuery } from './product.types.js'
 
 interface PopularProductRow {
@@ -69,6 +70,21 @@ const toPopularProduct = (product: PopularProductRow, images: string[], options:
 })
 
 export async function getPopularProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
+  // Per-user data (wishlist flags / wholesale prices) must never be cached.
+  // Anonymous reads — the overwhelmingly common case — use the popular rail
+  // cache (homepage TTL: 15 minutes); personal and wholesale reads hit the DB.
+  if (wishlistUserId || includeWholesale) {
+    return queryPopularProducts(query, wishlistUserId, includeWholesale)
+  }
+
+  return getOrSet({
+    key: cacheKey.popular(browseParamsKey(query)),
+    ttlSeconds: CACHE_TTL.homepage,
+    fetch: () => queryPopularProducts(query),
+  })
+}
+
+async function queryPopularProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
   const products = await prisma.$queryRaw<PopularProductRow[]>(Prisma.sql`
     SELECT
       p.id,

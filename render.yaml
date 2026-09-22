@@ -13,6 +13,15 @@ services:
         value: 10000
       - key: DATABASE_URL
         sync: false
+      # Redis caching layer. Optional — the API degrades gracefully to direct
+      # database reads when this is absent. Use a managed Redis (e.g. Render
+      # Redis or Upstash) and pass its TLS connection string, e.g. rediss://...
+      - key: REDIS_URL
+        sync: false
+      - key: CACHE_ENABLED
+        value: "true"
+      - key: CACHE_KEY_PREFIX
+        value: "afvc"
       - key: SESSION_SECRET
         sync: false
       - key: CORS_ORIGINS

@@ -249,6 +249,44 @@ export async function getProduct(id: string): Promise<Product> {
   return toProduct(response.data)
 }
 
+export interface HomepageData {
+  categories: import('../types/category').Category[]
+  popularProducts: Product[]
+  featuredProducts: Product[]
+  newArrivals: Product[]
+  categorySections: CategoryProductSection[]
+}
+
+interface HomepageDataResponse {
+  data: {
+    categories: import('../types/category').Category[]
+    popularProducts: ProductApiResponse[]
+    featuredProducts: ProductApiResponse[]
+    newArrivals: ProductApiResponse[]
+    categorySections: CategoryProductSectionsResponse['data']['sections']
+  }
+}
+
+/**
+ * Fetches the aggregated homepage payload in a single request. The server
+ * caches this for 15 minutes for anonymous visitors, turning five parallel
+ * requests into one. Product payloads are validated with the same `toProduct`
+ * guards used everywhere else.
+ */
+export async function getHomepageData(): Promise<HomepageData> {
+  const response = await request<HomepageDataResponse>('/homepage')
+  return {
+    categories: response.data.categories,
+    popularProducts: response.data.popularProducts.map(toProduct),
+    featuredProducts: response.data.featuredProducts.map(toProduct),
+    newArrivals: response.data.newArrivals.map(toProduct),
+    categorySections: response.data.categorySections.map((section) => ({
+      category: section.category,
+      products: section.products.map(toProduct),
+    })),
+  }
+}
+
 interface ProductWholesalePricingResponse {
   data: {
     productId: string

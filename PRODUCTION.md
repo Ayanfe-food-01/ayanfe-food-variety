@@ -183,9 +183,11 @@ Vercel and Render secret/environment-variable settings.
 
 ## Local development setup
 
-Run these commands from the repository root. Your `.env` file in the `server/`
-directory must contain `DATABASE_URL`, `SESSION_SECRET`, `CORS_ORIGINS`, and
-`PUBLIC_APP_URL`. Never commit real secrets to source control.
+Run these commands from the repository root. Create the repo-root `.env` by
+copying `server/.env.example`; it must contain `DATABASE_URL`, `SESSION_SECRET`,
+`CORS_ORIGINS`, and `PUBLIC_APP_URL` (the API loads its environment from the
+repository root — see `server/src/config/env.ts`). Never commit real secrets to
+source control.
 
 ```bash
 # Install dependencies once

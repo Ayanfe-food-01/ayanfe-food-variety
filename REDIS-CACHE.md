@@ -144,9 +144,19 @@ redis-cli ping            # -> PONG
 
 ### Environment
 
-Add to `server/.env` (see `.env.example`):
+Two reference templates live next to the API code:
+
+- **Development** → `server/.env.example`
+- **Production** → `server/.env.production.example`
+
+The API loads its environment from the repository-root `.env` file (see
+`server/src/config/env.ts`), so for local development copy the dev template
+into the root `.env`. For production, use the prod template as a checklist and
+enter the values in the Render dashboard instead (they are never written to a
+file on the server).
 
 ```bash
+# Development (root .env):
 REDIS_URL=redis://localhost:6379
 CACHE_ENABLED=true
 CACHE_KEY_PREFIX=afvc

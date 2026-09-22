@@ -2,6 +2,7 @@ import { AdminNotificationType, MovementType, Prisma } from '@prisma/client'
 import { HttpError } from '../../utils/http.js'
 import { createAdminNotification } from '../notifications/notification.service.js'
 import { resolveLowStockThreshold, LOW_STOCK_THRESHOLD_DEFAULT } from './inventory.threshold.js'
+import { scheduleProductCacheInvalidation } from '../cache/index.js'
 import type {
   InventoryTransaction,
   StockAdjustmentInput,
@@ -195,6 +196,9 @@ export async function deductStock(
       threshold: product.low_stock_threshold,
     })
   }
+  // Stock changed -> availability, lists, homepage and search all move.
+  // Coalesced so multi-line orders clear the cache once, not per line.
+  scheduleProductCacheInvalidation()
 }
 
 export async function restoreStock(
@@ -222,6 +226,7 @@ export async function restoreStock(
       movementType: MovementType.CANCELLATION_RESTORATION,
       reason: `Cancellation ${input.orderNumber}`,
     })
+    scheduleProductCacheInvalidation()
     return
   }
 
@@ -242,4 +247,7 @@ export async function restoreStock(
     movementType: MovementType.CANCELLATION_RESTORATION,
     reason: `Cancellation ${input.orderNumber}`,
   })
+
+  // Restored stock changes what the storefront shows as available.
+  scheduleProductCacheInvalidation()
 }

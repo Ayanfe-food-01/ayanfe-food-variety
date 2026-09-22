@@ -3,6 +3,7 @@ import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { recordStockAdjustment, createLowStockNotificationIfNeeded } from './inventory.service.js'
 import { resolveLowStockThreshold } from './inventory.threshold.js'
+import { scheduleProductCacheInvalidation } from '../cache/index.js'
 import type { InventoryAdjustInput, InventoryItem } from './inventory.types.js'
 
 const INVENTORY_SELECT = {
@@ -136,6 +137,7 @@ export async function adjustStock(input: InventoryAdjustInput, adminId: string) 
         })
       }
 
+      scheduleProductCacheInvalidation()
       return { previousQuantity: option.stock_quantity, newQuantity }
     }
 
@@ -186,6 +188,7 @@ export async function adjustStock(input: InventoryAdjustInput, adminId: string) 
       })
     }
 
+    scheduleProductCacheInvalidation()
     return { previousQuantity: product.stock_quantity, newQuantity }
   }, { timeout: 15000 })
 }

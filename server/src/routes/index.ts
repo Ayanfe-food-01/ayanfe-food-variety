@@ -9,14 +9,19 @@ import { categoryRoutes } from '../modules/categories/category.routes.js'
 import { contactRoutes } from '../modules/contact/contact.routes.js'
 import { customerStoriesRoutes } from '../modules/customer-stories/customer-stories.routes.js'
 import { deliveryZoneRoutes } from '../modules/delivery-zones/delivery-zone.routes.js'
+import { getHomepageController } from '../modules/homepage/homepage.controller.js'
 import { orderRoutes } from '../modules/orders/order.routes.js'
 import { paymentRoutes } from '../modules/payments/payment.routes.js'
 import { productRoutes } from '../modules/products/product.routes.js'
 import { quoteRoutes } from '../modules/quotes/routes/quote.routes.js'
 import { settingsRoutes } from '../modules/settings/settings.routes.js'
 import { wishlistRoutes } from '../modules/wishlist/wishlist.routes.js'
+import { optionalCustomerAuthentication } from '../modules/auth/auth.middleware.js'
 
 export const apiRoutes = Router()
+
+// Homepage snapshot (15-minute cache; personalised for signed-in customers).
+apiRoutes.get('/homepage', optionalCustomerAuthentication, getHomepageController)
 
 apiRoutes.use('/categories', categoryRoutes)
 apiRoutes.use('/contact', contactRoutes)

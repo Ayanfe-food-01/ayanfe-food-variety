@@ -1,6 +1,7 @@
 import { app } from './app.js'
 import { env } from './config/env.js'
 import { closeDatabase, verifyDatabaseConnection } from './config/prisma.js'
+import { closeRedis } from './modules/cache/index.js'
 
 const start = async () => {
   await verifyDatabaseConnection()
@@ -12,7 +13,7 @@ const start = async () => {
   const shutdown = async (signal: string) => {
     console.info(`${signal} received, shutting down`)
     server.close(async () => {
-      await closeDatabase()
+      await Promise.all([closeDatabase(), closeRedis()])
       process.exit(0)
     })
   }

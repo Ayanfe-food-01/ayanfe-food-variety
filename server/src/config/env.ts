@@ -91,6 +91,18 @@ try {
   throw new Error("BUSINESS_TIMEZONE must be a valid IANA timezone");
 }
 
+// Redis cache configuration. Caching is a best-effort readability layer:
+// when REDIS_URL is absent, or CACHE_ENABLED is explicitly "false", every
+// cache helper falls straight through to the database so the store keeps
+// working without Redis.
+const redisUrlValue = process.env.REDIS_URL?.trim() ?? ''
+const cacheEnabled = (process.env.CACHE_ENABLED?.trim() ?? 'true').toLowerCase()
+const redisEnabled = Boolean(redisUrlValue) && cacheEnabled !== 'false'
+const cacheKeyPrefix = process.env.CACHE_KEY_PREFIX?.trim() || 'afvc'
+if (!/^[A-Za-z0-9_.-]+$/.test(cacheKeyPrefix)) {
+  throw new Error('CACHE_KEY_PREFIX must only contain letters, numbers, dots, underscores or dashes.')
+}
+
 export const env = {
   databaseUrl,
   port: parsePort(process.env.PORT),
@@ -99,6 +111,16 @@ export const env = {
   businessTimezone,
   corsOrigins,
   publicAppUrl,
+  redis: {
+    // Full Redis connection string, e.g. redis://:password@host:6379.
+    url: redisUrlValue,
+    // Master switch. Set to "false" to disable the cache layer entirely and
+    // always read from the database.
+    enabled: redisEnabled,
+    // Prefix applied to every cache key when sharing one Redis instance with
+    // several environments/tenants.
+    keyPrefix: cacheKeyPrefix,
+  },
   googleOAuth: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,

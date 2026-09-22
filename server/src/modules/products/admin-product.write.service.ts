@@ -5,6 +5,7 @@ import { MovementType } from '@prisma/client'
 import { createLowStockNotificationIfNeeded, recordStockAdjustment } from '../inventory/inventory.service.js'
 import { adminProductInclude, toAdminProduct } from './admin-product.mapper.js'
 import { reconcileOptions, syncWholesaleTiers } from './admin-product.options.service.js'
+import { invalidateProductCaches } from '../cache/index.js'
 import type { Product, ProductInput } from './product.types.js'
 
 const inputImages = (input: ProductInput): string[] => {
@@ -118,6 +119,9 @@ export async function createProduct(input: ProductInput, adminId: string): Promi
       }
       return created
     }, { timeout: 15000 })
+    // A new product changes listings (membership/ordering), the category's
+    // product sections and any search results containing it.
+    void invalidateProductCaches()
     return toAdminProduct(product)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -189,6 +193,9 @@ export async function updateProduct(input: ProductInput, adminId: string, id: st
       }
       return updated
     }, { timeout: 60000 })
+    // Updates can change availability, stock, prices, featured/active state
+    // and category membership — everything the storefront reads.
+    void invalidateProductCaches()
     return toAdminProduct(product)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

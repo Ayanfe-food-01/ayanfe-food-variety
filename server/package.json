@@ -20,6 +20,8 @@
     "doctor": "tsx scripts/doctor.ts",
     "smoke:production": "node scripts/production-smoke.mjs",
     "test:inventory": "tsx scripts/inventory-safety-smoke.ts",
+    "test:cache": "tsx scripts/redis-cache-smoke.ts",
+    "test:cache:e2e": "tsx scripts/redis-cache-e2e-smoke.ts",
     "test:google-oauth": "tsx scripts/google-oauth-smoke.ts",
     "test:quote-pricing": "tsx scripts/quote-pricing-smoke.ts",
     "test:quote-customer": "tsx scripts/customer-quote-smoke.ts",
@@ -45,7 +47,8 @@
     "express": "^5.1.0",
     "google-auth-library": "^11.0.2",
     "multer": "^2.0.2",
-    "prisma": "^6.19.3"
+    "prisma": "^6.19.3",
+    "redis": "^4.7.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

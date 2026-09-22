@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import { buildSearchWhere, type SearchFieldConfig } from '../../utils/search.js'
+import { cacheKey, CACHE_TTL, getOrSet, invalidateCategoryCaches } from '../cache/index.js'
 import type { AdminCategoryQuery, Category, CategoryInput } from './category.types.js'
 import type { StoredCategoryImage } from './category.storage.js'
 
@@ -35,7 +36,24 @@ const toCategory = (category: {
   ...(category._count ? { productCount: category._count.products } : {}),
 })
 
+/**
+ * PUBLIC category list with cache-aside.
+ * Single key (all active categories) cached for 1 hour. The admin variants
+ * below (`listAdminCategories`, `getAdminCategory`) deliberately bypass the
+ * cache so the dashboard always reflects live data.
+ */
 export async function getCategories(includeInactive = false): Promise<Category[]> {
+  if (includeInactive) return queryCategories(true)
+
+  return getOrSet({
+    key: cacheKey.categories(),
+    ttlSeconds: CACHE_TTL.categories,
+    fetch: () => queryCategories(false),
+  })
+}
+
+/** Uncached database implementation of the category list. */
+async function queryCategories(includeInactive: boolean): Promise<Category[]> {
   const categories = await prisma.category.findMany({
     where: includeInactive ? undefined : { isActive: true },
     orderBy: { name: 'asc' },
@@ -78,6 +96,9 @@ export async function createCategory(input: CategoryInput, image?: StoredCategor
         isActive: input.isActive,
       },
     })
+    // Creating a category can change category rails / product sections, so
+    // clear the category list too.
+    void invalidateCategoryCaches()
     return toCategory(category, true)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -150,6 +171,9 @@ export async function updateCategory(id: string, input: CategoryInput, image?: S
       },
       include: { _count: { select: { products: true } } },
     })
+    // Renames / description / active-state edits affect the category list and
+    // every listing grouped by category.
+    void invalidateCategoryCaches()
     return toCategory(category, true)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -169,6 +193,8 @@ export async function updateCategoryStatus(id: string, isActive: boolean): Promi
       data: { isActive },
       include: { _count: { select: { products: true } } },
     })
+    // Deactivating a category hides its products from public listings.
+    void invalidateCategoryCaches()
     return toCategory(category, true)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -190,6 +216,7 @@ export async function deleteCategory(id: string): Promise<string | null> {
 
   try {
     await prisma.category.delete({ where: { id } })
+    void invalidateCategoryCaches()
     return category.imagePublicId
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2003' || error.code === 'P2025')) {

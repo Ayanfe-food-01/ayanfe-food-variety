@@ -5,6 +5,15 @@ import type { ProductWithRatings } from './product.mapper.js'
 import { getProductWholesaleFromMap } from './product.wholesale.service.js'
 import { buildSearchWhere, rankSearchResults, type SearchFieldConfig, type SearchRankConfig } from '../../utils/search.js'
 import type { PublicCategoryProductSection, PublicProduct, PublicProductPage, PublicProductQuery } from './product.types.js'
+import {
+  browseParamsKey,
+  cacheKey,
+  CACHE_TTL,
+  CACHE_TTL_NEGATIVE_PRODUCT_DETAIL,
+  getCached,
+  getOrSet,
+  setCached,
+} from '../cache/index.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -44,7 +53,27 @@ export const getWishlistProductIds = async (productIds: string[], userId?: strin
   return new Set(items.map((item) => item.productId))
 }
 
-export async function getProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
+/**
+ * Determines whether a public product read can be served from the cache.
+ *
+ * Public product responses embed the caller's wishlist flags and, in
+ * wholesale mode, wholesale-visible prices — both are per-user data that must
+ * never be cached (and never leak into Redis). Caching is therefore limited
+ * to anonymous, retail-storefront reads, which make up the overwhelming
+ * majority of traffic on a high-traffic storefront.
+ */
+const isCacheable = (wishlistUserId?: string, includeWholesale = false): boolean =>
+  !wishlistUserId && !includeWholesale
+
+/**
+ * Uncached database implementation of a product listing page.
+ * The public `getProducts` wrapper below adds cache-aside behaviour.
+ */
+async function queryProducts(
+  query: PublicProductQuery,
+  wishlistUserId?: string,
+  includeWholesale = false,
+): Promise<PublicProductPage> {
   const where: Prisma.ProductWhereInput = {
     isActive: true,
     ...(query.category
@@ -120,7 +149,39 @@ export async function getProducts(query: PublicProductQuery, wishlistUserId?: st
   }
 }
 
-export async function getCategoryProductSections(
+/**
+ * Public product listing / search with cache-aside.
+ *
+ * Cache key routing:
+ *  - with a search term  -> `products:search:*` key, 5-minute TTL
+ *  - without one         -> `products:list:*` key, 10-minute TTL
+ *
+ * Authenticated / wholesale reads bypass the cache entirely (see isCacheable).
+ */
+export async function getProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
+  if (!isCacheable(wishlistUserId, includeWholesale)) {
+    return queryProducts(query, wishlistUserId, includeWholesale)
+  }
+
+  if (query.search) {
+    return getOrSet({
+      key: cacheKey.productSearch(browseParamsKey(query)),
+      ttlSeconds: CACHE_TTL.search,
+      fetch: () => queryProducts(query),
+    })
+  }
+
+  return getOrSet({
+    key: cacheKey.productList(browseParamsKey(query)),
+    ttlSeconds: CACHE_TTL.productList,
+    fetch: () => queryProducts(query),
+  })
+}
+
+/**
+ * Uncached database implementation of the homepage category product sections.
+ */
+async function queryCategoryProductSections(
   limit: number,
   wishlistUserId?: string,
   includeWholesale = false,
@@ -170,11 +231,46 @@ export async function getCategoryProductSections(
     }))
 }
 
-export async function getNewArrivals(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
-  return getProducts({ ...query, sort: 'newest' }, wishlistUserId, includeWholesale)
+/**
+ * Homepage category sections with cache-aside (homepage TTL: 15 minutes).
+ */
+export async function getCategoryProductSections(
+  limit: number,
+  wishlistUserId?: string,
+  includeWholesale = false,
+): Promise<PublicCategoryProductSection[]> {
+  if (!isCacheable(wishlistUserId, includeWholesale)) {
+    return queryCategoryProductSections(limit, wishlistUserId, includeWholesale)
+  }
+
+  return getOrSet({
+    key: cacheKey.categorySections(limit),
+    ttlSeconds: CACHE_TTL.homepage,
+    fetch: () => queryCategoryProductSections(limit),
+  })
 }
 
-export async function getFeaturedProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
+/**
+ * New-arrivals rail with cache-aside (homepage TTL: 15 minutes).
+ * A dedicated key keeps the homepage snapshot isolated from shared `products:list`
+ * entries so whole-homepage invalidation (`afvc:homepage:*`) refreshes it.
+ */
+export async function getNewArrivals(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
+  if (!isCacheable(wishlistUserId, includeWholesale)) {
+    return queryProducts({ ...query, sort: 'newest' }, wishlistUserId, includeWholesale)
+  }
+
+  return getOrSet({
+    key: cacheKey.newArrivals(browseParamsKey({ ...query, sort: 'newest' })),
+    ttlSeconds: CACHE_TTL.homepage,
+    fetch: () => queryProducts({ ...query, sort: 'newest' }),
+  })
+}
+
+/**
+ * Uncached database implementation of the featured products rail.
+ */
+async function queryFeaturedProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
   const where: Prisma.ProductWhereInput = {
     isFeatured: true,
     isActive: true,
@@ -211,7 +307,26 @@ export async function getFeaturedProducts(query: PublicProductQuery, wishlistUse
   }
 }
 
-export async function getProductById(identifier: string, wishlistUserId?: string, includeWholesale = false): Promise<PublicProduct | null> {
+/**
+ * Featured products rail with cache-aside (homepage TTL: 15 minutes).
+ * Refreshed by `invalidateFeaturedCaches` when an admin flips featured status.
+ */
+export async function getFeaturedProducts(query: PublicProductQuery, wishlistUserId?: string, includeWholesale = false): Promise<PublicProductPage> {
+  if (!isCacheable(wishlistUserId, includeWholesale)) {
+    return queryFeaturedProducts(query, wishlistUserId, includeWholesale)
+  }
+
+  return getOrSet({
+    key: cacheKey.featured(browseParamsKey(query)),
+    ttlSeconds: CACHE_TTL.homepage,
+    fetch: () => queryFeaturedProducts(query),
+  })
+}
+
+/**
+ * Uncached database implementation of a single product detail read.
+ */
+async function queryProductById(identifier: string, wishlistUserId?: string, includeWholesale = false): Promise<PublicProduct | null> {
   const isUuid = UUID_PATTERN.test(identifier)
   const product = await prisma.product.findFirst({
     where: isUuid
@@ -224,4 +339,30 @@ export async function getProductById(identifier: string, wishlistUserId?: string
   const isWishlisted = (await getWishlistProductIds([product.id], wishlistUserId)).has(product.id)
   const wholesaleFromMap = includeWholesale ? await getProductWholesaleFromMap([product.id]) : null
   return toPublicProduct(product, isWishlisted, wholesaleFromMap?.get(product.id))
+}
+
+/**
+ * Product detail with cache-aside.
+ * The most-viewed resource on the storefront, so it gets the longest window:
+ *  - positive lookups are cached for 30 minutes,
+ *  - negative lookups (unknown/deleted slug) for only 1 minute, so a brand
+ *    new product is discoverable promptly after it gets created.
+ */
+export async function getProductById(identifier: string, wishlistUserId?: string, includeWholesale = false): Promise<PublicProduct | null> {
+  if (!isCacheable(wishlistUserId, includeWholesale)) {
+    return queryProductById(identifier, wishlistUserId, includeWholesale)
+  }
+
+  const key = cacheKey.productDetail(identifier)
+  const cached = await getCached<PublicProduct | null>(key)
+  if (cached.hit) return cached.value
+
+  const product = await queryProductById(identifier)
+  // Negative result cached for a minute; positive for the full detail TTL.
+  await setCached(
+    key,
+    product,
+    product ? CACHE_TTL.productDetail : CACHE_TTL_NEGATIVE_PRODUCT_DETAIL,
+  )
+  return product
 }

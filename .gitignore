@@ -13,3 +13,5 @@ dist/
 # Playwright artifacts
 test-results/
 playwright-report/
+# Local Redis snapshot (dev tooling)
+dump.rdb

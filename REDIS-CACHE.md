@@ -32,6 +32,8 @@ to the database and the website keeps working — no user-facing errors.
 | New arrivals rail            | `afvc:homepage:new-arrivals:*` | 15 min  | any product/stock change                      |
 | Category product sections    | `afvc:homepage:category-sections:*` | 15 min | any product/category change         |
 | Aggregated homepage (GET /api/v1/homepage) | `afvc:homepage:data` | 15 min | any product/category/stock change |
+| Delivery locations tree (admin zone picker) | `afvc:admin:delivery-locations:states` | 1 hour | delivery zone/area create/update/status/delete/reorder/assign/unassign |
+| Delivery locations tree (public checkout) | `afvc:delivery-locations:public` | 1 hour | delivery zone/area create/update/status/delete/reorder/assign/unassign |
 
 > The `afvc:` prefix is configurable via `CACHE_KEY_PREFIX` so several
 > environments (staging, production) can safely share one Redis instance.
@@ -68,6 +70,7 @@ cached entries.
 | Category created / updated / activated / deleted | `categories:*`, `products:*`, `homepage:*` |
 | Stock deducted (order), restored (cancellation), or adjusted (admin) | `products:*`, `homepage:*` |
 | Review approved / rejected / deleted (changes star rating on storefront cards and detail pages) | `products:*`, `homepage:*` |
+| Delivery zone/area created, updated, status toggled, deleted, reordered, or a city/area (un)assigned | `delivery-locations:*` (admin + public trees) |
 
 Wiring lives in `server/src/modules/cache/invalidate.ts` and is called from
 the service layer (`admin-product.service.ts`, `admin-product.write.service.ts`,
@@ -76,8 +79,19 @@ the service layer (`admin-product.service.ts`, `admin-product.write.service.ts`,
 right where the write happens. Stock changes use a 50 ms debounce so an order
 that deducts several line items invalidates the cache once, not once per line.
 
+Delivery-location invalidation lives in
+`server/src/modules/delivery-zones/delivery-location.cache.ts`. The zone/area
+write services call `refreshDeliveryLocationCaches()`, which **clears both
+location trees and immediately re-warms them in the background** — so the admin
+who just saved a zone and the next customer at checkout both hit a warm cache
+instead of the slow database path.
+
 Because admin endpoints never read through the cache, the dashboard always
-shows live data; only storefront reads are cached.
+shows live data; only storefront reads are cached. The one deliberate exception
+is the delivery-location **pickers** (admin zone modal + public checkout
+dropdown): their query fans out over 776 cities and took seconds even on a
+healthy connection, and they are reference data with strict invalidation on
+every write, so they are served through the cache like everything else.
 
 ## Cache hit / miss / error metrics (requirement 7)
 
@@ -224,5 +238,5 @@ cacheless against the database until you add it.
 - `server/src/modules/cache/cache.keys.ts` — key builders and TTLs
 - `server/src/modules/cache/invalidate.ts` — domain invalidators
 - `server/src/modules/homepage/` — aggregate homepage service/controller
-- Read-side caching: `products/product.list.service.ts`, `products/product.popular.service.ts`, `categories/category.service.ts`
-- Write-side invalidation: `products/admin-product.service.ts`, `products/admin-product.write.service.ts`, `categories/category.service.ts`, `inventory/inventory.service.ts`, `inventory/inventory.adjust.service.ts`
+- Read-side caching: `products/product.list.service.ts`, `products/product.popular.service.ts`, `categories/category.service.ts`, `delivery-zones/delivery-location.states.service.ts`
+- Write-side invalidation: `products/admin-product.service.ts`, `products/admin-product.write.service.ts`, `categories/category.service.ts`, `inventory/inventory.service.ts`, `inventory/inventory.adjust.service.ts`, `delivery-zones/delivery-location.cache.ts` (zone/area writes)

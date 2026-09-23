@@ -3,6 +3,7 @@ import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { DeliveryZoneDetail } from './delivery-zone.types.js'
 import { getAdminDeliveryZone } from './delivery-zone.list.service.js'
+import { refreshDeliveryLocationCaches } from './delivery-location.cache.js'
 
 export async function assignCityToZone(zoneId: string, cityId: string): Promise<DeliveryZoneDetail> {
   await getAdminDeliveryZone(zoneId)
@@ -45,6 +46,7 @@ export async function assignCityToZone(zoneId: string, cityId: string): Promise<
     throw error
   }
 
+  refreshDeliveryLocationCaches()
   return getAdminDeliveryZone(zoneId)
 }
 
@@ -68,6 +70,7 @@ export async function unassignCityFromZone(zoneId: string, cityId: string): Prom
     throw error
   }
 
+  refreshDeliveryLocationCaches()
   return getAdminDeliveryZone(zoneId)
 }
 
@@ -114,6 +117,7 @@ export async function assignAreaToZone(zoneId: string, areaId: string): Promise<
     throw error
   }
 
+  refreshDeliveryLocationCaches()
   return getAdminDeliveryZone(zoneId)
 }
 
@@ -137,5 +141,6 @@ export async function unassignAreaFromZone(zoneId: string, areaId: string): Prom
     throw error
   }
 
+  refreshDeliveryLocationCaches()
   return getAdminDeliveryZone(zoneId)
 }

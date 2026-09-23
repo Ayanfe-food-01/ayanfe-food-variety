@@ -3,6 +3,7 @@ import { prisma } from '../../config/prisma.js'
 import { HttpError } from '../../utils/http.js'
 import type { DeliveryArea, DeliveryAreaInput, DeliveryAreaWithCity } from './delivery-zone.types.js'
 import { areaInclude, toArea, toAreaWithCity } from './delivery-location.include.js'
+import { refreshDeliveryLocationCaches } from './delivery-location.cache.js'
 
 export async function createDeliveryArea(input: DeliveryAreaInput): Promise<DeliveryAreaWithCity> {
   const city = await prisma.city.findUnique({
@@ -16,6 +17,7 @@ export async function createDeliveryArea(input: DeliveryAreaInput): Promise<Deli
       data: { cityId: input.cityId, name: input.name, isActive: input.isActive },
       include: areaInclude,
     })
+    refreshDeliveryLocationCaches()
     return toAreaWithCity(created)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -32,6 +34,7 @@ export async function updateDeliveryArea(id: string, input: Omit<DeliveryAreaInp
       data: { name: input.name, isActive: input.isActive },
       include: areaInclude,
     })
+    refreshDeliveryLocationCaches()
     return toAreaWithCity(updated)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -50,6 +53,7 @@ export async function updateDeliveryAreaStatus(id: string, isActive: boolean): P
       where: { id },
       data: { isActive },
     })
+    refreshDeliveryLocationCaches()
     return toArea(area)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -73,6 +77,7 @@ export async function deleteDeliveryArea(id: string): Promise<void> {
   }
   try {
     await prisma.area.delete({ where: { id } })
+    refreshDeliveryLocationCaches()
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new HttpError(404, 'Delivery area not found.')

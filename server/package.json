@@ -22,6 +22,7 @@
     "test:inventory": "tsx scripts/inventory-safety-smoke.ts",
     "test:cache": "tsx scripts/redis-cache-smoke.ts",
     "test:cache:e2e": "tsx scripts/redis-cache-e2e-smoke.ts",
+    "test:delivery:cache": "tsx scripts/delivery-locations-cache-smoke.ts",
     "test:google-oauth": "tsx scripts/google-oauth-smoke.ts",
     "test:quote-pricing": "tsx scripts/quote-pricing-smoke.ts",
     "test:quote-customer": "tsx scripts/customer-quote-smoke.ts",

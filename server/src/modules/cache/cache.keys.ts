@@ -17,6 +17,8 @@ import { env } from '../../config/env.js'
  *   afvc:homepage:new-arrivals:*-> new arrivals rail (GET /products/new-arrivals)
  *   afvc:homepage:category-sections:* -> category product sections (GET /products/category-sections)
  *   afvc:homepage:data          -> aggregated homepage snapshot (GET /homepage)
+ *   afvc:delivery-locations:public -> public checkout location picker
+ *   afvc:admin:delivery-locations:states -> admin zone-picker location tree
  *
  * A single `DEL afvc:homepage:*` invalidates every piece of the homepage,
  * which keeps invalidation fast and correct.
@@ -41,6 +43,7 @@ export const CACHE_TTL = {
   categories: 60 * 60,      // 3600s
   homepage: 60 * 15,        // 900s
   search: 60 * 5,           // 300s
+  deliveryLocations: 60 * 60, // 3600s (states/cities/areas reference tree)
 } as const
 
 /**
@@ -74,6 +77,10 @@ export const cacheKey = {
     `${NAMESPACE}:homepage:category-sections:${limit}`,
   /** Aggregated homepage snapshot (categories + all four product rails). */
   homepageData: (): string => `${NAMESPACE}:homepage:data`,
+  /** Admin zone-picker location tree (states -> cities -> areas). */
+  deliveryLocationsAdmin: (): string => `${NAMESPACE}:admin:delivery-locations:states`,
+  /** Public checkout location picker (states -> cities -> active areas). */
+  deliveryLocationsPublic: (): string => `${NAMESPACE}:delivery-locations:public`,
 } as const
 
 /**

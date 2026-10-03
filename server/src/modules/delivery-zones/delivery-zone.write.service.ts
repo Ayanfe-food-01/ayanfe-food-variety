@@ -4,6 +4,7 @@ import { HttpError } from '../../utils/http.js'
 import type { DeliveryZone, DeliveryZoneInput } from './delivery-zone.types.js'
 import { orderByDisplay, toZone, zoneInclude, type CoverageInput } from './delivery-zone.mapper.js'
 import { getAdminDeliveryZone } from './delivery-zone.list.service.js'
+import { refreshDeliveryLocationCaches } from './delivery-location.cache.js'
 
 async function assertCitiesUnassigned(cityIds: string[], excludeZoneId?: string): Promise<void> {
   const taken = await prisma.deliveryZoneCity.findMany({
@@ -83,6 +84,7 @@ export async function createDeliveryZone(input: DeliveryZoneInput): Promise<Deli
     throw error
   }
 
+  refreshDeliveryLocationCaches()
   return toZone(created)
 }
 
@@ -122,6 +124,7 @@ export async function updateDeliveryZone(id: string, input: DeliveryZoneInput): 
         include: zoneInclude,
       })
     })
+    refreshDeliveryLocationCaches()
     return toZone(updated)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
@@ -141,6 +144,7 @@ export async function updateDeliveryZoneStatus(id: string, isActive: boolean): P
       data: { isActive },
       include: zoneInclude,
     })
+    refreshDeliveryLocationCaches()
     return toZone(zone)
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -154,6 +158,7 @@ export async function deleteDeliveryZone(id: string): Promise<void> {
   await getAdminDeliveryZone(id)
   try {
     await prisma.deliveryZone.delete({ where: { id } })
+    refreshDeliveryLocationCaches()
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2003' || error.code === 'P2025')) {
       throw new HttpError(409, 'This delivery zone is currently in use by orders. Deactivate it instead of deleting it.')
@@ -185,6 +190,7 @@ export async function reorderDeliveryZones(zoneIds: string[]): Promise<DeliveryZ
     include: zoneInclude,
     ...orderByDisplay,
   })
+  refreshDeliveryLocationCaches()
   return refreshedZones.map((zone) => toZone(zone))
 }
 
